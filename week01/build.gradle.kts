@@ -1,3 +1,8 @@
+import org.gradle.api.tasks.testing.TestDescriptor
+import org.gradle.api.tasks.testing.TestListener
+import org.gradle.api.tasks.testing.TestResult
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -23,7 +28,11 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation(libs.spring.boot.starter.web)
     annotationProcessor(libs.spring.boot.configuration.processor)
-    testImplementation(libs.spring.boot.starter.test)
+
+    // Test Dependencies
+    testImplementation("io.mockk:mockk:1.13.8")
+    testImplementation("io.kotest:kotest-runner-junit5:5.8.0")
+    testImplementation("io.kotest:kotest-assertions-core:5.8.0")
 }
 
 // about source and compilation
@@ -53,4 +62,39 @@ tasks.getByName("jar") {
 tasks.test {
     ignoreFailures = true
     useJUnitPlatform()
+
+    // 테스트 결과 상세 출력
+    testLogging {
+        events(
+            TestLogEvent.PASSED,
+            TestLogEvent.SKIPPED,
+            TestLogEvent.FAILED,
+            TestLogEvent.STANDARD_OUT,
+            TestLogEvent.STANDARD_ERROR
+        )
+        exceptionFormat = TestExceptionFormat.FULL
+        showExceptions = true
+        showCauses = true
+        showStackTraces = true
+        showStandardStreams = false
+    }
+
+    // 테스트 실행 후 결과 요약 출력
+    addTestListener(object : TestListener {
+        override fun beforeSuite(suite: TestDescriptor) {}
+        override fun beforeTest(testDescriptor: TestDescriptor) {}
+        override fun afterTest(testDescriptor: TestDescriptor, result: TestResult) {}
+        override fun afterSuite(suite: TestDescriptor, result: TestResult) {
+            if (suite.parent == null) {
+                println("\n====================================")
+                println("Test Results")
+                println("====================================")
+                println("Tests: ${result.testCount}")
+                println("Passed: ${result.successfulTestCount}")
+                println("Failed: ${result.failedTestCount}")
+                println("Skipped: ${result.skippedTestCount}")
+                println("====================================\n")
+            }
+        }
+    })
 }
