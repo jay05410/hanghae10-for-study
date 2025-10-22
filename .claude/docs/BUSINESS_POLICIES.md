@@ -1,6 +1,6 @@
 # 비즈니스 정책 정의서
 
-## 📋 필수 비즈니스 정책
+## 필수 비즈니스 정책
 
 ### 1. 포인트 충전 정책
 
@@ -76,7 +76,7 @@
 - **규칙**:
   - 요청한 사용자 ID와 일치하는 내역만 반환
 
-## 🏗️ Exception Classes 구조
+## Exception Classes 구조
 
 ```kotlin
 sealed class PointException(message: String) : RuntimeException(message) {
@@ -106,7 +106,7 @@ sealed class PointException(message: String) : RuntimeException(message) {
 }
 ```
 
-## 📊 정책 검증 테스트 케이스
+## 정책 검증 테스트 케이스
 
 ### 충전 정책 테스트
 - [ ] 999원 충전 시도 → MinimumChargeAmount 예외
@@ -127,7 +127,7 @@ sealed class PointException(message: String) : RuntimeException(message) {
 - [ ] 동일 사용자 동시 사용 요청 처리 (잔고 부족 상황)
 - [ ] 동일 사용자 동시 조회 요청 처리
 
-## 💡 구현 참고사항
+## 구현 참고사항
 
 ### 일일 사용 한도 추적 방법
 - 메모리 기반 일일 사용 금액 추적기 구현 필요

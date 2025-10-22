@@ -100,6 +100,7 @@ Claude Code (claude.ai/code) 작업을 위한 프로젝트 가이드입니다.
 - `/tdd-cycle` - TDD 사이클 자동화 (Red-Green-Refactor)
 - `/point-feature` - 포인트 기능 구현 자동화
 - `/test-setup` - 테스트 데이터 및 환경 셋업
+- `/create-pr` - PR 템플릿 기반 자동 PR 생성
 
 ### 워크플로우 통합
 이 명령어들을 활용하여 TDD 개발 워크플로우를 자동화하고 일관성 있는 코드 품질을 유지하세요.
