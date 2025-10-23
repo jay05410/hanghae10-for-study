@@ -16,7 +16,8 @@ import org.springframework.stereotype.Service
 @Service
 class PointChargeService(
     private val userPointTable: UserPointTable,
-    private val pointHistoryTable: PointHistoryTable
+    private val userLockManager: UserLockManager,
+    private val transactionLogger: PointTransactionLogger
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -33,29 +34,32 @@ class PointChargeService(
     fun charge(userId: Long, amount: Long): UserPoint {
         logger.info("포인트 충전 요청: userId=$userId, amount=$amount")
 
-        // 1. 충전 금액 검증 (VO)
+        // 1. 충전 금액 검증
         val chargeAmount = ChargeAmount(amount)
 
-        // 2. 현재 포인트 조회
-        val currentPoint = userPointTable.selectById(userId)
-        logger.debug("현재 포인트: userId=${currentPoint.id}, point=${currentPoint.point}")
+        // 2. 사용자별 락 - 동시성 제어
+        return userLockManager.executeWithLock(userId) {
+            // 3. 현재 포인트 조회
+            val currentPoint = userPointTable.selectById(userId)
+            logger.debug("현재 포인트: userId=${currentPoint.id}, point=${currentPoint.point}")
 
-        // 3. 포인트 계산
-        val newPoint = currentPoint.point + chargeAmount.value
+            // 4. 포인트 계산
+            val remainPoint = currentPoint.point + chargeAmount.value
 
-        // 4. 포인트 업데이트
-        val updatedPoint = userPointTable.insertOrUpdate(userId, newPoint)
+            // 5. 포인트 업데이트
+            val updatedPoint = userPointTable.insertOrUpdate(userId, remainPoint)
 
-        // 5. 충전 내역 기록
-        pointHistoryTable.insert(
-            userId,
-            chargeAmount.value,
-            TransactionType.CHARGE,
-            updatedPoint.updateMillis
-        )
+            // 6. 충전 내역 기록
+            transactionLogger.logTransaction(
+                userId,
+                chargeAmount.value,
+                TransactionType.CHARGE,
+                updatedPoint.updateMillis
+            )
 
-        logger.info("포인트 충전 완료: userId=$userId, ${currentPoint.point} → $newPoint")
+            logger.info("포인트 충전 완료: userId=$userId, ${currentPoint.point} → $remainPoint")
 
-        return updatedPoint
+            updatedPoint
+        }
     }
 }

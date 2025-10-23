@@ -23,8 +23,9 @@ import org.springframework.stereotype.Service
 @Service
 class PointUseService(
     private val userPointTable: UserPointTable,
-    private val pointHistoryTable: PointHistoryTable,
-    private val pointQueryService: PointQueryService
+    private val pointQueryService: PointQueryService,
+    private val userLockManager: UserLockManager,
+    private val transactionLogger: PointTransactionLogger
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -42,36 +43,39 @@ class PointUseService(
     fun use(userId: Long, amount: Long): UserPoint {
         logger.info("포인트 사용 요청: userId=$userId, amount=$amount")
 
-        // 1. 사용 금액 검증 (VO)
+        // 1. 사용 금액 검증
         val useAmount = UseAmount(amount)
 
-        // 2. 현재 포인트 조회
-        val currentPoint = userPointTable.selectById(userId)
-        logger.debug("현재 포인트: userId=${currentPoint.id}, point=${currentPoint.point}")
+        // 2. 사용자별 락 - 동시성 제어
+        return userLockManager.executeWithLock(userId) {
+            // 3. 현재 포인트 조회
+            val currentPoint = userPointTable.selectById(userId)
+            logger.debug("현재 포인트: userId=${currentPoint.id}, point=${currentPoint.point}")
 
-        // 3. 잔고 검증 (유틸 사용)
-        PointValidator.validateBalance(currentPoint.point, useAmount.value)
+            // 4. 잔고 검증
+            PointValidator.validateBalance(currentPoint.point, useAmount.value)
 
-        // 4. 일일 한도 검증 (QueryService + 확장함수 사용)
-        val todayUsed = pointQueryService.getHistories(userId).calculateTodayUsage()
-        PointValidator.validateDailyLimit(todayUsed, useAmount.value)
+            // 5. 일일 한도 검증
+            val todayUsed = pointQueryService.getHistories(userId).calculateTodayUsage()
+            PointValidator.validateDailyLimit(todayUsed, useAmount.value)
 
-        // 5. 포인트 계산
-        val remainPoint = currentPoint.point - useAmount.value
+            // 6. 포인트 계산
+            val remainPoint = currentPoint.point - useAmount.value
 
-        // 6. 포인트 업데이트
-        val updatedPoint = userPointTable.insertOrUpdate(userId, remainPoint)
+            // 7. 포인트 업데이트
+            val updatedPoint = userPointTable.insertOrUpdate(userId, remainPoint)
 
-        // 7. 사용 내역 기록
-        pointHistoryTable.insert(
-            userId,
-            useAmount.value,
-            TransactionType.USE,
-            updatedPoint.updateMillis
-        )
+            // 8. 사용 내역 기록
+            transactionLogger.logTransaction(
+                userId,
+                useAmount.value,
+                TransactionType.USE,
+                updatedPoint.updateMillis
+            )
 
-        logger.info("포인트 사용 완료: userId=$userId, ${currentPoint.point} → $remainPoint")
+            logger.info("포인트 사용 완료: userId=$userId, ${currentPoint.point} → $remainPoint")
 
-        return updatedPoint
+            updatedPoint
+        }
     }
 }

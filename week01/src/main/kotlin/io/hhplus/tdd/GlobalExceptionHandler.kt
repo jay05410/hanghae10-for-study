@@ -49,31 +49,7 @@ class GlobalExceptionHandler {
             .body(ApiResponse.error(
                 errorCode = e.errorCode.code,
                 errorMessage = e.message,
-                data = if (e.data.isNotEmpty()) e.data else null
-            ))
-    }
-
-    /**
-     * Spring의 @Valid, @Validated 사용 시 처리용
-     */
-    @ExceptionHandler(MethodArgumentNotValidException::class)
-    fun handleValidationException(
-        e: MethodArgumentNotValidException,
-        request: HttpServletRequest
-    ): ErrorResponse {
-        val fieldErrors = e.bindingResult.fieldErrors.associate { error ->
-            error.field to (error.defaultMessage ?: "유효하지 않은 값")
-        }
-        val context = request.toLogContext().plus("fields" to fieldErrors)
-        val firstErrorMessage = fieldErrors.values.firstOrNull() ?: "유효하지 않은 요청"
-
-        e.logError(log, Level.WARN, "유효성 검증 실패: $fieldErrors", context)
-
-        return ResponseEntity
-            .status(HttpStatus.BAD_REQUEST)
-            .body(ApiResponse.error(
-                errorCode = CommonErrorCode.INVALID_INPUT.code,
-                errorMessage = firstErrorMessage
+                data = e.data.ifEmpty { null }
             ))
     }
 
