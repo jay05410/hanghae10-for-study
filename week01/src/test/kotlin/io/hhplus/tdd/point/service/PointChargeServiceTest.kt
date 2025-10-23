@@ -9,6 +9,10 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.*
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.runBlocking
+import java.util.concurrent.CompletableFuture
 
 /**
  * PointChargeService 단위 테스트
@@ -17,11 +21,15 @@ import io.mockk.*
  */
 class PointChargeServiceTest : DescribeSpec({
     val mockUserPointTable = mockk<UserPointTable>()
-    val mockHistoryTable = mockk<PointHistoryTable>(relaxed = true)
-    val sut = PointChargeService(mockUserPointTable, mockHistoryTable)
+    val mockLockManager = mockk<UserLockManager>()
+    val mockTransactionLogger = mockk<PointTransactionLogger>(relaxed = true)
+    val sut = PointChargeService(mockUserPointTable, mockLockManager, mockTransactionLogger)
 
     beforeEach {
-        clearMocks(mockUserPointTable, mockHistoryTable)
+        clearMocks(mockUserPointTable, mockLockManager, mockTransactionLogger)
+        every { mockLockManager.executeWithLock(any(), any<() -> UserPoint>()) } answers {
+            secondArg<() -> UserPoint>().invoke()
+        }
     }
 
     describe("charge") {
@@ -35,7 +43,7 @@ class PointChargeServiceTest : DescribeSpec({
                 result.point shouldBe 15000L
                 verify(exactly = 1) { mockUserPointTable.selectById(1L) }
                 verify(exactly = 1) { mockUserPointTable.insertOrUpdate(1L, 15000L) }
-                verify(exactly = 1) { mockHistoryTable.insert(1L, 5000L, TransactionType.CHARGE, any()) }
+                verify(exactly = 1) { mockTransactionLogger.logTransaction(1L, 5000L, TransactionType.CHARGE, any()) }
             }
         }
 
@@ -47,7 +55,7 @@ class PointChargeServiceTest : DescribeSpec({
 
                 verify(exactly = 0) { mockUserPointTable.selectById(any()) }
                 verify(exactly = 0) { mockUserPointTable.insertOrUpdate(any(), any()) }
-                verify(exactly = 0) { mockHistoryTable.insert(any(), any(), any(), any()) }
+                verify(exactly = 0) { mockTransactionLogger.logTransaction(any(), any(), any(), any()) }
             }
 
             it("최대 충전 금액 초과(1,000,001원) 시 예외 발생하고 DB 접근 없음") {
@@ -57,7 +65,7 @@ class PointChargeServiceTest : DescribeSpec({
 
                 verify(exactly = 0) { mockUserPointTable.selectById(any()) }
                 verify(exactly = 0) { mockUserPointTable.insertOrUpdate(any(), any()) }
-                verify(exactly = 0) { mockHistoryTable.insert(any(), any(), any(), any()) }
+                verify(exactly = 0) { mockTransactionLogger.logTransaction(any(), any(), any(), any()) }
             }
 
             it("충전 단위 불일치(1,050원) 시 예외 발생하고 DB 접근 없음") {
@@ -67,8 +75,9 @@ class PointChargeServiceTest : DescribeSpec({
 
                 verify(exactly = 0) { mockUserPointTable.selectById(any()) }
                 verify(exactly = 0) { mockUserPointTable.insertOrUpdate(any(), any()) }
-                verify(exactly = 0) { mockHistoryTable.insert(any(), any(), any(), any()) }
+                verify(exactly = 0) { mockTransactionLogger.logTransaction(any(), any(), any(), any()) }
             }
         }
     }
+
 })

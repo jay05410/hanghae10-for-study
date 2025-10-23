@@ -19,12 +19,16 @@ import io.mockk.*
  */
 class PointUseServiceTest : DescribeSpec({
     val mockUserPointTable = mockk<UserPointTable>()
-    val mockHistoryTable = mockk<PointHistoryTable>(relaxed = true)
     val mockQueryService = mockk<PointQueryService>()
-    val sut = PointUseService(mockUserPointTable, mockHistoryTable, mockQueryService)
+    val mockLockManager = mockk<UserLockManager>()
+    val mockTransactionLogger = mockk<PointTransactionLogger>(relaxed = true)
+    val sut = PointUseService(mockUserPointTable, mockQueryService, mockLockManager, mockTransactionLogger)
 
     beforeEach {
-        clearMocks(mockUserPointTable, mockHistoryTable, mockQueryService)
+        clearMocks(mockUserPointTable, mockQueryService, mockLockManager, mockTransactionLogger)
+        every { mockLockManager.executeWithLock(any(), any<() -> UserPoint>()) } answers {
+            secondArg<() -> UserPoint>().invoke()
+        }
     }
 
     describe("use") {
@@ -43,7 +47,7 @@ class PointUseServiceTest : DescribeSpec({
                 verify(exactly = 1) { mockUserPointTable.selectById(1L) }
                 verify(exactly = 1) { mockQueryService.getHistories(1L) }
                 verify(exactly = 1) { mockUserPointTable.insertOrUpdate(1L, 7000L) }
-                verify(exactly = 1) { mockHistoryTable.insert(1L, 3000L, TransactionType.USE, any()) }
+                verify(exactly = 1) { mockTransactionLogger.logTransaction(1L, 3000L, TransactionType.USE, any()) }
             }
         }
 
@@ -58,7 +62,7 @@ class PointUseServiceTest : DescribeSpec({
                 verify(exactly = 1) { mockUserPointTable.selectById(1L) }
                 verify(exactly = 0) { mockQueryService.getHistories(any()) }
                 verify(exactly = 0) { mockUserPointTable.insertOrUpdate(any(), any()) }
-                verify(exactly = 0) { mockHistoryTable.insert(any(), any(), any(), any()) }
+                verify(exactly = 0) { mockTransactionLogger.logTransaction(any(), any(), any(), any()) }
             }
 
             it("일일 한도 초과 - 오늘 90,000원 사용 후 20,000원 추가 사용 시 예외 발생") {
@@ -75,7 +79,7 @@ class PointUseServiceTest : DescribeSpec({
                 verify(exactly = 1) { mockUserPointTable.selectById(1L) }
                 verify(exactly = 1) { mockQueryService.getHistories(1L) }
                 verify(exactly = 0) { mockUserPointTable.insertOrUpdate(any(), any()) }
-                verify(exactly = 0) { mockHistoryTable.insert(any(), any(), any(), any()) }
+                verify(exactly = 0) { mockTransactionLogger.logTransaction(any(), any(), any(), any()) }
             }
         }
 
@@ -88,7 +92,7 @@ class PointUseServiceTest : DescribeSpec({
                 verify(exactly = 0) { mockUserPointTable.selectById(any()) }
                 verify(exactly = 0) { mockQueryService.getHistories(any()) }
                 verify(exactly = 0) { mockUserPointTable.insertOrUpdate(any(), any()) }
-                verify(exactly = 0) { mockHistoryTable.insert(any(), any(), any(), any()) }
+                verify(exactly = 0) { mockTransactionLogger.logTransaction(any(), any(), any(), any()) }
             }
 
             it("사용 단위 불일치(1,050원) 시 예외 발생하고 어떤 컴포넌트에도 접근 안 함") {
@@ -99,7 +103,7 @@ class PointUseServiceTest : DescribeSpec({
                 verify(exactly = 0) { mockUserPointTable.selectById(any()) }
                 verify(exactly = 0) { mockQueryService.getHistories(any()) }
                 verify(exactly = 0) { mockUserPointTable.insertOrUpdate(any(), any()) }
-                verify(exactly = 0) { mockHistoryTable.insert(any(), any(), any(), any()) }
+                verify(exactly = 0) { mockTransactionLogger.logTransaction(any(), any(), any(), any()) }
             }
         }
     }
