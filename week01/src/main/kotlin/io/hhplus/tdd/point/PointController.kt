@@ -1,6 +1,9 @@
 package io.hhplus.tdd.point
 
 import io.hhplus.tdd.common.response.ApiResponse
+import io.hhplus.tdd.point.service.PointChargeService
+import io.hhplus.tdd.point.service.PointQueryService
+import io.hhplus.tdd.point.service.PointUseService
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.*
@@ -8,7 +11,9 @@ import org.springframework.web.bind.annotation.*
 @RestController
 @RequestMapping("/point")
 class PointController(
-    private val pointService: PointService
+    private val pointQueryService: PointQueryService,
+    private val pointChargeService: PointChargeService,
+    private val pointUseService: PointUseService
 ) {
     private val logger: Logger = LoggerFactory.getLogger(javaClass)
 
@@ -23,7 +28,7 @@ class PointController(
         @PathVariable id: Long,
     ): ApiResponse<UserPoint> {
         logger.info("포인트 조회 API 요청: userId=$id")
-        val result = pointService.getPoint(id)
+        val result = pointQueryService.getPoint(id)
         return ApiResponse.success(result)
     }
 
@@ -38,7 +43,7 @@ class PointController(
         @PathVariable id: Long,
     ): ApiResponse<List<PointHistory>> {
         logger.info("포인트 내역 조회 API 요청: userId=$id")
-        val result = pointService.getHistories(id)
+        val result = pointQueryService.getHistories(id)
         return ApiResponse.success(result)
     }
 
@@ -55,7 +60,7 @@ class PointController(
         @RequestBody amount: Long,
     ): ApiResponse<UserPoint> {
         logger.info("포인트 충전 API 요청: userId=$id, amount=$amount")
-        val result = pointService.charge(id, amount)
+        val result = pointChargeService.charge(id, amount)
         return ApiResponse.success(result)
     }
 
@@ -72,7 +77,7 @@ class PointController(
         @RequestBody amount: Long,
     ): ApiResponse<UserPoint> {
         logger.info("포인트 사용 API 요청: userId=$id, amount=$amount")
-        val result = pointService.use(id, amount)
+        val result = pointUseService.use(id, amount)
         return ApiResponse.success(result)
     }
 }
