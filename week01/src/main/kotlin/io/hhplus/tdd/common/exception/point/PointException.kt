@@ -1,6 +1,6 @@
 package io.hhplus.tdd.common.exception.point
 
-import io.hhplus.tdd.common.error.PointErrorCode
+import io.hhplus.tdd.common.errorcode.PointErrorCode
 import io.hhplus.tdd.common.exception.BusinessException
 import org.slf4j.event.Level
 

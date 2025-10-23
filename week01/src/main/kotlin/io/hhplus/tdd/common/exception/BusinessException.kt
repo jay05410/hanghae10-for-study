@@ -1,6 +1,6 @@
 package io.hhplus.tdd.common.exception
 
-import io.hhplus.tdd.common.error.ErrorCode
+import io.hhplus.tdd.common.errorcode.ErrorCode
 import org.slf4j.event.Level
 
 /**

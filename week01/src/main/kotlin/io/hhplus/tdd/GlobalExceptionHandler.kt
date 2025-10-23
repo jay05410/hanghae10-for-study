@@ -1,6 +1,6 @@
 package io.hhplus.tdd
 
-import io.hhplus.tdd.common.error.CommonErrorCode
+import io.hhplus.tdd.common.errorcode.CommonErrorCode
 import io.hhplus.tdd.common.exception.BusinessException
 import io.hhplus.tdd.common.response.ApiResponse
 import io.hhplus.tdd.common.response.ErrorResponse

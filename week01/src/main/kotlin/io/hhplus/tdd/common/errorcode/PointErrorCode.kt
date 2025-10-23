@@ -1,4 +1,4 @@
-package io.hhplus.tdd.common.error
+package io.hhplus.tdd.common.errorcode
 
 /**
  * 포인트 도메인 에러 코드 정의

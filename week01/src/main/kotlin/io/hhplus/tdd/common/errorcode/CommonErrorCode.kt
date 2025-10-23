@@ -1,4 +1,4 @@
-package io.hhplus.tdd.common.error
+package io.hhplus.tdd.common.errorcode
 
 /**
  * 공통 에러 코드 정의

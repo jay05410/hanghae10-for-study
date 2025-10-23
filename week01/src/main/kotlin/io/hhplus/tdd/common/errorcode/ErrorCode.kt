@@ -1,4 +1,4 @@
-package io.hhplus.tdd.common.error
+package io.hhplus.tdd.common.errorcode
 
 /**
  * 시스템에서 사용하는 모든 에러 코드의 인터페이스
