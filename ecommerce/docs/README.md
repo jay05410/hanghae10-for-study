@@ -35,9 +35,9 @@ project-root/
 ## 기술 스택 (예정)
 
 ### Backend
-- **언어**: Kotlin 2.1.20
-- **프레임워크**: Spring Boot (미정)
-- **빌드 도구**: Gradle 
+- **언어**: Kotlin 1.9.21
+- **프레임워크**: Spring Boot 3.2.0
+- **빌드 도구**: Gradle 8.13
 
 ### Database
 - **Primary DB**: PostgreSQL
