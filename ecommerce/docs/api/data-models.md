@@ -12,6 +12,8 @@
 ## 1. ERD (Entity Relationship Diagram)
 
 ### 1.1 전체 ERD
+
+#### 간단 ERD
 ```mermaid
 erDiagram
     USER ||--o{ ORDER : places
@@ -41,6 +43,224 @@ erDiagram
     
     COUPON ||--o{ USER_COUPON : issued_to
     COUPON ||--o{ COUPON_ISSUE_HISTORY : tracks
+```
+
+#### 상세 ERD
+```mermaid
+erDiagram
+    USER ||--o{ ORDER : places
+    USER ||--o{ USER_COUPON : has
+    USER ||--o{ USER_BALANCE_HISTORY : has
+    USER ||--o{ CART_ITEM : has
+    
+    PRODUCT ||--o{ CART_ITEM : contains
+    PRODUCT ||--o{ ORDER_ITEM : contains
+    PRODUCT ||--o{ BOX_COMBINATION : available_in
+    
+    CONDITION ||--o{ BOX_COMBINATION : defines
+    MOOD ||--o{ BOX_COMBINATION : defines
+    SCENT ||--o{ BOX_COMBINATION : defines
+    
+    BOX_COMBINATION ||--o{ CART_ITEM : selected
+    BOX_COMBINATION ||--o{ ORDER_ITEM : selected
+    BOX_COMBINATION ||--o{ COMBINATION_INVENTORY : tracks
+    BOX_COMBINATION ||--o{ BOX_TEA_RECIPE : contains
+    
+    TEA ||--o{ BOX_TEA_RECIPE : included_in
+    
+    ORDER ||--o{ ORDER_ITEM : contains
+    ORDER ||--o| PAYMENT : has
+    ORDER ||--o| USER_COUPON : uses
+    ORDER ||--o{ OUTBOX_EVENT : generates
+    
+    COUPON ||--o{ USER_COUPON : issued_to
+    COUPON ||--o{ COUPON_ISSUE_HISTORY : tracks
+    
+    USER {
+        bigint id PK "사용자 ID"
+        string email UK "이메일 (고유)"
+        string password "비밀번호"
+        string name "사용자 이름"
+        string phone "전화번호"
+        bigint balance "잔액"
+        datetime created_at "생성일시"
+        datetime updated_at "수정일시"
+    }
+    
+    PRODUCT {
+        bigint id PK "상품 ID"
+        string name "상품명"
+        string description "상품 설명"
+        int price "가격"
+        string type "상품 유형"
+        int daily_production_limit "일일 생산 한도"
+        boolean is_active "활성화 여부"
+        datetime created_at "생성일시"
+        datetime updated_at "수정일시"
+    }
+    
+    CONDITION {
+        bigint id PK "컨디션 ID"
+        string name UK "컨디션 코드 (고유)"
+        string description "설명"
+        string display_name "화면 표시명"
+        int sort_order "정렬 순서"
+    }
+    
+    MOOD {
+        bigint id PK "무드 ID"
+        string name UK "무드 코드 (고유)"
+        string description "설명"
+        string display_name "화면 표시명"
+        int sort_order "정렬 순서"
+    }
+    
+    SCENT {
+        bigint id PK "향 ID"
+        string name UK "향 코드 (고유)"
+        string description "설명"
+        string display_name "화면 표시명"
+        int sort_order "정렬 순서"
+    }
+    
+    BOX_COMBINATION {
+        bigint id PK "박스 조합 ID"
+        bigint product_id FK "상품 ID"
+        bigint condition_id FK "컨디션 ID"
+        bigint mood_id FK "무드 ID"
+        bigint scent_id FK "향 ID"
+        string combination_code UK "조합 코드 (고유)"
+        datetime created_at "생성일시"
+    }
+    
+    COMBINATION_INVENTORY {
+        bigint id PK "조합 재고 ID"
+        bigint combination_id FK "박스 조합 ID (고유)"
+        int stock "재고 수량"
+        int version "낙관적 락 버전"
+        datetime updated_at "수정일시"
+    }
+    
+    TEA {
+        bigint id PK "차 ID"
+        string name "차 이름"
+        string description "설명"
+        string main_ingredients "주요 원료"
+        string expected_effects "기대 효과"
+        datetime created_at "생성일시"
+    }
+    
+    BOX_TEA_RECIPE {
+        bigint id PK "박스 차 레시피 ID"
+        bigint combination_id FK "박스 조합 ID"
+        bigint tea_id FK "차 ID"
+        int day_number "일차"
+        string brewing_guide "우리기 가이드"
+    }
+    
+    CART_ITEM {
+        bigint id PK "장바구니 항목 ID"
+        bigint user_id FK "사용자 ID"
+        bigint product_id FK "상품 ID"
+        bigint combination_id FK "박스 조합 ID"
+        int quantity "수량"
+        datetime created_at "생성일시"
+    }
+    
+    ORDER {
+        bigint id PK "주문 ID"
+        string order_number UK "주문번호 (고유)"
+        bigint user_id FK "사용자 ID"
+        bigint coupon_id FK "쿠폰 ID (nullable)"
+        int total_amount "총 금액"
+        int discount_amount "할인 금액"
+        int final_amount "최종 결제 금액"
+        string status "주문 상태"
+        string delivery_address "배송 주소"
+        datetime ordered_at "주문일시"
+        datetime created_at "생성일시"
+        datetime updated_at "수정일시"
+    }
+    
+    ORDER_ITEM {
+        bigint id PK "주문 항목 ID"
+        bigint order_id FK "주문 ID"
+        bigint product_id FK "상품 ID"
+        bigint combination_id FK "박스 조합 ID"
+        int quantity "수량"
+        int unit_price "단가"
+        int total_price "총 가격"
+    }
+    
+    PAYMENT {
+        bigint id PK "결제 ID"
+        bigint order_id FK "주문 ID (고유)"
+        bigint user_id FK "사용자 ID"
+        int amount "결제 금액"
+        string payment_method "결제 수단"
+        string status "결제 상태"
+        datetime paid_at "결제일시"
+        datetime created_at "생성일시"
+    }
+    
+    USER_BALANCE_HISTORY {
+        bigint id PK "잔액 이력 ID"
+        bigint user_id FK "사용자 ID"
+        string transaction_type "거래 유형"
+        int amount "금액"
+        int balance_after "거래 후 잔액"
+        string description "설명"
+        datetime created_at "생성일시"
+    }
+    
+    COUPON {
+        bigint id PK "쿠폰 ID"
+        string name "쿠폰명"
+        string code UK "쿠폰 코드 (고유)"
+        string discount_type "할인 유형"
+        int discount_value "할인 값"
+        int min_order_amount "최소 주문 금액"
+        int max_issue_count "최대 발행 수량"
+        int issued_count "발행된 수량"
+        datetime issue_start_at "발행 시작일시"
+        datetime issue_end_at "발행 종료일시"
+        int valid_days "유효 기간(일)"
+        boolean is_active "활성화 여부"
+        datetime created_at "생성일시"
+    }
+    
+    USER_COUPON {
+        bigint id PK "사용자 쿠폰 ID"
+        bigint user_id FK "사용자 ID"
+        bigint coupon_id FK "쿠폰 ID"
+        string status "쿠폰 상태"
+        datetime issued_at "발급일시"
+        datetime used_at "사용일시"
+        datetime expired_at "만료일시"
+    }
+    
+    COUPON_ISSUE_HISTORY {
+        bigint id PK "쿠폰 발급 이력 ID"
+        bigint coupon_id FK "쿠폰 ID"
+        bigint user_id FK "사용자 ID"
+        string status "발급 상태"
+        string failure_reason "실패 사유 (nullable)"
+        datetime created_at "생성일시"
+    }
+    
+    OUTBOX_EVENT {
+        bigint id PK "아웃박스 이벤트 ID"
+        string aggregate_type "집합체 타입"
+        bigint aggregate_id "집합체 ID"
+        string event_type "이벤트 타입"
+        text payload "페이로드"
+        string status "이벤트 상태"
+        int retry_count "재시도 횟수"
+        text last_error "마지막 오류 (nullable)"
+        datetime sent_at "발송일시 (nullable)"
+        datetime created_at "생성일시"
+        datetime updated_at "수정일시"
+    }
 ```
 
 ### 1.2 도메인별 ERD

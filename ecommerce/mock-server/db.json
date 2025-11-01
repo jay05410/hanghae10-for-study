@@ -160,28 +160,28 @@
       "brewingGuide": "70도 물 200ml에 2-3분"
     },
     {
-      "id": 4,
+      "id": "4",
       "name": "로즈마리 레몬티",
       "mainIngredients": "로즈마리, 레몬필",
       "expectedEffects": "집중력 향상, 활력",
       "brewingGuide": "90도 물 200ml에 5분"
     },
     {
-      "id": 5,
+      "id": "5",
       "name": "유자 루이보스",
       "mainIngredients": "루이보스, 유자",
       "expectedEffects": "비타민 보충, 활력",
       "brewingGuide": "100도 물 200ml에 5분"
     },
     {
-      "id": 6,
+      "id": "6",
       "name": "오렌지 카모마일",
       "mainIngredients": "카모마일, 오렌지필",
       "expectedEffects": "편안한 휴식, 기분 전환",
       "brewingGuide": "95도 물 200ml에 5분"
     },
     {
-      "id": 7,
+      "id": "7",
       "name": "자스민 화이트티",
       "mainIngredients": "백차, 자스민",
       "expectedEffects": "마음 진정, 평온",
@@ -208,25 +208,25 @@
       "dayNumber": 3
     },
     {
-      "id": 4,
+      "id": "4",
       "combinationId": 1,
       "teaId": 4,
       "dayNumber": 4
     },
     {
-      "id": 5,
+      "id": "5",
       "combinationId": 1,
       "teaId": 5,
       "dayNumber": 5
     },
     {
-      "id": 6,
+      "id": "6",
       "combinationId": 1,
       "teaId": 6,
       "dayNumber": 6
     },
     {
-      "id": 7,
+      "id": "7",
       "combinationId": 1,
       "teaId": 7,
       "dayNumber": 7
@@ -240,6 +240,21 @@
       "combinationId": 1,
       "quantity": 1,
       "createdAt": "2025-10-31T10:00:00Z"
+    },
+    {
+      "id": "a06f",
+      "userId": 1,
+      "productId": 1,
+      "combinationId": 1,
+      "quantity": 1
+    },
+    {
+      "id": "af7f",
+      "userId": 1,
+      "productId": 1,
+      "combinationId": 2,
+      "quantity": 1,
+      "createdAt": "2025-10-31T15:00:00Z"
     }
   ],
   "orders": [
