@@ -1,9 +1,0 @@
-{
-  "/api/v1/*": "/$1",
-  "/api/v1/products/options": "/options",
-  "/api/v1/products/combinations/:id/inventory": "/combinations/:id",
-  "/api/v1/products/combinations/:id/preview": "/preview/:id",
-  "/api/v1/cart": "/cartItems?userId=:userId",
-  "/api/v1/users/balance/history": "/balanceHistory?userId=:userId",
-  "/api/v1/coupons/my": "/userCoupons?userId=:userId"
-}
