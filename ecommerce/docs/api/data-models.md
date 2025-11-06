@@ -19,8 +19,8 @@ erDiagram
     USER ||--o{ CART : has
     USER ||--o{ ORDER : places
     USER ||--o{ USER_COUPON : has
-    USER ||--o| USER_BALANCE : has
-    USER ||--o{ BALANCE_HISTORY : has
+    USER ||--o| USER_POINT : has
+    USER ||--o{ POINT_HISTORY : has
 
     CATEGORY ||--o{ ITEM : classifies
 
@@ -48,8 +48,8 @@ erDiagram
     USER ||--o{ CART : has
     USER ||--o{ ORDER : places
     USER ||--o{ USER_COUPON : has
-    USER ||--o| USER_BALANCE : has
-    USER ||--o{ BALANCE_HISTORY : has
+    USER ||--o| USER_POINT : has
+    USER ||--o{ POINT_HISTORY : has
     
     CATEGORY ||--o{ ITEM : classifies
     
@@ -383,8 +383,8 @@ erDiagram
 #### 포인트 도메인
 ```mermaid
 erDiagram
-    USER ||--o| USER_BALANCE : has
-    USER ||--o{ BALANCE_HISTORY : has
+    USER ||--o| USER_POINT : has
+    USER ||--o{ POINT_HISTORY : has
     ORDER ||--o{ BALANCE_HISTORY : affects
 ```
 
