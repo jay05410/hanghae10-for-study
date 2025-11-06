@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.common.exception.user
 
-import io.hhplus.ecommerce.common.errorcode.UserErrorCode
+import io.hhplus.ecommerce.common.exception.user.UserErrorCode
 import io.hhplus.ecommerce.common.exception.BusinessException
 import org.slf4j.event.Level
 
@@ -30,6 +30,15 @@ sealed class UserException(
      * 중복 이메일 예외
      */
     class DuplicateEmail(email: String) : UserException(
+        errorCode = UserErrorCode.DUPLICATE_EMAIL,
+        message = UserErrorCode.DUPLICATE_EMAIL.withParams("email" to email),
+        data = mapOf("email" to email)
+    )
+
+    /**
+     * 이메일 중복 예외 (별칭)
+     */
+    class EmailAlreadyExists(email: String) : UserException(
         errorCode = UserErrorCode.DUPLICATE_EMAIL,
         message = UserErrorCode.DUPLICATE_EMAIL.withParams("email" to email),
         data = mapOf("email" to email)

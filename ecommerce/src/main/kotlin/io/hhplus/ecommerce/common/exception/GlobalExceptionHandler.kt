@@ -1,6 +1,5 @@
 package io.hhplus.ecommerce.common.exception
 
-import io.hhplus.ecommerce.common.errorcode.CommonErrorCode
 import io.hhplus.ecommerce.common.response.ApiResponse
 import io.hhplus.ecommerce.common.response.ErrorResponse
 import jakarta.servlet.http.HttpServletRequest

@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.common.lock
 
-import io.hhplus.ecommerce.common.errorcode.CommonErrorCode
+import io.hhplus.ecommerce.common.exception.CommonErrorCode
 import io.hhplus.ecommerce.common.exception.BusinessException
 import org.slf4j.event.Level
 import org.slf4j.LoggerFactory
@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
 
 /**
  * 동시성 제어 - 키별 락 매니저

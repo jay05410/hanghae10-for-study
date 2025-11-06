@@ -1,4 +1,4 @@
-package io.hhplus.ecommerce.common.errorcode
+package io.hhplus.ecommerce.common.exception
 
 /**
  * 시스템에서 사용하는 모든 에러 코드의 인터페이스

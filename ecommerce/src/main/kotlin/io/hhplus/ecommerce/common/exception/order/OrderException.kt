@@ -1,8 +1,8 @@
 package io.hhplus.ecommerce.common.exception.order
 
-import io.hhplus.ecommerce.common.errorcode.OrderErrorCode
+import io.hhplus.ecommerce.common.exception.order.OrderErrorCode
 import io.hhplus.ecommerce.common.exception.BusinessException
-import io.hhplus.ecommerce.domain.order.entity.OrderStatus
+import io.hhplus.ecommerce.order.domain.constant.OrderStatus
 import org.slf4j.event.Level
 
 /**

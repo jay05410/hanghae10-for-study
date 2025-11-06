@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.common.exception.cart
 
-import io.hhplus.ecommerce.common.errorcode.CartErrorCode
+import io.hhplus.ecommerce.common.exception.cart.CartErrorCode
 import io.hhplus.ecommerce.common.exception.BusinessException
 import org.slf4j.event.Level
 
@@ -79,5 +79,14 @@ sealed class CartException(
         errorCode = CartErrorCode.CART_ITEM_NOT_FOUND,
         message = CartErrorCode.CART_ITEM_NOT_FOUND.withParams("cartItemId" to cartItemId),
         data = mapOf("cartItemId" to cartItemId)
+    )
+
+    /**
+     * 장바구니를 찾을 수 없음 예외
+     */
+    class CartNotFound(userId: Long) : CartException(
+        errorCode = CartErrorCode.CART_NOT_FOUND,
+        message = CartErrorCode.CART_NOT_FOUND.withParams("userId" to userId),
+        data = mapOf("userId" to userId)
     )
 }

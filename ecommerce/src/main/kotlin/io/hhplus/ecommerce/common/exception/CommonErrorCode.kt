@@ -1,4 +1,4 @@
-package io.hhplus.ecommerce.common.errorcode
+package io.hhplus.ecommerce.common.exception
 
 /**
  * 공통 에러 코드 정의

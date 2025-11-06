@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.common.exception.coupon
 
-import io.hhplus.ecommerce.common.errorcode.CouponErrorCode
+import io.hhplus.ecommerce.common.exception.coupon.CouponErrorCode
 import io.hhplus.ecommerce.common.exception.BusinessException
 import org.slf4j.event.Level
 
@@ -59,20 +59,6 @@ sealed class CouponException(
         data = mapOf("userCouponId" to userCouponId)
     )
 
-    /**
-     * 최소 주문 금액 미달 예외
-     */
-    class MinimumOrderAmountNotMet(minAmount: Long, orderAmount: Long) : CouponException(
-        errorCode = CouponErrorCode.MINIMUM_ORDER_AMOUNT_NOT_MET,
-        message = CouponErrorCode.MINIMUM_ORDER_AMOUNT_NOT_MET.withParams(
-            "minAmount" to minAmount,
-            "orderAmount" to orderAmount
-        ),
-        data = mapOf(
-            "minAmount" to minAmount,
-            "orderAmount" to orderAmount
-        )
-    )
 
     /**
      * 쿠폰을 찾을 수 없음 예외
@@ -81,5 +67,46 @@ sealed class CouponException(
         errorCode = CouponErrorCode.COUPON_NOT_FOUND,
         message = CouponErrorCode.COUPON_NOT_FOUND.withParams("couponId" to couponId),
         data = mapOf("couponId" to couponId)
+    )
+
+    /**
+     * 사용자 쿠폰을 찾을 수 없음 예외
+     */
+    class UserCouponNotFound(userId: Long) : CouponException(
+        errorCode = CouponErrorCode.USER_COUPON_NOT_FOUND,
+        message = CouponErrorCode.USER_COUPON_NOT_FOUND.withParams("userId" to userId),
+        data = mapOf("userId" to userId)
+    )
+
+    /**
+     * 이미 발급된 쿠폰 예외
+     */
+    class AlreadyIssuedCoupon(userId: Long, couponName: String) : CouponException(
+        errorCode = CouponErrorCode.DUPLICATE_COUPON_ISSUE,
+        message = CouponErrorCode.DUPLICATE_COUPON_ISSUE.withParams(
+            "userId" to userId,
+            "couponName" to couponName
+        ),
+        data = mapOf(
+            "userId" to userId,
+            "couponName" to couponName
+        )
+    )
+
+    /**
+     * 최소 주문 금액 미달 예외 (쿠폰명 포함)
+     */
+    class MinimumOrderAmountNotMet(couponName: String, minAmount: Long, orderAmount: Long) : CouponException(
+        errorCode = CouponErrorCode.MINIMUM_ORDER_AMOUNT_NOT_MET,
+        message = CouponErrorCode.MINIMUM_ORDER_AMOUNT_NOT_MET.withParams(
+            "couponName" to couponName,
+            "minAmount" to minAmount,
+            "orderAmount" to orderAmount
+        ),
+        data = mapOf(
+            "couponName" to couponName,
+            "minAmount" to minAmount,
+            "orderAmount" to orderAmount
+        )
     )
 }

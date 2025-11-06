@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.common.exception.product
 
-import io.hhplus.ecommerce.common.errorcode.ProductErrorCode
+import io.hhplus.ecommerce.common.exception.product.ProductErrorCode
 import io.hhplus.ecommerce.common.exception.BusinessException
 import org.slf4j.event.Level
 
@@ -76,5 +76,14 @@ sealed class ProductException(
             "dailyLimit" to dailyLimit,
             "todayOrdered" to todayOrdered
         )
+    )
+
+    /**
+     * 재고 정보를 찾을 수 없음 예외
+     */
+    class InventoryNotFound(productId: Long) : ProductException(
+        errorCode = ProductErrorCode.INVENTORY_NOT_FOUND,
+        message = ProductErrorCode.INVENTORY_NOT_FOUND.withParams("productId" to productId),
+        data = mapOf("productId" to productId)
     )
 }
