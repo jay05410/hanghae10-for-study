@@ -1,0 +1,1965 @@
+openapi: 3.0.3
+info:
+  title: 오늘 한 차 (OneulHanCha) API
+  description: |
+    # 오늘 한 차 - 티 박스 구독 서비스 API
+    
+    나의 컨디션, 원하는 기분, 선호하는 향에 맞춰 큐레이션된 7일 티 박스를 제공하는 서비스입니다.
+    
+    ## 주요 기능
+    - 🫖 박스 상품 조회 및 조합 선택
+    - 🛒 장바구니 관리
+    - 📦 주문 및 결제 (포인트)
+    - 🎟️ 선착순 쿠폰 발급
+    - 💰 포인트 충전 및 관리
+    
+    ## 인증
+    JWT Bearer 토큰을 사용합니다.
+    
+    ## Rate Limiting
+    - 전체 API: 100 요청/분/사용자
+    - 쿠폰 발급: 5 요청/분/사용자
+    - 주문 생성: 10 요청/분/사용자
+    
+    ## 에러 처리
+    모든 에러는 표준화된 형식으로 반환됩니다.
+
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@oneulhancha.com
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://api.oneulhancha.com/api/v1
+    description: 운영 서버
+  - url: https://dev-api.oneulhancha.com/api/v1
+    description: 개발 서버
+  - url: http://localhost:8080/api/v1
+    description: 로컬 서버
+
+tags:
+  - name: Products
+    description: 상품 관련 API
+  - name: Cart
+    description: 장바구니 관련 API
+  - name: Orders
+    description: 주문 관련 API
+  - name: Coupons
+    description: 쿠폰 관련 API
+  - name: Balance
+    description: 포인트 관련 API
+
+security:
+  - BearerAuth: []
+
+paths:
+  /products:
+    get:
+      tags:
+        - Products
+      summary: 박스 상품 목록 조회
+      description: 판매 중인 기본/프리미엄 박스 상품 목록을 조회합니다.
+      operationId: getProducts
+      security: []
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductListResponse'
+              example:
+                success: true
+                data:
+                  - id: 1
+                    name: "기본 7일 박스"
+                    description: "나를 위한 티 큐레이션 7일"
+                    price: 29000
+                    type: "BASIC"
+                    dailyProductionLimit: 30
+                    isActive: true
+                  - id: 2
+                    name: "프리미엄 7일 박스"
+                    description: "프리미엄 블렌딩 티로 구성된 7일 큐레이션"
+                    price: 49000
+                    type: "PREMIUM"
+                    dailyProductionLimit: 20
+                    isActive: true
+                timestamp: "2025-10-31T10:30:00Z"
+
+  /products/options:
+    get:
+      tags:
+        - Products
+      summary: 선택 옵션 조회
+      description: 컨디션, 기분, 향 선택 옵션 목록을 조회합니다.
+      operationId: getProductOptions
+      security: []
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductOptionsResponse'
+              example:
+                success: true
+                data:
+                  conditions:
+                    - id: 1
+                      name: "FATIGUE"
+                      displayName: "피로"
+                      description: "몸이 무겁고 쉽게 지쳐요"
+                      sortOrder: 1
+                    - id: 2
+                      name: "STRESS"
+                      displayName: "스트레스"
+                      description: "마음이 답답하고 긴장돼요"
+                      sortOrder: 2
+                    - id: 3
+                      name: "DIGESTION"
+                      displayName: "소화불편"
+                      description: "속이 더부룩하고 소화가 안돼요"
+                      sortOrder: 3
+                  moods:
+                    - id: 1
+                      name: "ENERGETIC"
+                      displayName: "활력"
+                      description: "에너지와 활기가 필요해요"
+                      sortOrder: 1
+                    - id: 2
+                      name: "CALM"
+                      displayName: "평온"
+                      description: "편안하고 차분한 기분이 좋아요"
+                      sortOrder: 2
+                    - id: 3
+                      name: "FOCUS"
+                      displayName: "집중"
+                      description: "집중력과 명료함이 필요해요"
+                      sortOrder: 3
+                  scents:
+                    - id: 1
+                      name: "FLORAL"
+                      displayName: "플로럴"
+                      description: "꽃향기가 나는 부드러운 향"
+                      sortOrder: 1
+                    - id: 2
+                      name: "CITRUS"
+                      displayName: "시트러스"
+                      description: "상큼하고 청량한 과일 향"
+                      sortOrder: 2
+                    - id: 3
+                      name: "HERBAL"
+                      displayName: "허브"
+                      description: "허브의 깊고 진한 향"
+                      sortOrder: 3
+                timestamp: "2025-10-31T10:30:00Z"
+
+  /products/combinations/{combinationId}/inventory:
+    get:
+      tags:
+        - Products
+      summary: 조합별 재고 조회
+      description: 특정 조합의 실시간 재고 수량을 조회합니다.
+      operationId: getCombinationInventory
+      security: []
+      parameters:
+        - name: combinationId
+          in: path
+          required: true
+          description: 조합 ID
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryResponse'
+              example:
+                success: true
+                data:
+                  combinationId: 1
+                  combination:
+                    productId: 1
+                    productName: "기본 7일 박스"
+                    condition: "피로"
+                    mood: "활력"
+                    scent: "시트러스"
+                  stock: 15
+                  isAvailable: true
+                  lastUpdated: "2025-10-31T10:30:00Z"
+                timestamp: "2025-10-31T10:30:00Z"
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /products/popular-combinations:
+    get:
+      tags:
+        - Products
+      summary: 인기 조합 통계 조회
+      description: 최근 N일간 가장 인기있는 조합 TOP 5를 조회합니다.
+      operationId: getPopularCombinations
+      security: []
+      parameters:
+        - name: days
+          in: query
+          description: 통계 기간 (일)
+          required: false
+          schema:
+            type: integer
+            default: 3
+            minimum: 1
+            maximum: 30
+          example: 3
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PopularCombinationsResponse'
+
+  /products/combinations/{combinationId}/preview:
+    get:
+      tags:
+        - Products
+      summary: 박스 조합 미리보기
+      description: 선택한 조합의 7일 티 구성을 미리 확인합니다.
+      operationId: getCombinationPreview
+      security: []
+      parameters:
+        - name: combinationId
+          in: path
+          required: true
+          description: 조합 ID
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CombinationPreviewResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /cart:
+    get:
+      tags:
+        - Cart
+      summary: 장바구니 조회
+      description: 사용자의 장바구니 항목 목록을 조회합니다.
+      operationId: getCart
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - Cart
+      summary: 장바구니에 박스 추가
+      description: 선택한 박스를 장바구니에 추가합니다. (최대 10개)
+      operationId: addToCart
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddToCartRequest'
+            example:
+              productId: 1
+              combinationId: 1
+              quantity: 1
+      responses:
+        '201':
+          description: 추가 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddToCartResponse'
+              example:
+                success: true
+                data:
+                  cartItemId: 1
+                  message: "장바구니에 추가되었습니다"
+                timestamp: "2025-10-31T10:30:00Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: 충돌 (장바구니 최대 개수 초과)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: "CART003"
+                  message: "장바구니에 최대 10개까지 담을 수 있습니다"
+                timestamp: "2025-10-31T10:30:00Z"
+
+    delete:
+      tags:
+        - Cart
+      summary: 장바구니 비우기
+      description: 장바구니의 모든 항목을 삭제합니다.
+      operationId: clearCart
+      responses:
+        '200':
+          description: 삭제 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              example:
+                success: true
+                data:
+                  message: "장바구니가 비워졌습니다"
+                timestamp: "2025-10-31T10:30:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /cart/items/{cartItemId}:
+    delete:
+      tags:
+        - Cart
+      summary: 장바구니 항목 삭제
+      description: 장바구니에서 특정 항목을 삭제합니다.
+      operationId: removeCartItem
+      parameters:
+        - name: cartItemId
+          in: path
+          required: true
+          description: 장바구니 항목 ID
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      responses:
+        '200':
+          description: 삭제 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              example:
+                success: true
+                data:
+                  message: "장바구니 항목이 삭제되었습니다"
+                timestamp: "2025-10-31T10:30:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /orders:
+    get:
+      tags:
+        - Orders
+      summary: 주문 내역 조회
+      description: 사용자의 주문 내역을 페이징하여 조회합니다.
+      operationId: getOrders
+      parameters:
+        - name: page
+          in: query
+          description: 페이지 번호 (0부터 시작)
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          example: 0
+        - name: size
+          in: query
+          description: 페이지 크기
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+          example: 10
+        - name: status
+          in: query
+          description: 주문 상태 필터
+          required: false
+          schema:
+            type: string
+            enum: [ALL, PENDING, PAID, PREPARING, SHIPPED, DELIVERED, CANCELLED]
+            default: ALL
+          example: ALL
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - Orders
+      summary: 주문 생성
+      description: 장바구니의 상품을 주문하고 결제합니다.
+      operationId: createOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+            example:
+              couponId: 1
+              deliveryAddress:
+                recipient: "김민지"
+                phone: "010-1234-5678"
+                zipCode: "06234"
+                address: "서울시 강남구 테헤란로 123"
+                addressDetail: "456호"
+      responses:
+        '201':
+          description: 주문 생성 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateOrderResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: 충돌 (재고 부족, 포인트 부족)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                inventoryShortage:
+                  summary: 재고 부족
+                  value:
+                    success: false
+                    error:
+                      code: "INVENTORY002"
+                      message: "재고가 부족하여 주문할 수 없습니다"
+                    timestamp: "2025-10-31T10:30:00Z"
+                insufficientBalance:
+                  summary: 포인트 부족
+                  value:
+                    success: false
+                    error:
+                      code: "PAYMENT001"
+                      message: "잔액이 부족합니다"
+                      details:
+                        currentBalance: 10000
+                        requiredAmount: 29000
+                    timestamp: "2025-10-31T10:30:00Z"
+
+  /orders/{orderId}:
+    get:
+      tags:
+        - Orders
+      summary: 주문 상세 조회
+      description: 특정 주문의 상세 정보를 조회합니다.
+      operationId: getOrder
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          description: 주문 ID
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderDetailResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /orders/{orderId}/cancel:
+    post:
+      tags:
+        - Orders
+      summary: 주문 취소
+      description: 주문을 취소하고 재고/포인트/쿠폰을 복원합니다. (제조 시작 전에만 가능)
+      operationId: cancelOrder
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          description: 주문 ID
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelOrderRequest'
+            example:
+              reason: "주문 실수"
+      responses:
+        '200':
+          description: 취소 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancelOrderResponse'
+        '400':
+          description: 취소 불가능한 상태
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: "ORDER003"
+                  message: "이미 제조가 시작되어 취소할 수 없습니다"
+                timestamp: "2025-10-31T10:30:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /coupons:
+    get:
+      tags:
+        - Coupons
+      summary: 발급 가능 쿠폰 목록 조회
+      description: 현재 발급 가능한 쿠폰 목록을 조회합니다.
+      operationId: getAvailableCoupons
+      security: []
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CouponListResponse'
+
+  /coupons/{couponId}/issue:
+    post:
+      tags:
+        - Coupons
+      summary: 선착순 쿠폰 발급
+      description: 선착순 쿠폰을 발급받습니다. (1인 1매 제한)
+      operationId: issueCoupon
+      parameters:
+        - name: couponId
+          in: path
+          required: true
+          description: 쿠폰 ID
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      responses:
+        '201':
+          description: 발급 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueCouponResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: 이미 발급받음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: "COUPON002"
+                  message: "이미 발급받은 쿠폰입니다"
+                timestamp: "2025-10-31T10:30:00Z"
+        '410':
+          description: 쿠폰 소진
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: "COUPON001"
+                  message: "쿠폰이 모두 소진되었습니다"
+                timestamp: "2025-10-31T10:30:00Z"
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /coupons/my:
+    get:
+      tags:
+        - Coupons
+      summary: 보유 쿠폰 조회
+      description: 사용자가 보유한 쿠폰 목록을 조회합니다.
+      operationId: getMyCoupons
+      parameters:
+        - name: status
+          in: query
+          description: 쿠폰 상태 필터
+          required: false
+          schema:
+            type: string
+            enum: [ALL, AVAILABLE, USED, EXPIRED]
+            default: ALL
+          example: AVAILABLE
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserCouponListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /users/balance/charge:
+    post:
+      tags:
+        - Balance
+      summary: 포인트 충전
+      description: 사용자의 포인트를 충전합니다.
+      operationId: chargeBalance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChargeBalanceRequest'
+            example:
+              amount: 50000
+      responses:
+        '200':
+          description: 충전 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChargeBalanceResponse'
+        '400':
+          description: 잘못된 금액
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                negativeAmount:
+                  summary: 음수 금액
+                  value:
+                    success: false
+                    error:
+                      code: "PAYMENT004"
+                      message: "유효하지 않은 결제 금액입니다"
+                    timestamp: "2025-10-31T10:30:00Z"
+                notMultipleOf100:
+                  summary: 100원 단위 아님
+                  value:
+                    success: false
+                    error:
+                      code: "PAYMENT004"
+                      message: "100원 단위로 충전해주세요"
+                    timestamp: "2025-10-31T10:30:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /users/balance/history:
+    get:
+      tags:
+        - Balance
+      summary: 포인트 내역 조회
+      description: 사용자의 포인트 충전/사용/환불 내역을 조회합니다.
+      operationId: getBalanceHistory
+      parameters:
+        - name: page
+          in: query
+          description: 페이지 번호 (0부터 시작)
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          example: 0
+        - name: size
+          in: query
+          description: 페이지 크기
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+          example: 20
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceHistoryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT 토큰을 사용한 인증
+        
+        예시: `Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
+
+  schemas:
+    # ==================== Common ====================
+    SuccessResponse:
+      type: object
+      required:
+        - success
+        - data
+        - timestamp
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-10-31T10:30:00Z"
+
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+        - timestamp
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              description: 에러 코드
+              example: "PRODUCT001"
+            message:
+              type: string
+              description: 에러 메시지
+              example: "존재하지 않는 상품입니다"
+            details:
+              type: object
+              description: 추가 에러 정보
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-10-31T10:30:00Z"
+
+    Pagination:
+      type: object
+      required:
+        - page
+        - size
+        - totalElements
+        - totalPages
+      properties:
+        page:
+          type: integer
+          description: 현재 페이지 번호 (0부터 시작)
+          example: 0
+        size:
+          type: integer
+          description: 페이지 크기
+          example: 10
+        totalElements:
+          type: integer
+          description: 전체 항목 수
+          example: 100
+        totalPages:
+          type: integer
+          description: 전체 페이지 수
+          example: 10
+
+    # ==================== Product ====================
+    Product:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - price
+        - type
+        - dailyProductionLimit
+        - isActive
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: 상품 ID
+          example: 1
+        name:
+          type: string
+          description: 상품명
+          example: "기본 7일 박스"
+        description:
+          type: string
+          description: 상품 설명
+          example: "나를 위한 티 큐레이션 7일"
+        price:
+          type: integer
+          description: 가격 (원)
+          example: 29000
+        type:
+          type: string
+          enum: [BASIC, PREMIUM]
+          description: 상품 타입
+          example: "BASIC"
+        dailyProductionLimit:
+          type: integer
+          description: 일일 생산 한도
+          example: 30
+        isActive:
+          type: boolean
+          description: 활성화 여부
+          example: true
+
+    ProductListResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/Product'
+
+    SelectionOption:
+      type: object
+      required:
+        - id
+        - name
+        - displayName
+        - description
+        - sortOrder
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: "FATIGUE"
+        displayName:
+          type: string
+          example: "피로"
+        description:
+          type: string
+          example: "몸이 무겁고 쉽게 지쳐요"
+        sortOrder:
+          type: integer
+          example: 1
+
+    ProductOptionsResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              required:
+                - conditions
+                - moods
+                - scents
+              properties:
+                conditions:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/SelectionOption'
+                moods:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/SelectionOption'
+                scents:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/SelectionOption'
+
+    CombinationInfo:
+      type: object
+      required:
+        - productId
+        - productName
+        - condition
+        - mood
+        - scent
+      properties:
+        productId:
+          type: integer
+          format: int64
+          example: 1
+        productName:
+          type: string
+          example: "기본 7일 박스"
+        condition:
+          type: string
+          example: "피로"
+        mood:
+          type: string
+          example: "활력"
+        scent:
+          type: string
+          example: "시트러스"
+
+    InventoryResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              required:
+                - combinationId
+                - combination
+                - stock
+                - isAvailable
+                - lastUpdated
+              properties:
+                combinationId:
+                  type: integer
+                  format: int64
+                  example: 1
+                combination:
+                  $ref: '#/components/schemas/CombinationInfo'
+                stock:
+                  type: integer
+                  description: 현재 재고 수량
+                  example: 15
+                isAvailable:
+                  type: boolean
+                  description: 구매 가능 여부
+                  example: true
+                lastUpdated:
+                  type: string
+                  format: date-time
+                  example: "2025-10-31T10:30:00Z"
+
+    PopularCombinationItem:
+      type: object
+      required:
+        - rank
+        - combination
+        - orderCount
+        - percentageChange
+        - tagline
+      properties:
+        rank:
+          type: integer
+          example: 1
+        combination:
+          allOf:
+            - $ref: '#/components/schemas/CombinationInfo'
+            - type: object
+              properties:
+                id:
+                  type: integer
+                  format: int64
+                  example: 1
+        orderCount:
+          type: integer
+          example: 143
+        percentageChange:
+          type: string
+          example: "+15%"
+        tagline:
+          type: string
+          example: "에너지가 필요한 직장인들의 선택"
+
+    PopularCombinationsResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              required:
+                - period
+                - combinations
+              properties:
+                period:
+                  type: object
+                  properties:
+                    days:
+                      type: integer
+                      example: 3
+                    from:
+                      type: string
+                      format: date-time
+                      example: "2025-10-28T00:00:00Z"
+                    to:
+                      type: string
+                      format: date-time
+                      example: "2025-10-31T23:59:59Z"
+                combinations:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/PopularCombinationItem'
+
+    TeaInfo:
+      type: object
+      required:
+        - dayNumber
+        - dayOfWeek
+        - teaName
+        - mainIngredients
+        - expectedEffects
+        - brewingGuide
+      properties:
+        dayNumber:
+          type: integer
+          minimum: 1
+          maximum: 7
+          example: 1
+        dayOfWeek:
+          type: string
+          example: "월요일"
+        teaName:
+          type: string
+          example: "레몬그라스 진저 티"
+        mainIngredients:
+          type: string
+          example: "레몬그라스, 생강, 레몬밤"
+        expectedEffects:
+          type: string
+          example: "활력 증진, 기분 전환"
+        brewingGuide:
+          type: string
+          example: "80도 물 200ml에 3분"
+
+    CombinationPreviewResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              required:
+                - combinationId
+                - combination
+                - weeklyTeas
+              properties:
+                combinationId:
+                  type: integer
+                  format: int64
+                  example: 1
+                combination:
+                  $ref: '#/components/schemas/CombinationInfo'
+                weeklyTeas:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/TeaInfo'
+                  minItems: 7
+                  maxItems: 7
+
+    # ==================== Cart ====================
+    AddToCartRequest:
+      type: object
+      required:
+        - productId
+        - combinationId
+        - quantity
+      properties:
+        productId:
+          type: integer
+          format: int64
+          description: 상품 ID
+          example: 1
+        combinationId:
+          type: integer
+          format: int64
+          description: 조합 ID
+          example: 1
+        quantity:
+          type: integer
+          description: 수량 (현재는 1만 가능)
+          minimum: 1
+          maximum: 1
+          example: 1
+
+    AddToCartResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              required:
+                - cartItemId
+                - message
+              properties:
+                cartItemId:
+                  type: integer
+                  format: int64
+                  example: 1
+                message:
+                  type: string
+                  example: "장바구니에 추가되었습니다"
+
+    CartItem:
+      type: object
+      required:
+        - cartItemId
+        - product
+        - combination
+        - quantity
+        - subtotal
+        - isAvailable
+        - stockRemaining
+      properties:
+        cartItemId:
+          type: integer
+          format: int64
+          example: 1
+        product:
+          type: object
+          properties:
+            id:
+              type: integer
+              format: int64
+              example: 1
+            name:
+              type: string
+              example: "기본 7일 박스"
+            price:
+              type: integer
+              example: 29000
+        combination:
+          type: object
+          properties:
+            id:
+              type: integer
+              format: int64
+              example: 1
+            condition:
+              type: string
+              example: "피로"
+            mood:
+              type: string
+              example: "활력"
+            scent:
+              type: string
+              example: "시트러스"
+        quantity:
+          type: integer
+          example: 1
+        subtotal:
+          type: integer
+          description: 소계 금액
+          example: 29000
+        isAvailable:
+          type: boolean
+          description: 현재 구매 가능 여부
+          example: true
+        stockRemaining:
+          type: integer
+          description: 남은 재고
+          example: 15
+
+    CartResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              required:
+                - items
+                - summary
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/CartItem'
+                summary:
+                  type: object
+                  properties:
+                    totalItems:
+                      type: integer
+                      example: 2
+                    totalAmount:
+                      type: integer
+                      example: 58000
+
+    # ==================== Order ====================
+    DeliveryAddress:
+      type: object
+      required:
+        - recipient
+        - phone
+        - zipCode
+        - address
+        - addressDetail
+      properties:
+        recipient:
+          type: string
+          description: 수령인
+          example: "김민지"
+        phone:
+          type: string
+          description: 전화번호
+          pattern: '^\d{3}-\d{4}-\d{4}$'
+          example: "010-1234-5678"
+        zipCode:
+          type: string
+          description: 우편번호
+          example: "06234"
+        address:
+          type: string
+          description: 주소
+          example: "서울시 강남구 테헤란로 123"
+        addressDetail:
+          type: string
+          description: 상세 주소
+          example: "456호"
+
+    CreateOrderRequest:
+      type: object
+      required:
+        - deliveryAddress
+      properties:
+        couponId:
+          type: integer
+          format: int64
+          description: 사용할 쿠폰 ID (선택사항)
+          nullable: true
+          example: 1
+        deliveryAddress:
+          $ref: '#/components/schemas/DeliveryAddress'
+
+    OrderItemInfo:
+      type: object
+      required:
+        - product
+        - combination
+        - quantity
+        - price
+      properties:
+        product:
+          type: string
+          example: "기본 7일 박스"
+        combination:
+          type: string
+          example: "피로 + 활력 + 시트러스"
+        quantity:
+          type: integer
+          example: 1
+        price:
+          type: integer
+          example: 29000
+
+    PaymentInfo:
+      type: object
+      required:
+        - totalAmount
+        - discountAmount
+        - finalAmount
+        - method
+      properties:
+        totalAmount:
+          type: integer
+          description: 총 상품 금액
+          example: 29000
+        discountAmount:
+          type: integer
+          description: 할인 금액
+          example: 14500
+        finalAmount:
+          type: integer
+          description: 최종 결제 금액
+          example: 14500
+        method:
+          type: string
+          enum: [BALANCE]
+          example: "BALANCE"
+
+    DeliveryInfo:
+      type: object
+      required:
+        - recipient
+        - phone
+        - address
+        - estimatedDeliveryDate
+      properties:
+        recipient:
+          type: string
+          example: "김민지"
+        phone:
+          type: string
+          example: "010-1234-5678"
+        address:
+          type: string
+          example: "서울시 강남구 테헤란로 123 456호"
+        estimatedDeliveryDate:
+          type: string
+          format: date
+          example: "2025-11-03"
+        trackingNumber:
+          type: string
+          nullable: true
+          example: null
+
+    CreateOrderResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              required:
+                - orderId
+                - orderNumber
+                - items
+                - payment
+                - delivery
+                - status
+                - orderedAt
+              properties:
+                orderId:
+                  type: integer
+                  format: int64
+                  example: 1
+                orderNumber:
+                  type: string
+                  example: "ORD-20251031-001"
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/OrderItemInfo'
+                payment:
+                  $ref: '#/components/schemas/PaymentInfo'
+                delivery:
+                  $ref: '#/components/schemas/DeliveryInfo'
+                status:
+                  type: string
+                  enum: [PENDING, PAID, PREPARING, SHIPPED, DELIVERED, CANCELLED]
+                  example: "PAID"
+                orderedAt:
+                  type: string
+                  format: date-time
+                  example: "2025-10-31T14:30:00Z"
+
+    OrderSummary:
+      type: object
+      required:
+        - orderId
+        - orderNumber
+        - totalItems
+        - finalAmount
+        - status
+        - orderedAt
+      properties:
+        orderId:
+          type: integer
+          format: int64
+          example: 1
+        orderNumber:
+          type: string
+          example: "ORD-20251031-001"
+        totalItems:
+          type: integer
+          example: 2
+        finalAmount:
+          type: integer
+          example: 29000
+        status:
+          type: string
+          enum: [PENDING, PAID, PREPARING, SHIPPED, DELIVERED, CANCELLED]
+          example: "PAID"
+        orderedAt:
+          type: string
+          format: date-time
+          example: "2025-10-31T14:30:00Z"
+
+    OrderListResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              required:
+                - content
+                - pagination
+              properties:
+                content:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/OrderSummary'
+                pagination:
+                  $ref: '#/components/schemas/Pagination'
+
+    OrderItemDetail:
+      type: object
+      required:
+        - product
+        - combination
+        - quantity
+        - weeklyTeas
+      properties:
+        product:
+          type: object
+          properties:
+            name:
+              type: string
+              example: "기본 7일 박스"
+            price:
+              type: integer
+              example: 29000
+        combination:
+          type: object
+          properties:
+            condition:
+              type: string
+              example: "피로"
+            mood:
+              type: string
+              example: "활력"
+            scent:
+              type: string
+              example: "시트러스"
+        quantity:
+          type: integer
+          example: 1
+        weeklyTeas:
+          type: array
+          items:
+            $ref: '#/components/schemas/TeaInfo'
+          minItems: 7
+          maxItems: 7
+
+    OrderDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              required:
+                - orderId
+                - orderNumber
+                - status
+                - items
+                - payment
+                - delivery
+                - orderedAt
+              properties:
+                orderId:
+                  type: integer
+                  format: int64
+                  example: 1
+                orderNumber:
+                  type: string
+                  example: "ORD-20251031-001"
+                status:
+                  type: string
+                  enum: [PENDING, PAID, PREPARING, SHIPPED, DELIVERED, CANCELLED]
+                  example: "PAID"
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/OrderItemDetail'
+                payment:
+                  allOf:
+                    - $ref: '#/components/schemas/PaymentInfo'
+                    - type: object
+                      properties:
+                        paidAt:
+                          type: string
+                          format: date-time
+                          example: "2025-10-31T14:30:15Z"
+                delivery:
+                  $ref: '#/components/schemas/DeliveryInfo'
+                orderedAt:
+                  type: string
+                  format: date-time
+                  example: "2025-10-31T14:30:00Z"
+
+    CancelOrderRequest:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          description: 취소 사유
+          minLength: 1
+          maxLength: 500
+          example: "주문 실수"
+
+    CancelOrderResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              required:
+                - orderId
+                - status
+                - refund
+                - message
+              properties:
+                orderId:
+                  type: integer
+                  format: int64
+                  example: 1
+                status:
+                  type: string
+                  enum: [CANCELLED]
+                  example: "CANCELLED"
+                refund:
+                  type: object
+                  properties:
+                    amount:
+                      type: integer
+                      example: 14500
+                    method:
+                      type: string
+                      example: "BALANCE"
+                    refundedAt:
+                      type: string
+                      format: date-time
+                      example: "2025-10-31T15:00:00Z"
+                message:
+                  type: string
+                  example: "주문이 취소되었습니다"
+
+    # ==================== Coupon ====================
+    CouponInfo:
+      type: object
+      required:
+        - id
+        - name
+        - code
+        - discountType
+        - discountValue
+        - minOrderAmount
+        - maxIssueCount
+        - issuedCount
+        - remainingCount
+        - issueStartAt
+        - issueEndAt
+        - validDays
+        - isActive
+        - isIssuable
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: "첫구매 50% 할인"
+        code:
+          type: string
+          example: "FIRST50"
+        discountType:
+          type: string
+          enum: [PERCENTAGE, FIXED]
+          example: "PERCENTAGE"
+        discountValue:
+          type: integer
+          description: PERCENTAGE일 경우 퍼센트, FIXED일 경우 금액
+          example: 50
+        minOrderAmount:
+          type: integer
+          description: 최소 주문 금액
+          example: 20000
+        maxIssueCount:
+          type: integer
+          description: 최대 발급 수량
+          example: 100
+        issuedCount:
+          type: integer
+          description: 현재 발급 수량
+          example: 78
+        remainingCount:
+          type: integer
+          description: 남은 수량
+          example: 22
+        issueStartAt:
+          type: string
+          format: date-time
+          example: "2025-10-25T00:00:00Z"
+        issueEndAt:
+          type: string
+          format: date-time
+          example: "2025-11-30T23:59:59Z"
+        validDays:
+          type: integer
+          description: 유효 기간 (일)
+          example: 7
+        isActive:
+          type: boolean
+          example: true
+        isIssuable:
+          type: boolean
+          description: 현재 발급 가능 여부
+          example: true
+
+    CouponListResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/CouponInfo'
+
+    IssueCouponResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              required:
+                - userCouponId
+                - coupon
+                - issuedAt
+                - expiredAt
+                - message
+              properties:
+                userCouponId:
+                  type: integer
+                  format: int64
+                  example: 1
+                coupon:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      format: int64
+                      example: 1
+                    name:
+                      type: string
+                      example: "첫구매 50% 할인"
+                    discountType:
+                      type: string
+                      enum: [PERCENTAGE, FIXED]
+                      example: "PERCENTAGE"
+                    discountValue:
+                      type: integer
+                      example: 50
+                    minOrderAmount:
+                      type: integer
+                      example: 20000
+                issuedAt:
+                  type: string
+                  format: date-time
+                  example: "2025-10-31T14:00:00Z"
+                expiredAt:
+                  type: string
+                  format: date-time
+                  example: "2025-11-07T23:59:59Z"
+                message:
+                  type: string
+                  example: "쿠폰이 발급되었습니다"
+
+    UserCouponInfo:
+      type: object
+      required:
+        - userCouponId
+        - coupon
+        - status
+        - issuedAt
+        - expiredAt
+        - daysUntilExpiry
+      properties:
+        userCouponId:
+          type: integer
+          format: int64
+          example: 1
+        coupon:
+          type: object
+          properties:
+            id:
+              type: integer
+              format: int64
+              example: 1
+            name:
+              type: string
+              example: "첫구매 50% 할인"
+            discountType:
+              type: string
+              enum: [PERCENTAGE, FIXED]
+              example: "PERCENTAGE"
+            discountValue:
+              type: integer
+              example: 50
+            minOrderAmount:
+              type: integer
+              example: 20000
+        status:
+          type: string
+          enum: [AVAILABLE, USED, EXPIRED]
+          example: "AVAILABLE"
+        issuedAt:
+          type: string
+          format: date-time
+          example: "2025-10-31T14:00:00Z"
+        expiredAt:
+          type: string
+          format: date-time
+          example: "2025-11-07T23:59:59Z"
+        usedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: null
+        daysUntilExpiry:
+          type: integer
+          description: 만료까지 남은 일수
+          example: 7
+
+    UserCouponListResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/UserCouponInfo'
+
+    # ==================== Balance ====================
+    ChargeBalanceRequest:
+      type: object
+      required:
+        - amount
+      properties:
+        amount:
+          type: integer
+          description: 충전 금액 (원, 100원 단위)
+          minimum: 100
+          multipleOf: 100
+          example: 50000
+
+    ChargeBalanceResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              required:
+                - transactionId
+                - amount
+                - balanceAfter
+                - chargedAt
+              properties:
+                transactionId:
+                  type: integer
+                  format: int64
+                  example: 1
+                amount:
+                  type: integer
+                  example: 50000
+                balanceAfter:
+                  type: integer
+                  description: 충전 후 잔액
+                  example: 50000
+                chargedAt:
+                  type: string
+                  format: date-time
+                  example: "2025-10-31T10:00:00Z"
+
+    BalanceTransaction:
+      type: object
+      required:
+        - transactionId
+        - transactionType
+        - amount
+        - balanceAfter
+        - description
+        - createdAt
+      properties:
+        transactionId:
+          type: integer
+          format: int64
+          example: 3
+        transactionType:
+          type: string
+          enum: [CHARGE, USE, REFUND]
+          example: "USE"
+        amount:
+          type: integer
+          description: 거래 금액 (충전/환불은 양수, 사용은 음수)
+          example: -29000
+        balanceAfter:
+          type: integer
+          description: 거래 후 잔액
+          example: 21000
+        description:
+          type: string
+          example: "주문 결제 (ORD-20251031-001)"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-10-31T14:30:00Z"
+
+    BalanceHistoryResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              required:
+                - currentBalance
+                - history
+                - pagination
+              properties:
+                currentBalance:
+                  type: integer
+                  description: 현재 잔액
+                  example: 50000
+                history:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/BalanceTransaction'
+                pagination:
+                  $ref: '#/components/schemas/Pagination'
+
+  responses:
+    BadRequest:
+      description: 잘못된 요청
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: "VALIDATION_ERROR"
+              message: "유효하지 않은 요청입니다"
+            timestamp: "2025-10-31T10:30:00Z"
+
+    Unauthorized:
+      description: 인증 실패
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: "UNAUTHORIZED"
+              message: "인증이 필요합니다"
+            timestamp: "2025-10-31T10:30:00Z"
+
+    Forbidden:
+      description: 권한 없음
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: "FORBIDDEN"
+              message: "접근 권한이 없습니다"
+            timestamp: "2025-10-31T10:30:00Z"
+
+    NotFound:
+      description: 리소스 없음
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: "NOT_FOUND"
+              message: "요청한 리소스를 찾을 수 없습니다"
+            timestamp: "2025-10-31T10:30:00Z"
+
+    TooManyRequests:
+      description: 요청 제한 초과
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+          description: 제한 수
+          example: 5
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+          description: 남은 요청 수
+          example: 0
+        X-RateLimit-Reset:
+          schema:
+            type: integer
+          description: 리셋 시각 (Unix timestamp)
+          example: 1698753600
+        Retry-After:
+          schema:
+            type: integer
+          description: 재시도 가능 시간 (초)
+          example: 60
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: "RATE_LIMIT_EXCEEDED"
+              message: "요청 횟수 제한을 초과했습니다"
+              details:
+                retryAfter: 60
+            timestamp: "2025-10-31T10:30:00Z"
