@@ -111,11 +111,11 @@ URL 형식: /api/v1/{resource}
 
 ## 3. 상품 API
 
-### 3.1 박스 상품 목록 조회
+### 3.1 박스 타입 목록 조회
 
 #### Request
 ```http
-GET /api/v1/products
+GET /api/v1/box-types
 ```
 
 #### Response
@@ -125,20 +125,26 @@ GET /api/v1/products
   "data": [
     {
       "id": 1,
-      "name": "기본 7일 박스",
-      "description": "나를 위한 티 큐레이션 7일",
-      "price": 29000,
-      "type": "BASIC",
-      "dailyProductionLimit": 30,
+      "code": "THREE_DAYS",
+      "name": "3일 박스",
+      "days": 3,
+      "description": "맛보기 세트",
       "isActive": true
     },
     {
       "id": 2,
-      "name": "프리미엄 7일 박스",
-      "description": "프리미엄 블렌딩 티로 구성된 7일 큐레이션",
-      "price": 49000,
-      "type": "PREMIUM",
-      "dailyProductionLimit": 20,
+      "code": "SEVEN_DAYS",
+      "name": "7일 박스",
+      "days": 7,
+      "description": "일주일 티 큐레이션",
+      "isActive": true
+    },
+    {
+      "id": 3,
+      "code": "FOURTEEN_DAYS",
+      "name": "14일 박스",
+      "days": 14,
+      "description": "2주간의 다양한 티 경험",
       "isActive": true
     }
   ],
@@ -147,12 +153,11 @@ GET /api/v1/products
 ```
 
 **Response Fields**:
-- `id` (number): 상품 ID
-- `name` (string): 상품명
-- `description` (string): 상품 설명
-- `price` (number): 가격 (원)
-- `type` (string): 상품 타입 (BASIC | PREMIUM)
-- `dailyProductionLimit` (number): 일일 생산 한도
+- `id` (number): 박스타입 ID
+- `code` (string): 박스타입 코드
+- `name` (string): 박스명
+- `days` (number): 일수
+- `description` (string): 설명
 - `isActive` (boolean): 활성화 여부
 
 **Status Codes**:
@@ -160,51 +165,62 @@ GET /api/v1/products
 
 ---
 
-### 3.2 선택 옵션 조회
+### 3.2 카테고리별 차 목록 조회
 
 #### Request
 ```http
-GET /api/v1/products/options
+GET /api/v1/items?categoryId=1&status=ACTIVE
 ```
+
+**Query Parameters**:
+- `categoryId` (number, optional): 카테고리 ID
+- `status` (string, optional): 상품 상태
 
 #### Response
 ```json
 {
   "success": true,
   "data": {
-    "conditions": [
+    "categories": [
       {
         "id": 1,
-        "name": "FATIGUE",
-        "displayName": "피로",
-        "description": "몸이 무겁고 쉽게 지쳐요",
-        "sortOrder": 1
-      },
-      {
-        "id": 2,
-        "name": "STRESS",
-        "displayName": "스트레스",
-        "description": "마음이 답답하고 긴장돼요",
-        "sortOrder": 2
-      },
-      {
-        "id": 3,
-        "name": "DIGESTION",
-        "displayName": "소화불편",
-        "description": "속이 더부룩하고 소화가 안돼요",
-        "sortOrder": 3
+        "name": "허브티",
+        "description": "천연 허브로 만든 건강한 차",
+        "items": [
+          {
+            "id": 1,
+            "name": "라벤더 차",
+            "description": "편안한 휴식을 위한 프랑스산 라벤더",
+            "caffeineType": "카페인프리",
+            "tasteProfile": "플로럴, 부드러운",
+            "aromaProfile": "라벤더 향",
+            "colorProfile": "연보라빛",
+            "bagPerWeight": 3,
+            "pricePer100g": 15000,
+            "ingredients": "라벤더, 레몬밤",
+            "origin": "프랑스",
+            "status": "ACTIVE"
+          },
+          {
+            "id": 2,
+            "name": "카모마일 차",
+            "description": "숙면에 도움을 주는 독일산 카모마일",
+            "caffeineType": "카페인프리",
+            "tasteProfile": "달콤한, 부드러운",
+            "aromaProfile": "사과향",
+            "colorProfile": "황금빛",
+            "bagPerWeight": 2,
+            "pricePer100g": 12000,
+            "ingredients": "카모마일",
+            "origin": "독일",
+            "status": "ACTIVE"
+          }
+        ]
       }
-    ],
-    "moods": [
-      {
-        "id": 1,
-        "name": "ENERGETIC",
-        "displayName": "활력",
-        "description": "에너지와 활기가 필요해요",
-        "sortOrder": 1
-      },
-      {
-        "id": 2,
+    ]
+  },
+  "timestamp": "2025-10-31T10:30:00Z"
+}
         "name": "CALM",
         "displayName": "평온",
         "description": "편안하고 차분한 기분이 좋아요",
@@ -251,30 +267,32 @@ GET /api/v1/products/options
 
 ---
 
-### 3.3 조합별 재고 조회
+### 3.3 차 아이템 재고 조회
 
 #### Request
 ```http
-GET /api/v1/products/combinations/{combinationId}/inventory
+GET /api/v1/items/{itemId}/inventory
 ```
 
 **Path Parameters**:
-- `combinationId` (number): 조합 ID
+- `itemId` (number): 차 아이템 ID
 
 #### Response
 ```json
 {
   "success": true,
   "data": {
-    "combinationId": 1,
-    "combination": {
-      "productId": 1,
-      "productName": "기본 7일 박스",
-      "condition": "피로",
-      "mood": "활력",
-      "scent": "시트러스"
+    "itemId": 1,
+    "item": {
+      "id": 1,
+      "name": "라벤더 릴랙스",
+      "description": "편안한 수면을 도와주는 프랑스산 라벤더",
+      "pricePer100g": 12000,
+      "categoryId": 1
     },
-    "stock": 15,
+    "stockQuantity": 15,
+    "reservedQuantity": 3,
+    "availableQuantity": 12,
     "isAvailable": true,
     "lastUpdated": "2025-10-31T10:30:00Z"
   },
@@ -283,15 +301,14 @@ GET /api/v1/products/combinations/{combinationId}/inventory
 ```
 
 **Response Fields**:
-- `combinationId` (number): 조합 ID
-- `combination` (object): 조합 정보
-- `stock` (number): 현재 재고 수량
+- `stockQuantity` (number): 전체 재고 수량
+- `reservedQuantity` (number): 예약된 수량
+- `availableQuantity` (number): 주문 가능 수량
 - `isAvailable` (boolean): 구매 가능 여부
-- `lastUpdated` (string): 마지막 업데이트 시각
 
 **Status Codes**:
 - `200 OK`: 조회 성공
-- `404 Not Found`: 존재하지 않는 조합
+- `404 Not Found`: 존재하지 않는 아이템
 
 ---
 
@@ -495,15 +512,26 @@ Authorization: Bearer {token}
 Content-Type: application/json
 
 {
-  "productId": 1,
-  "combinationId": 1,
+  "boxTypeId": 1,
+  "teaSelections": [
+    {
+      "dayNumber": 1,
+      "itemId": 1
+    },
+    {
+      "dayNumber": 2,
+      "itemId": 3
+    }
+  ],
   "quantity": 1
 }
 ```
 
 **Request Body**:
-- `productId` (number, required): 상품 ID
-- `combinationId` (number, required): 조합 ID
+- `boxTypeId` (number, required): 박스 타입 ID
+- `teaSelections` (array, required): 차 선택 목록
+  - `dayNumber` (number): 일차 (1-7 또는 1-30)
+  - `itemId` (number): 차 아이템 ID
 - `quantity` (number, required): 수량 (현재는 1만 가능)
 
 #### Response
@@ -512,6 +540,31 @@ Content-Type: application/json
   "success": true,
   "data": {
     "cartItemId": 1,
+    "boxType": {
+      "id": 1,
+      "name": "7일 커스텀 박스",
+      "description": "7일간의 개인 맞춤 차 박스",
+      "dayCount": 7,
+      "price": 29000
+    },
+    "teaSelections": [
+      {
+        "dayNumber": 1,
+        "item": {
+          "id": 1,
+          "name": "라벤더 릴랙스",
+          "price": 4200
+        }
+      },
+      {
+        "dayNumber": 2,
+        "item": {
+          "id": 3,
+          "name": "카모마일 차",
+          "price": 3800
+        }
+      }
+    ],
     "message": "장바구니에 추가되었습니다"
   },
   "timestamp": "2025-10-31T10:30:00Z"
@@ -520,9 +573,9 @@ Content-Type: application/json
 
 **Status Codes**:
 - `201 Created`: 추가 성공
-- `400 Bad Request`: 잘못된 요청
+- `400 Bad Request`: 잘못된 요청 (차 개수 불일치 등)
 - `401 Unauthorized`: 인증 실패
-- `404 Not Found`: 존재하지 않는 상품/조합
+- `404 Not Found`: 존재하지 않는 박스타입/차 아이템
 - `409 Conflict`: 장바구니 최대 개수 초과 (10개)
 
 ---
@@ -543,44 +596,68 @@ Authorization: Bearer {token}
     "items": [
       {
         "cartItemId": 1,
-        "product": {
+        "boxType": {
           "id": 1,
-          "name": "기본 7일 박스",
+          "name": "7일 커스텀 박스",
+          "description": "7일간의 개인 맞춤 차 박스",
+          "dayCount": 7,
           "price": 29000
         },
-        "combination": {
-          "id": 1,
-          "condition": "피로",
-          "mood": "활력",
-          "scent": "시트러스"
-        },
+        "teaSelections": [
+          {
+            "dayNumber": 1,
+            "item": {
+              "id": 1,
+              "name": "라벤더 릴랙스",
+              "price": 4200,
+              "stockQuantity": 15
+            }
+          },
+          {
+            "dayNumber": 2,
+            "item": {
+              "id": 3,
+              "name": "카모마일 차",
+              "price": 3800,
+              "stockQuantity": 22
+            }
+          }
+        ],
         "quantity": 1,
         "subtotal": 29000,
         "isAvailable": true,
-        "stockRemaining": 15
+        "createdAt": "2025-10-31T09:15:00Z"
       },
       {
         "cartItemId": 2,
-        "product": {
-          "id": 1,
-          "name": "기본 7일 박스",
-          "price": 29000
+        "boxType": {
+          "id": 2,
+          "name": "30일 프리미엄 박스",
+          "description": "30일간의 프리미엄 차 박스",
+          "dayCount": 30,
+          "price": 89000
         },
-        "combination": {
-          "id": 5,
-          "condition": "스트레스",
-          "mood": "평온",
-          "scent": "플로럴"
-        },
+        "teaSelections": [
+          {
+            "dayNumber": 1,
+            "item": {
+              "id": 5,
+              "name": "에나지 그린티",
+              "price": 4500,
+              "stockQuantity": 8
+            }
+          }
+        ],
         "quantity": 1,
-        "subtotal": 29000,
+        "subtotal": 89000,
         "isAvailable": true,
-        "stockRemaining": 8
+        "createdAt": "2025-10-31T10:20:00Z"
       }
     ],
     "summary": {
       "totalItems": 2,
-      "totalAmount": 58000
+      "totalAmount": 118000,
+      "maxItems": 10
     }
   },
   "timestamp": "2025-10-31T10:30:00Z"
@@ -692,17 +769,41 @@ Content-Type: application/json
     "orderNumber": "ORD-20251031-001",
     "items": [
       {
-        "product": "기본 7일 박스",
-        "combination": "피로 + 활력 + 시트러스",
+        "orderItemId": 1,
+        "boxType": {
+          "id": 1,
+          "name": "7일 커스텀 박스",
+          "dayCount": 7,
+          "price": 29000
+        },
+        "teaSelections": [
+          {
+            "dayNumber": 1,
+            "item": {
+              "id": 1,
+              "name": "라벤더 릴랙스",
+              "price": 4200
+            }
+          },
+          {
+            "dayNumber": 2,
+            "item": {
+              "id": 3,
+              "name": "카모마일 차",
+              "price": 3800
+            }
+          }
+        ],
         "quantity": 1,
-        "price": 29000
+        "subtotal": 29000
       }
     ],
     "payment": {
       "totalAmount": 29000,
       "discountAmount": 14500,
       "finalAmount": 14500,
-      "method": "BALANCE"
+      "method": "BALANCE",
+      "paidAt": "2025-10-31T14:30:00Z"
     },
     "delivery": {
       "recipient": "김민지",
@@ -1192,9 +1293,12 @@ Authorization: Bearer {token}
 | 에러 코드 | HTTP 상태 | 메시지 | 설명 |
 |----------|----------|--------|------|
 | PAYMENT001 | 400 | 잔액이 부족합니다 | 포인트 부족 |
-| PAYMENT002 | 500 | 결제 처리 중 오류가 발생했습니다 | 결제 시스템 오류 |
+| PAYMENT002 | 500 | 결제 처리 중 오류가 발생했습니다 | 결제 시스템 오료 |
 | PAYMENT003 | 409 | 이미 처리된 결제입니다 | 중복 결제 시도 |
 | PAYMENT004 | 400 | 유효하지 않은 결제 금액입니다 | 음수 또는 0원 |
+| PAYMENT005 | 400 | 최소 충전 금액은 1,000원입니다 | 최소 충전 금액 미달 |
+| PAYMENT006 | 400 | 최대 충전 금액은 100,000원입니다 | 최대 충전 금액 초과 |
+| PAYMENT007 | 400 | 포인트 충전은 100원 단위로만 가능합니다 | 충전 단위 불일치 |
 
 ### 8.6 장바구니 관련
 
@@ -1203,8 +1307,19 @@ Authorization: Bearer {token}
 | CART001 | 404 | 장바구니 항목을 찾을 수 없습니다 | 항목 ID 유효하지 않음 |
 | CART002 | 403 | 장바구니 항목에 접근할 권한이 없습니다 | 다른 사용자의 항목 |
 | CART003 | 400 | 유효하지 않은 수량입니다 | 0 이하 또는 과도한 수량 |
+| CART004 | 409 | 장바구니는 최대 10개까지 담을 수 있습니다 | 최대 항목 수 초과 |
+| CART005 | 409 | 동일한 박스타입이 이미 장바구니에 있습니다 | 중복 박스타입 추가 |
+| CART006 | 400 | 차 선택 개수가 올바르지 않습니다 | 박스 일수와 차 개수 불일치 |
 
-### 8.7 외부 연동 관련
+### 8.7 동시성 관련
+
+| 에러 코드 | HTTP 상태 | 메시지 | 설명 |
+|----------|----------|--------|------|
+| CONCURRENCY001 | 503 | 재고 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요 | 재고 락 타임아웃 |
+| CONCURRENCY002 | 429 | 중복된 요청입니다. 잠시 후 다시 시도해주세요 | 쿠폰 발급 중복 요청 |
+| CONCURRENCY003 | 503 | 시스템이 혼잡합니다. 잠시 후 다시 시도해주세요 | 동시성 제어 실패 |
+
+### 8.8 외부 연동 관련
 
 | 에러 코드 | HTTP 상태 | 메시지 | 설명 |
 |----------|----------|--------|------|

@@ -16,250 +16,322 @@
 #### 간단 ERD
 ```mermaid
 erDiagram
+    USER ||--o{ CART : has
     USER ||--o{ ORDER : places
     USER ||--o{ USER_COUPON : has
-    USER ||--o{ USER_BALANCE_HISTORY : has
-    USER ||--o{ CART_ITEM : has
-    
-    PRODUCT ||--o{ CART_ITEM : contains
-    PRODUCT ||--o{ ORDER_ITEM : contains
-    PRODUCT ||--o{ BOX_COMBINATION : available_in
-    
-    CONDITION ||--o{ BOX_COMBINATION : defines
-    MOOD ||--o{ BOX_COMBINATION : defines
-    SCENT ||--o{ BOX_COMBINATION : defines
-    
-    BOX_COMBINATION ||--o{ CART_ITEM : selected
-    BOX_COMBINATION ||--o{ ORDER_ITEM : selected
-    BOX_COMBINATION ||--o{ COMBINATION_INVENTORY : tracks
-    BOX_COMBINATION ||--o{ BOX_TEA_RECIPE : contains
-    
-    TEA ||--o{ BOX_TEA_RECIPE : included_in
-    
+    USER ||--o| USER_BALANCE : has
+    USER ||--o{ BALANCE_HISTORY : has
+
+    CATEGORY ||--o{ ITEM : classifies
+
+    ITEM ||--o{ CART_ITEM_TEA : selected_in
+    ITEM ||--o{ ORDER_ITEM_TEA : selected_in
+    ITEM ||--o{ INVENTORY : tracks
+
+    BOX_TYPE ||--o{ CART_ITEM : selected
+    BOX_TYPE ||--o{ ORDER_ITEM : selected
+
+    CART ||--o{ CART_ITEM : contains
+    CART_ITEM ||--o{ CART_ITEM_TEA : composed_of
+
     ORDER ||--o{ ORDER_ITEM : contains
+    ORDER_ITEM ||--o{ ORDER_ITEM_TEA : composed_of
     ORDER ||--o| PAYMENT : has
-    ORDER ||--o| USER_COUPON : uses
     ORDER ||--o{ OUTBOX_EVENT : generates
-    
+
     COUPON ||--o{ USER_COUPON : issued_to
-    COUPON ||--o{ COUPON_ISSUE_HISTORY : tracks
 ```
 
 #### 상세 ERD
 ```mermaid
 erDiagram
+    USER ||--o{ CART : has
     USER ||--o{ ORDER : places
     USER ||--o{ USER_COUPON : has
-    USER ||--o{ USER_BALANCE_HISTORY : has
-    USER ||--o{ CART_ITEM : has
+    USER ||--o| USER_BALANCE : has
+    USER ||--o{ BALANCE_HISTORY : has
     
-    PRODUCT ||--o{ CART_ITEM : contains
-    PRODUCT ||--o{ ORDER_ITEM : contains
-    PRODUCT ||--o{ BOX_COMBINATION : available_in
+    CATEGORY ||--o{ ITEM : classifies
     
-    CONDITION ||--o{ BOX_COMBINATION : defines
-    MOOD ||--o{ BOX_COMBINATION : defines
-    SCENT ||--o{ BOX_COMBINATION : defines
+    ITEM ||--o{ CART_ITEM_TEA : selected_in
+    ITEM ||--o{ ORDER_ITEM_TEA : selected_in
+    ITEM ||--o{ INVENTORY : tracks
     
-    BOX_COMBINATION ||--o{ CART_ITEM : selected
-    BOX_COMBINATION ||--o{ ORDER_ITEM : selected
-    BOX_COMBINATION ||--o{ COMBINATION_INVENTORY : tracks
-    BOX_COMBINATION ||--o{ BOX_TEA_RECIPE : contains
+    BOX_TYPE ||--o{ CART_ITEM : selected
+    BOX_TYPE ||--o{ ORDER_ITEM : selected
     
-    TEA ||--o{ BOX_TEA_RECIPE : included_in
+    CART ||--o{ CART_ITEM : contains
+    CART_ITEM ||--o{ CART_ITEM_TEA : composed_of
     
     ORDER ||--o{ ORDER_ITEM : contains
+    ORDER_ITEM ||--o{ ORDER_ITEM_TEA : composed_of
     ORDER ||--o| PAYMENT : has
-    ORDER ||--o| USER_COUPON : uses
     ORDER ||--o{ OUTBOX_EVENT : generates
     
     COUPON ||--o{ USER_COUPON : issued_to
-    COUPON ||--o{ COUPON_ISSUE_HISTORY : tracks
     
-    USER {
+      USER {
         bigint id PK "사용자 ID"
-        string email UK "이메일 (고유)"
-        string password "비밀번호"
-        string name "사용자 이름"
+        string login_type "로그인타입(LOCAL/KAKAO/NAVER/GOOGLE)"
+        string login_id UK "로그인ID(provider_type_id)"
+        string password "비밀번호(nullable-SNS는NULL)"
+        string email UK "이메일(중복방지)"
+        string name "이름"
         string phone "전화번호"
-        bigint balance "잔액"
-        datetime created_at "생성일시"
-        datetime updated_at "수정일시"
-    }
-    
-    PRODUCT {
-        bigint id PK "상품 ID"
-        string name "상품명"
-        string description "상품 설명"
-        int price "가격"
-        string type "상품 유형"
-        int daily_production_limit "일일 생산 한도"
+        string provider_id "SNS제공자ID(nullable)"
         boolean is_active "활성화 여부"
         datetime created_at "생성일시"
+        bigint created_by "생성자"
         datetime updated_at "수정일시"
+        bigint updated_by "수정자"
     }
-    
-    CONDITION {
-        bigint id PK "컨디션 ID"
-        string name UK "컨디션 코드 (고유)"
-        string description "설명"
-        string display_name "화면 표시명"
-        int sort_order "정렬 순서"
-    }
-    
-    MOOD {
-        bigint id PK "무드 ID"
-        string name UK "무드 코드 (고유)"
-        string description "설명"
-        string display_name "화면 표시명"
-        int sort_order "정렬 순서"
-    }
-    
-    SCENT {
-        bigint id PK "향 ID"
-        string name UK "향 코드 (고유)"
-        string description "설명"
-        string display_name "화면 표시명"
-        int sort_order "정렬 순서"
-    }
-    
-    BOX_COMBINATION {
-        bigint id PK "박스 조합 ID"
-        bigint product_id FK "상품 ID"
-        bigint condition_id FK "컨디션 ID"
-        bigint mood_id FK "무드 ID"
-        bigint scent_id FK "향 ID"
-        string combination_code UK "조합 코드 (고유)"
+
+    USER_BALANCE {
+        bigint id PK "잔액 ID"
+        bigint user_id FK "사용자 ID"
+        bigint balance "포인트 잔액"
+        int version "낙관적락"
+        boolean is_active "활성화 여부"
         datetime created_at "생성일시"
-    }
-    
-    COMBINATION_INVENTORY {
-        bigint id PK "조합 재고 ID"
-        bigint combination_id FK "박스 조합 ID (고유)"
-        int stock "재고 수량"
-        int version "낙관적 락 버전"
+        bigint created_by "생성자"
         datetime updated_at "수정일시"
+        bigint updated_by "수정자"
     }
-    
-    TEA {
-        bigint id PK "차 ID"
-        string name "차 이름"
+
+    BALANCE_HISTORY {
+        bigint id PK "이력 ID"
+        bigint user_id FK "사용자 ID"
+        string transaction_type "거래타입(CHARGE/USE/REFUND)"
+        bigint amount "변동금액"
+        bigint balance_before "거래전잔액"
+        bigint balance_after "거래후잔액"
+        bigint order_id FK "주문 ID(nullable)"
         string description "설명"
-        string main_ingredients "주요 원료"
-        string expected_effects "기대 효과"
+        boolean is_active "활성화 여부"
         datetime created_at "생성일시"
+        bigint created_by "생성자"
     }
     
-    BOX_TEA_RECIPE {
-        bigint id PK "박스 차 레시피 ID"
-        bigint combination_id FK "박스 조합 ID"
-        bigint tea_id FK "차 ID"
-        int day_number "일차"
-        string brewing_guide "우리기 가이드"
+    CATEGORY {
+        bigint id PK "카테고리 ID"
+        string name UK "카테고리명"
+        string description "설명"
+        int sort_order "정렬순서"
+        boolean is_active "활성화 여부"
+        datetime created_at "생성일시"
+        bigint created_by "생성자"
+        datetime updated_at "수정일시"
+        bigint updated_by "수정자"
+    }
+    
+    ITEM {
+        bigint id PK "상품 ID"
+        bigint category_id FK "카테고리 ID"
+        string name "상품명"
+        string description "상세설명"
+        string caffeine_type "카페인타입"
+        string taste_profile "맛프로필"
+        string aroma_profile "향프로필"
+        string color_profile "수색프로필"
+        int bag_per_weight "티백당 용량(g)"
+        int price_per_100g "100g당 가격"
+        string ingredients "주요원료"
+        string origin "원산지"
+        string status "상태(ACTIVE/OUT_OF_STOCK/DISCONTINUED/HIDDEN)"
+        boolean is_active "활성화 여부"
+        datetime created_at "생성일시"
+        bigint created_by "생성자"
+        datetime updated_at "수정일시"
+        bigint updated_by "수정자"
+    }
+    
+    INVENTORY {
+        bigint id PK "재고 ID"
+        bigint item_id FK "상품 ID"
+        int quantity "재고수량(g)"
+        int safety_stock "안전재고(g)"
+        int version "낙관적락"
+        boolean is_active "활성화여부"
+        datetime created_at "생성일시"
+        bigint created_by "생성자"
+        datetime updated_at "수정일시"
+        bigint updated_by "수정자"
+    }
+    
+    BOX_TYPE {
+    bigint id PK "박스타입 ID"
+    string code UK "코드(THREE_DAYS/SEVEN_DAYS/FOURTEEN_DAYS)"
+    string name "박스명"
+    int days "일수"
+    string description "설명"
+    boolean is_active "활성화여부"
+    datetime created_at "생성일시"
+    bigint created_by "생성자"
+    datetime updated_at "수정일시"
+    bigint updated_by "수정자"
+    }
+    
+    CART {
+        bigint id PK "장바구니 ID"
+        bigint user_id "사용자 ID"
+        boolean is_active "활성화 여부"
+        datetime created_at "생성일시"
+        bigint created_by "생성자"
+        datetime updated_at "수정일시"
+        bigint updated_by "수정자"
     }
     
     CART_ITEM {
-        bigint id PK "장바구니 항목 ID"
-        bigint user_id FK "사용자 ID"
-        bigint product_id FK "상품 ID"
-        bigint combination_id FK "박스 조합 ID"
+        bigint id PK "장바구니상품 ID"
+        bigint cart_id FK "장바구니 ID"
+        bigint box_type_id "박스타입 ID"
+        int daily_serving "하루섭취량(1/2/3)"
         int quantity "수량"
+        boolean gift_wrap "선물포장여부"
+        string gift_message "선물메시지"
+        boolean is_active "활성화 여부"
         datetime created_at "생성일시"
+        bigint created_by "생성자"
+        datetime updated_at "수정일시"
+        bigint updated_by "수정자"
+    }
+    
+    CART_ITEM_TEA {
+        bigint id PK "장바구니차구성 ID"
+        bigint cart_item_id FK "장바구니상품 ID"
+        bigint item_id "차 ID"
+        int selection_order "선택순서"
+        int ratio_percent "배합비율"
+        boolean is_active "활성화 여부"
+        datetime created_at "생성일시"
+        bigint created_by "생성자"
+        datetime updated_at "수정일시"
+        bigint updated_by "수정자"
     }
     
     ORDER {
         bigint id PK "주문 ID"
-        string order_number UK "주문번호 (고유)"
-        bigint user_id FK "사용자 ID"
-        bigint coupon_id FK "쿠폰 ID (nullable)"
-        int total_amount "총 금액"
-        int discount_amount "할인 금액"
-        int final_amount "최종 결제 금액"
-        string status "주문 상태"
-        string delivery_address "배송 주소"
+        string order_number UK "주문번호"
+        bigint user_id "사용자 ID"
+        string coupon_code "쿠폰코드"
+        int total_amount "총금액"
+        int discount_amount "할인금액"
+        int final_amount "최종금액"
+        string status "주문상태(PENDING/PAID/PREPARING/SHIPPED/DELIVERED/CANCELLED)"
         datetime ordered_at "주문일시"
+        bigint delivery_id FK "배송 ID"
+        boolean is_active "활성화 여부"
         datetime created_at "생성일시"
+        bigint created_by "생성자"
         datetime updated_at "수정일시"
+        bigint updated_by "수정자"
     }
     
     ORDER_ITEM {
-        bigint id PK "주문 항목 ID"
+        bigint id PK "주문상품 ID"
         bigint order_id FK "주문 ID"
-        bigint product_id FK "상품 ID"
-        bigint combination_id FK "박스 조합 ID"
+        bigint box_type_id "박스타입 ID"
+        string box_type_name "박스타입명"
+        int daily_serving "하루섭취량(1/2/3)"
+        int tea_bag_count "티백개수"
+        boolean gift_wrap "선물포장"
+        string gift_message "선물메시지"
         int quantity "수량"
-        int unit_price "단가"
-        int total_price "총 가격"
+        int container_price "용기가격(기본포장포함)"
+        int tea_price "차가격(그램기준)"
+        int gift_wrap_price "선물포장가격(추가옵션)"
+        int total_price "총가격"
+        boolean is_active "활성화 여부"
+        datetime created_at "생성일시"
+        bigint created_by "생성자"
+        datetime updated_at "수정일시"
+        bigint updated_by "수정자"
+    }
+    
+    ORDER_ITEM_TEA {
+        bigint id PK "주문차구성 ID"
+        bigint order_item_id FK "주문상품 ID"
+        bigint item_id "차 ID"
+        string item_name "차명"
+        string category_name "카테고리"
+        int selection_order "선택순서"
+        int ratio_percent "배합비율"
+        int unit_price "100g당가격(스냅샷)"
+        boolean is_active "활성화 여부"
+        datetime created_at "생성일시"
+        bigint created_by "생성자"
+        datetime updated_at "수정일시"
+        bigint updated_by "수정자"
     }
     
     PAYMENT {
         bigint id PK "결제 ID"
-        bigint order_id FK "주문 ID (고유)"
-        bigint user_id FK "사용자 ID"
-        int amount "결제 금액"
-        string payment_method "결제 수단"
-        string status "결제 상태"
+        bigint order_id FK "주문 ID"
+        bigint user_id "사용자 ID"
+        int amount "결제금액"
+        string payment_method "결제수단"
+        string status "결제상태"
+        string pg_transaction_id "PG거래ID"
         datetime paid_at "결제일시"
+        boolean is_active "활성화 여부"
         datetime created_at "생성일시"
-    }
-    
-    USER_BALANCE_HISTORY {
-        bigint id PK "잔액 이력 ID"
-        bigint user_id FK "사용자 ID"
-        string transaction_type "거래 유형"
-        int amount "금액"
-        int balance_after "거래 후 잔액"
-        string description "설명"
-        datetime created_at "생성일시"
+        bigint created_by "생성자"
+        datetime updated_at "수정일시"
+        bigint updated_by "수정자"
     }
     
     COUPON {
         bigint id PK "쿠폰 ID"
+        string code UK "쿠폰코드"
         string name "쿠폰명"
-        string code UK "쿠폰 코드 (고유)"
-        string discount_type "할인 유형"
-        int discount_value "할인 값"
-        int min_order_amount "최소 주문 금액"
-        int max_issue_count "최대 발행 수량"
-        int issued_count "발행된 수량"
-        datetime issue_start_at "발행 시작일시"
-        datetime issue_end_at "발행 종료일시"
-        int valid_days "유효 기간(일)"
+        string discount_type "할인유형(RATE/AMOUNT)"
+        int discount_value "할인값(% 또는 원)"
+        int min_order_amount "최소주문금액"
+        int max_discount_amount "최대할인금액"
+        int max_issue_count "최대발행수"
+        int issued_count "현재발행수(집계)"
+        datetime issue_start_at "발행시작일"
+        datetime issue_end_at "발행종료일"
+        int valid_days "유효기간(일)"
+        string status "상태(ACTIVE/PAUSED/ENDED)"
         boolean is_active "활성화 여부"
         datetime created_at "생성일시"
+        bigint created_by "생성자"
+        datetime updated_at "수정일시"
+        bigint updated_by "수정자"
     }
     
     USER_COUPON {
-        bigint id PK "사용자 쿠폰 ID"
-        bigint user_id FK "사용자 ID"
+        bigint id PK "사용자쿠폰 ID"
+        bigint user_id "사용자 ID"
         bigint coupon_id FK "쿠폰 ID"
-        string status "쿠폰 상태"
+        string status "쿠폰상태(ISSUED/USED/EXPIRED)"
         datetime issued_at "발급일시"
         datetime used_at "사용일시"
         datetime expired_at "만료일시"
-    }
-    
-    COUPON_ISSUE_HISTORY {
-        bigint id PK "쿠폰 발급 이력 ID"
-        bigint coupon_id FK "쿠폰 ID"
-        bigint user_id FK "사용자 ID"
-        string status "발급 상태"
-        string failure_reason "실패 사유 (nullable)"
+        boolean is_active "활성화 여부"
         datetime created_at "생성일시"
+        bigint created_by "생성자"
+        datetime updated_at "수정일시"
+        bigint updated_by "수정자"
     }
     
     OUTBOX_EVENT {
-        bigint id PK "아웃박스 이벤트 ID"
-        string aggregate_type "집합체 타입"
+        bigint id PK "이벤트 ID"
+        string aggregate_type "집합체타입(ORDER/USER/CART 등)"
         bigint aggregate_id "집합체 ID"
-        string event_type "이벤트 타입"
-        text payload "페이로드"
-        string status "이벤트 상태"
-        int retry_count "재시도 횟수"
-        text last_error "마지막 오류 (nullable)"
-        datetime sent_at "발송일시 (nullable)"
+        string event_type "이벤트타입"
+        json payload "페이로드(이벤트 데이터)"
+        string status "상태(PENDING/PROCESSING/SENT/FAILED)"
+        int retry_count "재시도횟수(기본0)"
+        datetime processed_at "처리완료일시"
+        datetime next_retry_at "다음재시도일시"
+        string error_message "에러메시지"
+        boolean is_active "활성화 여부"
         datetime created_at "생성일시"
+        bigint created_by "생성자"
         datetime updated_at "수정일시"
+        bigint updated_by "수정자"
     }
 ```
 
@@ -268,13 +340,24 @@ erDiagram
 #### 상품 도메인
 ```mermaid
 erDiagram
-    PRODUCT ||--o{ BOX_COMBINATION : available_in
-    CONDITION ||--o{ BOX_COMBINATION : defines
-    MOOD ||--o{ BOX_COMBINATION : defines
-    SCENT ||--o{ BOX_COMBINATION : defines
-    BOX_COMBINATION ||--o{ BOX_TEA_RECIPE : contains
-    BOX_COMBINATION ||--o{ COMBINATION_INVENTORY : tracks
-    TEA ||--o{ BOX_TEA_RECIPE : included_in
+    CATEGORY ||--o{ ITEM : classifies
+    ITEM ||--o{ INVENTORY : tracks
+    BOX_TYPE {
+        bigint id PK
+        string code UK
+        string name
+        int days
+    }
+```
+
+#### 장바구니 도메인
+```mermaid
+erDiagram
+    USER ||--o{ CART : has
+    CART ||--o{ CART_ITEM : contains
+    CART_ITEM ||--o{ CART_ITEM_TEA : composed_of
+    BOX_TYPE ||--o{ CART_ITEM : selected
+    ITEM ||--o{ CART_ITEM_TEA : selected_in
 ```
 
 #### 주문 도메인
@@ -282,10 +365,11 @@ erDiagram
 erDiagram
     USER ||--o{ ORDER : places
     ORDER ||--o{ ORDER_ITEM : contains
+    ORDER_ITEM ||--o{ ORDER_ITEM_TEA : composed_of
     ORDER ||--o| PAYMENT : has
-    BOX_COMBINATION ||--o{ ORDER_ITEM : selected
-    PRODUCT ||--o{ ORDER_ITEM : contains
     ORDER ||--o{ OUTBOX_EVENT : generates
+    BOX_TYPE ||--o{ ORDER_ITEM : selected
+    ITEM ||--o{ ORDER_ITEM_TEA : selected_in
 ```
 
 #### 쿠폰 도메인
@@ -293,8 +377,15 @@ erDiagram
 erDiagram
     USER ||--o{ USER_COUPON : has
     COUPON ||--o{ USER_COUPON : issued_to
-    COUPON ||--o{ COUPON_ISSUE_HISTORY : tracks
     ORDER ||--o| USER_COUPON : uses
+```
+
+#### 포인트 도메인
+```mermaid
+erDiagram
+    USER ||--o| USER_BALANCE : has
+    USER ||--o{ BALANCE_HISTORY : has
+    ORDER ||--o{ BALANCE_HISTORY : affects
 ```
 
 ---
@@ -309,338 +400,311 @@ erDiagram
 | 컬럼명 | 타입 | 제약조건 | 설명 | 비즈니스 규칙 |
 |--------|------|----------|------|---------------|
 | id | BIGSERIAL | PK | 사용자 ID | - |
-| email | VARCHAR(100) | NOT NULL, UNIQUE | 이메일 (로그인 ID) | 이메일 형식 검증 |
-| password | VARCHAR(255) | NOT NULL | 암호화된 비밀번호 | BCrypt 해시 |
-| name | VARCHAR(50) | NOT NULL | 사용자 이름 | 2-50자 |
-| phone | VARCHAR(20) | NOT NULL | 전화번호 | 010-XXXX-XXXX 형식 |
-| balance | BIGINT | NOT NULL, DEFAULT 0 | 포인트 잔액 (원) | 음수 불가 (CHECK >= 0) |
+| login_type | VARCHAR(20) | NOT NULL | 로그인타입 | LOCAL/KAKAO/NAVER/GOOGLE |
+| login_id | VARCHAR(100) | NOT NULL, UNIQUE | 로그인ID | provider_type_id |
+| password | VARCHAR(255) | NULL | 비밀번호 | BCrypt 해시 (SNS는 NULL) |
+| email | VARCHAR(100) | NOT NULL, UNIQUE | 이메일 | 중복방지 |
+| name | VARCHAR(50) | NOT NULL | 이름 | - |
+| phone | VARCHAR(20) | NOT NULL | 전화번호 | - |
+| provider_id | VARCHAR(100) | NULL | SNS제공자ID | nullable |
+| is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | 활성화 여부 | - |
 | created_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 생성일시 | - |
+| created_by | BIGINT | NOT NULL | 생성자 | - |
 | updated_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 수정일시 | - |
-
-**비즈니스 규칙**:
-- BR-020: 포인트는 음수가 될 수 없음
-- BR-021: 포인트 사용 단위는 100원
+| updated_by | BIGINT | NOT NULL | 수정자 | - |
 
 **DDL**:
 ```sql
 CREATE TABLE "user" (
     id BIGSERIAL PRIMARY KEY,
+    login_type VARCHAR(20) NOT NULL,
+    login_id VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255),
     email VARCHAR(100) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL,
     name VARCHAR(50) NOT NULL,
     phone VARCHAR(20) NOT NULL,
-    balance BIGINT NOT NULL DEFAULT 0 CHECK (balance >= 0),
+    provider_id VARCHAR(100),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_by BIGINT NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by BIGINT NOT NULL
 );
 
+CREATE INDEX idx_user_login_id ON "user"(login_id);
 CREATE INDEX idx_user_email ON "user"(email);
-```
-
----
-
-#### USER_BALANCE_HISTORY (포인트 이력)
-포인트 충전/사용/환불 이력을 추적하는 엔티티
-
-| 컬럼명 | 타입 | 제약조건 | 설명 | 비즈니스 규칙 |
-|--------|------|----------|------|---------------|
-| id | BIGSERIAL | PK | 이력 ID | - |
-| user_id | BIGINT | NOT NULL, FK → USER(id) | 사용자 ID | - |
-| transaction_type | VARCHAR(20) | NOT NULL | 거래 유형 | CHARGE, USE, REFUND |
-| amount | BIGINT | NOT NULL | 거래 금액 (원) | 충전(+), 사용(-), 환불(+) |
-| balance_after | BIGINT | NOT NULL | 거래 후 잔액 (원) | - |
-| description | VARCHAR(255) | NOT NULL | 거래 설명 | 예: "주문 결제 (ORD-20251030-001)" |
-| created_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 생성일시 | - |
-
-**비즈니스 규칙**:
-- 모든 포인트 변동은 이력으로 기록
-- Append-Only (수정/삭제 불가)
-
-**DDL**:
-```sql
-CREATE TABLE user_balance_history (
-    id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL REFERENCES "user"(id),
-    transaction_type VARCHAR(20) NOT NULL,
-    amount BIGINT NOT NULL,
-    balance_after BIGINT NOT NULL,
-    description VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_user_balance_history_user_created 
-ON user_balance_history(user_id, created_at DESC);
 ```
 
 ---
 
 ### 2.2 상품 관련
 
-#### PRODUCT (상품)
-박스 상품 정보를 관리하는 엔티티
+#### CATEGORY (카테고리)
+상품 카테고리를 관리하는 엔티티
+
+| 컬럼명 | 타입 | 제약조건 | 설명 | 비즈니스 규칙 |
+|--------|------|----------|------|---------------|
+| id | BIGSERIAL | PK | 카테고리 ID | - |
+| name | VARCHAR(50) | NOT NULL, UNIQUE | 카테고리명 | - |
+| description | VARCHAR(255) | NOT NULL | 설명 | - |
+| sort_order | INTEGER | NOT NULL | 정렬순서 | - |
+| is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | 활성화 여부 | - |
+| created_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 생성일시 | - |
+| created_by | BIGINT | NOT NULL | 생성자 | - |
+| updated_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 수정일시 | - |
+| updated_by | BIGINT | NOT NULL | 수정자 | - |
+
+**DDL**:
+```sql
+CREATE TABLE category (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    description VARCHAR(255) NOT NULL,
+    sort_order INTEGER NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by BIGINT NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by BIGINT NOT NULL
+);
+
+CREATE INDEX idx_category_sort_order ON category(sort_order);
+```
+
+---
+
+#### ITEM (상품)
+개별 상품 정보를 관리하는 엔티티
 
 | 컬럼명 | 타입 | 제약조건 | 설명 | 비즈니스 규칙 |
 |--------|------|----------|------|---------------|
 | id | BIGSERIAL | PK | 상품 ID | - |
-| name | VARCHAR(100) | NOT NULL | 상품명 | 예: "기본 7일 박스" |
-| description | TEXT | NOT NULL | 상품 설명 | - |
-| price | INTEGER | NOT NULL | 가격 (원) | 양수만 가능 |
-| type | VARCHAR(20) | NOT NULL | 상품 타입 | BASIC, PREMIUM |
-| daily_production_limit | INTEGER | NOT NULL | 일일 생산 한도 | 예: 30 |
+| category_id | BIGINT | NOT NULL, FK → CATEGORY(id) | 카테고리 ID | - |
+| name | VARCHAR(100) | NOT NULL | 상품명 | - |
+| description | TEXT | NOT NULL | 상세설명 | - |
+| caffeine_type | VARCHAR(20) | NOT NULL | 카페인타입 | - |
+| taste_profile | VARCHAR(100) | NOT NULL | 맛프로필 | - |
+| aroma_profile | VARCHAR(100) | NOT NULL | 향프로필 | - |
+| color_profile | VARCHAR(100) | NOT NULL | 수색프로필 | - |
+| bag_per_weight | INTEGER | NOT NULL | 티백당 용량(g) | - |
+| price_per_100g | INTEGER | NOT NULL | 100g당 가격 | - |
+| ingredients | TEXT | NOT NULL | 주요원료 | - |
+| origin | VARCHAR(100) | NOT NULL | 원산지 | - |
+| status | VARCHAR(20) | NOT NULL | 상태 | ACTIVE/OUT_OF_STOCK/DISCONTINUED/HIDDEN |
 | is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | 활성화 여부 | - |
 | created_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 생성일시 | - |
+| created_by | BIGINT | NOT NULL | 생성자 | - |
 | updated_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 수정일시 | - |
-
-**비즈니스 규칙**:
-- BR-001: 기본(29,000원), 프리미엄(49,000원) 2종류
-- BR-005: 일일 생산 한도 관리
+| updated_by | BIGINT | NOT NULL | 수정자 | - |
 
 **DDL**:
 ```sql
-CREATE TABLE product (
+CREATE TABLE item (
     id BIGSERIAL PRIMARY KEY,
+    category_id BIGINT NOT NULL REFERENCES category(id),
     name VARCHAR(100) NOT NULL,
     description TEXT NOT NULL,
-    price INTEGER NOT NULL CHECK (price > 0),
-    type VARCHAR(20) NOT NULL,
-    daily_production_limit INTEGER NOT NULL,
+    caffeine_type VARCHAR(20) NOT NULL,
+    taste_profile VARCHAR(100) NOT NULL,
+    aroma_profile VARCHAR(100) NOT NULL,
+    color_profile VARCHAR(100) NOT NULL,
+    bag_per_weight INTEGER NOT NULL,
+    price_per_100g INTEGER NOT NULL,
+    ingredients TEXT NOT NULL,
+    origin VARCHAR(100) NOT NULL,
+    status VARCHAR(20) NOT NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_by BIGINT NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by BIGINT NOT NULL
 );
 
-CREATE INDEX idx_product_active_type ON product(is_active, type);
+CREATE INDEX idx_item_category ON item(category_id);
+CREATE INDEX idx_item_status ON item(status);
 ```
 
 ---
 
-#### CONDITION (컨디션)
-사용자의 현재 컨디션 옵션을 정의하는 엔티티
-
-| 컬럼명 | 타입 | 제약조건 | 설명 | 비즈니스 규칙 |
-|--------|------|----------|------|---------------|
-| id | BIGSERIAL | PK | 컨디션 ID | - |
-| name | VARCHAR(50) | NOT NULL, UNIQUE | 컨디션 코드 | FATIGUE, STRESS, DIGESTION |
-| display_name | VARCHAR(50) | NOT NULL | 표시명 | 피로, 스트레스, 소화불편 |
-| description | VARCHAR(255) | NOT NULL | 설명 | "몸이 무겁고 쉽게 지쳐요" |
-| sort_order | INTEGER | NOT NULL | 정렬 순서 | 1, 2, 3 |
-
-**DDL**:
-```sql
-CREATE TABLE condition (
-    id BIGSERIAL PRIMARY KEY,
-    name VARCHAR(50) NOT NULL UNIQUE,
-    display_name VARCHAR(50) NOT NULL,
-    description VARCHAR(255) NOT NULL,
-    sort_order INTEGER NOT NULL
-);
-
-CREATE INDEX idx_condition_sort_order ON condition(sort_order);
-```
-
----
-
-#### MOOD (기분)
-사용자가 원하는 기분 옵션을 정의하는 엔티티
-
-| 컬럼명 | 타입 | 제약조건 | 설명 | 비즈니스 규칙 |
-|--------|------|----------|------|---------------|
-| id | BIGSERIAL | PK | 기분 ID | - |
-| name | VARCHAR(50) | NOT NULL, UNIQUE | 기분 코드 | ENERGETIC, CALM, FOCUS |
-| display_name | VARCHAR(50) | NOT NULL | 표시명 | 활력, 평온, 집중 |
-| description | VARCHAR(255) | NOT NULL | 설명 | "에너지와 활기가 필요해요" |
-| sort_order | INTEGER | NOT NULL | 정렬 순서 | 1, 2, 3 |
-
-**DDL**:
-```sql
-CREATE TABLE mood (
-    id BIGSERIAL PRIMARY KEY,
-    name VARCHAR(50) NOT NULL UNIQUE,
-    display_name VARCHAR(50) NOT NULL,
-    description VARCHAR(255) NOT NULL,
-    sort_order INTEGER NOT NULL
-);
-
-CREATE INDEX idx_mood_sort_order ON mood(sort_order);
-```
-
----
-
-#### SCENT (향)
-사용자가 선호하는 향 옵션을 정의하는 엔티티
-
-| 컬럼명 | 타입 | 제약조건 | 설명 | 비즈니스 규칙 |
-|--------|------|----------|------|---------------|
-| id | BIGSERIAL | PK | 향 ID | - |
-| name | VARCHAR(50) | NOT NULL, UNIQUE | 향 코드 | FLORAL, CITRUS, HERBAL |
-| display_name | VARCHAR(50) | NOT NULL | 표시명 | 플로럴, 시트러스, 허브 |
-| description | VARCHAR(255) | NOT NULL | 설명 | "꽃향기가 나는 부드러운 향" |
-| sort_order | INTEGER | NOT NULL | 정렬 순서 | 1, 2, 3 |
-
-**DDL**:
-```sql
-CREATE TABLE scent (
-    id BIGSERIAL PRIMARY KEY,
-    name VARCHAR(50) NOT NULL UNIQUE,
-    display_name VARCHAR(50) NOT NULL,
-    description VARCHAR(255) NOT NULL,
-    sort_order INTEGER NOT NULL
-);
-
-CREATE INDEX idx_scent_sort_order ON scent(sort_order);
-```
-
----
-
-#### BOX_COMBINATION (박스 조합)
-상품의 컨디션/기분/향 조합을 정의하는 엔티티
-
-| 컬럼명 | 타입 | 제약조건 | 설명 | 비즈니스 규칙 |
-|--------|------|----------|------|---------------|
-| id | BIGSERIAL | PK | 조합 ID | - |
-| product_id | BIGINT | NOT NULL, FK → PRODUCT(id) | 상품 ID | - |
-| condition_id | BIGINT | NOT NULL, FK → CONDITION(id) | 컨디션 ID | - |
-| mood_id | BIGINT | NOT NULL, FK → MOOD(id) | 기분 ID | - |
-| scent_id | BIGINT | NOT NULL, FK → SCENT(id) | 향 ID | - |
-| combination_code | VARCHAR(50) | NOT NULL, UNIQUE | 조합 코드 | "BASIC_FATIGUE_ENERGETIC_CITRUS" |
-| created_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 생성일시 | - |
-
-**DDL**:
-```sql
-CREATE TABLE box_combination (
-    id BIGSERIAL PRIMARY KEY,
-    product_id BIGINT NOT NULL REFERENCES product(id),
-    condition_id BIGINT NOT NULL REFERENCES condition(id),
-    mood_id BIGINT NOT NULL REFERENCES mood(id),
-    scent_id BIGINT NOT NULL REFERENCES scent(id),
-    combination_code VARCHAR(50) NOT NULL UNIQUE,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(product_id, condition_id, mood_id, scent_id)
-);
-
-CREATE INDEX idx_box_combination_product ON box_combination(product_id);
-```
-
----
-
-#### COMBINATION_INVENTORY (조합별 재고)
-각 조합의 재고 수량을 관리하는 엔티티 (동시성 제어 핵심)
+#### INVENTORY (재고)
+상품별 재고 수량을 관리하는 엔티티
 
 | 컬럼명 | 타입 | 제약조건 | 설명 | 비즈니스 규칙 |
 |--------|------|----------|------|---------------|
 | id | BIGSERIAL | PK | 재고 ID | - |
-| combination_id | BIGINT | NOT NULL, UNIQUE, FK → BOX_COMBINATION(id) | 조합 ID | - |
-| stock | INTEGER | NOT NULL, DEFAULT 0 | 재고 수량 | 음수 불가 (CHECK >= 0) |
-| version | INTEGER | NOT NULL, DEFAULT 0 | 버전 (낙관적 락) | 업데이트 시마다 증가 |
-| updated_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 수정일시 | - |
-
-**비즈니스 규칙**:
-- BR-006: 재고 차감 시점은 주문 생성 시
-- BR-009: 재고는 음수가 될 수 없음
-- 동시성 제어: 비관적 락 (FOR UPDATE) + 버전 관리
-
-**DDL**:
-```sql
-CREATE TABLE combination_inventory (
-    id BIGSERIAL PRIMARY KEY,
-    combination_id BIGINT NOT NULL UNIQUE REFERENCES box_combination(id),
-    stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
-    version INTEGER NOT NULL DEFAULT 0,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_combination_inventory_combination ON combination_inventory(combination_id);
-```
-
----
-
-#### TEA (티)
-개별 티 정보를 관리하는 엔티티
-
-| 컬럼명 | 타입 | 제약조건 | 설명 | 비즈니스 규칙 |
-|--------|------|----------|------|---------------|
-| id | BIGSERIAL | PK | 티 ID | - |
-| name | VARCHAR(100) | NOT NULL | 티 이름 | "레몬그라스 진저 티" |
-| description | TEXT | NULL | 설명 | - |
-| main_ingredients | VARCHAR(255) | NOT NULL | 주요 재료 | "레몬그라스, 생강, 레몬밤" |
-| expected_effects | VARCHAR(255) | NULL | 기대 효과 | "활력 증진, 기분 전환" |
+| item_id | BIGINT | NOT NULL, FK → ITEM(id) | 상품 ID | - |
+| quantity | INTEGER | NOT NULL | 재고수량(g) | - |
+| safety_stock | INTEGER | NOT NULL | 안전재고(g) | - |
+| version | INTEGER | NOT NULL, DEFAULT 0 | 낙관적락 | - |
+| is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | 활성화여부 | - |
 | created_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 생성일시 | - |
+| created_by | BIGINT | NOT NULL | 생성자 | - |
+| updated_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 수정일시 | - |
+| updated_by | BIGINT | NOT NULL | 수정자 | - |
 
 **DDL**:
 ```sql
-CREATE TABLE tea (
+CREATE TABLE inventory (
     id BIGSERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    description TEXT,
-    main_ingredients VARCHAR(255) NOT NULL,
-    expected_effects VARCHAR(255),
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    item_id BIGINT NOT NULL REFERENCES item(id),
+    quantity INTEGER NOT NULL,
+    safety_stock INTEGER NOT NULL,
+    version INTEGER NOT NULL DEFAULT 0,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by BIGINT NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by BIGINT NOT NULL
 );
 
-CREATE INDEX idx_tea_name ON tea(name);
+CREATE INDEX idx_inventory_item ON inventory(item_id);
 ```
 
 ---
 
-#### BOX_TEA_RECIPE (박스 티 레시피)
-각 조합의 7일 구성을 정의하는 엔티티
+#### BOX_TYPE (박스타입)
+박스의 종류를 정의하는 엔티티
 
 | 컬럼명 | 타입 | 제약조건 | 설명 | 비즈니스 규칙 |
 |--------|------|----------|------|---------------|
-| id | BIGSERIAL | PK | 레시피 ID | - |
-| combination_id | BIGINT | NOT NULL, FK → BOX_COMBINATION(id) | 조합 ID | - |
-| tea_id | BIGINT | NOT NULL, FK → TEA(id) | 티 ID | - |
-| day_number | INTEGER | NOT NULL | 요일 번호 | 1(월) ~ 7(일) |
-| brewing_guide | VARCHAR(255) | NULL | 우려내는 법 | "80도 물 200ml에 3분" |
+| id | BIGSERIAL | PK | 박스타입 ID | - |
+| code | VARCHAR(50) | NOT NULL, UNIQUE | 코드 | THREE_DAYS/SEVEN_DAYS/FOURTEEN_DAYS |
+| name | VARCHAR(50) | NOT NULL | 박스명 | - |
+| days | INTEGER | NOT NULL | 일수 | - |
+| description | VARCHAR(255) | NOT NULL | 설명 | - |
+| is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | 활성화여부 | - |
+| created_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 생성일시 | - |
+| created_by | BIGINT | NOT NULL | 생성자 | - |
+| updated_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 수정일시 | - |
+| updated_by | BIGINT | NOT NULL | 수정자 | - |
 
 **DDL**:
 ```sql
-CREATE TABLE box_tea_recipe (
+CREATE TABLE box_type (
     id BIGSERIAL PRIMARY KEY,
-    combination_id BIGINT NOT NULL REFERENCES box_combination(id),
-    tea_id BIGINT NOT NULL REFERENCES tea(id),
-    day_number INTEGER NOT NULL CHECK (day_number BETWEEN 1 AND 7),
-    brewing_guide VARCHAR(255),
-    UNIQUE(combination_id, day_number)
+    code VARCHAR(50) NOT NULL UNIQUE,
+    name VARCHAR(50) NOT NULL,
+    days INTEGER NOT NULL,
+    description VARCHAR(255) NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by BIGINT NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by BIGINT NOT NULL
 );
 
-CREATE INDEX idx_box_tea_recipe_combination ON box_tea_recipe(combination_id);
+CREATE INDEX idx_box_type_code ON box_type(code);
 ```
 
 ---
 
 ### 2.3 장바구니 관련
 
-#### CART_ITEM (장바구니 항목)
+#### CART (장바구니)
 사용자별 장바구니를 관리하는 엔티티
 
 | 컬럼명 | 타입 | 제약조건 | 설명 | 비즈니스 규칙 |
 |--------|------|----------|------|---------------|
-| id | BIGSERIAL | PK | 장바구니 항목 ID | - |
-| user_id | BIGINT | NOT NULL, FK → USER(id) | 사용자 ID | - |
-| product_id | BIGINT | NOT NULL, FK → PRODUCT(id) | 상품 ID | - |
-| combination_id | BIGINT | NOT NULL, FK → BOX_COMBINATION(id) | 조합 ID | - |
-| quantity | INTEGER | NOT NULL, DEFAULT 1 | 수량 | 현재는 항상 1 |
+| id | BIGSERIAL | PK | 장바구니 ID | - |
+| user_id | BIGINT | NOT NULL | 사용자 ID | - |
+| is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | 활성화 여부 | - |
 | created_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 생성일시 | - |
+| created_by | BIGINT | NOT NULL | 생성자 | - |
+| updated_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 수정일시 | - |
+| updated_by | BIGINT | NOT NULL | 수정자 | - |
+
+**DDL**:
+```sql
+CREATE TABLE cart (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by BIGINT NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by BIGINT NOT NULL
+);
+
+CREATE INDEX idx_cart_user ON cart(user_id);
+```
+
+---
+
+#### CART_ITEM (장바구니상품)
+장바구니의 개별 상품을 관리하는 엔티티
+
+| 컬럼명 | 타입 | 제약조건 | 설명 | 비즈니스 규칙 |
+|--------|------|----------|------|---------------|
+| id | BIGSERIAL | PK | 장바구니상품 ID | - |
+| cart_id | BIGINT | NOT NULL, FK → CART(id) | 장바구니 ID | - |
+| box_type_id | BIGINT | NOT NULL | 박스타입 ID | - |
+| daily_serving | INTEGER | NOT NULL | 하루섭취량(1/2/3) | - |
+| quantity | INTEGER | NOT NULL | 수량 | - |
+| gift_wrap | BOOLEAN | NOT NULL, DEFAULT FALSE | 선물포장여부 | - |
+| gift_message | TEXT | NULL | 선물메시지 | - |
+| is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | 활성화 여부 | - |
+| created_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 생성일시 | - |
+| created_by | BIGINT | NOT NULL | 생성자 | - |
+| updated_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 수정일시 | - |
+| updated_by | BIGINT | NOT NULL | 수정자 | - |
 
 **DDL**:
 ```sql
 CREATE TABLE cart_item (
     id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL REFERENCES "user"(id),
-    product_id BIGINT NOT NULL REFERENCES product(id),
-    combination_id BIGINT NOT NULL REFERENCES box_combination(id),
-    quantity INTEGER NOT NULL DEFAULT 1,
+    cart_id BIGINT NOT NULL REFERENCES cart(id),
+    box_type_id BIGINT NOT NULL,
+    daily_serving INTEGER NOT NULL,
+    quantity INTEGER NOT NULL,
+    gift_wrap BOOLEAN NOT NULL DEFAULT FALSE,
+    gift_message TEXT,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, combination_id)
+    created_by BIGINT NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by BIGINT NOT NULL
 );
 
-CREATE INDEX idx_cart_item_user ON cart_item(user_id);
+CREATE INDEX idx_cart_item_cart ON cart_item(cart_id);
 ```
 
 ---
 
-### 2.4 주문 관련
+#### CART_ITEM_TEA (장바구니차구성)
+장바구니 상품의 차 구성을 관리하는 엔티티
+
+| 컬럼명 | 타입 | 제약조건 | 설명 | 비즈니스 규칙 |
+|--------|------|----------|------|---------------|
+| id | BIGSERIAL | PK | 장바구니차구성 ID | - |
+| cart_item_id | BIGINT | NOT NULL, FK → CART_ITEM(id) | 장바구니상품 ID | - |
+| item_id | BIGINT | NOT NULL | 차 ID | - |
+| selection_order | INTEGER | NOT NULL | 선택순서 | - |
+| ratio_percent | INTEGER | NOT NULL | 배합비율 | - |
+| is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | 활성화 여부 | - |
+| created_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 생성일시 | - |
+| created_by | BIGINT | NOT NULL | 생성자 | - |
+| updated_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 수정일시 | - |
+| updated_by | BIGINT | NOT NULL | 수정자 | - |
+
+**DDL**:
+```sql
+CREATE TABLE cart_item_tea (
+    id BIGSERIAL PRIMARY KEY,
+    cart_item_id BIGINT NOT NULL REFERENCES cart_item(id),
+    item_id BIGINT NOT NULL,
+    selection_order INTEGER NOT NULL,
+    ratio_percent INTEGER NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by BIGINT NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by BIGINT NOT NULL
+);
+
+CREATE INDEX idx_cart_item_tea_cart_item ON cart_item_tea(cart_item_id);
+```
+
+---
 
 #### ORDER (주문)
 주문 정보를 관리하는 엔티티
@@ -648,70 +712,137 @@ CREATE INDEX idx_cart_item_user ON cart_item(user_id);
 | 컬럼명 | 타입 | 제약조건 | 설명 | 비즈니스 규칙 |
 |--------|------|----------|------|---------------|
 | id | BIGSERIAL | PK | 주문 ID | - |
-| order_number | VARCHAR(50) | NOT NULL, UNIQUE | 주문 번호 | "ORD-YYYYMMDD-XXX" |
-| user_id | BIGINT | NOT NULL, FK → USER(id) | 사용자 ID | - |
-| coupon_id | BIGINT | NULL, FK → USER_COUPON(id) | 사용한 쿠폰 ID | Nullable |
-| total_amount | INTEGER | NOT NULL | 총 상품 금액 (원) | - |
-| discount_amount | INTEGER | NOT NULL, DEFAULT 0 | 할인 금액 (원) | 쿠폰 할인 |
-| final_amount | INTEGER | NOT NULL | 최종 결제 금액 (원) | total - discount |
-| status | VARCHAR(20) | NOT NULL | 주문 상태 | PENDING, PAID, PREPARING, SHIPPED, DELIVERED, CANCELLED |
-| delivery_address | JSONB | NOT NULL | 배송지 정보 (JSON) | 수령인, 전화번호, 주소 |
+| order_number | VARCHAR(50) | NOT NULL, UNIQUE | 주문번호 | - |
+| user_id | BIGINT | NOT NULL | 사용자 ID | - |
+| coupon_code | VARCHAR(50) | NULL | 쿠폰코드 | - |
+| total_amount | INTEGER | NOT NULL | 총금액 | - |
+| discount_amount | INTEGER | NOT NULL | 할인금액 | - |
+| final_amount | INTEGER | NOT NULL | 최종금액 | - |
+| status | VARCHAR(30) | NOT NULL | 주문상태 | PENDING/PAID/PREPARING/SHIPPED/DELIVERED/CANCELLED |
 | ordered_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 주문일시 | - |
+| delivery_id | BIGINT | NULL | 배송 ID | - |
+| is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | 활성화 여부 | - |
 | created_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 생성일시 | - |
+| created_by | BIGINT | NOT NULL | 생성자 | - |
 | updated_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 수정일시 | - |
+| updated_by | BIGINT | NOT NULL | 수정자 | - |
 
 **DDL**:
 ```sql
 CREATE TABLE "order" (
     id BIGSERIAL PRIMARY KEY,
     order_number VARCHAR(50) NOT NULL UNIQUE,
-    user_id BIGINT NOT NULL REFERENCES "user"(id),
-    coupon_id BIGINT REFERENCES user_coupon(id),
+    user_id BIGINT NOT NULL,
+    coupon_code VARCHAR(50),
     total_amount INTEGER NOT NULL,
-    discount_amount INTEGER NOT NULL DEFAULT 0,
+    discount_amount INTEGER NOT NULL,
     final_amount INTEGER NOT NULL,
-    status VARCHAR(20) NOT NULL,
-    delivery_address JSONB NOT NULL,
+    status VARCHAR(30) NOT NULL,
     ordered_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    delivery_id BIGINT,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by BIGINT NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CHECK (final_amount = total_amount - discount_amount)
+    updated_by BIGINT NOT NULL
 );
 
 CREATE INDEX idx_order_user_created ON "order"(user_id, created_at DESC);
 CREATE INDEX idx_order_status ON "order"(status);
-CREATE INDEX idx_order_ordered_at ON "order"(ordered_at);
 ```
 
 ---
 
-#### ORDER_ITEM (주문 항목)
+#### ORDER_ITEM (주문상품)
 주문의 상세 항목을 관리하는 엔티티
 
 | 컬럼명 | 타입 | 제약조건 | 설명 | 비즈니스 규칙 |
 |--------|------|----------|------|---------------|
-| id | BIGSERIAL | PK | 주문 항목 ID | - |
+| id | BIGSERIAL | PK | 주문상품 ID | - |
 | order_id | BIGINT | NOT NULL, FK → ORDER(id) | 주문 ID | - |
-| product_id | BIGINT | NOT NULL, FK → PRODUCT(id) | 상품 ID | - |
-| combination_id | BIGINT | NOT NULL, FK → BOX_COMBINATION(id) | 조합 ID | - |
-| quantity | INTEGER | NOT NULL | 수량 | 현재는 항상 1 |
-| unit_price | INTEGER | NOT NULL | 단가 (원) | 주문 시점 가격 스냅샷 |
-| total_price | INTEGER | NOT NULL | 총액 (원) | unit_price × quantity |
+| box_type_id | BIGINT | NOT NULL | 박스타입 ID | - |
+| box_type_name | VARCHAR(50) | NOT NULL | 박스타입명 | - |
+| daily_serving | INTEGER | NOT NULL | 하루섭취량(1/2/3) | - |
+| tea_bag_count | INTEGER | NOT NULL | 티백개수 | - |
+| gift_wrap | BOOLEAN | NOT NULL, DEFAULT FALSE | 선물포장 | - |
+| gift_message | TEXT | NULL | 선물메시지 | - |
+| quantity | INTEGER | NOT NULL | 수량 | - |
+| container_price | INTEGER | NOT NULL | 용기가격(기본포장포함) | - |
+| tea_price | INTEGER | NOT NULL | 차가격(그램기준) | - |
+| gift_wrap_price | INTEGER | NOT NULL | 선물포장가격(추가옵션) | - |
+| total_price | INTEGER | NOT NULL | 총가격 | - |
+| is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | 활성화 여부 | - |
+| created_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 생성일시 | - |
+| created_by | BIGINT | NOT NULL | 생성자 | - |
+| updated_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 수정일시 | - |
+| updated_by | BIGINT | NOT NULL | 수정자 | - |
 
 **DDL**:
 ```sql
 CREATE TABLE order_item (
     id BIGSERIAL PRIMARY KEY,
     order_id BIGINT NOT NULL REFERENCES "order"(id),
-    product_id BIGINT NOT NULL REFERENCES product(id),
-    combination_id BIGINT NOT NULL REFERENCES box_combination(id),
-    quantity INTEGER NOT NULL CHECK (quantity > 0),
-    unit_price INTEGER NOT NULL,
-    total_price INTEGER NOT NULL
+    box_type_id BIGINT NOT NULL,
+    box_type_name VARCHAR(50) NOT NULL,
+    daily_serving INTEGER NOT NULL,
+    tea_bag_count INTEGER NOT NULL,
+    gift_wrap BOOLEAN NOT NULL DEFAULT FALSE,
+    gift_message TEXT,
+    quantity INTEGER NOT NULL,
+    container_price INTEGER NOT NULL,
+    tea_price INTEGER NOT NULL,
+    gift_wrap_price INTEGER NOT NULL,
+    total_price INTEGER NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by BIGINT NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by BIGINT NOT NULL
 );
 
 CREATE INDEX idx_order_item_order ON order_item(order_id);
-CREATE INDEX idx_order_item_combination ON order_item(combination_id);
+```
+
+---
+
+#### ORDER_ITEM_TEA (주문차구성)
+주문 상품의 차 구성을 관리하는 엔티티
+
+| 컬럼명 | 타입 | 제약조건 | 설명 | 비즈니스 규칙 |
+|--------|------|----------|------|---------------|
+| id | BIGSERIAL | PK | 주문차구성 ID | - |
+| order_item_id | BIGINT | NOT NULL, FK → ORDER_ITEM(id) | 주문상품 ID | - |
+| item_id | BIGINT | NOT NULL | 차 ID | - |
+| item_name | VARCHAR(100) | NOT NULL | 차명 | - |
+| category_name | VARCHAR(50) | NOT NULL | 카테고리 | - |
+| selection_order | INTEGER | NOT NULL | 선택순서 | - |
+| ratio_percent | INTEGER | NOT NULL | 배합비율 | - |
+| unit_price | INTEGER | NOT NULL | 100g당가격(스냅샷) | - |
+| is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | 활성화 여부 | - |
+| created_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 생성일시 | - |
+| created_by | BIGINT | NOT NULL | 생성자 | - |
+| updated_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 수정일시 | - |
+| updated_by | BIGINT | NOT NULL | 수정자 | - |
+
+**DDL**:
+```sql
+CREATE TABLE order_item_tea (
+    id BIGSERIAL PRIMARY KEY,
+    order_item_id BIGINT NOT NULL REFERENCES order_item(id),
+    item_id BIGINT NOT NULL,
+    item_name VARCHAR(100) NOT NULL,
+    category_name VARCHAR(50) NOT NULL,
+    selection_order INTEGER NOT NULL,
+    ratio_percent INTEGER NOT NULL,
+    unit_price INTEGER NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by BIGINT NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by BIGINT NOT NULL
+);
+
+CREATE INDEX idx_order_item_tea_order_item ON order_item_tea(order_item_id);
 ```
 
 ---
@@ -722,25 +853,35 @@ CREATE INDEX idx_order_item_combination ON order_item(combination_id);
 | 컬럼명 | 타입 | 제약조건 | 설명 | 비즈니스 규칙 |
 |--------|------|----------|------|---------------|
 | id | BIGSERIAL | PK | 결제 ID | - |
-| order_id | BIGINT | NOT NULL, UNIQUE, FK → ORDER(id) | 주문 ID | 1:1 관계 |
-| user_id | BIGINT | NOT NULL, FK → USER(id) | 사용자 ID | - |
-| amount | INTEGER | NOT NULL | 결제 금액 (원) | - |
-| payment_method | VARCHAR(20) | NOT NULL | 결제 수단 | BALANCE (포인트) |
-| status | VARCHAR(20) | NOT NULL | 결제 상태 | PENDING, SUCCESS, FAILED |
-| paid_at | TIMESTAMP WITH TIME ZONE | NULL | 결제 완료 일시 | - |
+| order_id | BIGINT | NOT NULL, FK → ORDER(id) | 주문 ID | - |
+| user_id | BIGINT | NOT NULL | 사용자 ID | - |
+| amount | INTEGER | NOT NULL | 결제금액 | - |
+| payment_method | VARCHAR(20) | NOT NULL | 결제수단 | - |
+| status | VARCHAR(20) | NOT NULL | 결제상태 | - |
+| pg_transaction_id | VARCHAR(100) | NULL | PG거래ID | - |
+| paid_at | TIMESTAMP WITH TIME ZONE | NULL | 결제일시 | - |
+| is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | 활성화 여부 | - |
 | created_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 생성일시 | - |
+| created_by | BIGINT | NOT NULL | 생성자 | - |
+| updated_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 수정일시 | - |
+| updated_by | BIGINT | NOT NULL | 수정자 | - |
 
 **DDL**:
 ```sql
 CREATE TABLE payment (
     id BIGSERIAL PRIMARY KEY,
-    order_id BIGINT NOT NULL UNIQUE REFERENCES "order"(id),
-    user_id BIGINT NOT NULL REFERENCES "user"(id),
+    order_id BIGINT NOT NULL REFERENCES "order"(id),
+    user_id BIGINT NOT NULL,
     amount INTEGER NOT NULL,
     payment_method VARCHAR(20) NOT NULL,
     status VARCHAR(20) NOT NULL,
+    pg_transaction_id VARCHAR(100),
     paid_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by BIGINT NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by BIGINT NOT NULL
 );
 
 CREATE INDEX idx_payment_user ON payment(user_id);
@@ -748,7 +889,85 @@ CREATE INDEX idx_payment_user ON payment(user_id);
 
 ---
 
-### 2.5 쿠폰 관련
+### 2.5 포인트 관련
+
+#### USER_BALANCE (사용자 포인트 잔액)
+사용자별 포인트 잔액을 관리하는 엔티티
+
+| 컬럼명 | 타입 | 제약조건 | 설명 | 비즈니스 규칙 |
+|--------|------|----------|------|---------------|
+| id | BIGSERIAL | PK | 잔액 ID | - |
+| user_id | BIGINT | NOT NULL, FK → USER(id), UNIQUE | 사용자 ID | 1:1 관계 |
+| balance | BIGINT | NOT NULL, DEFAULT 0 | 포인트 잔액 | 음수 불가 |
+| version | INTEGER | NOT NULL, DEFAULT 0 | 낙관적락 | 동시성 제어용 |
+| is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | 활성화 여부 | - |
+| created_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 생성일시 | - |
+| created_by | BIGINT | NOT NULL | 생성자 | - |
+| updated_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 수정일시 | - |
+| updated_by | BIGINT | NOT NULL | 수정자 | - |
+
+**DDL**:
+```sql
+CREATE TABLE user_balance (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES "user"(id) UNIQUE,
+    balance BIGINT NOT NULL DEFAULT 0,
+    version INTEGER NOT NULL DEFAULT 0,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by BIGINT NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by BIGINT NOT NULL,
+    CONSTRAINT chk_balance_non_negative CHECK (balance >= 0)
+);
+
+CREATE UNIQUE INDEX idx_user_balance_user ON user_balance(user_id);
+```
+
+---
+
+#### BALANCE_HISTORY (포인트 변동 이력)
+포인트 충전/사용/환불 이력을 관리하는 엔티티
+
+| 컬럼명 | 타입 | 제약조건 | 설명 | 비즈니스 규칙 |
+|--------|------|----------|------|---------------|
+| id | BIGSERIAL | PK | 이력 ID | - |
+| user_id | BIGINT | NOT NULL, FK → USER(id) | 사용자 ID | - |
+| transaction_type | VARCHAR(20) | NOT NULL | 거래타입 | CHARGE/USE/REFUND |
+| amount | BIGINT | NOT NULL | 변동금액 | 충전(+), 사용(-), 환불(+) |
+| balance_before | BIGINT | NOT NULL | 거래전잔액 | - |
+| balance_after | BIGINT | NOT NULL | 거래후잔액 | - |
+| order_id | BIGINT | NULL, FK → ORDER(id) | 주문 ID | 주문 관련 거래시만 |
+| description | VARCHAR(255) | NOT NULL | 설명 | "주문 결제", "포인트 충전" 등 |
+| is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | 활성화 여부 | - |
+| created_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 생성일시 | - |
+| created_by | BIGINT | NOT NULL | 생성자 | - |
+
+**DDL**:
+```sql
+CREATE TABLE balance_history (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES "user"(id),
+    transaction_type VARCHAR(20) NOT NULL,
+    amount BIGINT NOT NULL,
+    balance_before BIGINT NOT NULL,
+    balance_after BIGINT NOT NULL,
+    order_id BIGINT REFERENCES "order"(id),
+    description VARCHAR(255) NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by BIGINT NOT NULL,
+    CONSTRAINT chk_transaction_type CHECK (transaction_type IN ('CHARGE', 'USE', 'REFUND')),
+    CONSTRAINT chk_balance_calculation CHECK (balance_after = balance_before + amount)
+);
+
+CREATE INDEX idx_balance_history_user_created ON balance_history(user_id, created_at DESC);
+CREATE INDEX idx_balance_history_order ON balance_history(order_id) WHERE order_id IS NOT NULL;
+```
+
+---
+
+### 2.6 쿠폰 관련
 
 #### COUPON (쿠폰)
 쿠폰 마스터 정보를 관리하는 엔티티
@@ -904,26 +1123,26 @@ ON outbox_event(aggregate_type, aggregate_id);
 
 ## 3. 비즈니스 규칙 반영
 
-### 3.1 재고 관리 규칙
+### 3.1 상품 관리 규칙
 
-#### 재고 차감 시점 (BR-006)
+#### 차 재고 관리 (BR-006)
 ```sql
--- 주문 생성 시 재고 차감 (트랜잭션 내)
+-- 주문 생성 시 차 재고 차감 (트랜잭션 내)
 BEGIN;
 
 -- 1. 재고 확인 및 락 획득 (비관적 락)
-SELECT stock 
-FROM combination_inventory 
-WHERE combination_id = $1
+SELECT quantity
+FROM inventory
+WHERE item_id = $1
 FOR UPDATE;
 
 -- 2. 재고 차감
-UPDATE combination_inventory
-SET stock = stock - $2,
+UPDATE inventory
+SET quantity = quantity - $2,
     version = version + 1,
     updated_at = CURRENT_TIMESTAMP
-WHERE combination_id = $1
-  AND stock >= $2;  -- 재고 부족 시 업데이트 실패
+WHERE item_id = $1
+  AND quantity >= $2;  -- 재고 부족 시 업데이트 실패
 
 -- 3. 주문 생성
 INSERT INTO "order" (...) VALUES (...);
@@ -934,15 +1153,15 @@ COMMIT;
 #### 재고 음수 방지 (BR-009)
 ```sql
 -- 이미 테이블 생성 시 CHECK 제약조건 포함됨
-ALTER TABLE combination_inventory
-ADD CONSTRAINT chk_stock_non_negative
-CHECK (stock >= 0);
+ALTER TABLE inventory
+ADD CONSTRAINT chk_quantity_non_negative
+CHECK (quantity >= 0);
 ```
 
-#### 일일 생산 한도 (BR-005)
+#### 박스 타입별 일일 생산 한도 (BR-005)
 ```redis
 # Redis 카운터로 일일 생산 한도 체크
-INCR daily:production:2025-10-30
+INCR daily:production:box_type:SEVEN_DAYS:2025-10-30
 # 결과가 30 초과 시 주문 불가
 # 자정 자동 초기화 (TTL)
 EXPIRE daily:production:2025-10-30 86400
@@ -1035,27 +1254,104 @@ fun canCancel(order: Order): Boolean {
 #### 포인트 음수 방지 (BR-020)
 ```sql
 -- 이미 테이블 생성 시 CHECK 제약조건 포함됨
-ALTER TABLE "user"
-ADD CONSTRAINT chk_balance_non_negative
-CHECK (balance >= 0);
+-- user_balance 테이블에 적용됨
+CONSTRAINT chk_balance_non_negative CHECK (balance >= 0);
 ```
 
-#### 포인트 이력 기록
+#### 포인트 충전 (BR-021)
 ```sql
--- 모든 포인트 변동 시 이력 생성
-INSERT INTO user_balance_history (
-    user_id,
-    transaction_type,
-    amount,
-    balance_after,
-    description
+-- 포인트 충전 트랜잭션
+BEGIN;
+
+-- 1. 현재 잔액 조회 (낙관적 락)
+SELECT balance, version
+FROM user_balance
+WHERE user_id = $1;
+
+-- 2. 잔액 업데이트
+UPDATE user_balance
+SET balance = balance + $2,
+    version = version + 1,
+    updated_at = CURRENT_TIMESTAMP
+WHERE user_id = $1
+  AND version = $3;  -- 낙관적 락 검사
+
+-- 3. 이력 생성
+INSERT INTO balance_history (
+    user_id, transaction_type, amount,
+    balance_before, balance_after, description, created_by
 ) VALUES (
-    $1,
-    'USE',  -- or 'CHARGE', 'REFUND'
-    -29000,
-    21000,  -- 거래 후 잔액
-    '주문 결제 (ORD-20251030-001)'
+    $1, 'CHARGE', $2,
+    $4, $4 + $2, '포인트 충전', $5
 );
+
+COMMIT;
+```
+
+#### 포인트 사용 (BR-022)
+```sql
+-- 주문 결제 시 포인트 사용
+BEGIN;
+
+-- 1. 잔액 확인 및 락 획득
+SELECT balance, version
+FROM user_balance
+WHERE user_id = $1
+FOR UPDATE;
+
+-- 2. 잔액 부족 검사
+IF balance < $2 THEN
+    RAISE EXCEPTION 'Insufficient balance: current=%, required=%', balance, $2;
+END IF;
+
+-- 3. 잔액 차감
+UPDATE user_balance
+SET balance = balance - $2,
+    version = version + 1,
+    updated_at = CURRENT_TIMESTAMP
+WHERE user_id = $1;
+
+-- 4. 이력 생성
+INSERT INTO balance_history (
+    user_id, transaction_type, amount,
+    balance_before, balance_after, order_id, description, created_by
+) VALUES (
+    $1, 'USE', -$2,
+    $3, $3 - $2, $4, '주문 결제 (ORD-'||$5||')', $6
+);
+
+COMMIT;
+```
+
+#### 포인트 환불 (BR-023)
+```sql
+-- 주문 취소 시 포인트 환불
+BEGIN;
+
+-- 1. 사용 이력 조회
+SELECT amount, balance_before
+FROM balance_history
+WHERE order_id = $1
+  AND transaction_type = 'USE'
+  AND is_active = TRUE;
+
+-- 2. 포인트 환불
+UPDATE user_balance
+SET balance = balance + ABS($2),
+    version = version + 1,
+    updated_at = CURRENT_TIMESTAMP
+WHERE user_id = $3;
+
+-- 3. 환불 이력 생성
+INSERT INTO balance_history (
+    user_id, transaction_type, amount,
+    balance_before, balance_after, order_id, description, created_by
+) VALUES (
+    $3, 'REFUND', ABS($2),
+    $4, $4 + ABS($2), $1, '주문 취소 환불 (ORD-'||$5||')', $6
+);
+
+COMMIT;
 ```
 
 ---
@@ -1088,6 +1384,9 @@ FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_outbox_event_updated_at BEFORE UPDATE ON outbox_event
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_user_balance_updated_at BEFORE UPDATE ON user_balance
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 ```
 
 ---
@@ -1095,6 +1394,38 @@ FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 ## 4. 인덱스 전략
 
 ### 4.1 복합 인덱스 활용 예시
+
+#### 포인트 잔액 조회
+```sql
+-- 사용자 포인트 잔액 조회
+SELECT balance
+FROM user_balance
+WHERE user_id = $1
+  AND is_active = TRUE;
+
+-- 활용 인덱스:
+-- idx_user_balance_user (user_id UNIQUE)
+```
+
+#### 포인트 이력 조회
+```sql
+-- 사용자별 포인트 이력 조회 (최근 30일)
+SELECT
+    transaction_type,
+    amount,
+    balance_after,
+    description,
+    created_at
+FROM balance_history
+WHERE user_id = $1
+  AND created_at >= CURRENT_TIMESTAMP - INTERVAL '30 days'
+  AND is_active = TRUE
+ORDER BY created_at DESC
+LIMIT 20;
+
+-- 활용 인덱스:
+-- idx_balance_history_user_created (user_id, created_at DESC)
+```
 
 #### 인기 조합 통계 쿼리
 ```sql
