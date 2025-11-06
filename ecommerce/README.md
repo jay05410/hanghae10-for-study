@@ -26,6 +26,135 @@
 ### 4. 테스트 주도 개발 (Test-Driven Development)
 각 계층별 독립적인 단위 테스트가 가능하도록 설계했습니다.
 
+## 🛡️ 검증(Validation) 패턴 가이드
+
+### 검증 로직 분리 기준
+
+비즈니스 로직을 도메인에 구현하면서 검증 로직이 분산되는 문제를 방지하기 위해 명확한 기준을 정의했습니다.
+
+#### 1. Value Objects (VO) - 입력값 형식 검증
+**목적**: 불변성과 입력값 유효성을 보장하는 원시 타입 래핑
+**사용 기준**:
+- 원시 타입(Long, Int, String)을 도메인 의미있는 값으로 래핑
+- 생성 시점에 형식/범위 검증
+- 비즈니스 의미가 명확한 값
+
+```kotlin
+@JvmInline
+value class ChargeAmount private constructor(val value: Long) {
+    companion object {
+        operator fun invoke(amount: Long): ChargeAmount {
+            require(amount >= MIN_CHARGE) { "최소 충전 금액은 ${MIN_CHARGE}원입니다" }
+            require(amount <= MAX_CHARGE) { "최대 충전 금액은 ${MAX_CHARGE}원입니다" }
+            require(amount % UNIT == 0L) { "충전은 ${UNIT}원 단위로만 가능합니다" }
+            return ChargeAmount(amount)
+        }
+    }
+}
+```
+
+#### 2. Validator Classes - 복잡한 비즈니스 규칙 검증
+**목적**: 여러 데이터를 조합한 복잡한 비즈니스 규칙 검증
+**사용 기준**:
+- 여러 값을 조합한 검증이 필요한 경우
+- DB 조회 없이 순수 로직만으로 검증 가능
+- 도메인 엔티티 코드가 복잡해지는 것을 방지
+
+```kotlin
+object PaymentValidator {
+    fun validateBalance(currentBalance: Long, paymentAmount: Long) {
+        if (currentBalance < paymentAmount) {
+            throw PaymentException.InsufficientBalance(currentBalance, paymentAmount)
+        }
+    }
+}
+```
+
+#### 3. Entity Methods - 상태 변경 관련 검증
+**목적**: 엔티티 상태 변경 시 필요한 검증
+**사용 기준**:
+- 현재 상태를 기반으로 한 검증
+- 상태 전이 규칙 검증
+- 엔티티 자체의 불변 조건 검증
+
+```kotlin
+fun cancel(cancelledBy: Long) {
+    if (!canBeCancelled()) {
+        throw OrderException.OrderCancellationNotAllowed(orderNumber, status)
+    }
+    this.status = OrderStatus.CANCELLED
+}
+```
+
+#### 4. Exception Classes - 도메인별 예외 처리
+**목적**: 각 검증 단계에서 발생하는 예외를 타입 안전하게 처리
+**구조**:
+- ErrorCode enum (에러 코드 + HTTP 상태)
+- BusinessException 추상 클래스 (로그 레벨 + 메타데이터)
+- 도메인별 sealed class 예외 계층
+
+```kotlin
+sealed class PaymentException(
+    errorCode: PaymentErrorCode,
+    message: String = errorCode.message,
+    logLevel: Level = Level.WARN,
+    data: Map<String, Any> = emptyMap()
+) : BusinessException(errorCode, message, logLevel, data) {
+
+    class InsufficientBalance(currentBalance: Long, paymentAmount: Long) : PaymentException(
+        errorCode = PaymentErrorCode.INSUFFICIENT_BALANCE,
+        data = mapOf("currentBalance" to currentBalance, "paymentAmount" to paymentAmount)
+    )
+}
+```
+
+### 검증 로직 실행 순서 (3단계 패턴)
+1. **VO 검증** → 입력값 형식/범위 검증 (생성 시점)
+2. **Validator 검증** → 복잡한 비즈니스 로직 (UseCase/Service 레벨)
+3. **Entity 상태변경** → 최소한의 상태 검증 후 변경
+
+### 다국어 지원 고려사항
+- 현재 `require` 메시지는 개발용
+- 프로덕션에서는 ErrorCode 기반 MessageSource 사용
+- ErrorCode enum에 다국어 키 정의 후 locale별 메시지 로드
+
+## 🔢 Snowflake ID 생성
+
+### 라이브러리 선택
+**cn.ipokerface:snowflake-id-generator:2.5.0** (Maven Central 최신 버전)
+
+### 특징
+- **64bit 구조**: 1bit(미사용) + 41bit(timestamp) + 5bit(datacenterId) + 5bit(workerId) + 12bit(sequence)
+- **성능**: 초당 최대 4,096,000개 ID 생성 가능
+- **수명**: 약 69년간 사용 가능 (2020-10-01 기준)
+- **분산 안전**: workerId(0-31) + datacenterId(0-31)로 충돌 방지
+
+### 사용 예시
+```kotlin
+@Service
+class OrderService(private val snowflakeGenerator: SnowflakeGenerator) {
+
+    fun createOrder(userId: Long, totalAmount: Long, createdBy: Long): Order {
+        // Service에서 Snowflake ID 생성
+        val orderNumber = snowflakeGenerator.generateOrderNumber() // "ORDABC123DEF456"
+
+        // Entity에 미리 생성된 번호 전달
+        return Order.create(
+            orderNumber = orderNumber,
+            userId = userId,
+            totalAmount = totalAmount,
+            createdBy = createdBy
+        )
+    }
+}
+```
+
+### 아키텍처 구현
+- ✅ **Service 계층에서 ID 생성**: Entity에서 직접 생성하지 않음
+- ✅ **의존성 주입**: `@Component` SnowflakeGenerator를 Service에 주입
+- ✅ **환경설정**: `MACHINE_ID` 환경변수로 서버별 고유 ID 설정 (0-1023)
+- ✅ **분산 안전**: 여러 서버에서도 유니크 보장
+
 ## 📁 프로젝트 구조
 
 ```
