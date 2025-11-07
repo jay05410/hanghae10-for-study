@@ -86,7 +86,7 @@ erDiagram
         bigint updated_by "수정자"
     }
 
-    USER_BALANCE {
+    USER_POINT {
         bigint id PK "잔액 ID"
         bigint user_id FK "사용자 ID"
         bigint balance "포인트 잔액"
@@ -98,14 +98,12 @@ erDiagram
         bigint updated_by "수정자"
     }
 
-    BALANCE_HISTORY {
+    POINT_HISTORY {
         bigint id PK "이력 ID"
         bigint user_id FK "사용자 ID"
-        string transaction_type "거래타입(CHARGE/USE/REFUND)"
+        string transaction_type "거래타입(CHARGE/DEDUCT)"
         bigint amount "변동금액"
-        bigint balance_before "거래전잔액"
         bigint balance_after "거래후잔액"
-        bigint order_id FK "주문 ID(nullable)"
         string description "설명"
         boolean is_active "활성화 여부"
         datetime created_at "생성일시"
@@ -124,7 +122,7 @@ erDiagram
         bigint updated_by "수정자"
     }
     
-    ITEM {
+    PRODUCT {
         bigint id PK "상품 ID"
         bigint category_id FK "카테고리 ID"
         string name "상품명"
@@ -147,7 +145,7 @@ erDiagram
     
     INVENTORY {
         bigint id PK "재고 ID"
-        bigint item_id FK "상품 ID"
+        bigint product_id FK "상품 ID"
         int quantity "재고수량(g)"
         int safety_stock "안전재고(g)"
         int version "낙관적락"
@@ -160,9 +158,8 @@ erDiagram
     
     BOX_TYPE {
     bigint id PK "박스타입 ID"
-    string code UK "코드(THREE_DAYS/SEVEN_DAYS/FOURTEEN_DAYS)"
     string name "박스명"
-    int days "일수"
+    int tea_count "차 개수"
     string description "설명"
     boolean is_active "활성화여부"
     datetime created_at "생성일시"
@@ -199,7 +196,7 @@ erDiagram
     CART_ITEM_TEA {
         bigint id PK "장바구니차구성 ID"
         bigint cart_item_id FK "장바구니상품 ID"
-        bigint item_id "차 ID"
+        bigint product_id "차 ID"
         int selection_order "선택순서"
         int ratio_percent "배합비율"
         boolean is_active "활성화 여부"
@@ -251,8 +248,8 @@ erDiagram
     ORDER_ITEM_TEA {
         bigint id PK "주문차구성 ID"
         bigint order_item_id FK "주문상품 ID"
-        bigint item_id "차 ID"
-        string item_name "차명"
+        bigint product_id "차 ID"
+        string product_name "차명"
         string category_name "카테고리"
         int selection_order "선택순서"
         int ratio_percent "배합비율"
@@ -1652,6 +1649,7 @@ LIMIT 5;
 ```
 
 ---
+
 
 ## 변경 이력
 | 버전 | 날짜 | 변경 내용 | 작성자 |
