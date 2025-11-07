@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.spring)
-    alias(libs.plugins.kotlin.jpa)
     alias(libs.plugins.spring.boot)
     alias(libs.plugins.spring.dependency.management)
     id("jacoco")
@@ -22,13 +21,15 @@ dependencyManagement {
 
 dependencies {
     implementation(libs.spring.boot.starter.web)
-    implementation(libs.spring.boot.starter.data.jpa)
     implementation(libs.jackson.kotlin)
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 
-    // Database
-    runtimeOnly(libs.h2)
+    // Spring Transaction (for @Transactional without JPA)
+    implementation("org.springframework:spring-tx")
+
+    // JANSI for console colors
+    implementation("org.fusesource.jansi:jansi:2.4.0")
 
     // Snowflake ID Generator
     implementation("cn.ipokerface:snowflake-id-generator:2.5.0")
@@ -36,6 +37,9 @@ dependencies {
     // Test Dependencies
     testImplementation(libs.spring.boot.starter.test)
     testImplementation(kotlin("test"))
+    testImplementation("io.mockk:mockk:1.13.8")
+    testImplementation("io.kotest:kotest-runner-junit5:5.8.0")
+    testImplementation("io.kotest:kotest-assertions-core:5.8.0")
 }
 
 tasks.test {
@@ -60,7 +64,7 @@ tasks.getByName("jar") {
 
 // jacoco configuration
 jacoco {
-    toolVersion = "0.8.7"
+    toolVersion = "0.8.11"
 }
 
 tasks.jacocoTestReport {
