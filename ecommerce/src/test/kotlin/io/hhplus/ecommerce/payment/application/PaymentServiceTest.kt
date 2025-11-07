@@ -5,10 +5,12 @@ import io.hhplus.ecommerce.payment.domain.repository.PaymentRepository
 import io.hhplus.ecommerce.payment.domain.constant.PaymentMethod
 import io.hhplus.ecommerce.payment.domain.constant.PaymentStatus
 import io.hhplus.ecommerce.common.util.SnowflakeGenerator
+import io.hhplus.ecommerce.common.exception.payment.PaymentException
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.collections.shouldBeEmpty
+import io.kotest.assertions.throwables.shouldThrow
 import io.mockk.*
 import java.time.LocalDateTime
 
@@ -76,6 +78,86 @@ class PaymentServiceTest : DescribeSpec({
                 verify(exactly = 2) { mockSnowflakeGenerator.generateNumberWithPrefix(any()) }
                 verify(exactly = 2) { mockPaymentRepository.save(any()) }
                 verify(exactly = 1) { mockPayment.complete(userId, txId) }
+            }
+        }
+
+        context("지원되지 않는 결제 수단") {
+            it("CARD 결제 시 UnsupportedPaymentMethod 예외를 발생") {
+                val userId = 1L
+                val orderId = 1L
+                val amount = 10000L
+                val paymentNumber = "PAY-001"
+                val mockPayment = createMockPayment()
+
+                every { mockSnowflakeGenerator.generateNumberWithPrefix(any()) } returns paymentNumber
+                every { mockPaymentRepository.save(any()) } returns mockPayment
+
+                shouldThrow<PaymentException.UnsupportedPaymentMethod> {
+                    sut.processPayment(userId, orderId, amount, PaymentMethod.CARD)
+                }
+
+                verify { mockPayment.fail(userId, any()) }
+                verify(atLeast = 1) { mockPaymentRepository.save(any()) }
+            }
+
+            it("BANK_TRANSFER 결제 시 UnsupportedPaymentMethod 예외를 발생") {
+                val userId = 1L
+                val orderId = 1L
+                val amount = 10000L
+                val paymentNumber = "PAY-001"
+                val mockPayment = createMockPayment()
+
+                every { mockSnowflakeGenerator.generateNumberWithPrefix(any()) } returns paymentNumber
+                every { mockPaymentRepository.save(any()) } returns mockPayment
+
+                shouldThrow<PaymentException.UnsupportedPaymentMethod> {
+                    sut.processPayment(userId, orderId, amount, PaymentMethod.BANK_TRANSFER)
+                }
+
+                verify { mockPayment.fail(userId, any()) }
+                verify(atLeast = 1) { mockPaymentRepository.save(any()) }
+            }
+        }
+
+        context("결제 처리 중 예외 발생") {
+            it("Repository 저장 실패 시 결제를 실패 처리하고 예외를 재발생") {
+                val userId = 1L
+                val orderId = 1L
+                val amount = 10000L
+                val paymentNumber = "PAY-001"
+                val txId = "TXN-001"
+                val mockPayment = createMockPayment()
+                val dbException = RuntimeException("DB 연결 오류")
+
+                every { mockSnowflakeGenerator.generateNumberWithPrefix(any()) } returnsMany listOf(paymentNumber, txId)
+                every { mockPaymentRepository.save(any()) } returns mockPayment andThenThrows dbException
+
+                shouldThrow<RuntimeException> {
+                    sut.processPayment(userId, orderId, amount)
+                }.message shouldBe "DB 연결 오류"
+
+                verify { mockPayment.fail(userId, "DB 연결 오류") }
+                verify(atLeast = 1) { mockPaymentRepository.save(any()) }
+            }
+
+            it("예외 메시지가 null인 경우 기본 메시지로 실패 처리") {
+                val userId = 1L
+                val orderId = 1L
+                val amount = 10000L
+                val paymentNumber = "PAY-001"
+                val txId = "TXN-001"
+                val mockPayment = createMockPayment()
+                val nullMessageException = RuntimeException()
+
+                every { mockSnowflakeGenerator.generateNumberWithPrefix(any()) } returnsMany listOf(paymentNumber, txId)
+                every { mockPaymentRepository.save(any()) } returns mockPayment andThenThrows nullMessageException
+
+                shouldThrow<RuntimeException> {
+                    sut.processPayment(userId, orderId, amount)
+                }
+
+                verify { mockPayment.fail(userId, "결제 처리 중 오류가 발생했습니다") }
+                verify(atLeast = 1) { mockPaymentRepository.save(any()) }
             }
         }
     }

@@ -43,34 +43,6 @@ class OrderServiceTest : DescribeSpec({
         objectMapper = mockObjectMapper
     )
 
-    fun createMockOrder(
-        id: Long = 1L,
-        orderNumber: String = "ORD-20241107-001",
-        userId: Long = 1L,
-        totalAmount: Long = 10000L,
-        discountAmount: Long = 0L,
-        status: OrderStatus = OrderStatus.PENDING
-    ): Order = mockk(relaxed = true) {
-        every { this@mockk.id } returns id
-        every { this@mockk.orderNumber } returns orderNumber
-        every { this@mockk.userId } returns userId
-        every { this@mockk.totalAmount } returns totalAmount
-        every { this@mockk.discountAmount } returns discountAmount
-        every { this@mockk.finalAmount } returns (totalAmount - discountAmount)
-        every { this@mockk.status } returns status
-        every { this@mockk.usedCouponId } returns null
-        every { items } returns emptyList()
-        every { isActive } returns true
-        every { createdAt } returns LocalDateTime.now()
-        every { updatedAt } returns LocalDateTime.now()
-        every { createdBy } returns userId
-        every { updatedBy } returns userId
-        every { deletedAt } returns null
-        every { confirm(any()) } returns Unit
-        every { cancel(any()) } returns Unit
-        every { addItem(any(), any(), any(), any()) } returns mockk<OrderItem>(relaxed = true)
-    }
-
     fun createMockOrderItem(
         id: Long = 1L,
         productId: Long = 1L,
@@ -79,6 +51,39 @@ class OrderServiceTest : DescribeSpec({
         every { this@mockk.id } returns id
         every { this@mockk.productId } returns productId
         every { this@mockk.quantity } returns quantity
+    }
+
+    fun createMockOrder(
+        id: Long = 1L,
+        orderNumber: String = "ORD-20241107-001",
+        userId: Long = 1L,
+        totalAmount: Long = 10000L,
+        discountAmount: Long = 0L,
+        status: OrderStatus = OrderStatus.PENDING
+    ): Order = mockk(relaxed = true) {
+        val mockItems = mutableListOf<OrderItem>()
+        every { this@mockk.id } returns id
+        every { this@mockk.orderNumber } returns orderNumber
+        every { this@mockk.userId } returns userId
+        every { this@mockk.totalAmount } returns totalAmount
+        every { this@mockk.discountAmount } returns discountAmount
+        every { this@mockk.finalAmount } returns (totalAmount - discountAmount)
+        every { this@mockk.status } returns status
+        every { this@mockk.usedCouponId } returns null
+        every { items } returns mockItems
+        every { isActive } returns true
+        every { createdAt } returns LocalDateTime.now()
+        every { updatedAt } returns LocalDateTime.now()
+        every { createdBy } returns userId
+        every { updatedBy } returns userId
+        every { deletedAt } returns null
+        every { confirm(any()) } returns Unit
+        every { cancel(any()) } returns Unit
+        every { addItem(any(), any(), any(), any()) } answers {
+            val mockItem = createMockOrderItem(id = mockItems.size.toLong() + 1L)
+            mockItems.add(mockItem)
+            mockItem
+        }
     }
 
     beforeEach {
@@ -90,6 +95,90 @@ class OrderServiceTest : DescribeSpec({
             mockOutboxEventService,
             mockObjectMapper
         )
+    }
+
+    describe("OrderService 주문 생성 기능") {
+        context("주문 생성 시") {
+            it("should create order successfully") {
+                // Given
+                val userId = 1L
+                val items = listOf(
+                    OrderItemData(
+                        productId = 1L,
+                        boxTypeId = 1L,
+                        quantity = 2,
+                        unitPrice = 5000L,
+                        teaItems = emptyList()
+                    )
+                )
+                val totalAmount = 10000L
+                val discountAmount = 1000L
+                val createdBy = 1L
+
+                val orderNumber = "ORD-20241107-001"
+
+                every { mockSnowflakeGenerator.generateNumberWithPrefix(IdPrefix.ORDER) } returns orderNumber
+                every { mockOrderItemTeaService.validateTeaItemsForOrder(any()) } just Runs
+                every { mockOrderRepository.save(any()) } answers { firstArg() }
+                every { mockOrderItemTeaService.saveOrderItemTeas(any(), any()) } returns emptyList()
+                every { mockOutboxEventService.publishEvent(any(), any(), any(), any(), any()) } returns mockk()
+                every { mockObjectMapper.writeValueAsString(any()) } returns "{\"orderId\":1}"
+
+                // When
+                val result = sut.createOrder(userId, items, null, totalAmount, discountAmount, createdBy)
+
+                // Then
+                result.orderNumber shouldBe orderNumber
+                result.userId shouldBe userId
+                result.totalAmount shouldBe totalAmount
+                result.discountAmount shouldBe discountAmount
+                result.items shouldHaveSize 1
+                verify { mockSnowflakeGenerator.generateNumberWithPrefix(IdPrefix.ORDER) }
+                verify { mockOrderRepository.save(any()) }
+                verify { mockOutboxEventService.publishEvent(any(), any(), any(), any(), any()) }
+            }
+
+            it("should create order with tea items validation") {
+                // Given
+                val userId = 1L
+                val teaItems = listOf(
+                    io.hhplus.ecommerce.cart.dto.TeaItemRequest(productId = 10L, quantity = 3)
+                )
+                val items = listOf(
+                    OrderItemData(
+                        productId = 1L,
+                        boxTypeId = 1L,
+                        quantity = 1,
+                        unitPrice = 5000L,
+                        teaItems = teaItems
+                    )
+                )
+                val totalAmount = 5000L
+                val discountAmount = 0L
+                val createdBy = 1L
+
+                val orderNumber = "ORD-20241107-002"
+
+                every { mockSnowflakeGenerator.generateNumberWithPrefix(IdPrefix.ORDER) } returns orderNumber
+                every { mockOrderItemTeaService.validateTeaItemsForOrder(teaItems) } just Runs
+                every { mockOrderRepository.save(any()) } answers { firstArg() }
+                every { mockOrderItemTeaService.saveOrderItemTeas(any(), teaItems) } returns emptyList()
+                every { mockOutboxEventService.publishEvent(any(), any(), any(), any(), any()) } returns mockk()
+                every { mockObjectMapper.writeValueAsString(any()) } returns "{\"orderId\":1}"
+
+                // When
+                val result = sut.createOrder(userId, items, null, totalAmount, discountAmount, createdBy)
+
+                // Then
+                result.orderNumber shouldBe orderNumber
+                result.userId shouldBe userId
+                result.totalAmount shouldBe totalAmount
+                result.discountAmount shouldBe discountAmount
+                result.items shouldHaveSize 1
+                verify { mockOrderItemTeaService.validateTeaItemsForOrder(teaItems) }
+                verify { mockOrderItemTeaService.saveOrderItemTeas(any(), teaItems) }
+            }
+        }
     }
 
     describe("getOrder") {
@@ -212,7 +301,7 @@ class OrderServiceTest : DescribeSpec({
     }
 
     describe("cancelOrder") {
-        context("정상적인 주문 취소") {
+        context("정상적인 주문 취소 - 사유 제공") {
             it("주문을 취소하고 저장") {
                 val orderId = 1L
                 val cancelledBy = 1L
@@ -231,6 +320,32 @@ class OrderServiceTest : DescribeSpec({
                 every { mockOrderRepository.save(mockOrder) } returns mockOrder
 
                 val result = sut.cancelOrder(orderId, cancelledBy, reason)
+
+                result shouldBe mockOrder
+                verify(exactly = 1) { mockOrderRepository.findById(orderId) }
+                verify(exactly = 1) { mockOrder.cancel(cancelledBy) }
+                verify(exactly = 1) { mockOrderRepository.save(mockOrder) }
+            }
+        }
+
+        context("정상적인 주문 취소 - 사유 없음") {
+            it("reason이 null일 때 기본 사유로 주문을 취소하고 저장") {
+                val orderId = 1L
+                val cancelledBy = 1L
+                val mockOrder = createMockOrder(id = orderId, status = OrderStatus.PENDING)
+                val mockOrderItems = listOf(
+                    createMockOrderItem(id = 1L),
+                    createMockOrderItem(id = 2L)
+                )
+
+                every { mockOrderRepository.findById(orderId) } returns mockOrder
+                every { mockOrder.items } returns mockOrderItems
+                every { mockOrderItemTeaService.deleteOrderItemTeas(any()) } returns mockk()
+                every { mockObjectMapper.writeValueAsString(any()) } returns "{\"orderId\":1}"
+                every { mockOutboxEventService.publishEvent(any(), any(), any(), any(), any()) } returns mockk()
+                every { mockOrderRepository.save(mockOrder) } returns mockOrder
+
+                val result = sut.cancelOrder(orderId, cancelledBy, null)
 
                 result shouldBe mockOrder
                 verify(exactly = 1) { mockOrderRepository.findById(orderId) }

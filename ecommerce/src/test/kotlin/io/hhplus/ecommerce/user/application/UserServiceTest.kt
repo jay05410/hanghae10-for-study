@@ -278,6 +278,94 @@ class UserServiceTest : DescribeSpec({
                 verify(exactly = 1) { mockUser.update("새이름", sameEmail, 1L) }
             }
         }
+
+        context("null 값으로 사용자 정보 수정") {
+            it("name이 null인 경우 기존 name을 유지") {
+                val userId = 1L
+                val newEmail = "new@example.com"
+                val mockUser = mockk<User> {
+                    every { id } returns userId
+                    every { name } returns "기존이름"
+                    every { email } returns "old@example.com"
+                    every { update(any(), any(), any()) } just Runs
+                }
+
+                every { mockUserRepository.findById(userId) } returns mockUser
+                every { mockUserRepository.findByEmail(newEmail) } returns null
+
+                val result = sut.updateUser(userId, null, newEmail, 1L)
+
+                result shouldBe mockUser
+                verify(exactly = 1) { mockUserRepository.findById(userId) }
+                verify(exactly = 1) { mockUserRepository.findByEmail(newEmail) }
+                verify(exactly = 1) { mockUser.update("기존이름", newEmail, 1L) }
+            }
+
+            it("email이 null인 경우 기존 email을 유지") {
+                val userId = 1L
+                val newName = "새이름"
+                val mockUser = mockk<User> {
+                    every { id } returns userId
+                    every { name } returns "기존이름"
+                    every { email } returns "existing@example.com"
+                    every { update(any(), any(), any()) } just Runs
+                }
+
+                every { mockUserRepository.findById(userId) } returns mockUser
+
+                val result = sut.updateUser(userId, newName, null, 1L)
+
+                result shouldBe mockUser
+                verify(exactly = 1) { mockUserRepository.findById(userId) }
+                verify(exactly = 0) { mockUserRepository.findByEmail(any()) }
+                verify(exactly = 1) { mockUser.update(newName, "existing@example.com", 1L) }
+            }
+
+            it("name과 email이 모두 null인 경우 기존 값들을 유지") {
+                val userId = 1L
+                val mockUser = mockk<User> {
+                    every { id } returns userId
+                    every { name } returns "기존이름"
+                    every { email } returns "existing@example.com"
+                    every { update(any(), any(), any()) } just Runs
+                }
+
+                every { mockUserRepository.findById(userId) } returns mockUser
+
+                val result = sut.updateUser(userId, null, null, 1L)
+
+                result shouldBe mockUser
+                verify(exactly = 1) { mockUserRepository.findById(userId) }
+                verify(exactly = 0) { mockUserRepository.findByEmail(any()) }
+                verify(exactly = 1) { mockUser.update("기존이름", "existing@example.com", 1L) }
+            }
+        }
+
+        context("동일한 사용자가 같은 이메일로 수정 시도") {
+            it("기존 사용자가 자신의 이메일로 수정하는 경우 성공") {
+                val userId = 1L
+                val currentEmail = "current@example.com"
+                val mockUser = mockk<User> {
+                    every { id } returns userId
+                    every { name } returns "기존이름"
+                    every { email } returns "old@example.com"
+                    every { update(any(), any(), any()) } just Runs
+                }
+                val existingUserWithSameEmail = mockk<User> {
+                    every { id } returns userId  // 동일한 사용자
+                }
+
+                every { mockUserRepository.findById(userId) } returns mockUser
+                every { mockUserRepository.findByEmail(currentEmail) } returns existingUserWithSameEmail
+
+                val result = sut.updateUser(userId, "새이름", currentEmail, 1L)
+
+                result shouldBe mockUser
+                verify(exactly = 1) { mockUserRepository.findById(userId) }
+                verify(exactly = 1) { mockUserRepository.findByEmail(currentEmail) }
+                verify(exactly = 1) { mockUser.update("새이름", currentEmail, 1L) }
+            }
+        }
     }
 
     describe("deactivateUser") {

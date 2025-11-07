@@ -299,6 +299,86 @@ class CouponServiceTest : DescribeSpec({
                 verify(exactly = 0) { mockUserCouponRepository.save(any()) }
             }
         }
+
+        context("쿠폰이 존재하지 않는 경우") {
+            it("CouponException.CouponNotFound를 발생") {
+                val userId = 1L
+                val userCouponId = 1L
+                val orderId = 1L
+                val orderAmount = 50000L
+                val mockUserCoupon = mockk<UserCoupon> {
+                    every { couponId } returns 999L
+                }
+
+                every { mockUserCouponRepository.findById(userCouponId) } returns mockUserCoupon
+                every { mockCouponRepository.findById(999L) } returns null
+
+                shouldThrow<CouponException.CouponNotFound> {
+                    sut.applyCoupon(userId, userCouponId, orderId, orderAmount)
+                }
+
+                verify(exactly = 1) { mockUserCouponRepository.findById(userCouponId) }
+                verify(exactly = 1) { mockCouponRepository.findById(999L) }
+                verify(exactly = 0) { mockUserCouponRepository.save(any()) }
+            }
+        }
+
+        context("사용 불가능한 쿠폰 사용 시도") {
+            it("CouponException.AlreadyUsedCoupon을 발생") {
+                val userId = 1L
+                val userCouponId = 1L
+                val orderId = 1L
+                val orderAmount = 50000L
+                val mockUserCoupon = mockk<UserCoupon> {
+                    every { id } returns userCouponId
+                    every { couponId } returns 1L
+                    every { isUsable() } returns false
+                }
+                val mockCoupon = mockk<Coupon>()
+
+                every { mockUserCouponRepository.findById(userCouponId) } returns mockUserCoupon
+                every { mockCouponRepository.findById(1L) } returns mockCoupon
+
+                shouldThrow<CouponException.AlreadyUsedCoupon> {
+                    sut.applyCoupon(userId, userCouponId, orderId, orderAmount)
+                }
+
+                verify(exactly = 1) { mockUserCouponRepository.findById(userCouponId) }
+                verify(exactly = 1) { mockCouponRepository.findById(1L) }
+                verify(exactly = 1) { mockUserCoupon.isUsable() }
+                verify(exactly = 0) { mockUserCouponRepository.save(any()) }
+            }
+        }
+
+        context("최소 주문 금액 미달") {
+            it("CouponException.MinimumOrderAmountNotMet을 발생") {
+                val userId = 1L
+                val userCouponId = 1L
+                val orderId = 1L
+                val orderAmount = 10000L
+                val mockUserCoupon = mockk<UserCoupon> {
+                    every { couponId } returns 1L
+                    every { isUsable() } returns true
+                }
+                val mockCoupon = mockk<Coupon>(relaxed = true) {
+                    every { name } returns "할인쿠폰"
+                    every { isValidForUse(orderAmount) } returns false
+                }
+
+                every { mockUserCouponRepository.findById(userCouponId) } returns mockUserCoupon
+                every { mockCouponRepository.findById(1L) } returns mockCoupon
+
+                shouldThrow<CouponException.MinimumOrderAmountNotMet> {
+                    sut.applyCoupon(userId, userCouponId, orderId, orderAmount)
+                }
+
+                verify(exactly = 1) { mockUserCouponRepository.findById(userCouponId) }
+                verify(exactly = 1) { mockCouponRepository.findById(1L) }
+                verify(exactly = 1) { mockUserCoupon.isUsable() }
+                verify(exactly = 1) { mockCoupon.isValidForUse(orderAmount) }
+                verify(exactly = 0) { mockUserCouponRepository.save(any()) }
+            }
+        }
     }
 
     describe("validateCouponUsage") {
@@ -329,6 +409,97 @@ class CouponServiceTest : DescribeSpec({
                 verify(exactly = 1) { mockUserCoupon.isUsable() }
                 verify(exactly = 1) { mockCoupon.isValidForUse(orderAmount) }
                 verify(exactly = 1) { mockCoupon.calculateDiscountAmount(orderAmount) }
+            }
+        }
+
+        context("존재하지 않는 사용자 쿠폰으로 검증 시도") {
+            it("CouponException.UserCouponNotFound를 발생") {
+                val userId = 1L
+                val userCouponId = 999L
+                val orderAmount = 50000L
+
+                every { mockUserCouponRepository.findById(userCouponId) } returns null
+
+                shouldThrow<CouponException.UserCouponNotFound> {
+                    sut.validateCouponUsage(userId, userCouponId, orderAmount)
+                }
+
+                verify(exactly = 1) { mockUserCouponRepository.findById(userCouponId) }
+                verify(exactly = 0) { mockCouponRepository.findById(any()) }
+            }
+        }
+
+        context("쿠폰이 존재하지 않는 경우") {
+            it("CouponException.CouponNotFound를 발생") {
+                val userId = 1L
+                val userCouponId = 1L
+                val orderAmount = 50000L
+                val mockUserCoupon = mockk<UserCoupon> {
+                    every { couponId } returns 999L
+                }
+
+                every { mockUserCouponRepository.findById(userCouponId) } returns mockUserCoupon
+                every { mockCouponRepository.findById(999L) } returns null
+
+                shouldThrow<CouponException.CouponNotFound> {
+                    sut.validateCouponUsage(userId, userCouponId, orderAmount)
+                }
+
+                verify(exactly = 1) { mockUserCouponRepository.findById(userCouponId) }
+                verify(exactly = 1) { mockCouponRepository.findById(999L) }
+            }
+        }
+
+        context("사용 불가능한 쿠폰으로 검증 시도") {
+            it("CouponException.AlreadyUsedCoupon을 발생") {
+                val userId = 1L
+                val userCouponId = 1L
+                val orderAmount = 50000L
+                val mockUserCoupon = mockk<UserCoupon> {
+                    every { id } returns userCouponId
+                    every { couponId } returns 1L
+                    every { isUsable() } returns false
+                }
+                val mockCoupon = mockk<Coupon>()
+
+                every { mockUserCouponRepository.findById(userCouponId) } returns mockUserCoupon
+                every { mockCouponRepository.findById(1L) } returns mockCoupon
+
+                shouldThrow<CouponException.AlreadyUsedCoupon> {
+                    sut.validateCouponUsage(userId, userCouponId, orderAmount)
+                }
+
+                verify(exactly = 1) { mockUserCouponRepository.findById(userCouponId) }
+                verify(exactly = 1) { mockCouponRepository.findById(1L) }
+                verify(exactly = 1) { mockUserCoupon.isUsable() }
+            }
+        }
+
+        context("최소 주문 금액 미달로 검증 실패") {
+            it("CouponException.MinimumOrderAmountNotMet을 발생") {
+                val userId = 1L
+                val userCouponId = 1L
+                val orderAmount = 10000L
+                val mockUserCoupon = mockk<UserCoupon> {
+                    every { couponId } returns 1L
+                    every { isUsable() } returns true
+                }
+                val mockCoupon = mockk<Coupon>(relaxed = true) {
+                    every { name } returns "할인쿠폰"
+                    every { isValidForUse(orderAmount) } returns false
+                }
+
+                every { mockUserCouponRepository.findById(userCouponId) } returns mockUserCoupon
+                every { mockCouponRepository.findById(1L) } returns mockCoupon
+
+                shouldThrow<CouponException.MinimumOrderAmountNotMet> {
+                    sut.validateCouponUsage(userId, userCouponId, orderAmount)
+                }
+
+                verify(exactly = 1) { mockUserCouponRepository.findById(userCouponId) }
+                verify(exactly = 1) { mockCouponRepository.findById(1L) }
+                verify(exactly = 1) { mockUserCoupon.isUsable() }
+                verify(exactly = 1) { mockCoupon.isValidForUse(orderAmount) }
             }
         }
     }

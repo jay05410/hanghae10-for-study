@@ -138,6 +138,104 @@ class CartServiceTest : DescribeSpec({
                 verify(exactly = 1) { mockCartRepository.save(mockCart) }
             }
         }
+
+        context("다른 상품들이 장바구니에 있는 경우") {
+            it("productId만 다른 경우 새 아이템으로 추가") {
+                val userId = 1L
+                val productId = 2L
+                val boxTypeId = 1L
+                val quantity = 2
+                val teaItems = listOf(TeaItemRequest(productId = 3L, quantity = 1))
+                val mockCart = mockk<Cart>(relaxed = true)
+                val mockSavedCart = mockk<Cart>(relaxed = true)
+                val mockExistingItem = mockk<CartItem>(relaxed = true) {
+                    every { this@mockk.productId } returns 1L
+                    every { this@mockk.boxTypeId } returns 1L
+                }
+                val mockNewCartItem = mockk<CartItem> {
+                    every { id } returns 2L
+                }
+
+                every { mockCart.items } returns listOf(mockExistingItem)
+                every { mockCartItemTeaService.validateTeaItems(teaItems) } just Runs
+                every { mockCartRepository.findByUserId(userId) } returns mockCart
+                every { mockCartRepository.save(mockCart) } returns mockSavedCart
+                every { mockSavedCart.items } returns listOf(mockExistingItem, mockNewCartItem)
+                every { mockCartItemTeaService.saveCartItemTeas(2L, teaItems) } returns emptyList()
+
+                val result = sut.addToCart(userId, productId, boxTypeId, quantity, teaItems)
+
+                result shouldBe mockSavedCart
+                verify(exactly = 1) { mockCartItemTeaService.validateTeaItems(teaItems) }
+                verify(exactly = 1) { mockCart.addItem(productId, boxTypeId, quantity, userId) }
+                verify(exactly = 1) { mockCartRepository.save(mockCart) }
+                verify(exactly = 1) { mockCartItemTeaService.saveCartItemTeas(2L, teaItems) }
+            }
+
+            it("boxTypeId만 다른 경우 새 아이템으로 추가") {
+                val userId = 1L
+                val productId = 1L
+                val boxTypeId = 2L
+                val quantity = 2
+                val teaItems = listOf(TeaItemRequest(productId = 3L, quantity = 1))
+                val mockCart = mockk<Cart>(relaxed = true)
+                val mockSavedCart = mockk<Cart>(relaxed = true)
+                val mockExistingItem = mockk<CartItem>(relaxed = true) {
+                    every { this@mockk.productId } returns 1L
+                    every { this@mockk.boxTypeId } returns 1L
+                }
+                val mockNewCartItem = mockk<CartItem> {
+                    every { id } returns 2L
+                }
+
+                every { mockCart.items } returns listOf(mockExistingItem)
+                every { mockCartItemTeaService.validateTeaItems(teaItems) } just Runs
+                every { mockCartRepository.findByUserId(userId) } returns mockCart
+                every { mockCartRepository.save(mockCart) } returns mockSavedCart
+                every { mockSavedCart.items } returns listOf(mockExistingItem, mockNewCartItem)
+                every { mockCartItemTeaService.saveCartItemTeas(2L, teaItems) } returns emptyList()
+
+                val result = sut.addToCart(userId, productId, boxTypeId, quantity, teaItems)
+
+                result shouldBe mockSavedCart
+                verify(exactly = 1) { mockCartItemTeaService.validateTeaItems(teaItems) }
+                verify(exactly = 1) { mockCart.addItem(productId, boxTypeId, quantity, userId) }
+                verify(exactly = 1) { mockCartRepository.save(mockCart) }
+                verify(exactly = 1) { mockCartItemTeaService.saveCartItemTeas(2L, teaItems) }
+            }
+
+            it("productId와 boxTypeId 모두 다른 경우 새 아이템으로 추가") {
+                val userId = 1L
+                val productId = 2L
+                val boxTypeId = 2L
+                val quantity = 2
+                val teaItems = listOf(TeaItemRequest(productId = 3L, quantity = 1))
+                val mockCart = mockk<Cart>(relaxed = true)
+                val mockSavedCart = mockk<Cart>(relaxed = true)
+                val mockExistingItem = mockk<CartItem>(relaxed = true) {
+                    every { this@mockk.productId } returns 1L
+                    every { this@mockk.boxTypeId } returns 1L
+                }
+                val mockNewCartItem = mockk<CartItem> {
+                    every { id } returns 2L
+                }
+
+                every { mockCart.items } returns listOf(mockExistingItem)
+                every { mockCartItemTeaService.validateTeaItems(teaItems) } just Runs
+                every { mockCartRepository.findByUserId(userId) } returns mockCart
+                every { mockCartRepository.save(mockCart) } returns mockSavedCart
+                every { mockSavedCart.items } returns listOf(mockExistingItem, mockNewCartItem)
+                every { mockCartItemTeaService.saveCartItemTeas(2L, teaItems) } returns emptyList()
+
+                val result = sut.addToCart(userId, productId, boxTypeId, quantity, teaItems)
+
+                result shouldBe mockSavedCart
+                verify(exactly = 1) { mockCartItemTeaService.validateTeaItems(teaItems) }
+                verify(exactly = 1) { mockCart.addItem(productId, boxTypeId, quantity, userId) }
+                verify(exactly = 1) { mockCartRepository.save(mockCart) }
+                verify(exactly = 1) { mockCartItemTeaService.saveCartItemTeas(2L, teaItems) }
+            }
+        }
     }
 
     describe("updateCartItem") {

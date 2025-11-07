@@ -212,6 +212,23 @@ class InventoryServiceTest : DescribeSpec({
                 verify(exactly = 1) { mockInventoryRepository.save(mockInventory) }
             }
         }
+
+        context("존재하지 않는 상품의 재고 예약") {
+            it("InventoryNotFound 예외를 발생") {
+                val productId = 999L
+                val quantity = 5
+                val reservedBy = 1L
+
+                every { mockInventoryRepository.findByProductIdWithLock(productId) } returns null
+
+                shouldThrow<InventoryException.InventoryNotFound> {
+                    sut.reserveStock(productId, quantity, reservedBy)
+                }
+
+                verify(exactly = 1) { mockInventoryRepository.findByProductIdWithLock(productId) }
+                verify(exactly = 0) { mockInventoryRepository.save(any()) }
+            }
+        }
     }
 
     describe("releaseReservation") {
@@ -233,6 +250,23 @@ class InventoryServiceTest : DescribeSpec({
                 verify(exactly = 1) { mockInventoryRepository.save(mockInventory) }
             }
         }
+
+        context("존재하지 않는 상품의 예약 해제") {
+            it("InventoryNotFound 예외를 발생") {
+                val productId = 999L
+                val quantity = 5
+                val releasedBy = 1L
+
+                every { mockInventoryRepository.findByProductIdWithLock(productId) } returns null
+
+                shouldThrow<InventoryException.InventoryNotFound> {
+                    sut.releaseReservation(productId, quantity, releasedBy)
+                }
+
+                verify(exactly = 1) { mockInventoryRepository.findByProductIdWithLock(productId) }
+                verify(exactly = 0) { mockInventoryRepository.save(any()) }
+            }
+        }
     }
 
     describe("confirmReservation") {
@@ -252,6 +286,23 @@ class InventoryServiceTest : DescribeSpec({
                 verify(exactly = 1) { mockInventoryRepository.findByProductIdWithLock(productId) }
                 verify(exactly = 1) { mockInventory.confirmReservation(quantity, confirmedBy) }
                 verify(exactly = 1) { mockInventoryRepository.save(mockInventory) }
+            }
+        }
+
+        context("존재하지 않는 상품의 예약 확정") {
+            it("InventoryNotFound 예외를 발생") {
+                val productId = 999L
+                val quantity = 5
+                val confirmedBy = 1L
+
+                every { mockInventoryRepository.findByProductIdWithLock(productId) } returns null
+
+                shouldThrow<InventoryException.InventoryNotFound> {
+                    sut.confirmReservation(productId, quantity, confirmedBy)
+                }
+
+                verify(exactly = 1) { mockInventoryRepository.findByProductIdWithLock(productId) }
+                verify(exactly = 0) { mockInventoryRepository.save(any()) }
             }
         }
     }

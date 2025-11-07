@@ -109,6 +109,34 @@ class StockReservationServiceTest : DescribeSpec({
             }
         }
 
+        context("만료된 예약이 존재하는 경우") {
+            it("새로운 예약을 생성") {
+                val productId = 1L
+                val userId = 1L
+                val quantity = 5
+                val expiredReservation = createMockStockReservation(productId = productId, userId = userId).apply {
+                    every { isReservationActive() } returns false
+                }
+                val mockInventory = createMockInventory(productId = productId)
+                val newReservation = createMockStockReservation(productId = productId, userId = userId, quantity = quantity)
+
+                every { mockStockReservationRepository.findByUserIdAndProductIdAndStatus(userId, productId, ReservationStatus.RESERVED) } returns expiredReservation
+                every { mockInventoryRepository.findByProductIdWithLock(productId) } returns mockInventory
+                every { mockInventoryRepository.save(mockInventory) } returns mockInventory
+                every { mockStockReservationRepository.save(any()) } returns newReservation
+
+                mockkObject(StockReservation.Companion)
+                every { StockReservation.create(productId, userId, quantity, 20, userId) } returns newReservation
+
+                val result = sut.reserveStock(productId, userId, quantity)
+
+                result shouldBe newReservation
+                verify(exactly = 1) { mockStockReservationRepository.findByUserIdAndProductIdAndStatus(userId, productId, ReservationStatus.RESERVED) }
+                verify(exactly = 1) { expiredReservation.isReservationActive() }
+                verify(exactly = 1) { mockInventoryRepository.findByProductIdWithLock(productId) }
+            }
+        }
+
         context("재고가 존재하지 않는 경우") {
             it("InventoryNotFound 예외를 발생") {
                 val productId = 999L
@@ -186,6 +214,46 @@ class StockReservationServiceTest : DescribeSpec({
                 verify(exactly = 0) { mockInventoryRepository.findByProductIdWithLock(any()) }
             }
         }
+
+        context("만료된 예약을 확정하려는 경우") {
+            it("ReservationExpired 예외를 발생") {
+                val reservationId = 1L
+                val userId = 1L
+                val mockReservation = createMockStockReservation(id = reservationId, userId = userId).apply {
+                    every { isReservationActive() } returns false
+                }
+
+                every { mockStockReservationRepository.findById(reservationId) } returns mockReservation
+
+                shouldThrow<InventoryException.ReservationExpired> {
+                    sut.confirmReservation(reservationId, userId)
+                }
+
+                verify(exactly = 1) { mockStockReservationRepository.findById(reservationId) }
+                verify(exactly = 1) { mockReservation.isReservationActive() }
+                verify(exactly = 0) { mockInventoryRepository.findByProductIdWithLock(any()) }
+            }
+        }
+
+        context("재고가 존재하지 않는 경우") {
+            it("InventoryNotFound 예외를 발생") {
+                val reservationId = 1L
+                val userId = 1L
+                val productId = 1L
+                val mockReservation = createMockStockReservation(id = reservationId, userId = userId, productId = productId)
+
+                every { mockStockReservationRepository.findById(reservationId) } returns mockReservation
+                every { mockInventoryRepository.findByProductIdWithLock(productId) } returns null
+
+                shouldThrow<InventoryException.InventoryNotFound> {
+                    sut.confirmReservation(reservationId, userId)
+                }
+
+                verify(exactly = 1) { mockStockReservationRepository.findById(reservationId) }
+                verify(exactly = 1) { mockInventoryRepository.findByProductIdWithLock(productId) }
+                verify(exactly = 0) { mockStockReservationRepository.save(any()) }
+            }
+        }
     }
 
     describe("cancelReservation") {
@@ -229,6 +297,60 @@ class StockReservationServiceTest : DescribeSpec({
                 verify(exactly = 0) { mockInventoryRepository.findByProductIdWithLock(any()) }
             }
         }
+
+        context("존재하지 않는 예약 취소") {
+            it("ReservationNotFound 예외를 발생") {
+                val reservationId = 999L
+                val userId = 1L
+
+                every { mockStockReservationRepository.findById(reservationId) } returns null
+
+                shouldThrow<InventoryException.ReservationNotFound> {
+                    sut.cancelReservation(reservationId, userId)
+                }
+
+                verify(exactly = 1) { mockStockReservationRepository.findById(reservationId) }
+                verify(exactly = 0) { mockInventoryRepository.findByProductIdWithLock(any()) }
+            }
+        }
+
+        context("다른 사용자의 예약을 취소하려는 경우") {
+            it("ReservationAccessDenied 예외를 발생") {
+                val reservationId = 1L
+                val userId = 1L
+                val otherUserId = 2L
+                val mockReservation = createMockStockReservation(id = reservationId, userId = otherUserId, status = ReservationStatus.RESERVED)
+
+                every { mockStockReservationRepository.findById(reservationId) } returns mockReservation
+
+                shouldThrow<InventoryException.ReservationAccessDenied> {
+                    sut.cancelReservation(reservationId, userId)
+                }
+
+                verify(exactly = 1) { mockStockReservationRepository.findById(reservationId) }
+                verify(exactly = 0) { mockInventoryRepository.findByProductIdWithLock(any()) }
+            }
+        }
+
+        context("재고가 존재하지 않는 경우") {
+            it("InventoryNotFound 예외를 발생") {
+                val reservationId = 1L
+                val userId = 1L
+                val productId = 1L
+                val mockReservation = createMockStockReservation(id = reservationId, userId = userId, productId = productId, status = ReservationStatus.RESERVED)
+
+                every { mockStockReservationRepository.findById(reservationId) } returns mockReservation
+                every { mockInventoryRepository.findByProductIdWithLock(productId) } returns null
+
+                shouldThrow<InventoryException.InventoryNotFound> {
+                    sut.cancelReservation(reservationId, userId)
+                }
+
+                verify(exactly = 1) { mockStockReservationRepository.findById(reservationId) }
+                verify(exactly = 1) { mockInventoryRepository.findByProductIdWithLock(productId) }
+                verify(exactly = 0) { mockStockReservationRepository.save(any()) }
+            }
+        }
     }
 
     describe("expireReservations") {
@@ -256,6 +378,25 @@ class StockReservationServiceTest : DescribeSpec({
                 verify(exactly = 1) { mockInventory2.releaseReservation(5, -1L) }
                 verify(exactly = 1) { expiredReservation1.expire(-1L) }
                 verify(exactly = 1) { expiredReservation2.expire(-1L) }
+            }
+        }
+
+        context("재고가 존재하지 않는 만료된 예약") {
+            it("재고 해제 없이 예약만 만료 처리") {
+                val expiredReservation = createMockStockReservation(id = 1L, productId = 999L)
+                val expiredReservations = listOf(expiredReservation)
+
+                every { mockStockReservationRepository.findExpiredReservations(any()) } returns expiredReservations
+                every { mockInventoryRepository.findByProductIdWithLock(999L) } returns null
+                every { mockStockReservationRepository.save(expiredReservation) } returns expiredReservation
+
+                val result = sut.expireReservations()
+
+                result shouldBe 1
+                verify(exactly = 1) { mockStockReservationRepository.findExpiredReservations(any()) }
+                verify(exactly = 1) { mockInventoryRepository.findByProductIdWithLock(999L) }
+                verify(exactly = 1) { expiredReservation.expire(-1L) }
+                verify(exactly = 1) { mockStockReservationRepository.save(expiredReservation) }
             }
         }
 
