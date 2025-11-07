@@ -137,7 +137,7 @@ class GetPaymentQueryUseCaseTest : DescribeSpec({
         context("getPayment와 getUserPayments 독립성") {
             it("각 메서드가 독립적으로 동작하고 서로 다른 서비스 메서드 호출") {
                 val paymentId = 1L
-                val userId = 1L
+                val userId = 2L
                 val expectedPayment = mockk<Payment>()
                 val expectedPayments = listOf(mockk<Payment>())
 

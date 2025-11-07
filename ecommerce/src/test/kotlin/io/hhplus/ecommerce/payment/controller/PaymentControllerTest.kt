@@ -273,18 +273,18 @@ class PaymentControllerTest : DescribeSpec({
                 every { mockProcessPaymentUseCase.execute(processRequest) } returns mockPayment
 
                 val processResult = sut.processPayment(processRequest)
-                processResult::class shouldBe ApiResponse::class
+                processResult shouldBe ApiResponse.success(mockPayment)
 
                 // getPayment 응답 검증
                 every { mockGetPaymentQueryUseCase.getPayment(1L) } returns mockPayment
                 val getResult = sut.getPayment(1L)
-                getResult::class shouldBe ApiResponse::class
+                getResult shouldBe ApiResponse.success(mockPayment)
 
                 // getUserPayments 응답 검증
                 val mockPayments = listOf(mockPayment)
                 every { mockGetPaymentQueryUseCase.getUserPayments(1L) } returns mockPayments
                 val getUserResult = sut.getUserPayments(1L)
-                getUserResult::class shouldBe ApiResponse::class
+                getUserResult shouldBe ApiResponse.success(mockPayments)
             }
         }
     }
