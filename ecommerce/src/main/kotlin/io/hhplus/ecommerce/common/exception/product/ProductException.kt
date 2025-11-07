@@ -86,4 +86,49 @@ sealed class ProductException(
         message = ProductErrorCode.INVENTORY_NOT_FOUND.withParams("productId" to productId),
         data = mapOf("productId" to productId)
     )
+
+    /**
+     * 이미 예약된 재고 예외
+     */
+    class StockAlreadyReserved(productId: Long, userId: Long) : ProductException(
+        errorCode = ProductErrorCode.STOCK_ALREADY_RESERVED,
+        message = ProductErrorCode.STOCK_ALREADY_RESERVED.withParams("productId" to productId, "userId" to userId),
+        data = mapOf("productId" to productId, "userId" to userId)
+    )
+
+    /**
+     * 예약을 찾을 수 없음 예외
+     */
+    class ReservationNotFound(reservationId: Long) : ProductException(
+        errorCode = ProductErrorCode.RESERVATION_NOT_FOUND,
+        message = ProductErrorCode.RESERVATION_NOT_FOUND.withParams("reservationId" to reservationId),
+        data = mapOf("reservationId" to reservationId)
+    )
+
+    /**
+     * 예약 접근 권한 없음 예외
+     */
+    class ReservationAccessDenied(reservationId: Long, userId: Long) : ProductException(
+        errorCode = ProductErrorCode.RESERVATION_ACCESS_DENIED,
+        message = ProductErrorCode.RESERVATION_ACCESS_DENIED.withParams("reservationId" to reservationId, "userId" to userId),
+        data = mapOf("reservationId" to reservationId, "userId" to userId)
+    )
+
+    /**
+     * 예약 만료 예외
+     */
+    class ReservationExpired(reservationId: Long) : ProductException(
+        errorCode = ProductErrorCode.RESERVATION_EXPIRED,
+        message = ProductErrorCode.RESERVATION_EXPIRED.withParams("reservationId" to reservationId),
+        data = mapOf("reservationId" to reservationId)
+    )
+
+    /**
+     * 예약 취소 불가 예외
+     */
+    class ReservationCannotBeCancelled(reservationId: Long, currentStatus: Any) : ProductException(
+        errorCode = ProductErrorCode.RESERVATION_CANNOT_BE_CANCELLED,
+        message = ProductErrorCode.RESERVATION_CANNOT_BE_CANCELLED.withParams("reservationId" to reservationId, "currentStatus" to currentStatus),
+        data = mapOf("reservationId" to reservationId, "currentStatus" to currentStatus)
+    )
 }

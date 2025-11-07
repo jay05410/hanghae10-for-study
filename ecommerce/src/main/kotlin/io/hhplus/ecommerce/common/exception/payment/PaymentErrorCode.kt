@@ -51,5 +51,11 @@ enum class PaymentErrorCode(
         code = "PAYMENT007",
         message = "잘못된 결제 상태 변경입니다. 결제번호: {paymentNumber}, 현재: {currentStatus}, 시도: {attemptedStatus}",
         httpStatus = 409
+    ),
+
+    UNSUPPORTED_PAYMENT_METHOD(
+        code = "PAYMENT008",
+        message = "지원하지 않는 결제 수단입니다: {paymentMethod}",
+        httpStatus = 400
     );
 }

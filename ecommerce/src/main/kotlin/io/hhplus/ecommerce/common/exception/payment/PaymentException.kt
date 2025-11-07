@@ -118,4 +118,13 @@ sealed class PaymentException(
             "attemptedStatus" to attemptedStatus
         )
     )
+
+    /**
+     * 지원하지 않는 결제 수단 예외
+     */
+    class UnsupportedPaymentMethod(paymentMethod: String) : PaymentException(
+        errorCode = PaymentErrorCode.UNSUPPORTED_PAYMENT_METHOD,
+        message = PaymentErrorCode.UNSUPPORTED_PAYMENT_METHOD.withParams("paymentMethod" to paymentMethod),
+        data = mapOf("paymentMethod" to paymentMethod)
+    )
 }

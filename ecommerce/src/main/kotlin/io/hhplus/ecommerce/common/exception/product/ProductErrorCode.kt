@@ -45,5 +45,35 @@ enum class ProductErrorCode(
         code = "PRODUCT006",
         message = "재고 정보를 찾을 수 없습니다. 상품 ID: {productId}",
         httpStatus = 404
+    ),
+
+    STOCK_ALREADY_RESERVED(
+        code = "PRODUCT007",
+        message = "이미 예약된 재고입니다. 상품 ID: {productId}, 사용자 ID: {userId}",
+        httpStatus = 409
+    ),
+
+    RESERVATION_NOT_FOUND(
+        code = "PRODUCT008",
+        message = "예약을 찾을 수 없습니다. 예약 ID: {reservationId}",
+        httpStatus = 404
+    ),
+
+    RESERVATION_ACCESS_DENIED(
+        code = "PRODUCT009",
+        message = "예약에 대한 접근 권한이 없습니다. 예약 ID: {reservationId}, 사용자 ID: {userId}",
+        httpStatus = 403
+    ),
+
+    RESERVATION_EXPIRED(
+        code = "PRODUCT010",
+        message = "예약이 만료되었습니다. 예약 ID: {reservationId}",
+        httpStatus = 410
+    ),
+
+    RESERVATION_CANNOT_BE_CANCELLED(
+        code = "PRODUCT011",
+        message = "예약을 취소할 수 없습니다. 예약 ID: {reservationId}, 현재 상태: {currentStatus}",
+        httpStatus = 409
     );
 }
