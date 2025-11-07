@@ -44,20 +44,6 @@ class SnowflakeGenerator {
     }
 
     /**
-     * 주문번호 생성
-     *
-     * @return "ORD" + 16진수 Snowflake ID (예: "ORDABC123DEF456")
-     */
-    fun generateOrderNumber(): String = generateNumberWithPrefix(IdPrefix.ORDER)
-
-    /**
-     * 결제번호 생성
-     *
-     * @return "PAY" + 16진수 Snowflake ID (예: "PAYABC123DEF456")
-     */
-    fun generatePaymentNumber(): String = generateNumberWithPrefix(IdPrefix.PAYMENT)
-
-    /**
      * Snowflake ID에서 타임스탬프 추출
      *
      * @param snowflakeId Snowflake ID
