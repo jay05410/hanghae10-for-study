@@ -4,6 +4,7 @@ import io.hhplus.ecommerce.point.domain.entity.UserPoint
 import io.hhplus.ecommerce.point.domain.repository.UserPointRepository
 import io.hhplus.ecommerce.point.domain.vo.PointAmount
 import io.hhplus.ecommerce.point.domain.vo.Balance
+import io.hhplus.ecommerce.common.exception.point.PointException
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
@@ -107,14 +108,14 @@ class PointServiceTest : DescribeSpec({
         }
 
         context("존재하지 않는 사용자의 포인트 적립") {
-            it("IllegalArgumentException을 발생") {
+            it("PointException.PointNotFound를 발생") {
                 val userId = 999L
                 val amount = PointAmount(5000L)
                 val chargedBy = 1L
 
                 every { mockUserPointRepository.findByUserIdWithLock(userId) } returns null
 
-                shouldThrow<IllegalArgumentException> {
+                shouldThrow<PointException.PointNotFound> {
                     sut.earnPoint(userId, amount, chargedBy)
                 }
 
@@ -145,14 +146,14 @@ class PointServiceTest : DescribeSpec({
         }
 
         context("존재하지 않는 사용자의 포인트 사용") {
-            it("IllegalArgumentException을 발생") {
+            it("PointException.PointNotFound를 발생") {
                 val userId = 999L
                 val amount = PointAmount(3000L)
                 val deductedBy = 1L
 
                 every { mockUserPointRepository.findByUserIdWithLock(userId) } returns null
 
-                shouldThrow<IllegalArgumentException> {
+                shouldThrow<PointException.PointNotFound> {
                     sut.usePoint(userId, amount, deductedBy)
                 }
 
