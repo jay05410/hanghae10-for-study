@@ -3,6 +3,7 @@ package io.hhplus.ecommerce.point.application
 import io.hhplus.ecommerce.point.domain.entity.UserPoint
 import io.hhplus.ecommerce.point.domain.repository.UserPointRepository
 import io.hhplus.ecommerce.point.domain.vo.PointAmount
+import io.hhplus.ecommerce.point.domain.vo.Balance
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
@@ -13,7 +14,7 @@ import java.time.LocalDateTime
  * PointService 단위 테스트
  *
  * 책임: 포인트 서비스의 핵심 비즈니스 로직 검증
- * - 포인트 충전, 차감, 조회 기능 검증
+ * - 포인트 적립, 사용, 조회 기능 검증
  * - Repository와의 상호작용 검증
  */
 class PointServiceTest : DescribeSpec({
@@ -27,12 +28,12 @@ class PointServiceTest : DescribeSpec({
     ): UserPoint = mockk(relaxed = true) {
         every { this@mockk.id } returns id
         every { this@mockk.userId } returns userId
-        every { balance } returns pointAmount
+        every { balance } returns Balance.of(pointAmount)
         every { isActive } returns true
         every { createdAt } returns LocalDateTime.now()
         every { updatedAt } returns LocalDateTime.now()
-        every { charge(any(), any()) } returns pointAmount
-        every { deduct(any(), any()) } returns pointAmount
+        every { earn(any(), any()) } returns Balance.of(pointAmount)
+        every { use(any(), any()) } returns Balance.of(pointAmount)
     }
 
     beforeEach {
@@ -85,9 +86,9 @@ class PointServiceTest : DescribeSpec({
         }
     }
 
-    describe("chargePoint") {
-        context("정상적인 포인트 충전") {
-            it("락을 걸고 포인트를 충전하여 저장") {
+    describe("earnPoint") {
+        context("정상적인 포인트 적립") {
+            it("락을 걸고 포인트를 적립하여 저장") {
                 val userId = 1L
                 val amount = PointAmount(5000L)
                 val chargedBy = 1L
@@ -96,16 +97,16 @@ class PointServiceTest : DescribeSpec({
                 every { mockUserPointRepository.findByUserIdWithLock(userId) } returns mockUserPoint
                 every { mockUserPointRepository.save(mockUserPoint) } returns mockUserPoint
 
-                val result = sut.chargePoint(userId, amount, chargedBy)
+                val result = sut.earnPoint(userId, amount, chargedBy)
 
                 result shouldBe mockUserPoint
                 verify(exactly = 1) { mockUserPointRepository.findByUserIdWithLock(userId) }
-                verify(exactly = 1) { mockUserPoint.charge(amount, chargedBy) }
+                verify(exactly = 1) { mockUserPoint.earn(amount, chargedBy) }
                 verify(exactly = 1) { mockUserPointRepository.save(mockUserPoint) }
             }
         }
 
-        context("존재하지 않는 사용자의 포인트 충전") {
+        context("존재하지 않는 사용자의 포인트 적립") {
             it("IllegalArgumentException을 발생") {
                 val userId = 999L
                 val amount = PointAmount(5000L)
@@ -114,7 +115,7 @@ class PointServiceTest : DescribeSpec({
                 every { mockUserPointRepository.findByUserIdWithLock(userId) } returns null
 
                 shouldThrow<IllegalArgumentException> {
-                    sut.chargePoint(userId, amount, chargedBy)
+                    sut.earnPoint(userId, amount, chargedBy)
                 }
 
                 verify(exactly = 1) { mockUserPointRepository.findByUserIdWithLock(userId) }
@@ -123,9 +124,9 @@ class PointServiceTest : DescribeSpec({
         }
     }
 
-    describe("deductPoint") {
-        context("정상적인 포인트 차감") {
-            it("락을 걸고 포인트를 차감하여 저장") {
+    describe("usePoint") {
+        context("정상적인 포인트 사용") {
+            it("락을 걸고 포인트를 사용하여 저장") {
                 val userId = 1L
                 val amount = PointAmount(3000L)
                 val deductedBy = 1L
@@ -134,16 +135,16 @@ class PointServiceTest : DescribeSpec({
                 every { mockUserPointRepository.findByUserIdWithLock(userId) } returns mockUserPoint
                 every { mockUserPointRepository.save(mockUserPoint) } returns mockUserPoint
 
-                val result = sut.deductPoint(userId, amount, deductedBy)
+                val result = sut.usePoint(userId, amount, deductedBy)
 
                 result shouldBe mockUserPoint
                 verify(exactly = 1) { mockUserPointRepository.findByUserIdWithLock(userId) }
-                verify(exactly = 1) { mockUserPoint.deduct(amount, deductedBy) }
+                verify(exactly = 1) { mockUserPoint.use(amount, deductedBy) }
                 verify(exactly = 1) { mockUserPointRepository.save(mockUserPoint) }
             }
         }
 
-        context("존재하지 않는 사용자의 포인트 차감") {
+        context("존재하지 않는 사용자의 포인트 사용") {
             it("IllegalArgumentException을 발생") {
                 val userId = 999L
                 val amount = PointAmount(3000L)
@@ -152,7 +153,7 @@ class PointServiceTest : DescribeSpec({
                 every { mockUserPointRepository.findByUserIdWithLock(userId) } returns null
 
                 shouldThrow<IllegalArgumentException> {
-                    sut.deductPoint(userId, amount, deductedBy)
+                    sut.usePoint(userId, amount, deductedBy)
                 }
 
                 verify(exactly = 1) { mockUserPointRepository.findByUserIdWithLock(userId) }

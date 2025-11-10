@@ -32,39 +32,39 @@ class InMemoryPointHistoryRepository : PointHistoryRepository {
     }
 
     private fun initializeSampleData() {
-        val charge1 = PointHistory(
+        val earn1 = PointHistory(
             id = idGenerator.getAndIncrement(),
             userId = 1L,
             amount = 100000L,
-            transactionType = PointTransactionType.CHARGE,
+            transactionType = PointTransactionType.EARN,
             balanceBefore = 0L,
             balanceAfter = 100000L,
-            description = "초기 포인트 충전"
+            description = "회원 가입 축하 포인트 적립"
         )
 
-        val deduct1 = PointHistory(
+        val use1 = PointHistory(
             id = idGenerator.getAndIncrement(),
             userId = 1L,
-            amount = 10000L,
-            transactionType = PointTransactionType.DEDUCT,
+            amount = -10000L,
+            transactionType = PointTransactionType.USE,
             balanceBefore = 100000L,
             balanceAfter = 90000L,
-            description = "주문 포인트 사용"
+            description = "주문 할인 사용"
         )
 
-        val charge2 = PointHistory(
+        val earn2 = PointHistory(
             id = idGenerator.getAndIncrement(),
             userId = 2L,
             amount = 50000L,
-            transactionType = PointTransactionType.CHARGE,
+            transactionType = PointTransactionType.EARN,
             balanceBefore = 0L,
             balanceAfter = 50000L,
-            description = "첫 충전 보너스 포함"
+            description = "구매 적립 (5%)"
         )
 
-        pointHistories[charge1.id] = charge1
-        pointHistories[deduct1.id] = deduct1
-        pointHistories[charge2.id] = charge2
+        pointHistories[earn1.id] = earn1
+        pointHistories[use1.id] = use1
+        pointHistories[earn2.id] = earn2
     }
 
     /**

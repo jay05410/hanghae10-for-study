@@ -75,6 +75,7 @@ URL 형식: /api/v1/{domain}/{resource}
 | 429 | Too Many Requests | 요청 제한 초과 |
 | 500 | Internal Server Error | 서버 내부 오류 |
 
+
 ## 📚 기타 문서
 
 - [데이터 모델 설계](data-models.md)

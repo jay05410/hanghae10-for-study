@@ -2,6 +2,7 @@ package io.hhplus.ecommerce.point.application
 
 import io.hhplus.ecommerce.point.domain.entity.PointHistory
 import io.hhplus.ecommerce.point.domain.repository.PointHistoryRepository
+import io.hhplus.ecommerce.point.domain.vo.Balance
 import io.hhplus.ecommerce.point.domain.vo.PointAmount
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
@@ -11,7 +12,7 @@ import io.mockk.*
  * PointHistoryService 단위 테스트
  *
  * 책임: 포인트 이력 관리 서비스의 핵심 기능 검증
- * - 충전/차감 이력 기록 기능의 Repository 호출 검증
+ * - 적립/사용 이력 기록 기능의 Repository 호출 검증
  * - 이력 조회 기능의 Repository 호출 검증
  * - 도메인 객체 생성 메서드 호출 검증
  *
@@ -28,37 +29,39 @@ class PointHistoryServiceTest : DescribeSpec({
         clearMocks(mockPointHistoryRepository)
     }
 
-    describe("recordChargeHistory") {
-        context("충전 이력 기록 시") {
-            it("PointHistory.createChargeHistory를 호출하고 Repository에 저장") {
+    describe("recordEarnHistory") {
+        context("적립 이력 기록 시") {
+            it("PointHistory.createEarnHistory를 호출하고 Repository에 저장") {
                 val userId = 1L
                 val amount = PointAmount.of(5000L)
-                val balanceBefore = 10000L
-                val balanceAfter = 15000L
-                val description = "테스트 충전"
+                val balanceBefore = Balance.of(10000L)
+                val balanceAfter = Balance.of(15000L)
+                val description = "테스트 적립"
                 val mockHistory = mockk<PointHistory>()
 
                 mockkObject(PointHistory.Companion)
                 every {
-                    PointHistory.createChargeHistory(
+                    PointHistory.createEarnHistory(
                         userId = userId,
                         amount = amount,
-                        balanceBefore = balanceBefore,
-                        balanceAfter = balanceAfter,
+                        balanceBefore = balanceBefore.value,
+                        balanceAfter = balanceAfter.value,
+                        orderId = null,
                         description = description
                     )
                 } returns mockHistory
                 every { mockPointHistoryRepository.save(mockHistory) } returns mockHistory
 
-                val result = sut.recordChargeHistory(userId, amount, balanceBefore, balanceAfter, description)
+                val result = sut.recordEarnHistory(userId, amount, balanceBefore, balanceAfter, description)
 
                 result shouldBe mockHistory
                 verify(exactly = 1) {
-                    PointHistory.createChargeHistory(
+                    PointHistory.createEarnHistory(
                         userId = userId,
                         amount = amount,
-                        balanceBefore = balanceBefore,
-                        balanceAfter = balanceAfter,
+                        balanceBefore = balanceBefore.value,
+                        balanceAfter = balanceAfter.value,
+                        orderId = null,
                         description = description
                     )
                 }
@@ -66,35 +69,37 @@ class PointHistoryServiceTest : DescribeSpec({
             }
         }
 
-        context("충전 이력 기록 시 description이 null인 경우") {
-            it("PointHistory.createChargeHistory를 description null로 호출하고 저장") {
+        context("적립 이력 기록 시 description이 null인 경우") {
+            it("PointHistory.createEarnHistory를 description null로 호출하고 저장") {
                 val userId = 1L
                 val amount = PointAmount.of(5000L)
-                val balanceBefore = 10000L
-                val balanceAfter = 15000L
+                val balanceBefore = Balance.of(10000L)
+                val balanceAfter = Balance.of(15000L)
                 val mockHistory = mockk<PointHistory>()
 
                 mockkObject(PointHistory.Companion)
                 every {
-                    PointHistory.createChargeHistory(
+                    PointHistory.createEarnHistory(
                         userId = userId,
                         amount = amount,
-                        balanceBefore = balanceBefore,
-                        balanceAfter = balanceAfter,
+                        balanceBefore = balanceBefore.value,
+                        balanceAfter = balanceAfter.value,
+                        orderId = null,
                         description = null
                     )
                 } returns mockHistory
                 every { mockPointHistoryRepository.save(mockHistory) } returns mockHistory
 
-                val result = sut.recordChargeHistory(userId, amount, balanceBefore, balanceAfter)
+                val result = sut.recordEarnHistory(userId, amount, balanceBefore, balanceAfter)
 
                 result shouldBe mockHistory
                 verify(exactly = 1) {
-                    PointHistory.createChargeHistory(
+                    PointHistory.createEarnHistory(
                         userId = userId,
                         amount = amount,
-                        balanceBefore = balanceBefore,
-                        balanceAfter = balanceAfter,
+                        balanceBefore = balanceBefore.value,
+                        balanceAfter = balanceAfter.value,
+                        orderId = null,
                         description = null
                     )
                 }
@@ -103,37 +108,39 @@ class PointHistoryServiceTest : DescribeSpec({
         }
     }
 
-    describe("recordDeductHistory") {
-        context("차감 이력 기록 시") {
-            it("PointHistory.createDeductHistory를 호출하고 Repository에 저장") {
+    describe("recordUseHistory") {
+        context("사용 이력 기록 시") {
+            it("PointHistory.createUseHistory를 호출하고 Repository에 저장") {
                 val userId = 1L
                 val amount = PointAmount.of(3000L)
-                val balanceBefore = 10000L
-                val balanceAfter = 7000L
-                val description = "테스트 차감"
+                val balanceBefore = Balance.of(10000L)
+                val balanceAfter = Balance.of(7000L)
+                val description = "테스트 사용"
                 val mockHistory = mockk<PointHistory>()
 
                 mockkObject(PointHistory.Companion)
                 every {
-                    PointHistory.createDeductHistory(
+                    PointHistory.createUseHistory(
                         userId = userId,
                         amount = amount,
-                        balanceBefore = balanceBefore,
-                        balanceAfter = balanceAfter,
+                        balanceBefore = balanceBefore.value,
+                        balanceAfter = balanceAfter.value,
+                        orderId = null,
                         description = description
                     )
                 } returns mockHistory
                 every { mockPointHistoryRepository.save(mockHistory) } returns mockHistory
 
-                val result = sut.recordDeductHistory(userId, amount, balanceBefore, balanceAfter, description)
+                val result = sut.recordUseHistory(userId, amount, balanceBefore, balanceAfter, description)
 
                 result shouldBe mockHistory
                 verify(exactly = 1) {
-                    PointHistory.createDeductHistory(
+                    PointHistory.createUseHistory(
                         userId = userId,
                         amount = amount,
-                        balanceBefore = balanceBefore,
-                        balanceAfter = balanceAfter,
+                        balanceBefore = balanceBefore.value,
+                        balanceAfter = balanceAfter.value,
+                        orderId = null,
                         description = description
                     )
                 }
@@ -141,35 +148,37 @@ class PointHistoryServiceTest : DescribeSpec({
             }
         }
 
-        context("차감 이력 기록 시 description이 null인 경우") {
-            it("PointHistory.createDeductHistory를 description null로 호출하고 저장") {
+        context("사용 이력 기록 시 description이 null인 경우") {
+            it("PointHistory.createUseHistory를 description null로 호출하고 저장") {
                 val userId = 1L
                 val amount = PointAmount.of(3000L)
-                val balanceBefore = 10000L
-                val balanceAfter = 7000L
+                val balanceBefore = Balance.of(10000L)
+                val balanceAfter = Balance.of(7000L)
                 val mockHistory = mockk<PointHistory>()
 
                 mockkObject(PointHistory.Companion)
                 every {
-                    PointHistory.createDeductHistory(
+                    PointHistory.createUseHistory(
                         userId = userId,
                         amount = amount,
-                        balanceBefore = balanceBefore,
-                        balanceAfter = balanceAfter,
+                        balanceBefore = balanceBefore.value,
+                        balanceAfter = balanceAfter.value,
+                        orderId = null,
                         description = null
                     )
                 } returns mockHistory
                 every { mockPointHistoryRepository.save(mockHistory) } returns mockHistory
 
-                val result = sut.recordDeductHistory(userId, amount, balanceBefore, balanceAfter)
+                val result = sut.recordUseHistory(userId, amount, balanceBefore, balanceAfter)
 
                 result shouldBe mockHistory
                 verify(exactly = 1) {
-                    PointHistory.createDeductHistory(
+                    PointHistory.createUseHistory(
                         userId = userId,
                         amount = amount,
-                        balanceBefore = balanceBefore,
-                        balanceAfter = balanceAfter,
+                        balanceBefore = balanceBefore.value,
+                        balanceAfter = balanceAfter.value,
+                        orderId = null,
                         description = null
                     )
                 }

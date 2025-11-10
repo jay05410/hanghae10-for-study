@@ -36,7 +36,7 @@ class PointHistory(
 ) : ActiveJpaEntity() {
 
     companion object {
-        fun createChargeHistory(
+        fun createEarnHistory(
             userId: Long,
             amount: PointAmount,
             balanceBefore: Long,
@@ -47,7 +47,7 @@ class PointHistory(
             return PointHistory(
                 userId = userId,
                 amount = amount.value,
-                transactionType = PointTransactionType.CHARGE,
+                transactionType = PointTransactionType.EARN,
                 balanceBefore = balanceBefore,
                 balanceAfter = balanceAfter,
                 orderId = orderId,
@@ -55,7 +55,7 @@ class PointHistory(
             )
         }
 
-        fun createDeductHistory(
+        fun createUseHistory(
             userId: Long,
             amount: PointAmount,
             balanceBefore: Long,
@@ -65,11 +65,29 @@ class PointHistory(
         ): PointHistory {
             return PointHistory(
                 userId = userId,
-                amount = -amount.value, // 차감은 음수로 저장
-                transactionType = PointTransactionType.DEDUCT,
+                amount = -amount.value, // 사용은 음수로 저장
+                transactionType = PointTransactionType.USE,
                 balanceBefore = balanceBefore,
                 balanceAfter = balanceAfter,
                 orderId = orderId,
+                description = description
+            )
+        }
+
+        fun createExpireHistory(
+            userId: Long,
+            amount: PointAmount,
+            balanceBefore: Long,
+            balanceAfter: Long,
+            description: String? = null
+        ): PointHistory {
+            return PointHistory(
+                userId = userId,
+                amount = -amount.value, // 소멸은 음수로 저장
+                transactionType = PointTransactionType.EXPIRE,
+                balanceBefore = balanceBefore,
+                balanceAfter = balanceAfter,
+                orderId = null,
                 description = description
             )
         }

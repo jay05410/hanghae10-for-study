@@ -76,16 +76,16 @@ class PointControllerTest : DescribeSpec({
         }
     }
 
-    describe("chargePoint") {
+    describe("earnPoint") {
         context("POST /api/v1/points/{userId}/charge 요청") {
             it("요청 데이터를 ChargePointUseCase에 전달하고 ApiResponse로 반환") {
                 val userId = 1L
-                val request = ChargePointRequest(amount = 5000L, description = "테스트 충전")
+                val request = ChargePointRequest(amount = 5000L, description = "테스트 적립")
                 val mockUserPoint = mockk<UserPoint>()
 
                 every { mockChargePointUseCase.execute(userId, request.amount, request.description) } returns mockUserPoint
 
-                val result = sut.chargePoint(userId, request)
+                val result = sut.earnPoint(userId, request)
 
                 result shouldBe ApiResponse.success(mockUserPoint)
                 verify(exactly = 1) { mockChargePointUseCase.execute(userId, request.amount, request.description) }
@@ -100,24 +100,24 @@ class PointControllerTest : DescribeSpec({
 
                 every { mockChargePointUseCase.execute(userId, request.amount, null) } returns mockUserPoint
 
-                val result = sut.chargePoint(userId, request)
+                val result = sut.earnPoint(userId, request)
 
                 result shouldBe ApiResponse.success(mockUserPoint)
                 verify(exactly = 1) { mockChargePointUseCase.execute(userId, request.amount, null) }
             }
         }
 
-        context("다양한 충전 금액 요청") {
+        context("다양한 적립 금액 요청") {
             it("요청 금액을 정확히 UseCase에 전달") {
                 val userId = 2L
                 val amount = 10000L
-                val description = "대량 충전"
+                val description = "대량 적립"
                 val request = ChargePointRequest(amount = amount, description = description)
                 val mockUserPoint = mockk<UserPoint>()
 
                 every { mockChargePointUseCase.execute(userId, amount, description) } returns mockUserPoint
 
-                val result = sut.chargePoint(userId, request)
+                val result = sut.earnPoint(userId, request)
 
                 result shouldBe ApiResponse.success(mockUserPoint)
                 verify(exactly = 1) { mockChargePointUseCase.execute(userId, amount, description) }
@@ -125,23 +125,23 @@ class PointControllerTest : DescribeSpec({
         }
     }
 
-    describe("deductPoint") {
+    describe("usePoint") {
         context("POST /api/v1/points/{userId}/deduct 요청") {
             it("요청 데이터를 DeductPointUseCase에 전달하고 ApiResponse로 반환") {
                 val userId = 1L
-                val request = DeductPointRequest(amount = 2000L, description = "테스트 차감")
+                val request = DeductPointRequest(amount = 2000L, description = "테스트 사용")
                 val mockUserPoint = mockk<UserPoint>()
 
                 every { mockDeductPointUseCase.execute(userId, request.amount, request.description) } returns mockUserPoint
 
-                val result = sut.deductPoint(userId, request)
+                val result = sut.usePoint(userId, request)
 
                 result shouldBe ApiResponse.success(mockUserPoint)
                 verify(exactly = 1) { mockDeductPointUseCase.execute(userId, request.amount, request.description) }
             }
         }
 
-        context("description이 null인 차감 요청") {
+        context("description이 null인 사용 요청") {
             it("description null을 그대로 UseCase에 전달") {
                 val userId = 3L
                 val request = DeductPointRequest(amount = 1500L, description = null)
@@ -149,14 +149,14 @@ class PointControllerTest : DescribeSpec({
 
                 every { mockDeductPointUseCase.execute(userId, request.amount, null) } returns mockUserPoint
 
-                val result = sut.deductPoint(userId, request)
+                val result = sut.usePoint(userId, request)
 
                 result shouldBe ApiResponse.success(mockUserPoint)
                 verify(exactly = 1) { mockDeductPointUseCase.execute(userId, request.amount, null) }
             }
         }
 
-        context("다양한 차감 금액 요청") {
+        context("다양한 사용 금액 요청") {
             it("요청 금액을 정확히 UseCase에 전달") {
                 val userId = 4L
                 val amount = 7500L
@@ -166,7 +166,7 @@ class PointControllerTest : DescribeSpec({
 
                 every { mockDeductPointUseCase.execute(userId, amount, description) } returns mockUserPoint
 
-                val result = sut.deductPoint(userId, request)
+                val result = sut.usePoint(userId, request)
 
                 result shouldBe ApiResponse.success(mockUserPoint)
                 verify(exactly = 1) { mockDeductPointUseCase.execute(userId, amount, description) }
@@ -236,20 +236,20 @@ class PointControllerTest : DescribeSpec({
 
                 clearMocks(mockGetPointQueryUseCase, mockChargePointUseCase, mockDeductPointUseCase)
 
-                // chargePoint 테스트
+                // earnPoint 테스트
                 val chargeRequest = ChargePointRequest(amount = 1000L, description = null)
                 every { mockChargePointUseCase.execute(userId, 1000L, null) } returns mockk()
-                sut.chargePoint(userId, chargeRequest)
+                sut.earnPoint(userId, chargeRequest)
                 verify(exactly = 1) { mockChargePointUseCase.execute(userId, 1000L, null) }
                 verify(exactly = 0) { mockGetPointQueryUseCase.getUserPoint(any()) }
                 verify(exactly = 0) { mockDeductPointUseCase.execute(any(), any(), any()) }
 
                 clearMocks(mockGetPointQueryUseCase, mockChargePointUseCase, mockDeductPointUseCase)
 
-                // deductPoint 테스트
+                // usePoint 테스트
                 val deductRequest = DeductPointRequest(amount = 500L, description = null)
                 every { mockDeductPointUseCase.execute(userId, 500L, null) } returns mockk()
-                sut.deductPoint(userId, deductRequest)
+                sut.usePoint(userId, deductRequest)
                 verify(exactly = 1) { mockDeductPointUseCase.execute(userId, 500L, null) }
                 verify(exactly = 0) { mockGetPointQueryUseCase.getUserPoint(any()) }
                 verify(exactly = 0) { mockChargePointUseCase.execute(any(), any(), any()) }

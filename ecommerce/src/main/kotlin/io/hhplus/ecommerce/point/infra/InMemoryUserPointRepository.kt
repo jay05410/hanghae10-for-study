@@ -2,6 +2,7 @@ package io.hhplus.ecommerce.point.infra
 
 import io.hhplus.ecommerce.point.domain.entity.UserPoint
 import io.hhplus.ecommerce.point.domain.repository.UserPointRepository
+import io.hhplus.ecommerce.point.domain.vo.Balance
 import org.springframework.stereotype.Repository
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
@@ -32,19 +33,19 @@ class InMemoryUserPointRepository : UserPointRepository {
         val userPoint1 = UserPoint(
             id = 1L,
             userId = 1L,
-            balance = 100000L, // 100,000 points
+            balance = Balance.of(100000L), // 100,000 points
             version = 1
         )
         val userPoint2 = UserPoint(
             id = 2L,
             userId = 2L,
-            balance = 50000L, // 50,000 points
+            balance = Balance.of(50000L), // 50,000 points
             version = 1
         )
         val userPoint3 = UserPoint(
             id = 3L,
             userId = 3L,
-            balance = 0L, // No points
+            balance = Balance.zero(), // No points
             version = 1
         )
 

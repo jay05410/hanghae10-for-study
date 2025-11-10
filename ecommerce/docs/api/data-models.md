@@ -101,9 +101,11 @@ erDiagram
     POINT_HISTORY {
         bigint id PK "이력 ID"
         bigint user_id FK "사용자 ID"
-        string transaction_type "거래타입(CHARGE/DEDUCT)"
+        string transaction_type "거래타입(EARN/USE/EXPIRE)"
         bigint amount "변동금액"
+        bigint balance_before "거래전잔액"
         bigint balance_after "거래후잔액"
+        bigint order_id FK "주문 ID (nullable)"
         string description "설명"
         boolean is_active "활성화 여부"
         datetime created_at "생성일시"
@@ -923,26 +925,26 @@ CREATE UNIQUE INDEX idx_user_balance_user ON user_balance(user_id);
 
 ---
 
-#### BALANCE_HISTORY (포인트 변동 이력)
-포인트 충전/사용/환불 이력을 관리하는 엔티티
+#### POINT_HISTORY (포인트 변동 이력)
+포인트 적립/사용/소멸 이력을 관리하는 엔티티
 
 | 컬럼명 | 타입 | 제약조건 | 설명 | 비즈니스 규칙 |
 |--------|------|----------|------|---------------|
 | id | BIGSERIAL | PK | 이력 ID | - |
 | user_id | BIGINT | NOT NULL, FK → USER(id) | 사용자 ID | - |
-| transaction_type | VARCHAR(20) | NOT NULL | 거래타입 | CHARGE/USE/REFUND |
-| amount | BIGINT | NOT NULL | 변동금액 | 충전(+), 사용(-), 환불(+) |
+| transaction_type | VARCHAR(20) | NOT NULL | 거래타입 | EARN/USE/EXPIRE |
+| amount | BIGINT | NOT NULL | 변동금액 | 적립(+), 사용(-), 소멸(-) |
 | balance_before | BIGINT | NOT NULL | 거래전잔액 | - |
 | balance_after | BIGINT | NOT NULL | 거래후잔액 | - |
 | order_id | BIGINT | NULL, FK → ORDER(id) | 주문 ID | 주문 관련 거래시만 |
-| description | VARCHAR(255) | NOT NULL | 설명 | "주문 결제", "포인트 충전" 등 |
+| description | VARCHAR(255) | NULL | 설명 | "구매 적립 (5%)", "주문 할인 적용" 등 |
 | is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | 활성화 여부 | - |
 | created_at | TIMESTAMP WITH TIME ZONE | NOT NULL, DEFAULT CURRENT_TIMESTAMP | 생성일시 | - |
 | created_by | BIGINT | NOT NULL | 생성자 | - |
 
 **DDL**:
 ```sql
-CREATE TABLE balance_history (
+CREATE TABLE point_history (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES "user"(id),
     transaction_type VARCHAR(20) NOT NULL,
@@ -950,16 +952,16 @@ CREATE TABLE balance_history (
     balance_before BIGINT NOT NULL,
     balance_after BIGINT NOT NULL,
     order_id BIGINT REFERENCES "order"(id),
-    description VARCHAR(255) NOT NULL,
+    description VARCHAR(255),
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     created_by BIGINT NOT NULL,
-    CONSTRAINT chk_transaction_type CHECK (transaction_type IN ('CHARGE', 'USE', 'REFUND')),
+    CONSTRAINT chk_transaction_type CHECK (transaction_type IN ('EARN', 'USE', 'EXPIRE')),
     CONSTRAINT chk_balance_calculation CHECK (balance_after = balance_before + amount)
 );
 
-CREATE INDEX idx_balance_history_user_created ON balance_history(user_id, created_at DESC);
-CREATE INDEX idx_balance_history_order ON balance_history(order_id) WHERE order_id IS NOT NULL;
+CREATE INDEX idx_point_history_user_created ON point_history(user_id, created_at DESC);
+CREATE INDEX idx_point_history_order ON point_history(order_id) WHERE order_id IS NOT NULL;
 ```
 
 ---

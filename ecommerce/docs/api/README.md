@@ -67,10 +67,10 @@ src/main/kotlin/io/hhplus/ecommerce/
 │   ├── dto/                         # PaymentDto.kt
 │   ├── usecase/                     # 2개 UseCase (Process, Get)
 │   ├── application/                 # PaymentService.kt
-│   ├── domain/                      # Payment.kt, BalanceHistory.kt
-│   │   ├── entity/                  # 엔티티 클래스들
-│   │   ├── repository/              # Repository 인터페이스
-│   │   └── vo/                      # ChargeAmount.kt
+│   ├── domain/                      # Payment.kt (결제 엔티티가 곧 결제 이력)
+│   │   ├── entity/                  # Payment 엔티티
+│   │   ├── repository/              # PaymentRepository 인터페이스
+│   │   └── constant/                # PaymentMethod, PaymentStatus
 │   └── infra/                       # InMemoryPaymentRepository.kt
 │
 ├── point/                           # ✅ Point 도메인 (Payment와 분리)
@@ -549,15 +549,18 @@ value class Balance private constructor(val value: Long) {
 | 도메인 | Value Object | 파일 위치 | 비즈니스 의미 |
 |--------|-------------|-----------|---------------|
 | **Order** | `OrderAmount` | `order/domain/vo/` | 주문 금액 복합 VO |
-| **Payment** | `ChargeAmount` | `payment/domain/vo/` | 결제 충전 금액 |
+| **Point** | `Balance` | `point/domain/vo/` | 포인트 잔액 (0~10,000,000원) |
 | **Point** | `PointAmount` | `point/domain/vo/` | 포인트 거래 금액 |
 | **Product** | `ProductPrice` | `product/domain/vo/` | 상품 가격 |
 | **Inventory** | `Stock` | `inventory/domain/vo/` | 재고 수량 |
 | **Cart** | `Quantity` | `cart/domain/vo/` | 장바구니 수량 |
-| **User** | `Balance` | `user/domain/vo/` | 사용자 잔액 |
 | **Coupon** | `CouponCode` | `coupon/domain/vo/` | 쿠폰 코드 |
 
-**총 8개 VO** - 각 도메인별로 비즈니스 규칙을 캡슐화한 타입 안전 Value Object
+**총 7개 VO** - 각 도메인별로 비즈니스 규칙을 캡슐화한 타입 안전 Value Object
+
+### 변경 이력 (2025-01-07)
+- **Balance**: `user/domain/vo/` → `point/domain/vo/`로 이동 (포인트 잔액은 point 도메인 관심사)
+- **ChargeAmount 삭제**: 포인트는 충전이 아닌 구매 시 자동 적립 시스템
 
 #### 사용 패턴
 

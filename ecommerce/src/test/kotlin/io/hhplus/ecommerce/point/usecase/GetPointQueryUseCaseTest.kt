@@ -8,6 +8,7 @@ import io.hhplus.ecommerce.point.application.PointService
 import io.hhplus.ecommerce.point.application.PointHistoryService
 import io.hhplus.ecommerce.point.domain.entity.UserPoint
 import io.hhplus.ecommerce.point.domain.entity.PointHistory
+import io.hhplus.ecommerce.point.domain.vo.Balance
 
 class GetPointQueryUseCaseTest : DescribeSpec({
 
@@ -27,7 +28,7 @@ class GetPointQueryUseCaseTest : DescribeSpec({
                 val userId = 1L
                 val mockUserPoint = mockk<UserPoint> {
                     every { id } returns userId
-                    every { balance } returns 1000L
+                    every { balance } returns Balance.of(1000L)
                 }
 
                 every { pointService.getUserPoint(userId) } returns mockUserPoint

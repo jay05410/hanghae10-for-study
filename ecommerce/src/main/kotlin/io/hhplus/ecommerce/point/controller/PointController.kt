@@ -41,14 +41,14 @@ class PointController(
     }
 
     /**
-     * 사용자의 포인트를 충전한다
+     * 사용자의 포인트를 적립한다
      *
-     * @param userId 포인트를 충전할 사용자 ID
-     * @param request 포인트 충전 요청 데이터
+     * @param userId 포인트를 적립할 사용자 ID
+     * @param request 포인트 적립 요청 데이터
      * @return 업데이트된 사용자 포인트 정보를 포함한 API 응답
      */
     @PostMapping("/{userId}/charge")
-    fun chargePoint(
+    fun earnPoint(
         @PathVariable userId: Long,
         @RequestBody request: ChargePointRequest
     ): ApiResponse<UserPoint> {
@@ -57,14 +57,14 @@ class PointController(
     }
 
     /**
-     * 사용자의 포인트를 차감한다
+     * 사용자의 포인트를 사용한다
      *
-     * @param userId 포인트를 차감할 사용자 ID
-     * @param request 포인트 차감 요청 데이터
+     * @param userId 포인트를 사용할 사용자 ID
+     * @param request 포인트 사용 요청 데이터
      * @return 업데이트된 사용자 포인트 정보를 포함한 API 응답
      */
     @PostMapping("/{userId}/deduct")
-    fun deductPoint(
+    fun usePoint(
         @PathVariable userId: Long,
         @RequestBody request: DeductPointRequest
     ): ApiResponse<UserPoint> {
