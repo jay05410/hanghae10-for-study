@@ -34,9 +34,9 @@ class PaymentController(
      * @return 처리된 결제 정보를 포함한 API 응답
      */
     @PostMapping("/process")
-    fun processPayment(@RequestBody request: ProcessPaymentRequest): ApiResponse<Payment> {
+    fun processPayment(@RequestBody request: ProcessPaymentRequest): ApiResponse<PaymentResponse> {
         val payment = processPaymentUseCase.execute(request)
-        return ApiResponse.success(payment)
+        return ApiResponse.success(payment.toResponse())
     }
 
     /**
@@ -46,9 +46,9 @@ class PaymentController(
      * @return 결제 정보를 포함한 API 응답
      */
     @GetMapping("/{paymentId}")
-    fun getPayment(@PathVariable paymentId: Long): ApiResponse<Payment?> {
+    fun getPayment(@PathVariable paymentId: Long): ApiResponse<PaymentResponse?> {
         val payment = getPaymentQueryUseCase.getPayment(paymentId)
-        return ApiResponse.success(payment)
+        return ApiResponse.success(payment?.toResponse())
     }
 
     /**
@@ -58,8 +58,8 @@ class PaymentController(
      * @return 사용자의 결제 내역 목록을 포함한 API 응답
      */
     @GetMapping("/users/{userId}")
-    fun getUserPayments(@PathVariable userId: Long): ApiResponse<List<Payment>> {
+    fun getUserPayments(@PathVariable userId: Long): ApiResponse<List<PaymentResponse>> {
         val payments = getPaymentQueryUseCase.getUserPayments(userId)
-        return ApiResponse.success(payments)
+        return ApiResponse.success(payments.map { it.toResponse() })
     }
 }

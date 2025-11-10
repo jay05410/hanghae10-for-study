@@ -35,9 +35,9 @@ class PointController(
      * @return 사용자의 포인트 정보를 포함한 API 응답
      */
     @GetMapping("/{userId}")
-    fun getUserPoint(@PathVariable userId: Long): ApiResponse<UserPoint> {
+    fun getUserPoint(@PathVariable userId: Long): ApiResponse<UserPointResponse> {
         val userPoint = getPointQueryUseCase.getUserPoint(userId)
-        return ApiResponse.success(userPoint)
+        return ApiResponse.success(userPoint.toResponse())
     }
 
     /**
@@ -51,9 +51,9 @@ class PointController(
     fun earnPoint(
         @PathVariable userId: Long,
         @RequestBody request: ChargePointRequest
-    ): ApiResponse<UserPoint> {
+    ): ApiResponse<UserPointResponse> {
         val userPoint = chargePointUseCase.execute(userId, request.amount, request.description)
-        return ApiResponse.success(userPoint)
+        return ApiResponse.success(userPoint.toResponse())
     }
 
     /**
@@ -67,9 +67,9 @@ class PointController(
     fun usePoint(
         @PathVariable userId: Long,
         @RequestBody request: DeductPointRequest
-    ): ApiResponse<UserPoint> {
+    ): ApiResponse<UserPointResponse> {
         val userPoint = deductPointUseCase.execute(userId, request.amount, request.description)
-        return ApiResponse.success(userPoint)
+        return ApiResponse.success(userPoint.toResponse())
     }
 
     /**
@@ -79,8 +79,8 @@ class PointController(
      * @return 사용자의 포인트 사용 내역 목록을 포함한 API 응답
      */
     @GetMapping("/{userId}/histories")
-    fun getPointHistories(@PathVariable userId: Long): ApiResponse<List<PointHistory>> {
+    fun getPointHistories(@PathVariable userId: Long): ApiResponse<List<PointHistoryResponse>> {
         val histories = getPointQueryUseCase.getPointHistories(userId)
-        return ApiResponse.success(histories)
+        return ApiResponse.success(histories.map { it.toResponse() })
     }
 }

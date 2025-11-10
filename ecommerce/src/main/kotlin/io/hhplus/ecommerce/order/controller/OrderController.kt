@@ -35,9 +35,9 @@ class OrderController(
      * @return 생성된 주문 정보를 포함한 API 응답
      */
     @PostMapping
-    fun createOrder(@RequestBody request: CreateOrderRequest): ApiResponse<Order> {
+    fun createOrder(@RequestBody request: CreateOrderRequest): ApiResponse<OrderResponse> {
         val order = createOrderUseCase.execute(request)
-        return ApiResponse.success(order)
+        return ApiResponse.success(order.toResponse())
     }
 
     /**
@@ -47,9 +47,9 @@ class OrderController(
      * @return 주문 정보를 포함한 API 응답
      */
     @GetMapping("/{orderId}")
-    fun getOrder(@PathVariable orderId: Long): ApiResponse<Order?> {
+    fun getOrder(@PathVariable orderId: Long): ApiResponse<OrderResponse?> {
         val order = getOrderQueryUseCase.getOrder(orderId)
-        return ApiResponse.success(order)
+        return ApiResponse.success(order?.toResponse())
     }
 
     /**
@@ -59,9 +59,9 @@ class OrderController(
      * @return 사용자의 주문 목록을 포함한 API 응답
      */
     @GetMapping
-    fun getOrders(@RequestParam userId: Long): ApiResponse<List<Order>> {
+    fun getOrders(@RequestParam userId: Long): ApiResponse<List<OrderResponse>> {
         val orders = getOrderQueryUseCase.getOrdersByUser(userId)
-        return ApiResponse.success(orders)
+        return ApiResponse.success(orders.map { it.toResponse() })
     }
 
     /**
@@ -75,9 +75,9 @@ class OrderController(
     fun confirmOrder(
         @PathVariable orderId: Long,
         @RequestBody request: OrderConfirmRequest
-    ): ApiResponse<Order> {
+    ): ApiResponse<OrderResponse> {
         val order = confirmOrderUseCase.execute(orderId, request.confirmedBy)
-        return ApiResponse.success(order)
+        return ApiResponse.success(order.toResponse())
     }
 
     /**
@@ -91,9 +91,9 @@ class OrderController(
     fun cancelOrder(
         @PathVariable orderId: Long,
         @RequestBody request: OrderCancelRequest
-    ): ApiResponse<Order> {
+    ): ApiResponse<OrderResponse> {
         val order = cancelOrderUseCase.execute(orderId, request.cancelledBy, request.reason)
-        return ApiResponse.success(order)
+        return ApiResponse.success(order.toResponse())
     }
 
 }

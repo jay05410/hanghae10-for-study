@@ -34,9 +34,9 @@ class CouponController(
      * @return 사용 가능한 쿠폰 목록을 포함한 API 응답
      */
     @GetMapping
-    fun getAvailableCoupons(): ApiResponse<List<Coupon>> {
+    fun getAvailableCoupons(): ApiResponse<List<CouponResponse>> {
         val coupons = getCouponQueryUseCase.getAvailableCoupons()
-        return ApiResponse.success(coupons)
+        return ApiResponse.success(coupons.map { it.toResponse() })
     }
 
     /**
@@ -50,9 +50,9 @@ class CouponController(
     fun issueCoupon(
         @RequestParam userId: Long,
         @RequestBody request: IssueCouponRequest
-    ): ApiResponse<UserCoupon> {
+    ): ApiResponse<UserCouponResponse> {
         val userCoupon = issueCouponUseCase.execute(userId, request)
-        return ApiResponse.success(userCoupon)
+        return ApiResponse.success(userCoupon.toResponse())
     }
 
     /**
@@ -62,9 +62,9 @@ class CouponController(
      * @return 사용자가 보유한 모든 쿠폰 목록을 포함한 API 응답
      */
     @GetMapping("/users/{userId}")
-    fun getUserCoupons(@PathVariable userId: Long): ApiResponse<List<UserCoupon>> {
+    fun getUserCoupons(@PathVariable userId: Long): ApiResponse<List<UserCouponResponse>> {
         val userCoupons = getCouponQueryUseCase.getUserCoupons(userId)
-        return ApiResponse.success(userCoupons)
+        return ApiResponse.success(userCoupons.map { it.toResponse() })
     }
 
     /**
@@ -74,9 +74,9 @@ class CouponController(
      * @return 사용자가 사용 가능한 쿠폰 목록을 포함한 API 응답
      */
     @GetMapping("/users/{userId}/available")
-    fun getAvailableUserCoupons(@PathVariable userId: Long): ApiResponse<List<UserCoupon>> {
+    fun getAvailableUserCoupons(@PathVariable userId: Long): ApiResponse<List<UserCouponResponse>> {
         val userCoupons = getCouponQueryUseCase.getAvailableUserCoupons(userId)
-        return ApiResponse.success(userCoupons)
+        return ApiResponse.success(userCoupons.map { it.toResponse() })
     }
 
     /**

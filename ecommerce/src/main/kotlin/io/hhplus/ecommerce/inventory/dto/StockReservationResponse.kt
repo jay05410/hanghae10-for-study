@@ -17,19 +17,17 @@ data class StockReservationResponse(
     val updatedAt: LocalDateTime?
 ) {
     companion object {
-        fun from(reservation: StockReservation): StockReservationResponse {
-            return StockReservationResponse(
-                id = reservation.id,
-                productId = reservation.productId,
-                userId = reservation.userId,
-                quantity = reservation.quantity,
-                status = reservation.status,
-                reservedAt = reservation.reservedAt,
-                expiresAt = reservation.expiresAt,
-                isActive = reservation.isReservationActive(),
-                createdAt = reservation.createdAt,
-                updatedAt = reservation.updatedAt
-            )
-        }
+        fun StockReservation.toResponse(): StockReservationResponse = StockReservationResponse(
+            id = this.id,
+            productId = this.productId,
+            userId = this.userId,
+            quantity = this.quantity,
+            status = this.status,
+            reservedAt = this.reservedAt,
+            expiresAt = this.expiresAt,
+            isActive = this.isReservationActive(),
+            createdAt = this.createdAt,
+            updatedAt = this.updatedAt
+        )
     }
 }

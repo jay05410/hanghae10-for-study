@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.cart.controller
 
-import io.hhplus.ecommerce.cart.dto.AddToCartRequest
+import io.hhplus.ecommerce.cart.dto.*
 import io.hhplus.ecommerce.cart.domain.entity.Cart
 import io.hhplus.ecommerce.cart.usecase.*
 import io.hhplus.ecommerce.common.response.ApiResponse
@@ -36,9 +36,9 @@ class CartController(
      * @return 사용자의 장바구니 정보를 포함한 API 응답
      */
     @GetMapping
-    fun getCart(@RequestParam userId: Long): ApiResponse<Cart?> {
+    fun getCart(@RequestParam userId: Long): ApiResponse<CartResponse?> {
         val cart = getCartUseCase.execute(userId)
-        return ApiResponse.success(cart)
+        return ApiResponse.success(cart?.toResponse())
     }
 
     /**
@@ -52,9 +52,9 @@ class CartController(
     fun addToCart(
         @RequestParam userId: Long,
         @RequestBody request: AddToCartRequest
-    ): ApiResponse<Cart> {
+    ): ApiResponse<CartResponse> {
         val cart = addToCartUseCase.execute(userId, request)
-        return ApiResponse.success(cart)
+        return ApiResponse.success(cart.toResponse())
     }
 
     /**
@@ -70,9 +70,9 @@ class CartController(
         @PathVariable cartItemId: Long,
         @RequestParam userId: Long,
         @RequestParam quantity: Int
-    ): ApiResponse<Cart> {
+    ): ApiResponse<CartResponse> {
         val cart = updateCartItemUseCase.execute(userId, cartItemId, quantity)
-        return ApiResponse.success(cart)
+        return ApiResponse.success(cart.toResponse())
     }
 
     /**
@@ -86,9 +86,9 @@ class CartController(
     fun removeCartItem(
         @PathVariable cartItemId: Long,
         @RequestParam userId: Long
-    ): ApiResponse<Cart> {
+    ): ApiResponse<CartResponse> {
         val cart = removeCartItemUseCase.execute(userId, cartItemId)
-        return ApiResponse.success(cart)
+        return ApiResponse.success(cart.toResponse())
     }
 
     /**
@@ -98,8 +98,8 @@ class CartController(
      * @return 초기화된 장바구니 정보를 포함한 API 응답
      */
     @DeleteMapping
-    fun clearCart(@RequestParam userId: Long): ApiResponse<Cart> {
+    fun clearCart(@RequestParam userId: Long): ApiResponse<CartResponse> {
         val cart = clearCartUseCase.execute(userId)
-        return ApiResponse.success(cart)
+        return ApiResponse.success(cart.toResponse())
     }
 }

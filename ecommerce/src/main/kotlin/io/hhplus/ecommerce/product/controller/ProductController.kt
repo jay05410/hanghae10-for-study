@@ -45,7 +45,7 @@ class ProductController(
         } else {
             getProductQueryUseCase.getProducts(page)
         }
-        return ApiResponse.success(products.map { ProductResponse.from(it) })
+        return ApiResponse.success(products.map { it.toResponse() })
     }
 
     /**
@@ -62,7 +62,7 @@ class ProductController(
     ): ApiResponse<ProductResponse> {
         incrementProductViewUseCase.execute(productId, userId)
         val product = getProductQueryUseCase.getProduct(productId)
-        return ApiResponse.success(ProductResponse.from(product))
+        return ApiResponse.success(product.toResponse())
     }
 
     /**
@@ -74,7 +74,7 @@ class ProductController(
     @PostMapping
     fun createProduct(@RequestBody request: CreateProductRequest): ApiResponse<ProductResponse> {
         val product = createProductUseCase.execute(request)
-        return ApiResponse.success(ProductResponse.from(product))
+        return ApiResponse.success(product.toResponse())
     }
 
     /**
@@ -90,7 +90,7 @@ class ProductController(
         @RequestBody request: UpdateProductRequest
     ): ApiResponse<ProductResponse> {
         val product = updateProductUseCase.execute(productId, request)
-        return ApiResponse.success(ProductResponse.from(product))
+        return ApiResponse.success(product.toResponse())
     }
 
     /**
@@ -102,7 +102,7 @@ class ProductController(
     @GetMapping("/popular")
     fun getPopularProducts(@RequestParam(defaultValue = "10") limit: Int): ApiResponse<List<ProductResponse>> {
         val products = getPopularProductsUseCase.execute(limit)
-        return ApiResponse.success(products.map { ProductResponse.from(it) })
+        return ApiResponse.success(products.map { it.toResponse() })
     }
 
 

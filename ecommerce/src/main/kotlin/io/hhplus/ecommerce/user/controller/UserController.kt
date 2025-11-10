@@ -1,8 +1,9 @@
 package io.hhplus.ecommerce.user.controller
 
-import io.hhplus.ecommerce.user.usecase.*
+import io.hhplus.ecommerce.user.application.UserService
 import io.hhplus.ecommerce.user.dto.*
 import io.hhplus.ecommerce.user.domain.entity.User
+import io.hhplus.ecommerce.user.domain.constant.LoginType
 import io.hhplus.ecommerce.common.response.ApiResponse
 import org.springframework.web.bind.annotation.*
 
@@ -12,21 +13,17 @@ import org.springframework.web.bind.annotation.*
  * 역할:
  * - 사용자 관련 REST API 엔드포인트 제공
  * - HTTP 요청/응답 처리 및 데이터 변환
- * - 비즈니스 로직은 UseCase에 위임
+ * - 비즈니스 로직은 Service에 직접 위임
  *
  * 책임:
  * - 요청 데이터 검증 및 응답 형식 통일
- * - 적절한 UseCase로 비즈니스 로직 위임
+ * - UserService로 비즈니스 로직 위임
  * - HTTP 상태 코드 및 에러 처리
  */
 @RestController
 @RequestMapping("/api/v1/users")
 class UserController(
-    private val createUserUseCase: CreateUserUseCase,
-    private val getUserQueryUseCase: GetUserQueryUseCase,
-    private val updateUserUseCase: UpdateUserUseCase,
-    private val deactivateUserUseCase: DeactivateUserUseCase,
-    private val activateUserUseCase: ActivateUserUseCase
+    private val userService: UserService
 ) {
 
     /**
@@ -42,9 +39,18 @@ class UserController(
      * @return 생성된 사용자 정보를 포함한 API 응답
      */
     @PostMapping
-    fun createUser(@RequestBody request: CreateUserRequest): ApiResponse<User> {
-        val user = createUserUseCase.execute(request)
-        return ApiResponse.success(user)
+    fun createUser(@RequestBody request: CreateUserRequest): ApiResponse<UserResponse> {
+        val user = userService.createUser(
+            loginType = LoginType.LOCAL,
+            loginId = request.email,
+            password = null,
+            email = request.email,
+            name = request.name,
+            phone = "010-0000-0000",
+            providerId = null,
+            createdBy = 1L
+        )
+        return ApiResponse.success(user.toResponse())
     }
 
     /**
@@ -60,9 +66,9 @@ class UserController(
      * @return 사용자 정보를 포함한 API 응답
      */
     @GetMapping("/{userId}")
-    fun getUser(@PathVariable userId: Long): ApiResponse<User?> {
-        val user = getUserQueryUseCase.getUser(userId)
-        return ApiResponse.success(user)
+    fun getUser(@PathVariable userId: Long): ApiResponse<UserResponse?> {
+        val user = userService.getUser(userId)
+        return ApiResponse.success(user?.toResponse())
     }
 
     /**
@@ -83,9 +89,14 @@ class UserController(
     fun updateUser(
         @PathVariable userId: Long,
         @RequestBody request: UpdateUserRequest
-    ): ApiResponse<User> {
-        val user = updateUserUseCase.execute(userId, request)
-        return ApiResponse.success(user)
+    ): ApiResponse<UserResponse> {
+        val user = userService.updateUser(
+            userId = userId,
+            name = request.name,
+            email = request.email,
+            updatedBy = userId
+        )
+        return ApiResponse.success(user.toResponse())
     }
 
     /**
@@ -99,9 +110,9 @@ class UserController(
      * @return 사용자 목록을 포함한 API 응답
      */
     @GetMapping
-    fun getAllUsers(): ApiResponse<List<User>> {
-        val users = getUserQueryUseCase.getAllUsers()
-        return ApiResponse.success(users)
+    fun getAllUsers(): ApiResponse<List<UserResponse>> {
+        val users = userService.getAllUsers()
+        return ApiResponse.success(users.map { it.toResponse() })
     }
 
 
@@ -118,9 +129,9 @@ class UserController(
      * @return 비활성화된 사용자 정보를 포함한 API 응답
      */
     @PostMapping("/{userId}/deactivate")
-    fun deactivateUser(@PathVariable userId: Long): ApiResponse<User> {
-        val user = deactivateUserUseCase.execute(userId)
-        return ApiResponse.success(user)
+    fun deactivateUser(@PathVariable userId: Long): ApiResponse<UserResponse> {
+        val user = userService.deactivateUser(userId, userId)
+        return ApiResponse.success(user.toResponse())
     }
 
     /**
@@ -136,8 +147,8 @@ class UserController(
      * @return 활성화된 사용자 정보를 포함한 API 응답
      */
     @PostMapping("/{userId}/activate")
-    fun activateUser(@PathVariable userId: Long): ApiResponse<User> {
-        val user = activateUserUseCase.execute(userId)
-        return ApiResponse.success(user)
+    fun activateUser(@PathVariable userId: Long): ApiResponse<UserResponse> {
+        val user = userService.activateUser(userId, userId)
+        return ApiResponse.success(user.toResponse())
     }
 }

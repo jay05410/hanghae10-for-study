@@ -47,7 +47,7 @@ class InventoryController(
             quantity = request.quantity,
             reservationMinutes = request.reservationMinutes ?: 20
         )
-        return ApiResponse.success(StockReservationResponse.from(reservation))
+        return ApiResponse.success(reservation.toResponse())
     }
 
     /**
@@ -63,7 +63,7 @@ class InventoryController(
         @RequestHeader("User-Id") userId: Long
     ): ApiResponse<StockReservationResponse> {
         val reservation = confirmReservationUseCase.execute(reservationId, userId)
-        return ApiResponse.success(StockReservationResponse.from(reservation))
+        return ApiResponse.success(reservation.toResponse())
     }
 
     /**
@@ -79,7 +79,7 @@ class InventoryController(
         @RequestHeader("User-Id") userId: Long
     ): ApiResponse<StockReservationResponse> {
         val reservation = cancelReservationUseCase.execute(reservationId, userId)
-        return ApiResponse.success(StockReservationResponse.from(reservation))
+        return ApiResponse.success(reservation.toResponse())
     }
 
     /**
@@ -91,6 +91,6 @@ class InventoryController(
     @GetMapping("/reservations")
     fun getUserReservations(@RequestHeader("User-Id") userId: Long): ApiResponse<List<StockReservationResponse>> {
         val reservations = getUserReservationsUseCase.execute(userId)
-        return ApiResponse.success(reservations.map { StockReservationResponse.from(it) })
+        return ApiResponse.success(reservations.map { it.toResponse() })
     }
 }
