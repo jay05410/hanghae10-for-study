@@ -31,26 +31,40 @@ class InMemoryOrderItemRepository : OrderItemRepository {
             status = OrderStatus.COMPLETED
         )
 
-        // Sample OrderItem 1 - 제주 유기농 녹차, 주간 티 박스
+        // Sample OrderItem 1 - 3일 패키지
         val orderItem1 = OrderItem(
             id = idGenerator.getAndIncrement(),
-            order = sampleOrder,
-            productId = 1L, // 제주 유기농 녹차
-            boxTypeId = 1L, // 주간 티 박스
-            quantity = 2,
-            unitPrice = 15000L,
-            totalPrice = 30000L
+            orderId = sampleOrder.id,
+            packageTypeId = 1L, // THREE_DAYS 패키지
+            packageTypeName = "3일 패키지",
+            packageTypeDays = 3,
+            dailyServing = 1,
+            totalQuantity = 30.0,
+            giftWrap = false,
+            giftMessage = null,
+            quantity = 1,
+            containerPrice = 5000,
+            teaPrice = 15000,
+            giftWrapPrice = 0,
+            totalPrice = 20000
         )
 
-        // Sample OrderItem 2 - 전통 우롱차, 월간 티 박스
+        // Sample OrderItem 2 - 7일 패키지
         val orderItem2 = OrderItem(
             id = idGenerator.getAndIncrement(),
-            order = sampleOrder,
-            productId = 2L, // 전통 우롱차
-            boxTypeId = 2L, // 월간 티 박스
+            orderId = sampleOrder.id,
+            packageTypeId = 2L, // SEVEN_DAYS 패키지
+            packageTypeName = "7일 패키지",
+            packageTypeDays = 7,
+            dailyServing = 1,
+            totalQuantity = 70.0,
+            giftWrap = true,
+            giftMessage = "건강한 하루 되세요",
             quantity = 1,
-            unitPrice = 20000L,
-            totalPrice = 20000L
+            containerPrice = 8000,
+            teaPrice = 25000,
+            giftWrapPrice = 2000,
+            totalPrice = 35000
         )
 
         orderItems[orderItem1.id] = orderItem1
@@ -63,11 +77,18 @@ class InMemoryOrderItemRepository : OrderItemRepository {
         val savedOrderItem = if (orderItem.id == 0L) {
             OrderItem(
                 id = idGenerator.getAndIncrement(),
-                order = orderItem.order,
-                productId = orderItem.productId,
-                boxTypeId = orderItem.boxTypeId,
+                orderId = orderItem.orderId,
+                packageTypeId = orderItem.packageTypeId,
+                packageTypeName = orderItem.packageTypeName,
+                packageTypeDays = orderItem.packageTypeDays,
+                dailyServing = orderItem.dailyServing,
+                totalQuantity = orderItem.totalQuantity,
+                giftWrap = orderItem.giftWrap,
+                giftMessage = orderItem.giftMessage,
                 quantity = orderItem.quantity,
-                unitPrice = orderItem.unitPrice,
+                containerPrice = orderItem.containerPrice,
+                teaPrice = orderItem.teaPrice,
+                giftWrapPrice = orderItem.giftWrapPrice,
                 totalPrice = orderItem.totalPrice
             )
         } else {
@@ -85,26 +106,25 @@ class InMemoryOrderItemRepository : OrderItemRepository {
 
     override fun findByOrderId(orderId: Long): List<OrderItem> {
         simulateLatency()
-        return orderItems.values.filter { it.order.id == orderId }
+        return orderItems.values.filter { it.orderId == orderId }
     }
 
     override fun findByOrderIdAndProductId(orderId: Long, productId: Long): OrderItem? {
         simulateLatency()
-        return orderItems.values.find { it.order.id == orderId && it.productId == productId }
+        return orderItems.values.find { it.orderId == orderId && it.packageTypeId == productId }
     }
 
     override fun findByOrderIdAndProductIdAndBoxTypeId(orderId: Long, productId: Long, boxTypeId: Long): OrderItem? {
         simulateLatency()
         return orderItems.values.find {
-            it.order.id == orderId &&
-            it.productId == productId &&
-            it.boxTypeId == boxTypeId
+            it.orderId == orderId &&
+            it.packageTypeId == boxTypeId
         }
     }
 
     override fun findByProductId(productId: Long): List<OrderItem> {
         simulateLatency()
-        return orderItems.values.filter { it.productId == productId }
+        return orderItems.values.filter { it.packageTypeId == productId }
     }
 
     override fun deleteById(id: Long) {
@@ -114,7 +134,7 @@ class InMemoryOrderItemRepository : OrderItemRepository {
 
     override fun deleteByOrderId(orderId: Long) {
         simulateLatency()
-        orderItems.values.removeAll { it.order.id == orderId }
+        orderItems.values.removeAll { it.orderId == orderId }
     }
 
     private fun simulateLatency() {

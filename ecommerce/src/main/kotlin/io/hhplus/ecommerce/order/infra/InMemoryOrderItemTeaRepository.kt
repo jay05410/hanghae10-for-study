@@ -17,26 +17,35 @@ class InMemoryOrderItemTeaRepository : OrderItemTeaRepository {
     }
 
     private fun initializeSampleData() {
-        val orderItemTea1 = OrderItemTea(
-            id = idGenerator.getAndIncrement(),
+        val orderItemTea1 = OrderItemTea.create(
             orderItemId = 1L,
             productId = 1L,
-            quantity = 2
-        )
+            productName = "프리미엄 녹차",
+            categoryName = "녹차",
+            selectionOrder = 1,
+            ratioPercent = 60,
+            unitPrice = 5000
+        ).copy(id = idGenerator.getAndIncrement())
 
-        val orderItemTea2 = OrderItemTea(
-            id = idGenerator.getAndIncrement(),
+        val orderItemTea2 = OrderItemTea.create(
             orderItemId = 1L,
             productId = 2L,
-            quantity = 1
-        )
+            productName = "얼 그레이 홍차",
+            categoryName = "홍차",
+            selectionOrder = 2,
+            ratioPercent = 40,
+            unitPrice = 4500
+        ).copy(id = idGenerator.getAndIncrement())
 
-        val orderItemTea3 = OrderItemTea(
-            id = idGenerator.getAndIncrement(),
+        val orderItemTea3 = OrderItemTea.create(
             orderItemId = 2L,
             productId = 3L,
-            quantity = 3
-        )
+            productName = "캐모마일 허브차",
+            categoryName = "허브차",
+            selectionOrder = 1,
+            ratioPercent = 100,
+            unitPrice = 6000
+        ).copy(id = idGenerator.getAndIncrement())
 
         storage[orderItemTea1.id] = orderItemTea1
         storage[orderItemTea2.id] = orderItemTea2
@@ -89,8 +98,12 @@ class InMemoryOrderItemTeaRepository : OrderItemTeaRepository {
         id: Long = this.id,
         orderItemId: Long = this.orderItemId,
         productId: Long = this.productId,
-        quantity: Int = this.quantity
+        productName: String = this.productName,
+        categoryName: String = this.categoryName,
+        selectionOrder: Int = this.selectionOrder,
+        ratioPercent: Int = this.ratioPercent,
+        unitPrice: Int = this.unitPrice
     ): OrderItemTea {
-        return OrderItemTea(id, orderItemId, productId, quantity)
+        return OrderItemTea(id, orderItemId, productId, productName, categoryName, selectionOrder, ratioPercent, unitPrice)
     }
 }

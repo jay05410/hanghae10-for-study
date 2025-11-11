@@ -37,7 +37,8 @@ class CartItemTeaService(
             val cartItemTea = CartItemTea.create(
                 cartItemId = cartItemId,
                 productId = teaItem.productId,
-                quantity = teaItem.quantity
+                selectionOrder = teaItem.selectionOrder,
+                ratioPercent = teaItem.ratioPercent
             )
             cartItemTeaRepository.save(cartItemTea)
         }
@@ -97,12 +98,17 @@ class CartItemTeaService(
      */
     fun validateTeaItems(teaItems: List<TeaItemRequest>) {
         require(teaItems.isNotEmpty()) { "차 구성은 최소 1개 이상이어야 합니다" }
+        require(teaItems.size <= 3) { "차 구성은 최대 3개까지 가능합니다" }
 
-        val totalQuantity = teaItems.sumOf { it.quantity }
-        require(totalQuantity > 0) { "총 차 수량은 0보다 커야 합니다" }
+        val totalRatio = teaItems.sumOf { it.ratioPercent }
+        require(totalRatio == 100) { "총 배합 비율은 100%가 되어야 합니다. 현재: ${totalRatio}%" }
 
         // 중복 상품 체크
         val productIds = teaItems.map { it.productId }
         require(productIds.size == productIds.distinct().size) { "중복된 차 상품이 있습니다" }
+
+        // 선택 순서 검증
+        val orders = teaItems.map { it.selectionOrder }.sorted()
+        require(orders == (1..teaItems.size).toList()) { "선택 순서는 1부터 연속적이어야 합니다" }
     }
 }

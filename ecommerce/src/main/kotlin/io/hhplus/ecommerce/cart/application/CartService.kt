@@ -43,41 +43,59 @@ class CartService(
      * 장바구니에 상품을 추가한다
      *
      * @param userId 사용자 ID
-     * @param productId 추가할 상품 ID
-     * @param boxTypeId 박스 타입 ID
-     * @param quantity 추가할 수량
+     * @param packageTypeId 패키지 타입 ID
+     * @param packageTypeName 패키지 타입명
+     * @param packageTypeDays 패키지 일수
+     * @param dailyServing 하루 섭취량
+     * @param totalQuantity 총 그램수
+     * @param giftWrap 선물포장 여부
+     * @param giftMessage 선물메시지
      * @param teaItems 차 구성 목록
      * @return 업데이트된 장바구니
      */
     @Transactional
-    fun addToCart(userId: Long, productId: Long, boxTypeId: Long, quantity: Int, teaItems: List<TeaItemRequest>): Cart {
+    fun addToCart(
+        userId: Long,
+        packageTypeId: Long,
+        packageTypeName: String,
+        packageTypeDays: Int,
+        dailyServing: Int,
+        totalQuantity: Double,
+        giftWrap: Boolean = false,
+        giftMessage: String? = null,
+        teaItems: List<TeaItemRequest>
+    ): Cart {
         // 차 구성 검증
         cartItemTeaService.validateTeaItems(teaItems)
 
         val cart = getOrCreateCart(userId)
 
-        // 기존 동일 상품이 있는지 확인
-        val existingItem = cart.items.find { it.productId == productId && it.boxTypeId == boxTypeId }
+        // 기존 동일 패키지 타입이 있는지 확인
+        val existingItem = cart.items.find { it.packageTypeId == packageTypeId }
 
         if (existingItem != null) {
-            // 기존 아이템 수량 증가
-            existingItem.updateQuantity(existingItem.quantity + quantity, userId)
-
-            // 차 구성 업데이트
-            cartItemTeaService.updateCartItemTeas(existingItem.id, teaItems)
-        } else {
-            // 새 아이템 추가
-            cart.addItem(productId, boxTypeId, quantity, userId)
-            val savedCart = cartRepository.save(cart)
-
-            // 새로 추가된 아이템의 차 구성 저장
-            val newCartItem = savedCart.items.last()
-            cartItemTeaService.saveCartItemTeas(newCartItem.id, teaItems)
-
-            return savedCart
+            // 기존 아이템이 있으면 업데이트 (실제로는 새로운 아이템으로 교체)
+            cart.removeItem(existingItem.id, userId)
         }
 
-        return cartRepository.save(cart)
+        // 새 아이템 추가
+        val newCartItem = cart.addItem(
+            packageTypeId = packageTypeId,
+            packageTypeName = packageTypeName,
+            packageTypeDays = packageTypeDays,
+            dailyServing = dailyServing,
+            totalQuantity = totalQuantity,
+            giftWrap = giftWrap,
+            giftMessage = giftMessage,
+            addedBy = userId
+        )
+
+        val savedCart = cartRepository.save(cart)
+
+        // 새로 추가된 아이템의 차 구성 저장
+        cartItemTeaService.saveCartItemTeas(newCartItem.id, teaItems)
+
+        return savedCart
     }
 
     /**
@@ -85,19 +103,19 @@ class CartService(
      *
      * @param userId 사용자 ID
      * @param cartItemId 업데이트할 장바구니 아이템 ID
-     * @param quantity 새로운 수량 (0 이하이면 아이템 삭제)
+     * @param totalQuantity 새로운 총 그램수 (0 이하이면 아이템 삭제)
      * @param updatedBy 업데이트 실행자 ID
      * @return 업데이트된 장바구니
      * @throws CartException.CartNotFound 장바구니를 찾을 수 없는 경우
      */
-    fun updateCartItem(userId: Long, cartItemId: Long, quantity: Int, updatedBy: Long): Cart {
+    fun updateCartItem(userId: Long, cartItemId: Long, totalQuantity: Double, updatedBy: Long): Cart {
         val cart = cartRepository.findByUserId(userId)
             ?: throw CartException.CartNotFound(userId)
 
-        if (quantity <= 0) {
+        if (totalQuantity <= 0) {
             cart.removeItem(cartItemId, updatedBy)
         } else {
-            cart.updateItemQuantity(cartItemId, quantity, updatedBy)
+            cart.updateItemQuantity(cartItemId, totalQuantity, updatedBy)
         }
 
         return cartRepository.save(cart)

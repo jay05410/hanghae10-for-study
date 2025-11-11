@@ -17,7 +17,7 @@ data class CartResponse(
     val userId: Long,
     val items: List<CartItemResponse>,
     val totalItemCount: Int,
-    val totalQuantity: Int,
+    val totalQuantity: Double,
     val totalPrice: Long,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime
@@ -29,9 +29,13 @@ data class CartResponse(
  */
 data class CartItemResponse(
     val id: Long,
-    val productId: Long,
-    val boxTypeId: Long,
-    val quantity: Int,
+    val packageTypeId: Long,
+    val packageTypeName: String,
+    val packageTypeDays: Int,
+    val dailyServing: Int,
+    val totalQuantity: Double,
+    val giftWrap: Boolean,
+    val giftMessage: String?,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime
 )
@@ -49,9 +53,13 @@ fun Cart.toResponse(): CartResponse = CartResponse(
 
 fun CartItem.toResponse(): CartItemResponse = CartItemResponse(
     id = this.id,
-    productId = this.productId,
-    boxTypeId = this.boxTypeId,
-    quantity = this.quantity,
+    packageTypeId = this.packageTypeId,
+    packageTypeName = this.packageTypeName,
+    packageTypeDays = this.packageTypeDays,
+    dailyServing = this.dailyServing,
+    totalQuantity = this.totalQuantity,
+    giftWrap = this.giftWrap,
+    giftMessage = this.giftMessage,
     createdAt = this.createdAt,
     updatedAt = this.updatedAt
 )

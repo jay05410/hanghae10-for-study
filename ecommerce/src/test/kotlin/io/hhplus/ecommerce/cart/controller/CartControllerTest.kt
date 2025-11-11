@@ -100,10 +100,14 @@ class CartControllerTest : DescribeSpec({
             it("AddToCartRequest를 AddToCartUseCase에 전달하고 ApiResponse로 반환") {
                 val userId = 1L
                 val request = AddToCartRequest(
-                    productId = 1L,
-                    boxTypeId = 1L,
-                    quantity = 2,
-                    teaItems = listOf(TeaItemRequest(productId = 2L, quantity = 1))
+                    packageTypeId = 1L,
+                    packageTypeName = "30일 패키지",
+                    packageTypeDays = 30,
+                    dailyServing = 2,
+                    totalQuantity = 300.0,
+                    giftWrap = false,
+                    giftMessage = null,
+                    teaItems = listOf(TeaItemRequest(productId = 2L, selectionOrder = 1, ratioPercent = 100))
                 )
                 val mockCart = mockk<Cart>(relaxed = true)
 
@@ -120,9 +124,13 @@ class CartControllerTest : DescribeSpec({
             it("빈 차 구성을 포함한 요청을 정확히 UseCase에 전달") {
                 val userId = 2L
                 val request = AddToCartRequest(
-                    productId = 3L,
-                    boxTypeId = 2L,
-                    quantity = 1,
+                    packageTypeId = 3L,
+                    packageTypeName = "15일 패키지",
+                    packageTypeDays = 15,
+                    dailyServing = 1,
+                    totalQuantity = 150.0,
+                    giftWrap = false,
+                    giftMessage = null,
                     teaItems = emptyList()
                 )
                 val mockCart = mockk<Cart>(relaxed = true)
@@ -140,14 +148,18 @@ class CartControllerTest : DescribeSpec({
             it("모든 차 구성을 포함한 요청을 UseCase에 전달") {
                 val userId = 3L
                 val teaItems = listOf(
-                    TeaItemRequest(productId = 10L, quantity = 2),
-                    TeaItemRequest(productId = 11L, quantity = 1),
-                    TeaItemRequest(productId = 12L, quantity = 3)
+                    TeaItemRequest(productId = 10L, selectionOrder = 1, ratioPercent = 40),
+                    TeaItemRequest(productId = 11L, selectionOrder = 2, ratioPercent = 30),
+                    TeaItemRequest(productId = 12L, selectionOrder = 3, ratioPercent = 30)
                 )
                 val request = AddToCartRequest(
-                    productId = 5L,
-                    boxTypeId = 3L,
-                    quantity = 2,
+                    packageTypeId = 5L,
+                    packageTypeName = "7일 패키지",
+                    packageTypeDays = 7,
+                    dailyServing = 3,
+                    totalQuantity = 70.0,
+                    giftWrap = true,
+                    giftMessage = "선물메시지",
                     teaItems = teaItems
                 )
                 val mockCart = mockk<Cart>(relaxed = true)
@@ -167,7 +179,7 @@ class CartControllerTest : DescribeSpec({
             it("파라미터들을 UpdateCartItemUseCase에 전달하고 ApiResponse로 반환") {
                 val cartItemId = 1L
                 val userId = 1L
-                val quantity = 5
+                val quantity = 500
                 val mockCart = mockk<Cart>(relaxed = true)
 
                 every { mockUpdateCartItemUseCase.execute(userId, cartItemId, quantity) } returns mockCart
@@ -198,9 +210,9 @@ class CartControllerTest : DescribeSpec({
         context("다양한 파라미터 조합") {
             it("모든 파라미터가 정확히 UseCase에 전달되는지 확인") {
                 val testCases = listOf(
-                    Triple(1L, 1L, 1),
-                    Triple(100L, 200L, 10),
-                    Triple(999L, 888L, 999)
+                    Triple(1L, 1L, 100),
+                    Triple(100L, 200L, 1000),
+                    Triple(999L, 888L, 9990)
                 )
 
                 testCases.forEach { (cartItemId, userId, quantity) ->
@@ -301,7 +313,16 @@ class CartControllerTest : DescribeSpec({
                 clearMocks(mockGetCartUseCase, mockAddToCartUseCase, mockUpdateCartItemUseCase, mockRemoveCartItemUseCase, mockClearCartUseCase)
 
                 // addToCart 테스트
-                val addRequest = AddToCartRequest(productId = 1L, boxTypeId = 1L, quantity = 1, teaItems = emptyList())
+                val addRequest = AddToCartRequest(
+                    packageTypeId = 1L,
+                    packageTypeName = "3일 패키지",
+                    packageTypeDays = 3,
+                    dailyServing = 1,
+                    totalQuantity = 30.0,
+                    giftWrap = false,
+                    giftMessage = null,
+                    teaItems = emptyList()
+                )
                 every { mockAddToCartUseCase.execute(1L, addRequest) } returns mockk(relaxed = true)
                 sut.addToCart(1L, addRequest)
                 verify(exactly = 1) { mockAddToCartUseCase.execute(1L, addRequest) }

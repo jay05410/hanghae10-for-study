@@ -74,10 +74,17 @@ class OrderService(
 
         items.forEach { item ->
             order.addItem(
-                productId = item.productId,
-                boxTypeId = item.boxTypeId,
+                packageTypeId = item.packageTypeId,
+                packageTypeName = item.packageTypeName,
+                packageTypeDays = item.packageTypeDays,
+                dailyServing = item.dailyServing,
+                totalQuantity = item.totalQuantity,
+                giftWrap = item.giftWrap,
+                giftMessage = item.giftMessage,
                 quantity = item.quantity,
-                unitPrice = item.unitPrice
+                containerPrice = item.containerPrice,
+                teaPrice = item.teaPrice,
+                giftWrapPrice = item.giftWrapPrice
             )
         }
 
@@ -160,7 +167,7 @@ class OrderService(
         // 주문 완료 시 판매량 증가
         order.items.forEach { orderItem ->
             productStatisticsService.incrementSalesCount(
-                productId = orderItem.productId,
+                productId = orderItem.packageTypeId,
                 quantity = orderItem.quantity,
                 userId = confirmedBy
             )

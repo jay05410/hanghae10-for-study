@@ -45,11 +45,11 @@ class OrderServiceTest : DescribeSpec({
 
     fun createMockOrderItem(
         id: Long = 1L,
-        productId: Long = 1L,
+        packageTypeId: Long = 1L,
         quantity: Int = 2
     ): OrderItem = mockk(relaxed = true) {
         every { this@mockk.id } returns id
-        every { this@mockk.productId } returns productId
+        every { this@mockk.packageTypeId } returns packageTypeId
         every { this@mockk.quantity } returns quantity
     }
 
@@ -79,7 +79,7 @@ class OrderServiceTest : DescribeSpec({
         every { deletedAt } returns null
         every { confirm(any()) } returns Unit
         every { cancel(any()) } returns Unit
-        every { addItem(any(), any(), any(), any()) } answers {
+        every { addItem(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } answers {
             val mockItem = createMockOrderItem(id = mockItems.size.toLong() + 1L)
             mockItems.add(mockItem)
             mockItem
@@ -104,10 +104,17 @@ class OrderServiceTest : DescribeSpec({
                 val userId = 1L
                 val items = listOf(
                     OrderItemData(
-                        productId = 1L,
-                        boxTypeId = 1L,
+                        packageTypeId = 1L,
+                        packageTypeName = "3일 패키지",
+                        packageTypeDays = 3,
+                        dailyServing = 1,
+                        totalQuantity = 3.0,
+                        giftWrap = false,
+                        giftMessage = null,
                         quantity = 2,
-                        unitPrice = 5000L,
+                        containerPrice = 1000,
+                        teaPrice = 4000,
+                        giftWrapPrice = 0,
                         teaItems = emptyList()
                     )
                 )
@@ -142,14 +149,21 @@ class OrderServiceTest : DescribeSpec({
                 // Given
                 val userId = 1L
                 val teaItems = listOf(
-                    io.hhplus.ecommerce.cart.dto.TeaItemRequest(productId = 10L, quantity = 3)
+                    io.hhplus.ecommerce.cart.dto.TeaItemRequest(productId = 10L, selectionOrder = 1, ratioPercent = 100)
                 )
                 val items = listOf(
                     OrderItemData(
-                        productId = 1L,
-                        boxTypeId = 1L,
+                        packageTypeId = 1L,
+                        packageTypeName = "3일 패키지",
+                        packageTypeDays = 3,
+                        dailyServing = 1,
+                        totalQuantity = 3.0,
+                        giftWrap = false,
+                        giftMessage = null,
                         quantity = 1,
-                        unitPrice = 5000L,
+                        containerPrice = 1000,
+                        teaPrice = 4000,
+                        giftWrapPrice = 0,
                         teaItems = teaItems
                     )
                 )
@@ -265,8 +279,8 @@ class OrderServiceTest : DescribeSpec({
                 val confirmedBy = 1L
                 val mockOrder = createMockOrder(id = orderId, status = OrderStatus.PENDING)
                 val mockOrderItems = listOf(
-                    createMockOrderItem(id = 1L, productId = 1L, quantity = 2),
-                    createMockOrderItem(id = 2L, productId = 2L, quantity = 1)
+                    createMockOrderItem(id = 1L, packageTypeId = 1L, quantity = 2),
+                    createMockOrderItem(id = 2L, packageTypeId = 2L, quantity = 1)
                 )
 
                 every { mockOrderRepository.findById(orderId) } returns mockOrder

@@ -63,9 +63,18 @@ class OrderControllerTest : DescribeSpec({
                     userId = 1L,
                     items = listOf(
                         CreateOrderItemRequest(
-                            productId = 1L,
-                            boxTypeId = 1L,
-                            quantity = 2
+                            packageTypeId = 1L,
+                            packageTypeName = "30일 패키지",
+                            packageTypeDays = 30,
+                            dailyServing = 2,
+                            totalQuantity = 300.0,
+                            giftWrap = false,
+                            giftMessage = null,
+                            quantity = 1,
+                            containerPrice = 3000,
+                            teaPrice = 7000,
+                            giftWrapPrice = 0,
+                            teaItems = emptyList()
                         )
                     )
                 )

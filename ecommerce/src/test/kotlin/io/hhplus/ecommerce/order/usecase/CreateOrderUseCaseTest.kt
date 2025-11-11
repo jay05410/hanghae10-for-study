@@ -41,9 +41,17 @@ class CreateOrderUseCaseTest : DescribeSpec({
                     userId = 1L,
                     items = listOf(
                         CreateOrderItemRequest(
-                            productId = 1L,
-                            boxTypeId = 1L,
-                            quantity = 2,
+                            packageTypeId = 1L,
+                            packageTypeName = "30일 패키지",
+                            packageTypeDays = 30,
+                            dailyServing = 2,
+                            totalQuantity = 300.0,
+                            giftWrap = false,
+                            giftMessage = null,
+                            quantity = 1,
+                            containerPrice = 3000,
+                            teaPrice = 7000,
+                            giftWrapPrice = 0,
                             teaItems = emptyList()
                         )
                     ),
@@ -57,7 +65,7 @@ class CreateOrderUseCaseTest : DescribeSpec({
 
                 val mockOrder = mockk<Order> {
                     every { id } returns 1L
-                    every { finalAmount } returns 20000L
+                    every { finalAmount } returns 10000L
                 }
 
                 every { productService.getProduct(1L) } returns mockProduct
@@ -70,8 +78,8 @@ class CreateOrderUseCaseTest : DescribeSpec({
                 // Then
                 result shouldBe mockOrder
                 verify { productService.getProduct(1L) }
-                verify { orderService.createOrder(1L, any(), null, 20000L, 0L, 1L) }
-                verify { paymentService.processPayment(1L, 1L, 20000L) }
+                verify { orderService.createOrder(1L, any(), null, 10000L, 0L, 1L) }
+                verify { paymentService.processPayment(1L, 1L, 10000L) }
                 verify(exactly = 0) { couponService.validateCouponUsage(any(), any(), any()) }
             }
         }
@@ -83,9 +91,17 @@ class CreateOrderUseCaseTest : DescribeSpec({
                     userId = 1L,
                     items = listOf(
                         CreateOrderItemRequest(
-                            productId = 1L,
-                            boxTypeId = 1L,
-                            quantity = 2,
+                            packageTypeId = 1L,
+                            packageTypeName = "30일 패키지",
+                            packageTypeDays = 30,
+                            dailyServing = 2,
+                            totalQuantity = 300.0,
+                            giftWrap = false,
+                            giftMessage = null,
+                            quantity = 1,
+                            containerPrice = 3000,
+                            teaPrice = 7000,
+                            giftWrapPrice = 0,
                             teaItems = emptyList()
                         )
                     ),
@@ -99,11 +115,11 @@ class CreateOrderUseCaseTest : DescribeSpec({
 
                 val mockOrder = mockk<Order> {
                     every { id } returns 1L
-                    every { finalAmount } returns 18000L
+                    every { finalAmount } returns 8000L
                 }
 
                 every { productService.getProduct(1L) } returns mockProduct
-                every { couponService.validateCouponUsage(1L, 100L, 20000L) } returns 2000L
+                every { couponService.validateCouponUsage(1L, 100L, 10000L) } returns 2000L
                 every { orderService.createOrder(any(), any(), any(), any(), any(), any()) } returns mockOrder
                 every { paymentService.processPayment(any(), any(), any()) } returns mockk<io.hhplus.ecommerce.payment.domain.entity.Payment>()
                 every { couponService.applyCoupon(any(), any(), any(), any()) } returns 0L
@@ -114,10 +130,10 @@ class CreateOrderUseCaseTest : DescribeSpec({
                 // Then
                 result shouldBe mockOrder
                 verify { productService.getProduct(1L) }
-                verify { couponService.validateCouponUsage(1L, 100L, 20000L) }
-                verify { orderService.createOrder(1L, any(), 100L, 20000L, 2000L, 1L) }
-                verify { paymentService.processPayment(1L, 1L, 18000L) }
-                verify { couponService.applyCoupon(1L, 100L, 1L, 20000L) }
+                verify { couponService.validateCouponUsage(1L, 100L, 10000L) }
+                verify { orderService.createOrder(1L, any(), 100L, 10000L, 2000L, 1L) }
+                verify { paymentService.processPayment(1L, 1L, 8000L) }
+                verify { couponService.applyCoupon(1L, 100L, 1L, 10000L) }
             }
         }
 
@@ -128,15 +144,31 @@ class CreateOrderUseCaseTest : DescribeSpec({
                     userId = 1L,
                     items = listOf(
                         CreateOrderItemRequest(
-                            productId = 1L,
-                            boxTypeId = 1L,
-                            quantity = 2,
+                            packageTypeId = 1L,
+                            packageTypeName = "30일 패키지",
+                            packageTypeDays = 30,
+                            dailyServing = 2,
+                            totalQuantity = 300.0,
+                            giftWrap = false,
+                            giftMessage = null,
+                            quantity = 1,
+                            containerPrice = 3000,
+                            teaPrice = 7000,
+                            giftWrapPrice = 0,
                             teaItems = emptyList()
                         ),
                         CreateOrderItemRequest(
-                            productId = 2L,
-                            boxTypeId = 1L,
+                            packageTypeId = 2L,
+                            packageTypeName = "15일 패키지",
+                            packageTypeDays = 15,
+                            dailyServing = 1,
+                            totalQuantity = 150.0,
+                            giftWrap = false,
+                            giftMessage = null,
                             quantity = 1,
+                            containerPrice = 2000,
+                            teaPrice = 3000,
+                            giftWrapPrice = 0,
                             teaItems = emptyList()
                         )
                     ),
@@ -155,7 +187,7 @@ class CreateOrderUseCaseTest : DescribeSpec({
 
                 val mockOrder = mockk<Order> {
                     every { id } returns 1L
-                    every { finalAmount } returns 35000L
+                    every { finalAmount } returns 15000L
                 }
 
                 every { productService.getProduct(1L) } returns mockProduct1
@@ -170,8 +202,8 @@ class CreateOrderUseCaseTest : DescribeSpec({
                 result shouldBe mockOrder
                 verify { productService.getProduct(1L) }
                 verify { productService.getProduct(2L) }
-                verify { orderService.createOrder(1L, any(), null, 35000L, 0L, 1L) }
-                verify { paymentService.processPayment(1L, 1L, 35000L) }
+                verify { orderService.createOrder(1L, any(), null, 15000L, 0L, 1L) }
+                verify { paymentService.processPayment(1L, 1L, 15000L) }
             }
         }
 
@@ -182,9 +214,17 @@ class CreateOrderUseCaseTest : DescribeSpec({
                     userId = 2L,
                     items = listOf(
                         CreateOrderItemRequest(
-                            productId = 1L,
-                            boxTypeId = 1L,
+                            packageTypeId = 1L,
+                            packageTypeName = "30일 패키지",
+                            packageTypeDays = 30,
+                            dailyServing = 1,
+                            totalQuantity = 300.0,
+                            giftWrap = false,
+                            giftMessage = null,
                             quantity = 1,
+                            containerPrice = 2000,
+                            teaPrice = 3000,
+                            giftWrapPrice = 0,
                             teaItems = emptyList()
                         )
                     ),

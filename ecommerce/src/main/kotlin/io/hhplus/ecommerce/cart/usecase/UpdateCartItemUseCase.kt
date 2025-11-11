@@ -35,7 +35,7 @@ class UpdateCartItemUseCase(
         return cartService.updateCartItem(
             userId = userId,
             cartItemId = cartItemId,
-            quantity = quantity,
+            totalQuantity = quantity.toDouble(),
             updatedBy = userId
         )
     }

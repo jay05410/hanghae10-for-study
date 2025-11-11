@@ -33,11 +33,18 @@ data class OrderResponse(
  */
 data class OrderItemResponse(
     val id: Long,
-    val productId: Long,
-    val boxTypeId: Long,
+    val packageTypeId: Long,
+    val packageTypeName: String,
+    val packageTypeDays: Int,
+    val dailyServing: Int,
+    val totalQuantity: Double,
+    val giftWrap: Boolean,
+    val giftMessage: String?,
     val quantity: Int,
-    val unitPrice: Long,
-    val totalPrice: Long,
+    val containerPrice: Int,
+    val teaPrice: Int,
+    val giftWrapPrice: Int,
+    val totalPrice: Int,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime
 )
@@ -58,10 +65,17 @@ fun Order.toResponse(): OrderResponse = OrderResponse(
 
 fun OrderItem.toResponse(): OrderItemResponse = OrderItemResponse(
     id = this.id,
-    productId = this.productId,
-    boxTypeId = this.boxTypeId,
+    packageTypeId = this.packageTypeId,
+    packageTypeName = this.packageTypeName,
+    packageTypeDays = this.packageTypeDays,
+    dailyServing = this.dailyServing,
+    totalQuantity = this.totalQuantity,
+    giftWrap = this.giftWrap,
+    giftMessage = this.giftMessage,
     quantity = this.quantity,
-    unitPrice = this.unitPrice,
+    containerPrice = this.containerPrice,
+    teaPrice = this.teaPrice,
+    giftWrapPrice = this.giftWrapPrice,
     totalPrice = this.totalPrice,
     createdAt = this.createdAt,
     updatedAt = this.updatedAt

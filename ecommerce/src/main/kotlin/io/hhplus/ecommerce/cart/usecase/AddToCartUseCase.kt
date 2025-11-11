@@ -35,14 +35,18 @@ class AddToCartUseCase(
      */
     fun execute(userId: Long, request: AddToCartRequest): Cart {
         // 1. 상품 존재 여부 검증
-        productService.getProduct(request.productId)
+        productService.getProduct(request.packageTypeId)
 
         // 2. 장바구니에 상품 추가
         return cartService.addToCart(
             userId = userId,
-            productId = request.productId,
-            boxTypeId = request.boxTypeId,
-            quantity = request.quantity,
+            packageTypeId = request.packageTypeId,
+            packageTypeName = request.packageTypeName,
+            packageTypeDays = request.packageTypeDays,
+            dailyServing = request.dailyServing,
+            totalQuantity = request.totalQuantity,
+            giftWrap = request.giftWrap,
+            giftMessage = request.giftMessage,
             teaItems = request.teaItems
         )
     }

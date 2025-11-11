@@ -33,19 +33,22 @@ class InMemoryCartItemTeaRepository : CartItemTeaRepository {
         val cartItemTea1 = CartItemTea.create(
             cartItemId = 1L,
             productId = 1L, // 녹차 상품
-            quantity = 2
+            selectionOrder = 1,
+            ratioPercent = 60
         ).copy(id = idGenerator.getAndIncrement())
 
         val cartItemTea2 = CartItemTea.create(
             cartItemId = 1L,
             productId = 2L, // 홍차 상품
-            quantity = 1
+            selectionOrder = 2,
+            ratioPercent = 40
         ).copy(id = idGenerator.getAndIncrement())
 
         val cartItemTea3 = CartItemTea.create(
             cartItemId = 2L,
             productId = 3L, // 허브차 상품
-            quantity = 3
+            selectionOrder = 1,
+            ratioPercent = 100
         ).copy(id = idGenerator.getAndIncrement())
 
         storage[cartItemTea1.id] = cartItemTea1
@@ -133,8 +136,9 @@ class InMemoryCartItemTeaRepository : CartItemTeaRepository {
         id: Long = this.id,
         cartItemId: Long = this.cartItemId,
         productId: Long = this.productId,
-        quantity: Int = this.quantity
+        selectionOrder: Int = this.selectionOrder,
+        ratioPercent: Int = this.ratioPercent
     ): CartItemTea {
-        return CartItemTea(id, cartItemId, productId, quantity)
+        return CartItemTea(id, cartItemId, productId, selectionOrder, ratioPercent)
     }
 }

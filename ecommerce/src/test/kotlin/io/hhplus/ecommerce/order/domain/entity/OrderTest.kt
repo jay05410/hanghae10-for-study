@@ -75,19 +75,31 @@ class OrderTest : DescribeSpec({
 
                 // When
                 order.addItem(
-                    productId = 1L,
-                    boxTypeId = 1L,
-                    quantity = 2,
-                    unitPrice = 5000L
+                    packageTypeId = 1L,
+                    packageTypeName = "30일 패키지",
+                    packageTypeDays = 30,
+                    dailyServing = 2,
+                    totalQuantity = 300.0,
+                    giftWrap = false,
+                    giftMessage = null,
+                    quantity = 1,
+                    containerPrice = 3000,
+                    teaPrice = 7000,
+                    giftWrapPrice = 0
                 )
 
                 // Then
                 order.items shouldHaveSize 1
                 val item = order.items.first()
-                item.productId shouldBe 1L
-                item.boxTypeId shouldBe 1L
-                item.quantity shouldBe 2
-                item.unitPrice shouldBe 5000L
+                item.packageTypeId shouldBe 1L
+                item.packageTypeName shouldBe "30일 패키지"
+                item.packageTypeDays shouldBe 30
+                item.dailyServing shouldBe 2
+                item.totalQuantity shouldBe 300.0
+                item.quantity shouldBe 1
+                item.containerPrice shouldBe 3000
+                item.teaPrice shouldBe 7000
+                item.totalPrice shouldBe 10000
             }
 
             it("should add multiple order items") {
@@ -101,8 +113,16 @@ class OrderTest : DescribeSpec({
                 )
 
                 // When
-                order.addItem(1L, 1L, 2, 5000L)
-                order.addItem(2L, 1L, 1, 5000L)
+                order.addItem(
+                    packageTypeId = 1L, packageTypeName = "30일", packageTypeDays = 30,
+                    dailyServing = 2, totalQuantity = 300.0, giftWrap = false, giftMessage = null,
+                    quantity = 1, containerPrice = 3000, teaPrice = 7000, giftWrapPrice = 0
+                )
+                order.addItem(
+                    packageTypeId = 2L, packageTypeName = "15일", packageTypeDays = 15,
+                    dailyServing = 1, totalQuantity = 150.0, giftWrap = false, giftMessage = null,
+                    quantity = 1, containerPrice = 2000, teaPrice = 3000, giftWrapPrice = 0
+                )
 
                 // Then
                 order.items shouldHaveSize 2

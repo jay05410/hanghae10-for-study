@@ -36,16 +36,32 @@ class OrderItemTeaServiceTest : DescribeSpec({
                 // Given
                 val orderItemId = 1L
                 val teaItems = listOf(
-                    TeaItemRequest(productId = 1L, quantity = 3),
-                    TeaItemRequest(productId = 2L, quantity = 2)
+                    TeaItemRequest(productId = 1L, selectionOrder = 1, ratioPercent = 60),
+                    TeaItemRequest(productId = 2L, selectionOrder = 2, ratioPercent = 40)
                 )
 
                 val mockOrderItemTea1 = createMockOrderItemTea(1L, orderItemId, 1L, 3)
                 val mockOrderItemTea2 = createMockOrderItemTea(2L, orderItemId, 2L, 2)
 
                 mockkObject(OrderItemTea.Companion)
-                every { OrderItemTea.create(orderItemId, 1L, 3) } returns mockOrderItemTea1
-                every { OrderItemTea.create(orderItemId, 2L, 2) } returns mockOrderItemTea2
+                every { OrderItemTea.create(
+                    orderItemId = orderItemId,
+                    productId = 1L,
+                    productName = "Product 1",
+                    categoryName = "Category",
+                    selectionOrder = 1,
+                    ratioPercent = 60,
+                    unitPrice = 1000
+                ) } returns mockOrderItemTea1
+                every { OrderItemTea.create(
+                    orderItemId = orderItemId,
+                    productId = 2L,
+                    productName = "Product 2",
+                    categoryName = "Category",
+                    selectionOrder = 2,
+                    ratioPercent = 40,
+                    unitPrice = 1000
+                ) } returns mockOrderItemTea2
                 every { orderItemTeaRepository.save(mockOrderItemTea1) } returns mockOrderItemTea1
                 every { orderItemTeaRepository.save(mockOrderItemTea2) } returns mockOrderItemTea2
 
@@ -100,8 +116,8 @@ class OrderItemTeaServiceTest : DescribeSpec({
             it("should validate tea items successfully") {
                 // Given
                 val validTeaItems = listOf(
-                    TeaItemRequest(productId = 1L, quantity = 3),
-                    TeaItemRequest(productId = 2L, quantity = 2)
+                    TeaItemRequest(productId = 1L, selectionOrder = 1, ratioPercent = 60),
+                    TeaItemRequest(productId = 2L, selectionOrder = 2, ratioPercent = 40)
                 )
 
                 // When & Then
@@ -121,8 +137,8 @@ class OrderItemTeaServiceTest : DescribeSpec({
             it("should throw exception when total quantity is zero") {
                 // Given
                 val zeroQuantityTeaItems = listOf(
-                    TeaItemRequest(productId = 1L, quantity = 0),
-                    TeaItemRequest(productId = 2L, quantity = 0)
+                    TeaItemRequest(productId = 1L, selectionOrder = 1, ratioPercent = 0),
+                    TeaItemRequest(productId = 2L, selectionOrder = 2, ratioPercent = 0)
                 )
 
                 // When & Then
@@ -134,8 +150,8 @@ class OrderItemTeaServiceTest : DescribeSpec({
             it("should throw exception when duplicate products exist") {
                 // Given
                 val duplicateTeaItems = listOf(
-                    TeaItemRequest(productId = 1L, quantity = 3),
-                    TeaItemRequest(productId = 1L, quantity = 2)
+                    TeaItemRequest(productId = 1L, selectionOrder = 1, ratioPercent = 60),
+                    TeaItemRequest(productId = 1L, selectionOrder = 2, ratioPercent = 40)
                 )
 
                 // When & Then
@@ -145,20 +161,20 @@ class OrderItemTeaServiceTest : DescribeSpec({
             }
         }
 
-        context("차 총 수량 계산 시") {
-            it("should calculate total quantity correctly") {
+        context("차 총 비율 계산 시") {
+            it("should calculate total ratio correctly") {
                 // Given
                 val teaItems = listOf(
-                    TeaItemRequest(productId = 1L, quantity = 3),
-                    TeaItemRequest(productId = 2L, quantity = 2),
-                    TeaItemRequest(productId = 3L, quantity = 1)
+                    TeaItemRequest(productId = 1L, selectionOrder = 1, ratioPercent = 50),
+                    TeaItemRequest(productId = 2L, selectionOrder = 2, ratioPercent = 33),
+                    TeaItemRequest(productId = 3L, selectionOrder = 3, ratioPercent = 17)
                 )
 
                 // When
-                val result = orderItemTeaService.calculateTeaTotalQuantity(teaItems)
+                val result = orderItemTeaService.calculateTeaTotalRatio(teaItems)
 
                 // Then
-                result shouldBe 6
+                result shouldBe 100
             }
 
             it("should return zero for empty list") {
@@ -166,7 +182,7 @@ class OrderItemTeaServiceTest : DescribeSpec({
                 val emptyTeaItems = emptyList<TeaItemRequest>()
 
                 // When
-                val result = orderItemTeaService.calculateTeaTotalQuantity(emptyTeaItems)
+                val result = orderItemTeaService.calculateTeaTotalRatio(emptyTeaItems)
 
                 // Then
                 result shouldBe 0

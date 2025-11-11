@@ -91,5 +91,24 @@ class PointHistory(
                 description = description
             )
         }
+
+        fun createRefundHistory(
+            userId: Long,
+            amount: PointAmount,
+            balanceBefore: Long,
+            balanceAfter: Long,
+            orderId: Long,
+            description: String? = null
+        ): PointHistory {
+            return PointHistory(
+                userId = userId,
+                amount = amount.value, // 환불은 양수로 저장
+                transactionType = PointTransactionType.REFUND,
+                balanceBefore = balanceBefore,
+                balanceAfter = balanceAfter,
+                orderId = orderId,
+                description = description
+            )
+        }
     }
 }

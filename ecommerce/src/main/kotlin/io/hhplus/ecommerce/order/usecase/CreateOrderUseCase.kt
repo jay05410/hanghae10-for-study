@@ -43,17 +43,24 @@ class CreateOrderUseCase(
     fun execute(request: CreateOrderRequest): Order {
         // 1. 상품 정보 검증 및 가격 계산
         val orderItems = request.items.map { item ->
-            val product = productService.getProduct(item.productId)
+            val product = productService.getProduct(item.packageTypeId)
             OrderItemData(
-                productId = item.productId,
-                boxTypeId = item.boxTypeId,
+                packageTypeId = item.packageTypeId,
+                packageTypeName = item.packageTypeName,
+                packageTypeDays = item.packageTypeDays,
+                dailyServing = item.dailyServing,
+                totalQuantity = item.totalQuantity,
+                giftWrap = item.giftWrap,
+                giftMessage = item.giftMessage,
                 quantity = item.quantity,
-                unitPrice = product.pricePer100g.toLong(),
+                containerPrice = item.containerPrice,
+                teaPrice = item.teaPrice,
+                giftWrapPrice = item.giftWrapPrice,
                 teaItems = item.teaItems
             )
         }
 
-        val totalAmount = orderItems.sumOf { it.unitPrice * it.quantity }
+        val totalAmount = orderItems.sumOf { (it.containerPrice + it.teaPrice + it.giftWrapPrice) * it.quantity }.toLong()
 
         // 2. 쿠폰 적용 (선택적)
         val discountAmount = request.usedCouponId?.let { couponId ->

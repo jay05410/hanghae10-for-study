@@ -30,7 +30,11 @@ class OrderItemTeaService(
             val orderItemTea = OrderItemTea.create(
                 orderItemId = orderItemId,
                 productId = teaItem.productId,
-                quantity = teaItem.quantity
+                productName = "Product ${teaItem.productId}", // TODO: 실제 상품명으로 교체
+                categoryName = "Category", // TODO: 실제 카테고리명으로 교체
+                selectionOrder = teaItem.selectionOrder,
+                ratioPercent = teaItem.ratioPercent,
+                unitPrice = 1000 // TODO: 실제 단가로 교체
             )
             orderItemTeaRepository.save(orderItemTea)
         }
@@ -47,17 +51,22 @@ class OrderItemTeaService(
 
     fun validateTeaItemsForOrder(teaItems: List<TeaItemRequest>) {
         require(teaItems.isNotEmpty()) { "주문 차 구성은 최소 1개 이상이어야 합니다" }
+        require(teaItems.size <= 3) { "주문 차 구성은 최대 3개까지 가능합니다" }
 
-        val totalQuantity = teaItems.sumOf { it.quantity }
-        require(totalQuantity > 0) { "총 차 수량은 0보다 커야 합니다" }
+        val totalRatio = teaItems.sumOf { it.ratioPercent }
+        require(totalRatio == 100) { "총 배합 비율은 100%가 되어야 합니다. 현재: ${totalRatio}%" }
 
         // 중복 상품 체크
         val productIds = teaItems.map { it.productId }
         require(productIds.size == productIds.distinct().size) { "중복된 차 상품이 있습니다" }
+
+        // 선택 순서 검증
+        val orders = teaItems.map { it.selectionOrder }.sorted()
+        require(orders == (1..teaItems.size).toList()) { "선택 순서는 1부터 연속적이어야 합니다" }
     }
 
-    fun calculateTeaTotalQuantity(teaItems: List<TeaItemRequest>): Int {
-        return teaItems.sumOf { it.quantity }
+    fun calculateTeaTotalRatio(teaItems: List<TeaItemRequest>): Int {
+        return teaItems.sumOf { it.ratioPercent }
     }
 
     fun getTeaProductIds(orderItemId: Long): List<Long> {

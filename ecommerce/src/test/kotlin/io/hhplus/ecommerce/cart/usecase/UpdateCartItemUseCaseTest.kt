@@ -32,15 +32,15 @@ class UpdateCartItemUseCaseTest : DescribeSpec({
             it("CartService에 수정을 위임하고 업데이트된 장바구니를 반환") {
                 val userId = 1L
                 val cartItemId = 1L
-                val quantity = 5
+                val quantity = 500
                 val expectedCart = mockk<Cart>()
 
-                every { mockCartService.updateCartItem(userId, cartItemId, quantity, userId) } returns expectedCart
+                every { mockCartService.updateCartItem(userId, cartItemId, quantity.toDouble(), userId) } returns expectedCart
 
                 val result = sut.execute(userId, cartItemId, quantity)
 
                 result shouldBe expectedCart
-                verify(exactly = 1) { mockCartService.updateCartItem(userId, cartItemId, quantity, userId) }
+                verify(exactly = 1) { mockCartService.updateCartItem(userId, cartItemId, quantity.toDouble(), userId) }
             }
         }
 
@@ -51,12 +51,12 @@ class UpdateCartItemUseCaseTest : DescribeSpec({
                 val quantity = 0
                 val expectedCart = mockk<Cart>()
 
-                every { mockCartService.updateCartItem(userId, cartItemId, quantity, userId) } returns expectedCart
+                every { mockCartService.updateCartItem(userId, cartItemId, quantity.toDouble(), userId) } returns expectedCart
 
                 val result = sut.execute(userId, cartItemId, quantity)
 
                 result shouldBe expectedCart
-                verify(exactly = 1) { mockCartService.updateCartItem(userId, cartItemId, quantity, userId) }
+                verify(exactly = 1) { mockCartService.updateCartItem(userId, cartItemId, quantity.toDouble(), userId) }
             }
         }
 
@@ -67,31 +67,31 @@ class UpdateCartItemUseCaseTest : DescribeSpec({
                 val quantity = -1
                 val expectedCart = mockk<Cart>()
 
-                every { mockCartService.updateCartItem(userId, cartItemId, quantity, userId) } returns expectedCart
+                every { mockCartService.updateCartItem(userId, cartItemId, quantity.toDouble(), userId) } returns expectedCart
 
                 val result = sut.execute(userId, cartItemId, quantity)
 
                 result shouldBe expectedCart
-                verify(exactly = 1) { mockCartService.updateCartItem(userId, cartItemId, quantity, userId) }
+                verify(exactly = 1) { mockCartService.updateCartItem(userId, cartItemId, quantity.toDouble(), userId) }
             }
         }
 
         context("다양한 파라미터 조합") {
             it("모든 파라미터가 정확히 서비스에 전달되는지 확인") {
                 val testCases = listOf(
-                    Triple(1L, 1L, 1),
-                    Triple(100L, 200L, 10),
-                    Triple(999L, 888L, 999)
+                    Triple(1L, 1L, 100.0),
+                    Triple(100L, 200L, 1000.0),
+                    Triple(999L, 888L, 9990.0)
                 )
 
-                testCases.forEach { (userId, cartItemId, quantity) ->
+                testCases.forEach { (userId, cartItemId, totalQuantity) ->
                     val expectedCart = mockk<Cart>()
-                    every { mockCartService.updateCartItem(userId, cartItemId, quantity, userId) } returns expectedCart
+                    every { mockCartService.updateCartItem(userId, cartItemId, totalQuantity, userId) } returns expectedCart
 
-                    val result = sut.execute(userId, cartItemId, quantity)
+                    val result = sut.execute(userId, cartItemId, totalQuantity.toInt())
 
                     result shouldBe expectedCart
-                    verify(exactly = 1) { mockCartService.updateCartItem(userId, cartItemId, quantity, userId) }
+                    verify(exactly = 1) { mockCartService.updateCartItem(userId, cartItemId, totalQuantity, userId) }
                     clearMocks(mockCartService)
                 }
             }
@@ -101,17 +101,17 @@ class UpdateCartItemUseCaseTest : DescribeSpec({
             it("updatedBy가 userId와 동일하게 설정되는지 확인") {
                 val userId = 42L
                 val cartItemId = 1L
-                val quantity = 3
+                val quantity = 300
                 val expectedCart = mockk<Cart>()
 
-                every { mockCartService.updateCartItem(userId, cartItemId, quantity, userId) } returns expectedCart
+                every { mockCartService.updateCartItem(userId, cartItemId, quantity.toDouble(), userId) } returns expectedCart
 
                 sut.execute(userId, cartItemId, quantity)
 
                 verify(exactly = 1) { mockCartService.updateCartItem(
                     userId = userId,
                     cartItemId = cartItemId,
-                    quantity = quantity,
+                    totalQuantity = quantity.toDouble(),
                     updatedBy = userId  // updatedBy가 userId와 동일해야 함
                 ) }
             }
@@ -121,15 +121,15 @@ class UpdateCartItemUseCaseTest : DescribeSpec({
             it("큰 수량 값도 정확히 전달") {
                 val userId = 1L
                 val cartItemId = 1L
-                val quantity = 1000
+                val quantity = 10000
                 val expectedCart = mockk<Cart>()
 
-                every { mockCartService.updateCartItem(userId, cartItemId, quantity, userId) } returns expectedCart
+                every { mockCartService.updateCartItem(userId, cartItemId, quantity.toDouble(), userId) } returns expectedCart
 
                 val result = sut.execute(userId, cartItemId, quantity)
 
                 result shouldBe expectedCart
-                verify(exactly = 1) { mockCartService.updateCartItem(userId, cartItemId, quantity, userId) }
+                verify(exactly = 1) { mockCartService.updateCartItem(userId, cartItemId, quantity.toDouble(), userId) }
             }
         }
     }

@@ -35,23 +35,23 @@ class CartItemTeaServiceTest : DescribeSpec({
             it("각 TeaItemRequest에 대해 CartItemTea를 생성하고 Repository에 저장") {
                 val cartItemId = 1L
                 val teaItems = listOf(
-                    TeaItemRequest(productId = 1L, quantity = 2),
-                    TeaItemRequest(productId = 2L, quantity = 1)
+                    TeaItemRequest(productId = 1L, selectionOrder = 1, ratioPercent = 60),
+                    TeaItemRequest(productId = 2L, selectionOrder = 2, ratioPercent = 40)
                 )
                 val mockCartItemTea1 = mockk<CartItemTea>()
                 val mockCartItemTea2 = mockk<CartItemTea>()
 
                 mockkObject(CartItemTea.Companion)
-                every { CartItemTea.create(cartItemId, 1L, 2) } returns mockCartItemTea1
-                every { CartItemTea.create(cartItemId, 2L, 1) } returns mockCartItemTea2
+                every { CartItemTea.create(cartItemId, 1L, 1, 60) } returns mockCartItemTea1
+                every { CartItemTea.create(cartItemId, 2L, 2, 40) } returns mockCartItemTea2
                 every { mockCartItemTeaRepository.save(mockCartItemTea1) } returns mockCartItemTea1
                 every { mockCartItemTeaRepository.save(mockCartItemTea2) } returns mockCartItemTea2
 
                 val result = sut.saveCartItemTeas(cartItemId, teaItems)
 
                 result shouldBe listOf(mockCartItemTea1, mockCartItemTea2)
-                verify(exactly = 1) { CartItemTea.create(cartItemId, 1L, 2) }
-                verify(exactly = 1) { CartItemTea.create(cartItemId, 2L, 1) }
+                verify(exactly = 1) { CartItemTea.create(cartItemId, 1L, 1, 60) }
+                verify(exactly = 1) { CartItemTea.create(cartItemId, 2L, 2, 40) }
                 verify(exactly = 1) { mockCartItemTeaRepository.save(mockCartItemTea1) }
                 verify(exactly = 1) { mockCartItemTeaRepository.save(mockCartItemTea2) }
             }
@@ -75,13 +75,13 @@ class CartItemTeaServiceTest : DescribeSpec({
             it("기존 차 구성을 삭제한 후 새로운 차 구성을 저장") {
                 val cartItemId = 1L
                 val teaItems = listOf(
-                    TeaItemRequest(productId = 1L, quantity = 1)
+                    TeaItemRequest(productId = 1L, selectionOrder = 1, ratioPercent = 100)
                 )
                 val mockCartItemTea = mockk<CartItemTea>()
 
                 every { mockCartItemTeaRepository.deleteByCartItemId(cartItemId) } just Runs
                 mockkObject(CartItemTea.Companion)
-                every { CartItemTea.create(cartItemId, 1L, 1) } returns mockCartItemTea
+                every { CartItemTea.create(cartItemId, 1L, 1, 100) } returns mockCartItemTea
                 every { mockCartItemTeaRepository.save(mockCartItemTea) } returns mockCartItemTea
 
                 val result = sut.updateCartItemTeas(cartItemId, teaItems)
@@ -89,7 +89,7 @@ class CartItemTeaServiceTest : DescribeSpec({
                 result shouldBe listOf(mockCartItemTea)
                 verifyOrder {
                     mockCartItemTeaRepository.deleteByCartItemId(cartItemId)
-                    CartItemTea.create(cartItemId, 1L, 1)
+                    CartItemTea.create(cartItemId, 1L, 1, 100)
                     mockCartItemTeaRepository.save(mockCartItemTea)
                 }
             }
@@ -173,8 +173,8 @@ class CartItemTeaServiceTest : DescribeSpec({
         context("유효한 차 구성") {
             it("검증을 통과") {
                 val validTeaItems = listOf(
-                    TeaItemRequest(productId = 1L, quantity = 2),
-                    TeaItemRequest(productId = 2L, quantity = 1)
+                    TeaItemRequest(productId = 1L, selectionOrder = 1, ratioPercent = 60),
+                    TeaItemRequest(productId = 2L, selectionOrder = 2, ratioPercent = 40)
                 )
 
                 // 예외가 발생하지 않아야 함
@@ -192,24 +192,24 @@ class CartItemTeaServiceTest : DescribeSpec({
             }
         }
 
-        context("총 수량이 0인 차 구성") {
+        context("총 배합 비율이 100%가 아닌 차 구성") {
             it("IllegalArgumentException을 발생") {
-                val zeroQuantityTeaItems = listOf(
-                    TeaItemRequest(productId = 1L, quantity = 0),
-                    TeaItemRequest(productId = 2L, quantity = 0)
+                val invalidRatioTeaItems = listOf(
+                    TeaItemRequest(productId = 1L, selectionOrder = 1, ratioPercent = 30),
+                    TeaItemRequest(productId = 2L, selectionOrder = 2, ratioPercent = 30)
                 )
 
                 shouldThrow<IllegalArgumentException> {
-                    sut.validateTeaItems(zeroQuantityTeaItems)
-                }.message shouldBe "총 차 수량은 0보다 커야 합니다"
+                    sut.validateTeaItems(invalidRatioTeaItems)
+                }.message shouldBe "총 배합 비율은 100%가 되어야 합니다. 현재: 60%"
             }
         }
 
         context("중복된 상품이 포함된 차 구성") {
             it("IllegalArgumentException을 발생") {
                 val duplicateProductTeaItems = listOf(
-                    TeaItemRequest(productId = 1L, quantity = 2),
-                    TeaItemRequest(productId = 1L, quantity = 1)
+                    TeaItemRequest(productId = 1L, selectionOrder = 1, ratioPercent = 60),
+                    TeaItemRequest(productId = 1L, selectionOrder = 2, ratioPercent = 40)
                 )
 
                 shouldThrow<IllegalArgumentException> {
@@ -218,16 +218,16 @@ class CartItemTeaServiceTest : DescribeSpec({
             }
         }
 
-        context("음수 수량이 포함된 차 구성") {
-            it("총 수량이 0보다 큰지 검증하여 IllegalArgumentException을 발생") {
-                val negativeQuantityTeaItems = listOf(
-                    TeaItemRequest(productId = 1L, quantity = -1),
-                    TeaItemRequest(productId = 2L, quantity = 0)
+        context("잘못된 선택 순서가 포함된 차 구성") {
+            it("선택 순서가 연속적이지 않으면 IllegalArgumentException을 발생") {
+                val invalidOrderTeaItems = listOf(
+                    TeaItemRequest(productId = 1L, selectionOrder = 1, ratioPercent = 50),
+                    TeaItemRequest(productId = 2L, selectionOrder = 3, ratioPercent = 50)
                 )
 
                 shouldThrow<IllegalArgumentException> {
-                    sut.validateTeaItems(negativeQuantityTeaItems)
-                }.message shouldBe "총 차 수량은 0보다 커야 합니다"
+                    sut.validateTeaItems(invalidOrderTeaItems)
+                }.message shouldBe "선택 순서는 1부터 연속적이어야 합니다"
             }
         }
     }

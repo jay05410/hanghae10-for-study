@@ -17,26 +17,39 @@ class CartItemTea(
     val productId: Long,
 
     // @Column(nullable = false)
-    val quantity: Int
+    val selectionOrder: Int,
+
+    // @Column(nullable = false)
+    val ratioPercent: Int
 ) : ActiveJpaEntity() {
 
-    fun validateQuantity() {
-        require(quantity > 0) { "차 수량은 0보다 커야 합니다: $quantity" }
+    fun validateRatioPercent() {
+        require(ratioPercent in 1..100) { "배합 비율은 1-100 사이여야 합니다: $ratioPercent" }
     }
+
+    // 이전 버전 호환성을 위한 프로퍼티
+    @Deprecated("Use ratioPercent instead", ReplaceWith("ratioPercent"))
+    val quantity: Int
+        get() = ratioPercent
 
     companion object {
         fun create(
             cartItemId: Long,
             productId: Long,
-            quantity: Int
+            selectionOrder: Int,
+            ratioPercent: Int
         ): CartItemTea {
-            require(quantity > 0) { "차 수량은 0보다 커야 합니다" }
+            require(cartItemId > 0) { "장바구니 아이템 ID는 유효해야 합니다" }
+            require(productId > 0) { "상품 ID는 유효해야 합니다" }
+            require(selectionOrder in 1..3) { "선택 순서는 1-3 사이여야 합니다" }
+            require(ratioPercent in 1..100) { "배합 비율은 1-100 사이여야 합니다" }
 
             return CartItemTea(
                 cartItemId = cartItemId,
                 productId = productId,
-                quantity = quantity
-            ).also { it.validateQuantity() }
+                selectionOrder = selectionOrder,
+                ratioPercent = ratioPercent
+            ).also { it.validateRatioPercent() }
         }
     }
 }

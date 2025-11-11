@@ -40,13 +40,32 @@ class Order(
     val items: List<OrderItem> get() = _items.toList()
 
 
-    fun addItem(productId: Long, boxTypeId: Long, quantity: Int, unitPrice: Long): OrderItem {
+    fun addItem(
+        packageTypeId: Long,
+        packageTypeName: String,
+        packageTypeDays: Int,
+        dailyServing: Int,
+        totalQuantity: Double,
+        giftWrap: Boolean = false,
+        giftMessage: String? = null,
+        quantity: Int,
+        containerPrice: Int,
+        teaPrice: Int,
+        giftWrapPrice: Int = 0
+    ): OrderItem {
         val orderItem = OrderItem.create(
-            order = this,
-            productId = productId,
-            boxTypeId = boxTypeId,
+            orderId = this.id,
+            packageTypeId = packageTypeId,
+            packageTypeName = packageTypeName,
+            packageTypeDays = packageTypeDays,
+            dailyServing = dailyServing,
+            totalQuantity = totalQuantity,
+            giftWrap = giftWrap,
+            giftMessage = giftMessage,
             quantity = quantity,
-            unitPrice = unitPrice
+            containerPrice = containerPrice,
+            teaPrice = teaPrice,
+            giftWrapPrice = giftWrapPrice
         )
 
         _items.add(orderItem)

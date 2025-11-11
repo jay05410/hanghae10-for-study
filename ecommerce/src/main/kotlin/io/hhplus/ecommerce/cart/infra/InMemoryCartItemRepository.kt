@@ -31,25 +31,28 @@ class InMemoryCartItemRepository : CartItemRepository {
     }
 
     private fun initializeSampleData() {
-        val sampleCart = Cart(
-            id = 1L,
-            userId = 1L
-        )
-
         val cartItem1 = CartItem(
             id = idGenerator.getAndIncrement(),
-            cart = sampleCart,
-            productId = 1L, // 제주 유기농 녹차
-            boxTypeId = 1L, // 주간 티 박스
-            quantity = 2
+            cartId = 1L,
+            packageTypeId = 1L, // THREE_DAYS 패키지
+            packageTypeName = "3일 패키지",
+            packageTypeDays = 3,
+            dailyServing = 1,
+            totalQuantity = 30.0, // 그램
+            giftWrap = false,
+            giftMessage = null
         )
 
         val cartItem2 = CartItem(
             id = idGenerator.getAndIncrement(),
-            cart = sampleCart,
-            productId = 2L, // 전통 우롱차
-            boxTypeId = 2L, // 월간 티 박스
-            quantity = 1
+            cartId = 1L,
+            packageTypeId = 2L, // SEVEN_DAYS 패키지
+            packageTypeName = "7일 패키지",
+            packageTypeDays = 7,
+            dailyServing = 2,
+            totalQuantity = 140.0, // 그램
+            giftWrap = true,
+            giftMessage = "건강한 차생활을 위해"
         )
 
         cartItems[cartItem1.id] = cartItem1
@@ -68,10 +71,14 @@ class InMemoryCartItemRepository : CartItemRepository {
         val savedCartItem = if (cartItem.id == 0L) {
             CartItem(
                 id = idGenerator.getAndIncrement(),
-                cart = cartItem.cart,
-                productId = cartItem.productId,
-                boxTypeId = cartItem.boxTypeId,
-                quantity = cartItem.quantity
+                cartId = cartItem.cartId,
+                packageTypeId = cartItem.packageTypeId,
+                packageTypeName = cartItem.packageTypeName,
+                packageTypeDays = cartItem.packageTypeDays,
+                dailyServing = cartItem.dailyServing,
+                totalQuantity = cartItem.totalQuantity,
+                giftWrap = cartItem.giftWrap,
+                giftMessage = cartItem.giftMessage
             )
         } else {
             cartItem
@@ -100,7 +107,7 @@ class InMemoryCartItemRepository : CartItemRepository {
      */
     override fun findByCartId(cartId: Long): List<CartItem> {
         simulateLatency()
-        return cartItems.values.filter { it.cart.id == cartId }
+        return cartItems.values.filter { it.cartId == cartId }
     }
 
     /**
@@ -112,23 +119,22 @@ class InMemoryCartItemRepository : CartItemRepository {
      */
     override fun findByCartIdAndProductId(cartId: Long, productId: Long): CartItem? {
         simulateLatency()
-        return cartItems.values.find { it.cart.id == cartId && it.productId == productId }
+        // 새로운 구조에서는 productId 개념이 없으므로 packageTypeId로 대체
+        return cartItems.values.find { it.cartId == cartId && it.packageTypeId == productId }
     }
 
     /**
      * 장바구니 ID, 제품 ID, 박스 타입 ID로 장바구니 아이템을 조회한다
      *
      * @param cartId 조회할 장바구니의 ID
-     * @param productId 조회할 제품의 ID
-     * @param boxTypeId 조회할 박스 타입의 ID
+     * @param productId 조회할 제품의 ID (packageTypeId로 사용)
+     * @param boxTypeId 조회할 박스 타입의 ID (packageTypeId로 사용)
      * @return 조건에 맞는 장바구니 아이템 (존재하지 않을 경우 null)
      */
     override fun findByCartIdAndProductIdAndBoxTypeId(cartId: Long, productId: Long, boxTypeId: Long): CartItem? {
         simulateLatency()
         return cartItems.values.find {
-            it.cart.id == cartId &&
-            it.productId == productId &&
-            it.boxTypeId == boxTypeId
+            it.cartId == cartId && it.packageTypeId == boxTypeId
         }
     }
 
@@ -149,7 +155,7 @@ class InMemoryCartItemRepository : CartItemRepository {
      */
     override fun deleteByCartId(cartId: Long) {
         simulateLatency()
-        cartItems.values.removeAll { it.cart.id == cartId }
+        cartItems.values.removeAll { it.cartId == cartId }
     }
 
     /**
