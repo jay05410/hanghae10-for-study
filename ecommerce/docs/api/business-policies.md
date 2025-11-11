@@ -139,48 +139,128 @@
   - 중복 요청 방지를 위한 요청 제한
 - **예외 메시지**: "중복된 요청입니다. 잠시 후 다시 시도해주세요."
 
-### 7. 배송지 관리 정책
+### 7. 배송 관리 정책
 
-#### 7.1 배송지 개수 제한
+#### 7.1 배송 상태 전환 규칙
+- **정책**: 배송 상태는 단방향으로만 변경 가능
+- **규칙**:
+  - 상태 전환 순서: PENDING → PREPARING → SHIPPED → DELIVERED
+  - 역방향 상태 변경 불가 → `InvalidDeliveryStateTransition` 예외 발생
+  - 중간 단계 건너뛰기 불가
+- **예외 메시지**: "잘못된 배송 상태 전환입니다. 현재: {currentState}, 시도: {attemptedState}"
+
+#### 7.2 배송지 변경 제한
+- **정책**: 배송 준비 시작 후에는 배송지 변경 불가
+- **규칙**:
+  - 배송 상태 = PENDING → 배송지 변경 가능
+  - 배송 상태 = PREPARING, SHIPPED, DELIVERED → `DeliveryAddressChangeNotAllowed` 예외 발생
+- **예외 메시지**: "배송지를 변경할 수 없는 상태입니다. 현재 배송 상태: {deliveryState}"
+
+#### 7.3 반품 가능 기간
+- **정책**: 배송 완료 후 7일 이내만 반품 가능
+- **규칙**:
+  - 배송 완료일로부터 7일 이내 → 반품 가능
+  - 7일 초과 → `ReturnPeriodExpired` 예외 발생
+- **예외 메시지**: "반품 가능 기간이 지났습니다. 배송완료일: {deliveryDate}"
+
+### 8. 배송지 관리 정책
+
+#### 8.1 배송지 개수 제한
 - **정책**: 사용자당 최대 10개의 배송지까지 저장 가능
 - **규칙**:
   - 배송지 개수 >= 10개 → `MaxDeliveryAddressExceeded` 예외 발생
   - 배송지 개수 < 10개 → 정상 처리
 - **예외 메시지**: "배송지는 최대 10개까지 저장할 수 있습니다. 현재 개수: {currentCount}"
 
-#### 7.2 기본 배송지 설정
+#### 8.2 기본 배송지 설정
 - **정책**: 사용자는 반드시 하나의 기본 배송지를 가져야 함
 - **규칙**:
   - 첫 번째 배송지는 자동으로 기본 배송지로 설정
   - 기본 배송지 변경 시 이전 기본 배송지는 자동으로 해제
   - 기본 배송지 삭제 시 다른 배송지가 있으면 그 중 하나를 기본으로 설정
+  - 마지막 남은 배송지는 삭제 불가 → `LastAddressCannotBeDeleted` 예외 발생
+- **예외 메시지**: "마지막 배송지는 삭제할 수 없습니다. 다른 배송지를 추가한 후 삭제해주세요."
 
-### 8. 데이터 유효성 정책
+#### 8.3 기본 배송지 삭제 제한
+- **정책**: 기본 배송지는 직접 삭제 불가
+- **규칙**:
+  - 기본 배송지 삭제 시도 → `DefaultAddressCannotBeDeleted` 예외 발생
+  - 다른 배송지를 기본으로 설정 후 삭제 가능
+- **예외 메시지**: "기본 배송지는 삭제할 수 없습니다. 다른 배송지를 기본으로 설정한 후 삭제해주세요."
 
-#### 8.1 전화번호 형식 검증
+### 9. 결제 이력 관리 정책
+
+#### 9.1 결제 상태 변경 추적
+- **정책**: 모든 결제 상태 변경은 이력으로 기록
+- **규칙**:
+  - 결제 상태 변경 시 자동으로 PAYMENT_HISTORY에 기록
+  - 변경 전/후 상태, 변경 사유, PG사 응답 정보 필수 저장
+  - 이력 데이터는 변경 및 삭제 불가 (Immutable)
+- **예외 메시지**: "결제 이력 기록에 실패했습니다."
+
+#### 9.2 PG 응답 정보 저장
+- **정책**: PG사 응답 정보는 JSON 형태로 저장
+- **규칙**:
+  - 승인번호, 거래번호, 카드정보 등 JSON으로 저장
+  - 민감정보(카드번호 전체)는 마스킹 처리 후 저장
+  - 응답 정보는 감사 및 정산을 위해 최소 5년 보관
+
+#### 9.3 실패/취소 사유 기록
+- **정책**: 결제 실패 또는 취소 시 사유 필수 기록
+- **규칙**:
+  - 상태가 FAILED 또는 CANCELLED로 변경 시 reason 필드 필수
+  - reason 없이 실패/취소 상태 변경 시 → `PaymentReasonRequired` 예외 발생
+- **예외 메시지**: "결제 실패/취소 사유를 입력해주세요."
+
+### 10. 인기 상품 관리 정책
+
+#### 10.1 인기 상품 집계 기준
+- **정책**: 최근 7일 판매량 기준으로 인기 상품 선정
+- **규칙**:
+  - 집계 기간: 현재 시점 기준 최근 7일
+  - 판매량 = ORDER_ITEM 테이블의 quantity 합계
+  - 상위 10개 상품을 인기 상품으로 선정
+
+#### 10.2 인기 상품 데이터 갱신
+- **정책**: 매일 자정 배치 작업으로 인기 상품 데이터 갱신
+- **규칙**:
+  - 배치 실행 시간: 매일 00:00 (KST)
+  - PRODUCT_POPULARITY 테이블의 기존 데이터 삭제 후 새로 집계
+  - 배치 실패 시 관리자 알림 및 재시도 (최대 3회)
+
+#### 10.3 조회수 증가
+- **정책**: 상품 상세 조회 시 조회수 자동 증가
+- **규칙**:
+  - 동일 사용자가 24시간 내 동일 상품 조회 시 조회수 미증가
+  - 조회수는 Redis 캐시를 통해 관리하여 DB 부하 최소화
+  - 매시간 Redis의 조회수를 DB에 동기화
+
+### 11. 데이터 유효성 정책
+
+#### 11.1 전화번호 형식 검증
 - **정책**: 한국 휴대폰 번호 형식만 허용
 - **규칙**:
   - 형식: 010-XXXX-XXXX 또는 01X-XXXX-XXXX
   - 유효하지 않은 형식 → `InvalidPhoneFormat` 예외 발생
 - **예외 메시지**: "올바른 휴대폰 번호 형식이 아닙니다. 입력값: {phoneNumber}"
 
-#### 8.2 이메일 중복 검증
+#### 11.2 이메일 중복 검증
 - **정책**: 동일한 이메일로 중복 가입 불가
 - **규칙**:
   - 기존 이메일 존재 → `DuplicateEmail` 예외 발생
   - 신규 이메일 → 정상 처리
 - **예외 메시지**: "이미 사용 중인 이메일입니다. 이메일: {email}"
 
-### 9. 외부 시스템 연동 정책
+### 12. 외부 시스템 연동 정책
 
-#### 9.1 Outbox 패턴 적용
+#### 12.1 Outbox 패턴 적용
 - **정책**: 외부 제조사 API 연동 시 트랜잭션 보장
 - **규칙**:
   - 주문 생성과 동시에 outbox 이벤트 저장
   - 외부 API 호출 실패 시에도 주문은 성공 처리
   - 최대 3회 재시도 후 실패 시 관리자 알림
 
-#### 9.2 외부 시스템 장애 격리
+#### 12.2 외부 시스템 장애 격리
 - **정책**: 외부 시스템 장애가 주문 프로세스에 영향을 주지 않음
 - **규칙**:
   - Circuit Breaker 패턴 적용
@@ -245,6 +325,33 @@ sealed class ECommerceException(message: String) : RuntimeException(message) {
     class OrderCancellationNotAllowed(currentStatus: String) :
         ECommerceException("취소할 수 없는 주문 상태입니다. 현재상태: $currentStatus")
 
+    // 배송 관련
+    class InvalidDeliveryStateTransition(currentState: String, attemptedState: String) :
+        ECommerceException("잘못된 배송 상태 전환입니다. 현재: $currentState, 시도: $attemptedState")
+
+    class DeliveryAddressChangeNotAllowed(deliveryState: String) :
+        ECommerceException("배송지를 변경할 수 없는 상태입니다. 현재 배송 상태: $deliveryState")
+
+    class ReturnPeriodExpired(deliveryDate: String) :
+        ECommerceException("반품 가능 기간이 지났습니다. 배송완료일: $deliveryDate")
+
+    // 배송지 관련
+    class MaxDeliveryAddressExceeded(currentCount: Int) :
+        ECommerceException("배송지는 최대 10개까지 저장할 수 있습니다. 현재 개수: $currentCount")
+
+    class LastAddressCannotBeDeleted :
+        ECommerceException("마지막 배송지는 삭제할 수 없습니다. 다른 배송지를 추가한 후 삭제해주세요.")
+
+    class DefaultAddressCannotBeDeleted :
+        ECommerceException("기본 배송지는 삭제할 수 없습니다. 다른 배송지를 기본으로 설정한 후 삭제해주세요.")
+
+    // 결제 이력 관련
+    class PaymentHistoryRecordFailed :
+        ECommerceException("결제 이력 기록에 실패했습니다.")
+
+    class PaymentReasonRequired :
+        ECommerceException("결제 실패/취소 사유를 입력해주세요.")
+
     // 동시성 관련
     class ConcurrencyException(operation: String) :
         ECommerceException("$operation 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
@@ -279,9 +386,34 @@ sealed class ECommerceException(message: String) : RuntimeException(message) {
 - [ ] 빈 장바구니로 주문 시도 → EmptyCart 예외
 - [ ] 제조 중인 주문 취소 시도 → OrderCancellationNotAllowed 예외
 
+### 배송 정책 테스트
+- [ ] 잘못된 배송 상태 전환 시도 → InvalidDeliveryStateTransition 예외
+- [ ] 배송 준비 중 배송지 변경 시도 → DeliveryAddressChangeNotAllowed 예외
+- [ ] 배송 완료 후 8일 뒤 반품 시도 → ReturnPeriodExpired 예외
+
+### 배송지 정책 테스트
+- [ ] 10개 초과 배송지 추가 시도 → MaxDeliveryAddressExceeded 예외
+- [ ] 마지막 배송지 삭제 시도 → LastAddressCannotBeDeleted 예외
+- [ ] 기본 배송지 직접 삭제 시도 → DefaultAddressCannotBeDeleted 예외
+- [ ] 첫 배송지 추가 시 자동으로 기본 배송지 설정 확인
+- [ ] 기본 배송지 변경 시 이전 기본 배송지 해제 확인
+
+### 결제 이력 정책 테스트
+- [ ] 결제 상태 변경 시 자동 이력 기록 확인
+- [ ] 결제 실패/취소 시 사유 없이 변경 시도 → PaymentReasonRequired 예외
+- [ ] PG 응답 정보 JSON 저장 확인
+- [ ] 카드번호 마스킹 처리 확인
+
+### 인기 상품 정책 테스트
+- [ ] 최근 7일 판매량 집계 확인
+- [ ] 상위 10개 상품 선정 확인
+- [ ] 동일 사용자 24시간 내 재조회 시 조회수 미증가 확인
+- [ ] Redis 조회수와 DB 동기화 확인
+
 ### 동시성 테스트
 - [ ] 동시 재고 차감 처리 (정합성 보장)
 - [ ] 선착순 쿠폰 동시 발급 (정확한 수량 보장)
+- [ ] 포인트 동시 사용 처리 (낙관적 락 검증)
 
 ## 구현 참고사항
 

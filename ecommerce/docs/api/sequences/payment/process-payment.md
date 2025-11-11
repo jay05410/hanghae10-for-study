@@ -85,7 +85,51 @@ GET /api/v1/payments/{paymentId}
 }
 ```
 
-### 3. 사용자별 결제 내역 조회
+### 3. 결제 상태 변경 이력 조회
+**UseCase**: `GetPaymentQueryUseCase.getPaymentHistory()`
+
+```http
+GET /api/v1/payments/{paymentId}/history
+```
+
+**Path Parameters**:
+- `paymentId` (Long, required): 결제 ID
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "paymentId": 1,
+      "statusBefore": "PENDING",
+      "statusAfter": "PROCESSING",
+      "reason": "결제 처리 시작",
+      "pgResponse": null,
+      "amount": 50000,
+      "createdAt": "2024-11-07T10:00:00Z"
+    },
+    {
+      "id": 2,
+      "paymentId": 1,
+      "statusBefore": "PROCESSING",
+      "statusAfter": "COMPLETED",
+      "reason": "결제 완료",
+      "pgResponse": {
+        "transactionId": "pg_tx_12345",
+        "approvalNumber": "12345678",
+        "cardName": "신한카드",
+        "cardNumber": "1234-****-****-5678"
+      },
+      "amount": 50000,
+      "createdAt": "2024-11-07T10:00:05Z"
+    }
+  ]
+}
+```
+
+### 4. 사용자별 결제 내역 조회
 **UseCase**: `GetPaymentQueryUseCase.getUserPayments()`
 
 ```http
@@ -326,6 +370,10 @@ sequenceDiagram
 ### 결제 처리 규칙
 - **결제 번호**: Snowflake ID 기반 유니크 번호 생성
 - **결제 상태 추적**: 모든 결제 상태 변화 추적
+- **결제 이력 관리**:
+  - 모든 결제 상태 변경은 `PAYMENT_HISTORY` 테이블에 자동 기록
+  - 변경 전/후 상태, 변경 사유, PG사 응답 등을 포함
+  - 결제 문제 발생 시 추적 및 디버깅에 활용
 
 ### 결제 방법
 - **BALANCE**: 포인트 잔액 결제

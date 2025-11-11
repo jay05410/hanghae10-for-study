@@ -187,7 +187,44 @@ POST /api/v1/orders/{orderId}/confirm
 }
 ```
 
-### 5. 주문 취소
+### 5. 배송 정보 조회
+**UseCase**: `GetDeliveryQueryUseCase`
+
+```http
+GET /api/v1/orders/{orderId}/delivery
+```
+
+**Path Parameters**:
+- `orderId` (Long, required): 주문 ID
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "orderId": 1,
+    "deliveryAddress": {
+      "recipientName": "김철수",
+      "phone": "010-1234-5678",
+      "zipCode": "06234",
+      "address": "서울시 강남구 테헤란로 123",
+      "addressDetail": "456호",
+      "deliveryMessage": "문 앞에 놓아주세요"
+    },
+    "trackingNumber": "123456789012",
+    "carrier": "CJ대한통운",
+    "status": "SHIPPED",
+    "shippedAt": "2024-11-08T10:00:00Z",
+    "deliveredAt": null,
+    "deliveryMemo": null,
+    "createdAt": "2024-11-07T10:00:00Z",
+    "updatedAt": "2024-11-08T10:00:00Z"
+  }
+}
+```
+
+### 6. 주문 취소
 **UseCase**: `CancelOrderUseCase`
 
 ```http
@@ -229,11 +266,26 @@ graph TD
     A[PENDING] --> B[CONFIRMED]
     A --> D[CANCELLED]
     A --> E[FAILED]
-    B --> C[COMPLETED]
+    B --> F[PREPARING]
     B --> D[CANCELLED]
+    F --> G[SHIPPED]
+    G --> H[DELIVERED]
+    H --> C[COMPLETED]
     C --> C
     D --> D
     E --> E
+```
+
+## 배송 상태 전이
+
+```mermaid
+graph TD
+    A[PENDING] --> B[PREPARING]
+    B --> C[SHIPPED]
+    C --> D[DELIVERED]
+    A --> E[FAILED]
+    B --> E
+    C --> E
 ```
 
 ## 에러 코드
@@ -245,6 +297,8 @@ graph TD
 | ORDER003 | 400 | 취소할 수 없는 주문 상태입니다 | 이미 확정된 주문 |
 | ORDER004 | 400 | 장바구니가 비어있습니다 | 빈 장바구니로 주문 시도 |
 | ORDER005 | 400 | 유효하지 않은 주문 상태입니다 | 잘못된 상태 전이 |
+| ORDER006 | 404 | 배송 정보를 찾을 수 없습니다 | 배송 정보 없음 |
+| ORDER007 | 400 | 유효하지 않은 배송 상태입니다 | 잘못된 배송 상태 전이 |
 
 ## 시퀀스 다이어그램
 
