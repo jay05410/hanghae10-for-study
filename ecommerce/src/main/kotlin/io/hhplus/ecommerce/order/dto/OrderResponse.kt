@@ -40,31 +40,29 @@ data class OrderItemResponse(
     val totalPrice: Long,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime
-) {
-    companion object {
-        fun Order.toResponse(): OrderResponse = OrderResponse(
-            id = this.id,
-            orderNumber = this.orderNumber,
-            userId = this.userId,
-            totalAmount = this.totalAmount,
-            discountAmount = this.discountAmount,
-            finalAmount = this.finalAmount,
-            usedCouponId = this.usedCouponId,
-            status = this.status,
-            orderItems = this.items.map { it.toResponse() },
-            createdAt = this.createdAt,
-            updatedAt = this.updatedAt
-        )
+)
 
-        fun OrderItem.toResponse(): OrderItemResponse = OrderItemResponse(
-            id = this.id,
-            productId = this.productId,
-            boxTypeId = this.boxTypeId,
-            quantity = this.quantity,
-            unitPrice = this.unitPrice,
-            totalPrice = this.totalPrice,
-            createdAt = this.createdAt,
-            updatedAt = this.updatedAt
-        )
-    }
-}
+fun Order.toResponse(): OrderResponse = OrderResponse(
+    id = this.id,
+    orderNumber = this.orderNumber,
+    userId = this.userId,
+    totalAmount = this.totalAmount,
+    discountAmount = this.discountAmount,
+    finalAmount = this.finalAmount,
+    usedCouponId = this.usedCouponId,
+    status = this.status,
+    orderItems = this.items.map { it.toResponse() },
+    createdAt = this.createdAt,
+    updatedAt = this.updatedAt
+)
+
+fun OrderItem.toResponse(): OrderItemResponse = OrderItemResponse(
+    id = this.id,
+    productId = this.productId,
+    boxTypeId = this.boxTypeId,
+    quantity = this.quantity,
+    unitPrice = this.unitPrice,
+    totalPrice = this.totalPrice,
+    createdAt = this.createdAt,
+    updatedAt = this.updatedAt
+)

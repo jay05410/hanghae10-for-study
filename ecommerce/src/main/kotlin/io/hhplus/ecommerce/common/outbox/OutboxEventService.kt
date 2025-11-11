@@ -28,8 +28,8 @@ class OutboxEventService(
         return outboxEventRepository.save(outboxEvent)
     }
 
-    fun getUnprocessedEvents(): List<OutboxEvent> {
-        return outboxEventRepository.findUnprocessedEvents()
+    fun getUnprocessedEvents(limit: Int = 100): List<OutboxEvent> {
+        return outboxEventRepository.findUnprocessedEvents(limit)
     }
 
     @Transactional
@@ -75,8 +75,7 @@ class OutboxEventService(
     @Transactional
     fun deleteProcessedEvents(olderThanDays: Long = 30) {
         val cutoffDate = LocalDateTime.now().minusDays(olderThanDays)
-        outboxEventRepository.findUnprocessedEvents()
-            .filter { it.processed && it.processedAt?.isBefore(cutoffDate) == true }
+        outboxEventRepository.findProcessedEventsBefore(cutoffDate)
             .forEach { outboxEventRepository.deleteById(it.id) }
     }
 }

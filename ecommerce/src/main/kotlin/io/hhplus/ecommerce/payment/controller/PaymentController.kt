@@ -2,10 +2,7 @@ package io.hhplus.ecommerce.payment.controller
 
 import io.hhplus.ecommerce.payment.usecase.*
 import io.hhplus.ecommerce.payment.dto.*
-import io.hhplus.ecommerce.payment.dto.PaymentResponse.Companion.toResponse
-import io.hhplus.ecommerce.payment.domain.*
 import io.hhplus.ecommerce.common.response.ApiResponse
-import io.hhplus.ecommerce.payment.domain.entity.Payment
 import org.springframework.web.bind.annotation.*
 
 /**

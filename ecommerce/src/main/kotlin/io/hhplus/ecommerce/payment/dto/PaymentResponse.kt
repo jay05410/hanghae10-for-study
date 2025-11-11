@@ -25,20 +25,18 @@ data class PaymentResponse(
     val failureReason: String?,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime
-) {
-    companion object {
-        fun Payment.toResponse(): PaymentResponse = PaymentResponse(
-            id = this.id,
-            paymentNumber = this.paymentNumber,
-            orderId = this.orderId,
-            userId = this.userId,
-            amount = this.amount,
-            paymentMethod = this.paymentMethod,
-            status = this.status,
-            externalTransactionId = this.externalTransactionId,
-            failureReason = this.failureReason,
-            createdAt = this.createdAt,
-            updatedAt = this.updatedAt
-        )
-    }
-}
+)
+
+fun Payment.toResponse(): PaymentResponse = PaymentResponse(
+    id = this.id,
+    paymentNumber = this.paymentNumber,
+    orderId = this.orderId,
+    userId = this.userId,
+    amount = this.amount,
+    paymentMethod = this.paymentMethod,
+    status = this.status,
+    externalTransactionId = this.externalTransactionId,
+    failureReason = this.failureReason,
+    createdAt = this.createdAt,
+    updatedAt = this.updatedAt
+)

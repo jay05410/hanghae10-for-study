@@ -34,26 +34,24 @@ data class CartItemResponse(
     val quantity: Int,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime
-) {
-    companion object {
-        fun Cart.toResponse(): CartResponse = CartResponse(
-            id = this.id,
-            userId = this.userId,
-            items = this.items.map { it.toResponse() },
-            totalItemCount = this.getTotalItemCount(),
-            totalQuantity = this.getTotalQuantity(),
-            totalPrice = this.getTotalPrice(),
-            createdAt = this.createdAt,
-            updatedAt = this.updatedAt
-        )
+)
 
-        fun CartItem.toResponse(): CartItemResponse = CartItemResponse(
-            id = this.id,
-            productId = this.productId,
-            boxTypeId = this.boxTypeId,
-            quantity = this.quantity,
-            createdAt = this.createdAt,
-            updatedAt = this.updatedAt
-        )
-    }
-}
+fun Cart.toResponse(): CartResponse = CartResponse(
+    id = this.id,
+    userId = this.userId,
+    items = this.items.map { it.toResponse() },
+    totalItemCount = this.getTotalItemCount(),
+    totalQuantity = this.getTotalQuantity(),
+    totalPrice = this.getTotalPrice(),
+    createdAt = this.createdAt,
+    updatedAt = this.updatedAt
+)
+
+fun CartItem.toResponse(): CartItemResponse = CartItemResponse(
+    id = this.id,
+    productId = this.productId,
+    boxTypeId = this.boxTypeId,
+    quantity = this.quantity,
+    createdAt = this.createdAt,
+    updatedAt = this.updatedAt
+)

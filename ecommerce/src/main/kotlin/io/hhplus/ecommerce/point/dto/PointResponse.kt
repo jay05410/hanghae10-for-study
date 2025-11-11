@@ -37,28 +37,26 @@ data class PointHistoryResponse(
     val description: String?,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime
-) {
-    companion object {
-        fun UserPoint.toResponse(): UserPointResponse = UserPointResponse(
-            id = this.id,
-            userId = this.userId,
-            balance = this.balance.value,
-            version = this.version,
-            createdAt = this.createdAt,
-            updatedAt = this.updatedAt
-        )
+)
 
-        fun PointHistory.toResponse(): PointHistoryResponse = PointHistoryResponse(
-            id = this.id,
-            userId = this.userId,
-            amount = this.amount,
-            transactionType = this.transactionType,
-            balanceBefore = this.balanceBefore,
-            balanceAfter = this.balanceAfter,
-            orderId = this.orderId,
-            description = this.description,
-            createdAt = this.createdAt,
-            updatedAt = this.updatedAt
-        )
-    }
-}
+fun UserPoint.toResponse(): UserPointResponse = UserPointResponse(
+    id = this.id,
+    userId = this.userId,
+    balance = this.balance.value,
+    version = this.version,
+    createdAt = this.createdAt,
+    updatedAt = this.updatedAt
+)
+
+fun PointHistory.toResponse(): PointHistoryResponse = PointHistoryResponse(
+    id = this.id,
+    userId = this.userId,
+    amount = this.amount,
+    transactionType = this.transactionType,
+    balanceBefore = this.balanceBefore,
+    balanceAfter = this.balanceAfter,
+    orderId = this.orderId,
+    description = this.description,
+    createdAt = this.createdAt,
+    updatedAt = this.updatedAt
+)

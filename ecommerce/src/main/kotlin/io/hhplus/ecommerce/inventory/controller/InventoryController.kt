@@ -2,7 +2,6 @@ package io.hhplus.ecommerce.inventory.controller
 
 import io.hhplus.ecommerce.inventory.usecase.*
 import io.hhplus.ecommerce.inventory.dto.*
-import io.hhplus.ecommerce.inventory.dto.StockReservationResponse.Companion.toResponse
 import io.hhplus.ecommerce.common.response.ApiResponse
 import org.springframework.web.bind.annotation.*
 

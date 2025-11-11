@@ -1,8 +1,6 @@
 package io.hhplus.ecommerce.cart.controller
 
 import io.hhplus.ecommerce.cart.dto.*
-import io.hhplus.ecommerce.cart.dto.CartItemResponse.Companion.toResponse
-import io.hhplus.ecommerce.cart.domain.entity.Cart
 import io.hhplus.ecommerce.cart.usecase.*
 import io.hhplus.ecommerce.common.response.ApiResponse
 import org.springframework.web.bind.annotation.*

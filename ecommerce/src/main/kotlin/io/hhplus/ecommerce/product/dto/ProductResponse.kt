@@ -12,17 +12,15 @@ data class ProductResponse(
     val isActive: Boolean,
     val createdAt: LocalDateTime?,
     val updatedAt: LocalDateTime?
-) {
-    companion object {
-        fun Product.toResponse(): ProductResponse = ProductResponse(
-            id = this.id,
-            name = this.name,
-            description = this.description,
-            price = this.price,
-            categoryId = this.categoryId,
-            isActive = this.isActive,
-            createdAt = this.createdAt,
-            updatedAt = this.updatedAt
-        )
-    }
-}
+)
+
+fun Product.toResponse(): ProductResponse = ProductResponse(
+    id = this.id,
+    name = this.name,
+    description = this.description,
+    price = this.price,
+    categoryId = this.categoryId,
+    isActive = this.isActive,
+    createdAt = this.createdAt,
+    updatedAt = this.updatedAt
+)

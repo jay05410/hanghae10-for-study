@@ -23,19 +23,17 @@ data class UserResponse(
     val isActive: Boolean,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime
-) {
-    companion object {
-        fun User.toResponse(): UserResponse = UserResponse(
-            id = this.id,
-            loginType = this.loginType,
-            loginId = this.loginId,
-            email = this.email,
-            name = this.name,
-            phone = this.phone,
-            providerId = this.providerId,
-            isActive = this.isActive,
-            createdAt = this.createdAt,
-            updatedAt = this.updatedAt
-        )
-    }
-}
+)
+
+fun User.toResponse(): UserResponse = UserResponse(
+    id = this.id,
+    loginType = this.loginType,
+    loginId = this.loginId,
+    email = this.email,
+    name = this.name,
+    phone = this.phone,
+    providerId = this.providerId,
+    isActive = this.isActive,
+    createdAt = this.createdAt,
+    updatedAt = this.updatedAt
+)

@@ -2,9 +2,6 @@ package io.hhplus.ecommerce.point.controller
 
 import io.hhplus.ecommerce.point.usecase.*
 import io.hhplus.ecommerce.point.dto.*
-import io.hhplus.ecommerce.point.dto.PointHistoryResponse.Companion.toResponse
-import io.hhplus.ecommerce.point.domain.entity.UserPoint
-import io.hhplus.ecommerce.point.domain.entity.PointHistory
 import io.hhplus.ecommerce.common.response.ApiResponse
 import org.springframework.web.bind.annotation.*
 

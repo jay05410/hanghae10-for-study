@@ -4,7 +4,6 @@ import org.springframework.stereotype.Repository
 import java.time.LocalDateTime
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
-import kotlin.random.Random
 
 @Repository
 class InMemoryOutboxEventRepository : OutboxEventRepository {
@@ -63,7 +62,6 @@ class InMemoryOutboxEventRepository : OutboxEventRepository {
     }
 
     override fun save(outboxEvent: OutboxEvent): OutboxEvent {
-        simulateLatency()
         val savedEntity = if (outboxEvent.id == 0L) {
             outboxEvent.copy(id = idGenerator.getAndIncrement())
         } else {
@@ -74,32 +72,30 @@ class InMemoryOutboxEventRepository : OutboxEventRepository {
     }
 
     override fun findById(id: Long): OutboxEvent? {
-        simulateLatency()
         return storage[id]
     }
 
-    override fun findUnprocessedEvents(): List<OutboxEvent> {
-        simulateLatency()
-        return storage.values.filter { !it.processed }
+    override fun findUnprocessedEvents(limit: Int): List<OutboxEvent> {
+        return storage.values
+            .filter { !it.processed }
+            .take(limit)
+    }
+
+    override fun findProcessedEventsBefore(cutoffDate: LocalDateTime): List<OutboxEvent> {
+        return storage.values
+            .filter { it.processed && it.processedAt?.isBefore(cutoffDate) == true }
     }
 
     override fun findByAggregateTypeAndAggregateId(aggregateType: String, aggregateId: String): List<OutboxEvent> {
-        simulateLatency()
         return storage.values.filter { it.aggregateType == aggregateType && it.aggregateId == aggregateId }
     }
 
     override fun findByEventType(eventType: String): List<OutboxEvent> {
-        simulateLatency()
         return storage.values.filter { it.eventType == eventType }
     }
 
     override fun deleteById(id: Long) {
-        simulateLatency()
         storage.remove(id)
-    }
-
-    private fun simulateLatency() {
-        Thread.sleep(Random.nextLong(50, 200))
     }
 
     fun clear() {

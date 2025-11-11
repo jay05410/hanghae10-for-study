@@ -24,30 +24,35 @@ class OutboxEvent(
     val payload: String,
 
 //    @Column(nullable = false)
-    val processed: Boolean = false,
+    var processed: Boolean = false,
 
 //    @Column(nullable = true)
-    val processedAt: LocalDateTime? = null,
+    var processedAt: LocalDateTime? = null,
 
 //    @Column(nullable = true, columnDefinition = "TEXT")
-    val errorMessage: String? = null,
+    var errorMessage: String? = null,
 
 //    @Column(nullable = false)
-    val retryCount: Int = 0
+    var retryCount: Int = 0
 ) : ActiveJpaEntity() {
 
-    fun markAsProcessed() {
-        // We would need to make these var to modify them
-        // For now, this validates the intent
+    fun markAsProcessed(processedAt: LocalDateTime = LocalDateTime.now()) {
         require(!processed) { "이미 처리된 이벤트입니다" }
+        this.processed = true
+        this.processedAt = processedAt
+        this.errorMessage = null
     }
 
     fun incrementRetryCount() {
         require(retryCount < 5) { "최대 재시도 횟수를 초과했습니다" }
+        this.retryCount++
     }
 
-    fun markAsFailed(errorMessage: String) {
+    fun markAsFailed(errorMessage: String, failedAt: LocalDateTime = LocalDateTime.now()) {
         require(errorMessage.isNotBlank()) { "에러 메시지는 필수입니다" }
+        this.errorMessage = errorMessage
+        this.processed = false
+        this.processedAt = failedAt
     }
 
     companion object {

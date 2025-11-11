@@ -27,26 +27,24 @@ data class CouponResponse(
     val isActive: Boolean,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime
-) {
-    companion object {
-        fun io.hhplus.ecommerce.coupon.domain.entity.Coupon.toResponse(): CouponResponse = CouponResponse(
-            id = this.id,
-            name = this.name,
-            code = this.code,
-            discountType = this.discountType,
-            discountValue = this.discountValue,
-            minimumOrderAmount = this.minimumOrderAmount,
-            totalQuantity = this.totalQuantity,
-            issuedQuantity = this.issuedQuantity,
-            remainingQuantity = this.getRemainingQuantity(),
-            validFrom = this.validFrom,
-            validTo = this.validTo,
-            isActive = this.isActive,
-            createdAt = this.createdAt,
-            updatedAt = this.updatedAt
-        )
-    }
-}
+)
+
+fun Coupon.toResponse(): CouponResponse = CouponResponse(
+    id = this.id,
+    name = this.name,
+    code = this.code,
+    discountType = this.discountType,
+    discountValue = this.discountValue,
+    minimumOrderAmount = this.minimumOrderAmount,
+    totalQuantity = this.totalQuantity,
+    issuedQuantity = this.issuedQuantity,
+    remainingQuantity = this.getRemainingQuantity(),
+    validFrom = this.validFrom,
+    validTo = this.validTo,
+    isActive = this.isActive,
+    createdAt = this.createdAt,
+    updatedAt = this.updatedAt
+)
 
 /**
  * 사용자 쿠폰 정보 응답 DTO - 프레젠테이션 계층
@@ -62,19 +60,17 @@ data class UserCouponResponse(
     val isActive: Boolean,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime
-) {
-    companion object {
-        fun io.hhplus.ecommerce.coupon.domain.entity.UserCoupon.toResponse(): UserCouponResponse = UserCouponResponse(
-            id = this.id,
-            userId = this.userId,
-            couponId = this.couponId,
-            issuedAt = this.issuedAt,
-            usedAt = this.usedAt,
-            usedOrderId = this.usedOrderId,
-            status = this.status,
-            isActive = this.isActive,
-            createdAt = this.createdAt,
-            updatedAt = this.updatedAt
-        )
-    }
-}
+)
+
+fun io.hhplus.ecommerce.coupon.domain.entity.UserCoupon.toResponse(): UserCouponResponse = UserCouponResponse(
+    id = this.id,
+    userId = this.userId,
+    couponId = this.couponId,
+    issuedAt = this.issuedAt,
+    usedAt = this.usedAt,
+    usedOrderId = this.usedOrderId,
+    status = this.status,
+    isActive = this.isActive,
+    createdAt = this.createdAt,
+    updatedAt = this.updatedAt
+)
