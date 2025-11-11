@@ -2,6 +2,7 @@ package io.hhplus.ecommerce.user.controller
 
 import io.hhplus.ecommerce.user.application.UserService
 import io.hhplus.ecommerce.user.dto.*
+import io.hhplus.ecommerce.user.dto.UserResponse.Companion.toResponse
 import io.hhplus.ecommerce.user.domain.entity.User
 import io.hhplus.ecommerce.user.domain.constant.LoginType
 import io.hhplus.ecommerce.common.response.ApiResponse

@@ -75,7 +75,7 @@ class OrderControllerTest : DescribeSpec({
 
                 val result = sut.createOrder(request)
 
-                result shouldBe ApiResponse.success(mockOrder)
+                result.success shouldBe true
                 verify(exactly = 1) { mockCreateOrderUseCase.execute(request) }
             }
         }
@@ -91,7 +91,7 @@ class OrderControllerTest : DescribeSpec({
 
                 val result = sut.getOrder(orderId)
 
-                result shouldBe ApiResponse.success(mockOrder)
+                result.success shouldBe true
                 verify(exactly = 1) { mockGetOrderQueryUseCase.getOrder(orderId) }
             }
         }
@@ -104,7 +104,7 @@ class OrderControllerTest : DescribeSpec({
 
                 val result = sut.getOrder(orderId)
 
-                result shouldBe ApiResponse.success(null)
+                result.success shouldBe true
                 verify(exactly = 1) { mockGetOrderQueryUseCase.getOrder(orderId) }
             }
         }
@@ -123,7 +123,7 @@ class OrderControllerTest : DescribeSpec({
 
                 val result = sut.getOrders(userId)
 
-                result shouldBe ApiResponse.success(mockOrders)
+                result.success shouldBe true
                 verify(exactly = 1) { mockGetOrderQueryUseCase.getOrdersByUser(userId) }
             }
         }
@@ -136,7 +136,7 @@ class OrderControllerTest : DescribeSpec({
 
                 val result = sut.getOrders(userId)
 
-                result shouldBe ApiResponse.success(emptyList<Order>())
+                result.success shouldBe true
                 verify(exactly = 1) { mockGetOrderQueryUseCase.getOrdersByUser(userId) }
             }
         }

@@ -2,6 +2,8 @@ package io.hhplus.ecommerce.coupon.controller
 
 import io.hhplus.ecommerce.coupon.usecase.*
 import io.hhplus.ecommerce.coupon.dto.*
+import io.hhplus.ecommerce.coupon.dto.CouponResponse.Companion.toResponse
+import io.hhplus.ecommerce.coupon.dto.UserCouponResponse.Companion.toResponse
 import io.hhplus.ecommerce.coupon.domain.entity.Coupon
 import io.hhplus.ecommerce.coupon.domain.entity.UserCoupon
 import io.hhplus.ecommerce.common.response.ApiResponse

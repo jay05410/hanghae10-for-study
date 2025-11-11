@@ -46,7 +46,7 @@ class ProductControllerTest : DescribeSpec({
         price: Long = 1000L,
         categoryId: Long = 1L,
         isActive: Boolean = true
-    ): Product = mockk {
+    ): Product = mockk(relaxed = true) {
         every { this@mockk.id } returns id
         every { this@mockk.name } returns name
         every { this@mockk.description } returns description
@@ -83,7 +83,7 @@ class ProductControllerTest : DescribeSpec({
                 verify(exactly = 1) { mockGetProductQueryUseCase.getProducts(page) }
                 verify(exactly = 0) { mockGetProductQueryUseCase.getProductsByCategory(any()) }
                 // ApiResponse.success와 ProductResponse.from 변환 확인
-                result::class shouldBe ApiResponse.success(emptyList<ProductResponse>())::class
+                result.success shouldBe true
             }
         }
 
@@ -99,7 +99,7 @@ class ProductControllerTest : DescribeSpec({
 
                 verify(exactly = 1) { mockGetProductQueryUseCase.getProductsByCategory(categoryId) }
                 verify(exactly = 0) { mockGetProductQueryUseCase.getProducts(any()) }
-                result::class shouldBe ApiResponse.success(emptyList<ProductResponse>())::class
+                result.success shouldBe true
             }
         }
 
@@ -112,7 +112,7 @@ class ProductControllerTest : DescribeSpec({
                 val result = sut.getProducts(1, null) // 기본값 테스트 시뮬레이션
 
                 verify(exactly = 1) { mockGetProductQueryUseCase.getProducts(1) }
-                result::class shouldBe ApiResponse.success(emptyList<ProductResponse>())::class
+                result.success shouldBe true
             }
         }
 
@@ -161,7 +161,7 @@ class ProductControllerTest : DescribeSpec({
 
                 verify(exactly = 1) { mockIncrementProductViewUseCase.execute(productId, userId) }
                 verify(exactly = 1) { mockGetProductQueryUseCase.getProduct(productId) }
-                result::class shouldBe ApiResponse.success(mockk<ProductResponse>())::class
+                result.success shouldBe true
             }
         }
 
@@ -178,7 +178,7 @@ class ProductControllerTest : DescribeSpec({
 
                 verify(exactly = 1) { mockIncrementProductViewUseCase.execute(productId, defaultUserId) }
                 verify(exactly = 1) { mockGetProductQueryUseCase.getProduct(productId) }
-                result::class shouldBe ApiResponse.success(mockk<ProductResponse>())::class
+                result.success shouldBe true
             }
         }
 
@@ -200,7 +200,7 @@ class ProductControllerTest : DescribeSpec({
 
                     verify(exactly = 1) { mockIncrementProductViewUseCase.execute(productId, userId) }
                     verify(exactly = 1) { mockGetProductQueryUseCase.getProduct(productId) }
-                    result::class shouldBe ApiResponse.success(mockk<ProductResponse>())::class
+                    result.success shouldBe true
 
                     clearMocks(mockIncrementProductViewUseCase, mockGetProductQueryUseCase)
                 }
@@ -243,7 +243,7 @@ class ProductControllerTest : DescribeSpec({
                 val result = sut.createProduct(request)
 
                 verify(exactly = 1) { mockCreateProductUseCase.execute(request) }
-                result::class shouldBe ApiResponse.success(mockk<ProductResponse>())::class
+                result.success shouldBe true
             }
         }
 
@@ -262,7 +262,7 @@ class ProductControllerTest : DescribeSpec({
                     val result = sut.createProduct(request)
 
                     verify(exactly = 1) { mockCreateProductUseCase.execute(request) }
-                    result::class shouldBe ApiResponse.success(mockk<ProductResponse>())::class
+                    result.success shouldBe true
                     clearMocks(mockCreateProductUseCase)
                 }
             }
@@ -286,7 +286,7 @@ class ProductControllerTest : DescribeSpec({
                 val result = sut.updateProduct(productId, request)
 
                 verify(exactly = 1) { mockUpdateProductUseCase.execute(productId, request) }
-                result::class shouldBe ApiResponse.success(mockk<ProductResponse>())::class
+                result.success shouldBe true
             }
         }
 
@@ -305,7 +305,7 @@ class ProductControllerTest : DescribeSpec({
                     val result = sut.updateProduct(productId, request)
 
                     verify(exactly = 1) { mockUpdateProductUseCase.execute(productId, request) }
-                    result::class shouldBe ApiResponse.success(mockk<ProductResponse>())::class
+                    result.success shouldBe true
                     clearMocks(mockUpdateProductUseCase)
                 }
             }
@@ -326,7 +326,7 @@ class ProductControllerTest : DescribeSpec({
                 val result = sut.getPopularProducts(limit)
 
                 verify(exactly = 1) { mockGetPopularProductsUseCase.execute(limit) }
-                result::class shouldBe ApiResponse.success(emptyList<ProductResponse>())::class
+                result.success shouldBe true
             }
         }
 
@@ -340,7 +340,7 @@ class ProductControllerTest : DescribeSpec({
                 val result = sut.getPopularProducts(defaultLimit) // 기본값 테스트 시뮬레이션
 
                 verify(exactly = 1) { mockGetPopularProductsUseCase.execute(defaultLimit) }
-                result::class shouldBe ApiResponse.success(emptyList<ProductResponse>())::class
+                result.success shouldBe true
             }
         }
 
@@ -355,7 +355,7 @@ class ProductControllerTest : DescribeSpec({
                     val result = sut.getPopularProducts(limit)
 
                     verify(exactly = 1) { mockGetPopularProductsUseCase.execute(limit) }
-                    result::class shouldBe ApiResponse.success(emptyList<ProductResponse>())::class
+                    result.success shouldBe true
                     clearMocks(mockGetPopularProductsUseCase)
                 }
             }
@@ -417,11 +417,11 @@ class ProductControllerTest : DescribeSpec({
                 val getPopularResult = sut.getPopularProducts(10)
 
                 // 모든 결과가 ApiResponse.success 형태인지 확인
-                getProductsResult::class shouldBe ApiResponse.success(emptyList<ProductResponse>())::class
-                getProductResult::class shouldBe ApiResponse.success(mockk<ProductResponse>())::class
-                createResult::class shouldBe ApiResponse.success(mockk<ProductResponse>())::class
-                updateResult::class shouldBe ApiResponse.success(mockk<ProductResponse>())::class
-                getPopularResult::class shouldBe ApiResponse.success(emptyList<ProductResponse>())::class
+                getProductsResult.success shouldBe true
+                getProductResult.success shouldBe true
+                createResult.success shouldBe true
+                updateResult.success shouldBe true
+                getPopularResult.success shouldBe true
             }
         }
     }

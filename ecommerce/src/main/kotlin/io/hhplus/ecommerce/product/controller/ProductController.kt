@@ -2,6 +2,7 @@ package io.hhplus.ecommerce.product.controller
 
 import io.hhplus.ecommerce.product.usecase.*
 import io.hhplus.ecommerce.product.dto.*
+import io.hhplus.ecommerce.product.dto.ProductResponse.Companion.toResponse
 import io.hhplus.ecommerce.common.response.ApiResponse
 import org.springframework.web.bind.annotation.*
 

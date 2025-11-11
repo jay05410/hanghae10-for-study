@@ -2,6 +2,7 @@ package io.hhplus.ecommerce.inventory.controller
 
 import io.hhplus.ecommerce.inventory.usecase.*
 import io.hhplus.ecommerce.inventory.dto.*
+import io.hhplus.ecommerce.inventory.dto.StockReservationResponse.Companion.toResponse
 import io.hhplus.ecommerce.inventory.domain.entity.StockReservation
 import io.hhplus.ecommerce.inventory.domain.constant.ReservationStatus
 import io.hhplus.ecommerce.common.response.ApiResponse
@@ -67,7 +68,7 @@ class InventoryControllerTest : DescribeSpec({
 
                 val result = sut.reserveStock(productId, request, userId)
 
-                result shouldBe ApiResponse.success(StockReservationResponse.from(mockReservation))
+                result shouldBe ApiResponse.success(mockReservation.toResponse())
                 verify(exactly = 1) { mockReserveStockUseCase.execute(productId, userId, 5, 20) }
             }
         }
@@ -83,7 +84,7 @@ class InventoryControllerTest : DescribeSpec({
 
                 val result = sut.reserveStock(productId, request, userId)
 
-                result shouldBe ApiResponse.success(StockReservationResponse.from(mockReservation))
+                result shouldBe ApiResponse.success(mockReservation.toResponse())
                 verify(exactly = 1) { mockReserveStockUseCase.execute(productId, userId, 3, 20) }
             }
         }
@@ -100,7 +101,7 @@ class InventoryControllerTest : DescribeSpec({
 
                 val result = sut.confirmReservation(reservationId, userId)
 
-                result shouldBe ApiResponse.success(StockReservationResponse.from(mockReservation))
+                result shouldBe ApiResponse.success(mockReservation.toResponse())
                 verify(exactly = 1) { mockConfirmReservationUseCase.execute(reservationId, userId) }
             }
         }
@@ -117,7 +118,7 @@ class InventoryControllerTest : DescribeSpec({
 
                 val result = sut.cancelReservation(reservationId, userId)
 
-                result shouldBe ApiResponse.success(StockReservationResponse.from(mockReservation))
+                result shouldBe ApiResponse.success(mockReservation.toResponse())
                 verify(exactly = 1) { mockCancelReservationUseCase.execute(reservationId, userId) }
             }
         }
@@ -136,7 +137,7 @@ class InventoryControllerTest : DescribeSpec({
 
                 val result = sut.getUserReservations(userId)
 
-                val expectedResponses = mockReservations.map { StockReservationResponse.from(it) }
+                val expectedResponses = mockReservations.map { it.toResponse() }
                 result shouldBe ApiResponse.success(expectedResponses)
                 verify(exactly = 1) { mockGetUserReservationsUseCase.execute(userId) }
             }
