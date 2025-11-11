@@ -62,8 +62,19 @@ class InMemoryOutboxEventRepository : OutboxEventRepository {
     }
 
     override fun save(outboxEvent: OutboxEvent): OutboxEvent {
+        // ID가 없는 신규 이벤트인 경우 ID 할당
         val savedEntity = if (outboxEvent.id == 0L) {
-            outboxEvent.copy(id = idGenerator.getAndIncrement())
+            OutboxEvent(
+                id = idGenerator.getAndIncrement(),
+                eventType = outboxEvent.eventType,
+                aggregateType = outboxEvent.aggregateType,
+                aggregateId = outboxEvent.aggregateId,
+                payload = outboxEvent.payload,
+                processed = outboxEvent.processed,
+                processedAt = outboxEvent.processedAt,
+                errorMessage = outboxEvent.errorMessage,
+                retryCount = outboxEvent.retryCount
+            )
         } else {
             outboxEvent
         }
@@ -78,12 +89,14 @@ class InMemoryOutboxEventRepository : OutboxEventRepository {
     override fun findUnprocessedEvents(limit: Int): List<OutboxEvent> {
         return storage.values
             .filter { !it.processed }
+            .sortedBy { it.id }  // FIFO 순서 보장
             .take(limit)
     }
 
     override fun findProcessedEventsBefore(cutoffDate: LocalDateTime): List<OutboxEvent> {
         return storage.values
             .filter { it.processed && it.processedAt?.isBefore(cutoffDate) == true }
+            .sortedBy { it.id }  // 일관된 순서 보장
     }
 
     override fun findByAggregateTypeAndAggregateId(aggregateType: String, aggregateId: String): List<OutboxEvent> {
@@ -102,19 +115,5 @@ class InMemoryOutboxEventRepository : OutboxEventRepository {
         storage.clear()
         idGenerator.set(1)
         initializeSampleData()
-    }
-
-    private fun OutboxEvent.copy(
-        id: Long = this.id,
-        eventType: String = this.eventType,
-        aggregateType: String = this.aggregateType,
-        aggregateId: String = this.aggregateId,
-        payload: String = this.payload,
-        processed: Boolean = this.processed,
-        processedAt: java.time.LocalDateTime? = this.processedAt,
-        errorMessage: String? = this.errorMessage,
-        retryCount: Int = this.retryCount
-    ): OutboxEvent {
-        return OutboxEvent(id, eventType, aggregateType, aggregateId, payload, processed, processedAt, errorMessage, retryCount)
     }
 }

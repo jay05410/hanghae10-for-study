@@ -121,24 +121,12 @@ class UserController(
      * @param userId 비활성화할 사용자의 ID
      * @return 비활성화된 사용자 정보를 포함한 API 응답
      */
-    /**
-     * 사용자 계정을 비활성화한다
-     *
-     * @param userId 비활성화할 사용자의 ID
-     * @return 비활성화된 사용자 정보를 포함한 API 응답
-     */
     @PostMapping("/{userId}/deactivate")
     fun deactivateUser(@PathVariable userId: Long): ApiResponse<UserResponse> {
         val user = userService.deactivateUser(userId, userId)
         return ApiResponse.success(user.toResponse())
     }
 
-    /**
-     * 사용자 계정을 활성화한다
-     *
-     * @param userId 활성화할 사용자의 ID
-     * @return 활성화된 사용자 정보를 포함한 API 응답
-     */
     /**
      * 사용자 계정을 활성화한다
      *

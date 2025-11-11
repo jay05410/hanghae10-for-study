@@ -1,12 +1,15 @@
 package io.hhplus.ecommerce.common.outbox
 
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 
 @Service
 class OutboxEventService(
-    private val outboxEventRepository: OutboxEventRepository
+    private val outboxEventRepository: OutboxEventRepository,
+    @Value("\${outbox.max-retry-count:5}")
+    private val maxRetryCount: Int = 5
 ) {
 
     @Transactional
@@ -47,7 +50,7 @@ class OutboxEventService(
             ?: return null
 
         event.markAsFailed(errorMessage)
-        event.incrementRetryCount()
+        event.incrementRetryCount(maxRetryCount)
         return outboxEventRepository.save(event)
     }
 
@@ -64,11 +67,11 @@ class OutboxEventService(
         val event = outboxEventRepository.findById(eventId)
             ?: return null
 
-        if (event.retryCount >= 5) {
+        if (event.retryCount >= maxRetryCount) {
             throw IllegalStateException("최대 재시도 횟수를 초과했습니다: $eventId")
         }
 
-        event.incrementRetryCount()
+        event.incrementRetryCount(maxRetryCount)
         return outboxEventRepository.save(event)
     }
 

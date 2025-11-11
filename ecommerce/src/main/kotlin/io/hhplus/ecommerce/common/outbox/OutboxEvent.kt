@@ -43,8 +43,8 @@ class OutboxEvent(
         this.errorMessage = null
     }
 
-    fun incrementRetryCount() {
-        require(retryCount < 5) { "최대 재시도 횟수를 초과했습니다" }
+    fun incrementRetryCount(maxRetryCount: Int = 5) {
+        require(retryCount < maxRetryCount) { "최대 재시도 횟수를 초과했습니다" }
         this.retryCount++
     }
 
@@ -73,7 +73,9 @@ class OutboxEvent(
                 aggregateType = aggregateType,
                 aggregateId = aggregateId,
                 payload = payload
-            )
+            ).apply {
+                this.createdBy = createdBy
+            }
         }
     }
 }
