@@ -10,4 +10,5 @@ interface OutboxEventRepository {
     fun findByAggregateTypeAndAggregateId(aggregateType: String, aggregateId: String): List<OutboxEvent>
     fun findByEventType(eventType: String): List<OutboxEvent>
     fun deleteById(id: Long)
+    fun deleteByIds(ids: List<Long>)
 }

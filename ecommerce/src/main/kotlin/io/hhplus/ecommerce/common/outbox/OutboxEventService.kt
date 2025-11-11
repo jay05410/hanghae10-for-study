@@ -72,15 +72,17 @@ class OutboxEventService(
         }
 
         // 재시도 준비: 에러 상태만 초기화 (재시도 횟수는 markAsFailed에서 이미 증가됨)
-        event.errorMessage = null
-        event.processedAt = null
+        event.prepareForRetry()
         return outboxEventRepository.save(event)
     }
 
     @Transactional
     fun deleteProcessedEvents(olderThanDays: Long = 30) {
         val cutoffDate = LocalDateTime.now().minusDays(olderThanDays)
-        outboxEventRepository.findProcessedEventsBefore(cutoffDate)
-            .forEach { outboxEventRepository.deleteById(it.id) }
+        val idsToDelete = outboxEventRepository.findProcessedEventsBefore(cutoffDate)
+            .map { it.id }
+        if (idsToDelete.isNotEmpty()) {
+            outboxEventRepository.deleteByIds(idsToDelete)
+        }
     }
 }

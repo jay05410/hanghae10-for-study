@@ -55,6 +55,11 @@ class OutboxEvent(
         this.processedAt = failedAt
     }
 
+    fun prepareForRetry() {
+        this.errorMessage = null
+        this.processedAt = null
+    }
+
     companion object {
         fun create(
             eventType: String,

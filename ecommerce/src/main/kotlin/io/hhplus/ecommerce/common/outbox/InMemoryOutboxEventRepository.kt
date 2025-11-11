@@ -111,6 +111,10 @@ class InMemoryOutboxEventRepository : OutboxEventRepository {
         storage.remove(id)
     }
 
+    override fun deleteByIds(ids: List<Long>) {
+        ids.forEach { storage.remove(it) }
+    }
+
     fun clear() {
         storage.clear()
         idGenerator.set(1)
