@@ -71,7 +71,9 @@ class OutboxEventService(
             throw IllegalStateException("최대 재시도 횟수를 초과했습니다: $eventId")
         }
 
-        event.incrementRetryCount(maxRetryCount)
+        // 재시도 준비: 에러 상태만 초기화 (재시도 횟수는 markAsFailed에서 이미 증가됨)
+        event.errorMessage = null
+        event.processedAt = null
         return outboxEventRepository.save(event)
     }
 
