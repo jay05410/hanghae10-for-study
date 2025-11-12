@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: hhplus-ecommerce-test
+  datasource:
+    # TestContainers에서 동적으로 설정됨
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+        id:
+          new_generator_mappings: false
+    defer-datasource-initialization: false
+
+  sql:
+    init:
+      mode: never
+
+logging:
+  level:
+    org.springframework: INFO
+    org.testcontainers: INFO
+    com.github.gavlyukovskiy.cloud.sleuth: OFF
+    io.hhplus.ecommerce: DEBUG
+
+# P6Spy 비활성화 (테스트 환경)
+decorator:
+  datasource:
+    p6spy:
+      enable-logging: false
