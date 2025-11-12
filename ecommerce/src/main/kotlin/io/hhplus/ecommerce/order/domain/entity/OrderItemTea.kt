@@ -1,34 +1,34 @@
 package io.hhplus.ecommerce.order.domain.entity
 
 import io.hhplus.ecommerce.common.baseentity.ActiveJpaEntity
-//import jakarta.persistence.*
+import jakarta.persistence.*
 
-//@Entity
-//@Table(name = "order_item_tea")
+@Entity
+@Table(name = "order_item_tea")
 class OrderItemTea(
-//    @Id
-//    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
-//    @Column(nullable = false)
+    @Column(nullable = false)
     val orderItemId: Long,
 
-//    @Column(nullable = false)
+    @Column(nullable = false)
     val productId: Long,
 
-//    @Column(nullable = false, length = 100)
+    @Column(nullable = false, length = 100)
     val productName: String,
 
-//    @Column(nullable = false, length = 50)
+    @Column(nullable = false, length = 50)
     val categoryName: String,
 
-//    @Column(nullable = false)
+    @Column(nullable = false)
     val selectionOrder: Int,
 
-//    @Column(nullable = false)
+    @Column(nullable = false)
     val ratioPercent: Int,
 
-//    @Column(nullable = false)
+    @Column(nullable = false)
     val unitPrice: Int
 ) : ActiveJpaEntity() {
 

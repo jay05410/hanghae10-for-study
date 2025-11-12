@@ -1,25 +1,25 @@
 package io.hhplus.ecommerce.cart.domain.entity
 
 import io.hhplus.ecommerce.common.baseentity.ActiveJpaEntity
-// import jakarta.persistence.*
+import jakarta.persistence.*
 
-// @Entity
-// @Table(name = "cart_item_tea")
+@Entity
+@Table(name = "cart_item_tea")
 data class CartItemTea(
-    // @Id
-    // @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
-    // @Column(nullable = false)
+    @Column(nullable = false)
     val cartItemId: Long,
 
-    // @Column(nullable = false)
+    @Column(nullable = false)
     val productId: Long,
 
-    // @Column(nullable = false)
+    @Column(nullable = false)
     val selectionOrder: Int,
 
-    // @Column(nullable = false)
+    @Column(nullable = false)
     val ratioPercent: Int
 ) : ActiveJpaEntity() {
 

@@ -1,25 +1,25 @@
 package io.hhplus.ecommerce.product.domain.entity
 
 import io.hhplus.ecommerce.common.baseentity.ActiveJpaEntity
-// import jakarta.persistence.*
+import jakarta.persistence.*
 
-// @Entity
-// @Table(name = "product_statistics")
+@Entity
+@Table(name = "product_statistics")
 class ProductStatistics(
-    // @Id
-    // @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
-    // @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true)
     val productId: Long,
 
-    // @Column(nullable = false)
+    @Column(nullable = false)
     var viewCount: Long = 0,
 
-    // @Column(nullable = false)
+    @Column(nullable = false)
     var salesCount: Long = 0,
 
-    // @Version
+    @Version
     var version: Int = 0
 ) : ActiveJpaEntity() {
 

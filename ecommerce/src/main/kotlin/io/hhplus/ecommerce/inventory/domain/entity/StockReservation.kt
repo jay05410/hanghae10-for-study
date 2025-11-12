@@ -2,36 +2,36 @@ package io.hhplus.ecommerce.inventory.domain.entity
 
 import io.hhplus.ecommerce.common.baseentity.ActiveJpaEntity
 import io.hhplus.ecommerce.inventory.domain.constant.ReservationStatus
-//import jakarta.persistence.*
+import jakarta.persistence.*
 import java.time.LocalDateTime
 
-//@Entity
-//@Table(name = "stock_reservations")
+@Entity
+@Table(name = "stock_reservations")
 class StockReservation(
-//    @Id
-//    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
-//    @Column(nullable = false)
+    @Column(nullable = false)
     val productId: Long,
 
-//    @Column(nullable = false)
+    @Column(nullable = false)
     val userId: Long,
 
-//    @Column(nullable = false)
+    @Column(nullable = false)
     val quantity: Int,
 
-//    @Column(nullable = false, length = 20)
-//    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Enumerated(EnumType.STRING)
     var status: ReservationStatus = ReservationStatus.RESERVED,
 
-//    @Column(nullable = false)
+    @Column(nullable = false)
     val reservedAt: LocalDateTime = LocalDateTime.now(),
 
-//    @Column(nullable = false)
+    @Column(nullable = false)
     val expiresAt: LocalDateTime = LocalDateTime.now().plusMinutes(20),
 
-//    @Version
+    @Version
     var version: Int = 0
 ) : ActiveJpaEntity() {
 

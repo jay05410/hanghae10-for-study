@@ -1,38 +1,38 @@
 package io.hhplus.ecommerce.common.outbox
 
 import io.hhplus.ecommerce.common.baseentity.ActiveJpaEntity
-//import jakarta.persistence.*
+import jakarta.persistence.*
 import java.time.LocalDateTime
 
-//@Entity
-//@Table(name = "outbox_event")
+@Entity
+@Table(name = "outbox_event")
 class OutboxEvent(
-//    @Id
-//    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
-//    @Column(nullable = false, length = 100)
+    @Column(nullable = false, length = 100)
     val eventType: String,
 
-//    @Column(nullable = false, length = 100)
+    @Column(nullable = false, length = 100)
     val aggregateType: String,
 
-//    @Column(nullable = false)
+    @Column(nullable = false)
     val aggregateId: String,
 
-//    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(nullable = false, columnDefinition = "TEXT")
     val payload: String,
 
-//    @Column(nullable = false)
+    @Column(nullable = false)
     var processed: Boolean = false,
 
-//    @Column(nullable = true)
+    @Column(nullable = true)
     var processedAt: LocalDateTime? = null,
 
-//    @Column(nullable = true, columnDefinition = "TEXT")
+    @Column(nullable = true, columnDefinition = "TEXT")
     var errorMessage: String? = null,
 
-//    @Column(nullable = false)
+    @Column(nullable = false)
     var retryCount: Int = 0
 ) : ActiveJpaEntity() {
 

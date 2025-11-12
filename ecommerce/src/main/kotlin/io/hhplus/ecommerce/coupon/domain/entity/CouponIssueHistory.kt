@@ -2,36 +2,36 @@ package io.hhplus.ecommerce.coupon.domain.entity
 
 import io.hhplus.ecommerce.common.baseentity.ActiveJpaEntity
 import io.hhplus.ecommerce.coupon.domain.constant.UserCouponStatus
-//import jakarta.persistence.*
+import jakarta.persistence.*
 import java.time.LocalDateTime
 
-//@Entity
-//@Table(name = "coupon_issue_history")
+@Entity
+@Table(name = "coupon_issue_history")
 class CouponIssueHistory(
-//    @Id
-//    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
-//    @Column(nullable = false)
+    @Column(nullable = false)
     val couponId: Long,
 
-//    @Column(nullable = false)
+    @Column(nullable = false)
     val userId: Long,
 
-//    @Enumerated(EnumType.STRING)
-//    @Column(nullable = false, length = 20)
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
     val status: UserCouponStatus,
 
-//    @Column(nullable = false)
+    @Column(nullable = false)
     val issuedAt: LocalDateTime,
 
-//    @Column(nullable = true)
+    @Column(nullable = true)
     val usedAt: LocalDateTime? = null,
 
-//    @Column(nullable = true)
+    @Column(nullable = true)
     val expiredAt: LocalDateTime? = null,
 
-//    @Column(nullable = true, columnDefinition = "TEXT")
+    @Column(nullable = true, columnDefinition = "TEXT")
     val description: String? = null
 ) : ActiveJpaEntity() {
 

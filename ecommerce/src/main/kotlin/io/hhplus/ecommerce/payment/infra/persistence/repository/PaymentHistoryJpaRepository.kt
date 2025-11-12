@@ -31,11 +31,13 @@ interface PaymentHistoryJpaRepository : JpaRepository<PaymentHistoryJpaEntity, L
     /**
      * 특정 상태로 변경된 이력 조회
      */
+    @Query("SELECT ph FROM PaymentHistoryJpaEntity ph WHERE ph.statusAfter = :statusAfter")
     fun findByStatusAfter(statusAfter: String): List<PaymentHistoryJpaEntity>
 
     /**
      * 결제 ID와 상태로 이력 조회
      */
+    @Query("SELECT ph FROM PaymentHistoryJpaEntity ph WHERE ph.paymentId = :paymentId AND ph.statusAfter = :statusAfter")
     fun findByPaymentIdAndStatusAfter(paymentId: Long, statusAfter: String): List<PaymentHistoryJpaEntity>
 
     /**
