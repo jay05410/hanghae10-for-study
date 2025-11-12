@@ -13,7 +13,6 @@
 
     <!-- 콘솔 로그 설정 -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-        <withJansi>true</withJansi>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <pattern>${CONSOLE_LOG_PATTERN}</pattern>
             <outputPatternAsHeader>false</outputPatternAsHeader>
@@ -64,9 +63,18 @@
         </rollingPolicy>
     </appender>
 
+    <!-- P6Spy 콘솔 전용 appender -->
+    <appender name="P6SPY_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%msg%n</pattern>
+            <outputPatternAsHeader>false</outputPatternAsHeader>
+        </encoder>
+        <target>System.out</target>
+    </appender>
+
     <!-- P6Spy logger -->
     <logger name="p6spy" level="INFO" additivity="false">
-        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="P6SPY_CONSOLE"/>
         <appender-ref ref="P6SPY_FILE"/>
     </logger>
 
@@ -81,8 +89,11 @@
     <logger name="org.hibernate" level="INFO"/>
     <logger name="org.springframework.transaction" level="DEBUG"/>
 
-    <!-- H2 Database 로깅 -->
-    <logger name="org.h2" level="INFO"/>
+    <!-- MySQL Database 로깅 -->
+    <logger name="com.mysql.cj" level="INFO"/>
+
+    <!-- HikariCP 커넥션 풀 로깅 -->
+    <logger name="com.zaxxer.hikari" level="INFO"/>
 
     <!-- 루트 로거 설정 -->
     <root level="INFO">
