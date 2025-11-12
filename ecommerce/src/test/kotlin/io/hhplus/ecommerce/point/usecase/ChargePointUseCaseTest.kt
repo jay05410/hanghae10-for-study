@@ -55,7 +55,7 @@ class ChargePointUseCaseTest : DescribeSpec({
                 // 적립 실행
                 every { mockPointService.earnPoint(userId, pointAmount, userId, description) } returns updatedUserPoint
                 // 히스토리 기록
-                every { mockPointHistoryService.recordEarnHistory(userId, pointAmount, balanceBefore, balanceAfter, description, isNull()) } returns mockk()
+                every { mockPointHistoryService.recordEarnHistory(userId, pointAmount, balanceBefore, balanceAfter, userId, description, isNull()) } returns mockk()
 
                 val result = sut.execute(userId, amount, description)
 
@@ -63,7 +63,7 @@ class ChargePointUseCaseTest : DescribeSpec({
                 verifyOrder {
                     mockPointService.getUserPoint(userId)
                     mockPointService.earnPoint(userId, pointAmount, userId, description)
-                    mockPointHistoryService.recordEarnHistory(userId, pointAmount, balanceBefore, balanceAfter, description, isNull())
+                    mockPointHistoryService.recordEarnHistory(userId, pointAmount, balanceBefore, balanceAfter, userId, description, isNull())
                 }
                 verify(exactly = 0) { mockPointService.createUserPoint(any(), any()) }
             }
@@ -92,7 +92,7 @@ class ChargePointUseCaseTest : DescribeSpec({
                 // 적립 실행
                 every { mockPointService.earnPoint(userId, pointAmount, userId, description) } returns earnedUserPoint
                 // 히스토리 기록
-                every { mockPointHistoryService.recordEarnHistory(userId, pointAmount, balanceBefore, balanceAfter, description, isNull()) } returns mockk()
+                every { mockPointHistoryService.recordEarnHistory(userId, pointAmount, balanceBefore, balanceAfter, userId, description, isNull()) } returns mockk()
 
                 val result = sut.execute(userId, amount, description)
 
@@ -102,7 +102,7 @@ class ChargePointUseCaseTest : DescribeSpec({
                     mockPointService.createUserPoint(userId, userId) // 포인트 계정 생성
                     mockPointService.getUserPoint(userId) // 두 번째 조회 - 생성된 포인트
                     mockPointService.earnPoint(userId, pointAmount, userId, description)
-                    mockPointHistoryService.recordEarnHistory(userId, pointAmount, balanceBefore, balanceAfter, description, isNull())
+                    mockPointHistoryService.recordEarnHistory(userId, pointAmount, balanceBefore, balanceAfter, userId, description, isNull())
                 }
             }
         }
@@ -124,13 +124,13 @@ class ChargePointUseCaseTest : DescribeSpec({
 
                 every { mockPointService.getUserPoint(userId) } returns existingUserPoint
                 every { mockPointService.earnPoint(userId, pointAmount, userId, null) } returns updatedUserPoint
-                every { mockPointHistoryService.recordEarnHistory(userId, pointAmount, balanceBefore, balanceAfter, null, isNull()) } returns mockk()
+                every { mockPointHistoryService.recordEarnHistory(userId, pointAmount, balanceBefore, balanceAfter, userId, null, isNull()) } returns mockk()
 
                 val result = sut.execute(userId, amount)
 
                 result shouldBe updatedUserPoint
                 verify(exactly = 1) { mockPointService.earnPoint(userId, pointAmount, userId, null) }
-                verify(exactly = 1) { mockPointHistoryService.recordEarnHistory(userId, pointAmount, balanceBefore, balanceAfter, null, isNull()) }
+                verify(exactly = 1) { mockPointHistoryService.recordEarnHistory(userId, pointAmount, balanceBefore, balanceAfter, userId, null, isNull()) }
             }
         }
 
@@ -148,12 +148,12 @@ class ChargePointUseCaseTest : DescribeSpec({
 
                 every { mockPointService.getUserPoint(userId) } returns existingUserPoint
                 every { mockPointService.earnPoint(userId, PointAmount.of(amount), userId, null) } returns updatedUserPoint
-                every { mockPointHistoryService.recordEarnHistory(userId, PointAmount.of(amount), Balance.zero(), Balance.of(amount), null, isNull()) } returns mockk()
+                every { mockPointHistoryService.recordEarnHistory(userId, PointAmount.of(amount), Balance.zero(), Balance.of(amount), userId, null, isNull()) } returns mockk()
 
                 sut.execute(userId, amount)
 
                 verify(exactly = 1) { mockPointService.earnPoint(userId, PointAmount.of(amount), userId, null) }
-                verify(exactly = 1) { mockPointHistoryService.recordEarnHistory(userId, PointAmount.of(amount), Balance.zero(), Balance.of(amount), null, isNull()) }
+                verify(exactly = 1) { mockPointHistoryService.recordEarnHistory(userId, PointAmount.of(amount), Balance.zero(), Balance.of(amount), userId, null, isNull()) }
             }
         }
     }

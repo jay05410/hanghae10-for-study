@@ -13,6 +13,8 @@ import io.hhplus.ecommerce.product.application.ProductService
 import io.hhplus.ecommerce.product.domain.entity.Product
 import io.hhplus.ecommerce.coupon.application.CouponService
 import io.hhplus.ecommerce.payment.application.PaymentService
+import io.hhplus.ecommerce.delivery.application.DeliveryService
+import io.hhplus.ecommerce.delivery.dto.DeliveryAddressRequest
 
 class CreateOrderUseCaseTest : DescribeSpec({
 
@@ -20,12 +22,23 @@ class CreateOrderUseCaseTest : DescribeSpec({
     val productService = mockk<ProductService>()
     val couponService = mockk<CouponService>()
     val paymentService = mockk<PaymentService>()
+    val deliveryService = mockk<DeliveryService>()
 
     val createOrderUseCase = CreateOrderUseCase(
         orderService = orderService,
         productService = productService,
         couponService = couponService,
-        paymentService = paymentService
+        paymentService = paymentService,
+        deliveryService = deliveryService
+    )
+
+    fun mockDeliveryAddress() = DeliveryAddressRequest(
+        recipientName = "김철수",
+        phone = "010-1234-5678",
+        zipCode = "06234",
+        address = "서울시 강남구 테헤란로 123",
+        addressDetail = "456호",
+        deliveryMessage = "부재 시 문 앞에 놓아주세요"
     )
 
     describe("CreateOrderUseCase") {
@@ -55,6 +68,7 @@ class CreateOrderUseCaseTest : DescribeSpec({
                             teaItems = emptyList()
                         )
                     ),
+                    deliveryAddress = mockDeliveryAddress(),
                     usedCouponId = null
                 )
 
@@ -71,6 +85,7 @@ class CreateOrderUseCaseTest : DescribeSpec({
                 every { productService.getProduct(1L) } returns mockProduct
                 every { orderService.createOrder(any(), any(), any(), any(), any(), any()) } returns mockOrder
                 every { paymentService.processPayment(any(), any(), any()) } returns mockk<io.hhplus.ecommerce.payment.domain.entity.Payment>()
+                every { deliveryService.createDelivery(any(), any(), any(), any()) } returns mockk()
 
                 // When
                 val result = createOrderUseCase.execute(request)
@@ -80,6 +95,7 @@ class CreateOrderUseCaseTest : DescribeSpec({
                 verify { productService.getProduct(1L) }
                 verify { orderService.createOrder(1L, any(), null, 10000L, 0L, 1L) }
                 verify { paymentService.processPayment(1L, 1L, 10000L) }
+                verify { deliveryService.createDelivery(1L, any(), any(), 1L) }
                 verify(exactly = 0) { couponService.validateCouponUsage(any(), any(), any()) }
             }
         }
@@ -105,6 +121,7 @@ class CreateOrderUseCaseTest : DescribeSpec({
                             teaItems = emptyList()
                         )
                     ),
+                    deliveryAddress = mockDeliveryAddress(),
                     usedCouponId = 100L
                 )
 
@@ -123,6 +140,7 @@ class CreateOrderUseCaseTest : DescribeSpec({
                 every { orderService.createOrder(any(), any(), any(), any(), any(), any()) } returns mockOrder
                 every { paymentService.processPayment(any(), any(), any()) } returns mockk<io.hhplus.ecommerce.payment.domain.entity.Payment>()
                 every { couponService.applyCoupon(any(), any(), any(), any()) } returns 0L
+                every { deliveryService.createDelivery(any(), any(), any(), any()) } returns mockk()
 
                 // When
                 val result = createOrderUseCase.execute(request)
@@ -134,6 +152,7 @@ class CreateOrderUseCaseTest : DescribeSpec({
                 verify { orderService.createOrder(1L, any(), 100L, 10000L, 2000L, 1L) }
                 verify { paymentService.processPayment(1L, 1L, 8000L) }
                 verify { couponService.applyCoupon(1L, 100L, 1L, 10000L) }
+                verify { deliveryService.createDelivery(1L, any(), any(), 1L) }
             }
         }
 
@@ -172,6 +191,7 @@ class CreateOrderUseCaseTest : DescribeSpec({
                             teaItems = emptyList()
                         )
                     ),
+                    deliveryAddress = mockDeliveryAddress(),
                     usedCouponId = null
                 )
 
@@ -194,6 +214,7 @@ class CreateOrderUseCaseTest : DescribeSpec({
                 every { productService.getProduct(2L) } returns mockProduct2
                 every { orderService.createOrder(any(), any(), any(), any(), any(), any()) } returns mockOrder
                 every { paymentService.processPayment(any(), any(), any()) } returns mockk<io.hhplus.ecommerce.payment.domain.entity.Payment>()
+                every { deliveryService.createDelivery(any(), any(), any(), any()) } returns mockk()
 
                 // When
                 val result = createOrderUseCase.execute(request)
@@ -204,6 +225,7 @@ class CreateOrderUseCaseTest : DescribeSpec({
                 verify { productService.getProduct(2L) }
                 verify { orderService.createOrder(1L, any(), null, 15000L, 0L, 1L) }
                 verify { paymentService.processPayment(1L, 1L, 15000L) }
+                verify { deliveryService.createDelivery(1L, any(), any(), 1L) }
             }
         }
 
@@ -228,6 +250,7 @@ class CreateOrderUseCaseTest : DescribeSpec({
                             teaItems = emptyList()
                         )
                     ),
+                    deliveryAddress = mockDeliveryAddress(),
                     usedCouponId = null
                 )
 
@@ -244,12 +267,14 @@ class CreateOrderUseCaseTest : DescribeSpec({
                 every { productService.getProduct(1L) } returns mockProduct
                 every { orderService.createOrder(any(), any(), any(), any(), any(), any()) } returns mockOrder
                 every { paymentService.processPayment(any(), any(), any()) } returns mockk<io.hhplus.ecommerce.payment.domain.entity.Payment>()
+                every { deliveryService.createDelivery(any(), any(), any(), any()) } returns mockk()
 
                 // When
                 createOrderUseCase.execute(request)
 
                 // Then
                 verify { paymentService.processPayment(2L, 10L, 5000L) }
+                verify { deliveryService.createDelivery(10L, any(), any(), 2L) }
             }
         }
     }

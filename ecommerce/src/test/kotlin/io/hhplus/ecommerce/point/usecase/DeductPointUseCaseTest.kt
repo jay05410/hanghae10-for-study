@@ -56,7 +56,7 @@ class DeductPointUseCaseTest : DescribeSpec({
                 // 사용 실행
                 every { mockPointService.usePoint(userId, pointAmount, userId, description) } returns updatedUserPoint
                 // 히스토리 기록
-                every { mockPointHistoryService.recordUseHistory(userId, pointAmount, balanceBefore, balanceAfter, description, isNull()) } returns mockk()
+                every { mockPointHistoryService.recordUseHistory(userId, pointAmount, balanceBefore, balanceAfter, userId, description, isNull()) } returns mockk()
 
                 val result = sut.execute(userId, amount, description)
 
@@ -64,7 +64,7 @@ class DeductPointUseCaseTest : DescribeSpec({
                 verifyOrder {
                     mockPointService.getUserPoint(userId)
                     mockPointService.usePoint(userId, pointAmount, userId, description)
-                    mockPointHistoryService.recordUseHistory(userId, pointAmount, balanceBefore, balanceAfter, description, isNull())
+                    mockPointHistoryService.recordUseHistory(userId, pointAmount, balanceBefore, balanceAfter, userId, description, isNull())
                 }
             }
         }
@@ -103,13 +103,13 @@ class DeductPointUseCaseTest : DescribeSpec({
 
                 every { mockPointService.getUserPoint(userId) } returns userPointBefore
                 every { mockPointService.usePoint(userId, pointAmount, userId, null) } returns updatedUserPoint
-                every { mockPointHistoryService.recordUseHistory(userId, pointAmount, balanceBefore, balanceAfter, null, isNull()) } returns mockk()
+                every { mockPointHistoryService.recordUseHistory(userId, pointAmount, balanceBefore, balanceAfter, userId, null, isNull()) } returns mockk()
 
                 val result = sut.execute(userId, amount)
 
                 result shouldBe updatedUserPoint
                 verify(exactly = 1) { mockPointService.usePoint(userId, pointAmount, userId, null) }
-                verify(exactly = 1) { mockPointHistoryService.recordUseHistory(userId, pointAmount, balanceBefore, balanceAfter, null, isNull()) }
+                verify(exactly = 1) { mockPointHistoryService.recordUseHistory(userId, pointAmount, balanceBefore, balanceAfter, userId, null, isNull()) }
             }
         }
 
@@ -129,12 +129,12 @@ class DeductPointUseCaseTest : DescribeSpec({
 
                 every { mockPointService.getUserPoint(userId) } returns userPointBefore
                 every { mockPointService.usePoint(userId, PointAmount.of(amount), userId, null) } returns updatedUserPoint
-                every { mockPointHistoryService.recordUseHistory(userId, PointAmount.of(amount), balanceBefore, balanceAfter, null, isNull()) } returns mockk()
+                every { mockPointHistoryService.recordUseHistory(userId, PointAmount.of(amount), balanceBefore, balanceAfter, userId, null, isNull()) } returns mockk()
 
                 sut.execute(userId, amount)
 
                 verify(exactly = 1) { mockPointService.usePoint(userId, PointAmount.of(amount), userId, null) }
-                verify(exactly = 1) { mockPointHistoryService.recordUseHistory(userId, PointAmount.of(amount), balanceBefore, balanceAfter, null, isNull()) }
+                verify(exactly = 1) { mockPointHistoryService.recordUseHistory(userId, PointAmount.of(amount), balanceBefore, balanceAfter, userId, null, isNull()) }
             }
         }
 
@@ -155,7 +155,7 @@ class DeductPointUseCaseTest : DescribeSpec({
 
                 every { mockPointService.getUserPoint(userId) } returns userPointBefore
                 every { mockPointService.usePoint(userId, pointAmount, userId, null) } returns updatedUserPoint
-                every { mockPointHistoryService.recordUseHistory(userId, pointAmount, balanceBefore, balanceAfter, null, isNull()) } returns mockk()
+                every { mockPointHistoryService.recordUseHistory(userId, pointAmount, balanceBefore, balanceAfter, userId, null, isNull()) } returns mockk()
 
                 sut.execute(userId, amount)
 
@@ -166,6 +166,7 @@ class DeductPointUseCaseTest : DescribeSpec({
                         amount = pointAmount,
                         balanceBefore = balanceBefore,
                         balanceAfter = balanceAfter,
+                        createdBy = userId,
                         description = null,
                         orderId = isNull()
                     )

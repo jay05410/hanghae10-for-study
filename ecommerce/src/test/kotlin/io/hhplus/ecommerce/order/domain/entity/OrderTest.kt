@@ -62,75 +62,11 @@ class OrderTest : DescribeSpec({
             }
         }
 
-        context("주문 아이템 추가 시") {
-            it("should add order item successfully") {
-                // Given
-                val order = Order.create(
-                    orderNumber = "ORD-20241107-003",
-                    userId = 1L,
-                    totalAmount = 10000L,
-                    discountAmount = 0L,
-                    usedCouponId = null
-                )
-
-                // When
-                order.addItem(
-                    packageTypeId = 1L,
-                    packageTypeName = "30일 패키지",
-                    packageTypeDays = 30,
-                    dailyServing = 2,
-                    totalQuantity = 300.0,
-                    giftWrap = false,
-                    giftMessage = null,
-                    quantity = 1,
-                    containerPrice = 3000,
-                    teaPrice = 7000,
-                    giftWrapPrice = 0
-                )
-
-                // Then
-                order.items shouldHaveSize 1
-                val item = order.items.first()
-                item.packageTypeId shouldBe 1L
-                item.packageTypeName shouldBe "30일 패키지"
-                item.packageTypeDays shouldBe 30
-                item.dailyServing shouldBe 2
-                item.totalQuantity shouldBe 300.0
-                item.quantity shouldBe 1
-                item.containerPrice shouldBe 3000
-                item.teaPrice shouldBe 7000
-                item.totalPrice shouldBe 10000
-            }
-
-            it("should add multiple order items") {
-                // Given
-                val order = Order.create(
-                    orderNumber = "ORD-20241107-004",
-                    userId = 1L,
-                    totalAmount = 15000L,
-                    discountAmount = 0L,
-                    usedCouponId = null
-                )
-
-                // When
-                order.addItem(
-                    packageTypeId = 1L, packageTypeName = "30일", packageTypeDays = 30,
-                    dailyServing = 2, totalQuantity = 300.0, giftWrap = false, giftMessage = null,
-                    quantity = 1, containerPrice = 3000, teaPrice = 7000, giftWrapPrice = 0
-                )
-                order.addItem(
-                    packageTypeId = 2L, packageTypeName = "15일", packageTypeDays = 15,
-                    dailyServing = 1, totalQuantity = 150.0, giftWrap = false, giftMessage = null,
-                    quantity = 1, containerPrice = 2000, teaPrice = 3000, giftWrapPrice = 0
-                )
-
-                // Then
-                order.items shouldHaveSize 2
-            }
-        }
+        // Note: OrderItem management is now done through OrderItemRepository,
+        // not through Order entity itself (immutable pattern)
 
         context("주문 상태 변경 시") {
-            it("should confirm order successfully") {
+            it("should confirm order successfully (mutates in place)") {
                 // Given
                 val order = Order.create(
                     orderNumber = "ORD-20241107-005",
@@ -145,9 +81,10 @@ class OrderTest : DescribeSpec({
 
                 // Then
                 order.status shouldBe OrderStatus.CONFIRMED
+                order.updatedBy shouldBe 1L
             }
 
-            it("should cancel order successfully") {
+            it("should cancel order successfully (mutates in place)") {
                 // Given
                 val order = Order.create(
                     orderNumber = "ORD-20241107-006",
@@ -162,9 +99,10 @@ class OrderTest : DescribeSpec({
 
                 // Then
                 order.status shouldBe OrderStatus.CANCELLED
+                order.updatedBy shouldBe 1L
             }
 
-            it("should complete order successfully") {
+            it("should complete order successfully (mutates in place)") {
                 // Given
                 val order = Order.create(
                     orderNumber = "ORD-20241107-007",
@@ -180,6 +118,7 @@ class OrderTest : DescribeSpec({
 
                 // Then
                 order.status shouldBe OrderStatus.COMPLETED
+                order.updatedBy shouldBe 1L
             }
         }
 

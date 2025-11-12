@@ -41,7 +41,7 @@ class UpdateProductUseCaseTest : DescribeSpec({
                     updatedBy = 1L
                 )
                 val mockProduct = mockk<Product> {
-                    every { updateInfo(any(), any(), any(), any()) } just Runs
+                    every { updateInfo(any(), any(), any(), any()) } just runs
                 }
                 val updatedMockProduct = mockk<Product>()
 
@@ -74,7 +74,7 @@ class UpdateProductUseCaseTest : DescribeSpec({
 
                 testCases.forEach { (productId, request) ->
                     val mockProduct = mockk<Product> {
-                        every { updateInfo(any(), any(), any(), any()) } just Runs
+                        every { updateInfo(any(), any(), any(), any()) } just runs
                     }
                     val updatedMockProduct = mockk<Product>()
 
@@ -108,7 +108,7 @@ class UpdateProductUseCaseTest : DescribeSpec({
 
                 testCases.forEach { (productId, request) ->
                     val mockProduct = mockk<Product> {
-                        every { updateInfo(any(), any(), any(), any()) } just Runs
+                        every { updateInfo(any(), any(), any(), any()) } just runs
                     }
                     val updatedMockProduct = mockk<Product>()
 
@@ -143,7 +143,7 @@ class UpdateProductUseCaseTest : DescribeSpec({
                     updatedBy = 555L
                 )
                 val mockProduct = mockk<Product> {
-                    every { updateInfo(any(), any(), any(), any()) } just Runs
+                    every { updateInfo(any(), any(), any(), any()) } just runs
                 }
                 val updatedMockProduct = mockk<Product>()
 
@@ -171,7 +171,7 @@ class UpdateProductUseCaseTest : DescribeSpec({
                 val productId = 1L
                 val request = UpdateProductRequest("수정", "수정설명", 1000L, 1L)
                 val mockProduct = mockk<Product> {
-                    every { updateInfo(any(), any(), any(), any()) } just Runs
+                    every { updateInfo(any(), any(), any(), any()) } just runs
                 }
                 val updatedMockProduct = mockk<Product>()
 
@@ -193,7 +193,7 @@ class UpdateProductUseCaseTest : DescribeSpec({
                 val productId = 2L
                 val request = UpdateProductRequest("테스트", "테스트설명", 2000L, 2L)
                 val mockProduct = mockk<Product> {
-                    every { updateInfo(any(), any(), any(), any()) } just Runs
+                    every { updateInfo(any(), any(), any(), any()) } just runs
                 }
                 val updatedMockProduct = mockk<Product>()
 
@@ -222,7 +222,7 @@ class UpdateProductUseCaseTest : DescribeSpec({
                     updatedBy = 123L
                 )
                 val mockProduct = mockk<Product> {
-                    every { updateInfo(any(), any(), any(), any()) } just Runs
+                    every { updateInfo(any(), any(), any(), any()) } just runs
                 }
                 val updatedMockProduct = mockk<Product>()
 
@@ -249,7 +249,7 @@ class UpdateProductUseCaseTest : DescribeSpec({
                 val productId = 999L
                 val request = UpdateProductRequest("흐름테스트", "흐름테스트설명", 999L, 999L)
                 val mockProduct = mockk<Product> {
-                    every { updateInfo(any(), any(), any(), any()) } just Runs
+                    every { updateInfo(any(), any(), any(), any()) } just runs
                 }
                 val updatedMockProduct = mockk<Product>()
 
@@ -273,7 +273,7 @@ class UpdateProductUseCaseTest : DescribeSpec({
                 val productId = 777L
                 val request = UpdateProductRequest("상태변경", "상태변경설명", 7777L, 777L)
                 val mockProduct = mockk<Product> {
-                    every { updateInfo(any(), any(), any(), any()) } just Runs
+                    every { updateInfo(any(), any(), any(), any()) } just runs
                 }
                 val updatedMockProduct = mockk<Product>()
 
@@ -296,7 +296,7 @@ class UpdateProductUseCaseTest : DescribeSpec({
                 val productId = 888L
                 val request = UpdateProductRequest("패턴테스트", "패턴테스트설명", 8888L, 888L)
                 val mockProduct = mockk<Product> {
-                    every { updateInfo(any(), any(), any(), any()) } just Runs
+                    every { updateInfo(any(), any(), any(), any()) } just runs
                 }
                 val updatedMockProduct = mockk<Product>()
 

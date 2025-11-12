@@ -25,21 +25,23 @@ class InventoryServiceTest : DescribeSpec({
         productId: Long = 1L,
         quantity: Int = 100,
         reservedQuantity: Int = 0
-    ): Inventory = mockk(relaxed = true) {
-        every { this@mockk.id } returns id
-        every { this@mockk.productId } returns productId
-        every { this@mockk.quantity } returns quantity
-        every { this@mockk.reservedQuantity } returns reservedQuantity
-        every { isActive } returns true
-        every { createdAt } returns LocalDateTime.now()
-        every { updatedAt } returns LocalDateTime.now()
-        every { deduct(any(), any()) } returns quantity
-        every { restock(any(), any()) } returns quantity
-        every { reserve(any(), any()) } returns quantity
-        every { releaseReservation(any(), any()) } returns quantity
-        every { confirmReservation(any(), any()) } returns quantity
-        every { isStockAvailable(any()) } returns true
-        every { getAvailableQuantity() } returns (quantity - reservedQuantity)
+    ): Inventory {
+        val mockInventory = mockk<Inventory>(relaxed = true)
+        every { mockInventory.id } returns id
+        every { mockInventory.productId } returns productId
+        every { mockInventory.quantity } returns quantity
+        every { mockInventory.reservedQuantity } returns reservedQuantity
+        every { mockInventory.isActive } returns true
+        every { mockInventory.createdAt } returns LocalDateTime.now()
+        every { mockInventory.updatedAt } returns LocalDateTime.now()
+        every { mockInventory.deduct(any(), any()) } just runs
+        every { mockInventory.restock(any(), any()) } just runs
+        every { mockInventory.reserve(any(), any()) } just runs
+        every { mockInventory.releaseReservation(any(), any()) } just runs
+        every { mockInventory.confirmReservation(any(), any()) } just runs
+        every { mockInventory.isStockAvailable(any()) } returns true
+        every { mockInventory.getAvailableQuantity() } returns (quantity - reservedQuantity)
+        return mockInventory
     }
 
     beforeEach {

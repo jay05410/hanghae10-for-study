@@ -111,6 +111,7 @@ class CouponServiceTest : DescribeSpec({
                 }
                 val mockUserCoupon = mockk<UserCoupon>()
 
+                every { mockCoupon.issue(userId) } just runs
                 every { mockCouponRepository.findById(couponId) } returns mockCoupon
                 every { mockUserCouponRepository.findByUserIdAndCouponId(userId, couponId) } returns null
                 every { mockCouponRepository.save(mockCoupon) } returns mockCoupon
@@ -261,6 +262,7 @@ class CouponServiceTest : DescribeSpec({
                     every { calculateDiscountAmount(orderAmount) } returns discountAmount
                 }
 
+                every { mockUserCoupon.use(orderId, userId) } just runs
                 every { mockUserCouponRepository.findById(userCouponId) } returns mockUserCoupon
                 every { mockCouponRepository.findById(1L) } returns mockCoupon
                 every { mockUserCouponRepository.save(mockUserCoupon) } returns mockUserCoupon

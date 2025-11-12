@@ -4,6 +4,7 @@ import io.hhplus.ecommerce.order.domain.entity.Order
 import io.hhplus.ecommerce.order.domain.entity.OrderItem
 import io.hhplus.ecommerce.order.domain.entity.OrderItemTea
 import io.hhplus.ecommerce.order.domain.repository.OrderRepository
+import io.hhplus.ecommerce.order.domain.repository.OrderItemRepository
 import io.hhplus.ecommerce.order.domain.constant.OrderStatus
 import io.hhplus.ecommerce.order.dto.OrderItemData
 import io.hhplus.ecommerce.common.util.SnowflakeGenerator
@@ -28,6 +29,7 @@ import java.time.LocalDateTime
  */
 class OrderServiceTest : DescribeSpec({
     val mockOrderRepository = mockk<OrderRepository>()
+    val mockOrderItemRepository = mockk<OrderItemRepository>()
     val mockOrderItemTeaService = mockk<OrderItemTeaService>()
     val mockSnowflakeGenerator = mockk<SnowflakeGenerator>()
     val mockProductStatisticsService = mockk<ProductStatisticsService>()
@@ -36,6 +38,7 @@ class OrderServiceTest : DescribeSpec({
 
     val sut = OrderService(
         orderRepository = mockOrderRepository,
+        orderItemRepository = mockOrderItemRepository,
         orderItemTeaService = mockOrderItemTeaService,
         snowflakeGenerator = mockSnowflakeGenerator,
         productStatisticsService = mockProductStatisticsService,
@@ -60,35 +63,29 @@ class OrderServiceTest : DescribeSpec({
         totalAmount: Long = 10000L,
         discountAmount: Long = 0L,
         status: OrderStatus = OrderStatus.PENDING
-    ): Order = mockk(relaxed = true) {
-        val mockItems = mutableListOf<OrderItem>()
-        every { this@mockk.id } returns id
-        every { this@mockk.orderNumber } returns orderNumber
-        every { this@mockk.userId } returns userId
-        every { this@mockk.totalAmount } returns totalAmount
-        every { this@mockk.discountAmount } returns discountAmount
-        every { this@mockk.finalAmount } returns (totalAmount - discountAmount)
-        every { this@mockk.status } returns status
-        every { this@mockk.usedCouponId } returns null
-        every { items } returns mockItems
-        every { isActive } returns true
-        every { createdAt } returns LocalDateTime.now()
-        every { updatedAt } returns LocalDateTime.now()
-        every { createdBy } returns userId
-        every { updatedBy } returns userId
-        every { deletedAt } returns null
-        every { confirm(any()) } returns Unit
-        every { cancel(any()) } returns Unit
-        every { addItem(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } answers {
-            val mockItem = createMockOrderItem(id = mockItems.size.toLong() + 1L)
-            mockItems.add(mockItem)
-            mockItem
-        }
+    ): Order {
+        return Order(
+            id = id,
+            orderNumber = orderNumber,
+            userId = userId,
+            totalAmount = totalAmount,
+            discountAmount = discountAmount,
+            finalAmount = totalAmount - discountAmount,
+            usedCouponId = null,
+            status = status,
+            isActive = true,
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now(),
+            createdBy = userId,
+            updatedBy = userId,
+            deletedAt = null
+        )
     }
 
     beforeEach {
         clearMocks(
             mockOrderRepository,
+            mockOrderItemRepository,
             mockOrderItemTeaService,
             mockSnowflakeGenerator,
             mockProductStatisticsService,
@@ -127,6 +124,7 @@ class OrderServiceTest : DescribeSpec({
                 every { mockSnowflakeGenerator.generateNumberWithPrefix(IdPrefix.ORDER) } returns orderNumber
                 every { mockOrderItemTeaService.validateTeaItemsForOrder(any()) } just Runs
                 every { mockOrderRepository.save(any()) } answers { firstArg() }
+                every { mockOrderItemRepository.save(any()) } answers { firstArg() }
                 every { mockOrderItemTeaService.saveOrderItemTeas(any(), any()) } returns emptyList()
                 every { mockOutboxEventService.publishEvent(any(), any(), any(), any(), any()) } returns mockk()
                 every { mockObjectMapper.writeValueAsString(any()) } returns "{\"orderId\":1}"
@@ -139,9 +137,9 @@ class OrderServiceTest : DescribeSpec({
                 result.userId shouldBe userId
                 result.totalAmount shouldBe totalAmount
                 result.discountAmount shouldBe discountAmount
-                result.items shouldHaveSize 1
                 verify { mockSnowflakeGenerator.generateNumberWithPrefix(IdPrefix.ORDER) }
                 verify { mockOrderRepository.save(any()) }
+                verify { mockOrderItemRepository.save(any()) }
                 verify { mockOutboxEventService.publishEvent(any(), any(), any(), any(), any()) }
             }
 
@@ -176,6 +174,7 @@ class OrderServiceTest : DescribeSpec({
                 every { mockSnowflakeGenerator.generateNumberWithPrefix(IdPrefix.ORDER) } returns orderNumber
                 every { mockOrderItemTeaService.validateTeaItemsForOrder(teaItems) } just Runs
                 every { mockOrderRepository.save(any()) } answers { firstArg() }
+                every { mockOrderItemRepository.save(any()) } answers { firstArg() }
                 every { mockOrderItemTeaService.saveOrderItemTeas(any(), teaItems) } returns emptyList()
                 every { mockOutboxEventService.publishEvent(any(), any(), any(), any(), any()) } returns mockk()
                 every { mockObjectMapper.writeValueAsString(any()) } returns "{\"orderId\":1}"
@@ -188,7 +187,6 @@ class OrderServiceTest : DescribeSpec({
                 result.userId shouldBe userId
                 result.totalAmount shouldBe totalAmount
                 result.discountAmount shouldBe discountAmount
-                result.items shouldHaveSize 1
                 verify { mockOrderItemTeaService.validateTeaItemsForOrder(teaItems) }
                 verify { mockOrderItemTeaService.saveOrderItemTeas(any(), teaItems) }
             }
@@ -284,16 +282,16 @@ class OrderServiceTest : DescribeSpec({
                 )
 
                 every { mockOrderRepository.findById(orderId) } returns mockOrder
-                every { mockOrder.items } returns mockOrderItems
+                every { mockOrderItemRepository.findByOrderId(orderId) } returns mockOrderItems
                 every { mockProductStatisticsService.incrementSalesCount(any(), any(), any()) } returns mockk()
-                every { mockOrderRepository.save(mockOrder) } returns mockOrder
+                every { mockOrderRepository.save(any()) } returns mockOrder
 
                 val result = sut.confirmOrder(orderId, confirmedBy)
 
-                result shouldBe mockOrder
+                result.status shouldBe OrderStatus.CONFIRMED
                 verify(exactly = 1) { mockOrderRepository.findById(orderId) }
-                verify(exactly = 1) { mockOrder.confirm(confirmedBy) }
-                verify(exactly = 1) { mockOrderRepository.save(mockOrder) }
+                verify(exactly = 1) { mockOrderItemRepository.findByOrderId(orderId) }
+                verify(exactly = 1) { mockOrderRepository.save(any()) }
             }
         }
 
@@ -327,18 +325,18 @@ class OrderServiceTest : DescribeSpec({
                 )
 
                 every { mockOrderRepository.findById(orderId) } returns mockOrder
-                every { mockOrder.items } returns mockOrderItems
+                every { mockOrderItemRepository.findByOrderId(orderId) } returns mockOrderItems
                 every { mockOrderItemTeaService.deleteOrderItemTeas(any()) } returns mockk()
                 every { mockObjectMapper.writeValueAsString(any()) } returns "{\"orderId\":1}"
                 every { mockOutboxEventService.publishEvent(any(), any(), any(), any(), any()) } returns mockk()
-                every { mockOrderRepository.save(mockOrder) } returns mockOrder
+                every { mockOrderRepository.save(any()) } returns mockOrder
 
                 val result = sut.cancelOrder(orderId, cancelledBy, reason)
 
-                result shouldBe mockOrder
+                result.status shouldBe OrderStatus.CANCELLED
                 verify(exactly = 1) { mockOrderRepository.findById(orderId) }
-                verify(exactly = 1) { mockOrder.cancel(cancelledBy) }
-                verify(exactly = 1) { mockOrderRepository.save(mockOrder) }
+                verify(exactly = 1) { mockOrderItemRepository.findByOrderId(orderId) }
+                verify(exactly = 1) { mockOrderRepository.save(any()) }
             }
         }
 
@@ -353,18 +351,18 @@ class OrderServiceTest : DescribeSpec({
                 )
 
                 every { mockOrderRepository.findById(orderId) } returns mockOrder
-                every { mockOrder.items } returns mockOrderItems
+                every { mockOrderItemRepository.findByOrderId(orderId) } returns mockOrderItems
                 every { mockOrderItemTeaService.deleteOrderItemTeas(any()) } returns mockk()
                 every { mockObjectMapper.writeValueAsString(any()) } returns "{\"orderId\":1}"
                 every { mockOutboxEventService.publishEvent(any(), any(), any(), any(), any()) } returns mockk()
-                every { mockOrderRepository.save(mockOrder) } returns mockOrder
+                every { mockOrderRepository.save(any()) } returns mockOrder
 
                 val result = sut.cancelOrder(orderId, cancelledBy, null)
 
-                result shouldBe mockOrder
+                result.status shouldBe OrderStatus.CANCELLED
                 verify(exactly = 1) { mockOrderRepository.findById(orderId) }
-                verify(exactly = 1) { mockOrder.cancel(cancelledBy) }
-                verify(exactly = 1) { mockOrderRepository.save(mockOrder) }
+                verify(exactly = 1) { mockOrderItemRepository.findByOrderId(orderId) }
+                verify(exactly = 1) { mockOrderRepository.save(any()) }
             }
         }
 

@@ -47,12 +47,13 @@ class PointHistoryServiceTest : DescribeSpec({
                         balanceBefore = balanceBefore.value,
                         balanceAfter = balanceAfter.value,
                         orderId = null,
-                        description = description
+                        description = description,
+                        createdBy = userId
                     )
                 } returns mockHistory
                 every { mockPointHistoryRepository.save(mockHistory) } returns mockHistory
 
-                val result = sut.recordEarnHistory(userId, amount, balanceBefore, balanceAfter, description)
+                val result = sut.recordEarnHistory(userId, amount, balanceBefore, balanceAfter, userId, description)
 
                 result shouldBe mockHistory
                 verify(exactly = 1) {
@@ -62,7 +63,8 @@ class PointHistoryServiceTest : DescribeSpec({
                         balanceBefore = balanceBefore.value,
                         balanceAfter = balanceAfter.value,
                         orderId = null,
-                        description = description
+                        description = description,
+                        createdBy = userId
                     )
                 }
                 verify(exactly = 1) { mockPointHistoryRepository.save(mockHistory) }
@@ -85,12 +87,13 @@ class PointHistoryServiceTest : DescribeSpec({
                         balanceBefore = balanceBefore.value,
                         balanceAfter = balanceAfter.value,
                         orderId = null,
-                        description = null
+                        description = null,
+                        createdBy = userId
                     )
                 } returns mockHistory
                 every { mockPointHistoryRepository.save(mockHistory) } returns mockHistory
 
-                val result = sut.recordEarnHistory(userId, amount, balanceBefore, balanceAfter)
+                val result = sut.recordEarnHistory(userId, amount, balanceBefore, balanceAfter, userId)
 
                 result shouldBe mockHistory
                 verify(exactly = 1) {
@@ -100,7 +103,8 @@ class PointHistoryServiceTest : DescribeSpec({
                         balanceBefore = balanceBefore.value,
                         balanceAfter = balanceAfter.value,
                         orderId = null,
-                        description = null
+                        description = null,
+                        createdBy = userId
                     )
                 }
                 verify(exactly = 1) { mockPointHistoryRepository.save(mockHistory) }
@@ -126,12 +130,13 @@ class PointHistoryServiceTest : DescribeSpec({
                         balanceBefore = balanceBefore.value,
                         balanceAfter = balanceAfter.value,
                         orderId = null,
-                        description = description
+                        description = description,
+                        createdBy = userId
                     )
                 } returns mockHistory
                 every { mockPointHistoryRepository.save(mockHistory) } returns mockHistory
 
-                val result = sut.recordUseHistory(userId, amount, balanceBefore, balanceAfter, description)
+                val result = sut.recordUseHistory(userId, amount, balanceBefore, balanceAfter, userId, description)
 
                 result shouldBe mockHistory
                 verify(exactly = 1) {
@@ -141,7 +146,8 @@ class PointHistoryServiceTest : DescribeSpec({
                         balanceBefore = balanceBefore.value,
                         balanceAfter = balanceAfter.value,
                         orderId = null,
-                        description = description
+                        description = description,
+                        createdBy = userId
                     )
                 }
                 verify(exactly = 1) { mockPointHistoryRepository.save(mockHistory) }
@@ -164,12 +170,13 @@ class PointHistoryServiceTest : DescribeSpec({
                         balanceBefore = balanceBefore.value,
                         balanceAfter = balanceAfter.value,
                         orderId = null,
-                        description = null
+                        description = null,
+                        createdBy = userId
                     )
                 } returns mockHistory
                 every { mockPointHistoryRepository.save(mockHistory) } returns mockHistory
 
-                val result = sut.recordUseHistory(userId, amount, balanceBefore, balanceAfter)
+                val result = sut.recordUseHistory(userId, amount, balanceBefore, balanceAfter, userId)
 
                 result shouldBe mockHistory
                 verify(exactly = 1) {
@@ -179,7 +186,8 @@ class PointHistoryServiceTest : DescribeSpec({
                         balanceBefore = balanceBefore.value,
                         balanceAfter = balanceAfter.value,
                         orderId = null,
-                        description = null
+                        description = null,
+                        createdBy = userId
                     )
                 }
                 verify(exactly = 1) { mockPointHistoryRepository.save(mockHistory) }

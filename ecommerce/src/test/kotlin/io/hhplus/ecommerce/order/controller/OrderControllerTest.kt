@@ -4,6 +4,8 @@ import io.hhplus.ecommerce.order.usecase.*
 import io.hhplus.ecommerce.order.dto.*
 import io.hhplus.ecommerce.order.domain.entity.Order
 import io.hhplus.ecommerce.order.domain.constant.OrderStatus
+import io.hhplus.ecommerce.delivery.usecase.GetDeliveryQueryUseCase
+import io.hhplus.ecommerce.delivery.dto.DeliveryAddressRequest
 import io.hhplus.ecommerce.common.response.ApiResponse
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
@@ -22,12 +24,14 @@ class OrderControllerTest : DescribeSpec({
     val mockGetOrderQueryUseCase = mockk<GetOrderQueryUseCase>()
     val mockConfirmOrderUseCase = mockk<ConfirmOrderUseCase>()
     val mockCancelOrderUseCase = mockk<CancelOrderUseCase>()
+    val mockGetDeliveryQueryUseCase = mockk<GetDeliveryQueryUseCase>()
 
     val sut = OrderController(
         createOrderUseCase = mockCreateOrderUseCase,
         getOrderQueryUseCase = mockGetOrderQueryUseCase,
         confirmOrderUseCase = mockConfirmOrderUseCase,
-        cancelOrderUseCase = mockCancelOrderUseCase
+        cancelOrderUseCase = mockCancelOrderUseCase,
+        getDeliveryQueryUseCase = mockGetDeliveryQueryUseCase
     )
 
     fun createMockOrder(
@@ -46,7 +50,6 @@ class OrderControllerTest : DescribeSpec({
         every { this@mockk.finalAmount } returns (totalAmount - discountAmount)
         every { this@mockk.status } returns status
         every { this@mockk.usedCouponId } returns null
-        every { items } returns emptyList()
         every { isActive } returns true
         every { createdAt } returns LocalDateTime.now()
         every { updatedAt } returns LocalDateTime.now()
@@ -76,6 +79,14 @@ class OrderControllerTest : DescribeSpec({
                             giftWrapPrice = 0,
                             teaItems = emptyList()
                         )
+                    ),
+                    deliveryAddress = DeliveryAddressRequest(
+                        recipientName = "김철수",
+                        phone = "010-1234-5678",
+                        zipCode = "06234",
+                        address = "서울시 강남구 테헤란로 123",
+                        addressDetail = "456호",
+                        deliveryMessage = "부재 시 문 앞에 놓아주세요"
                     )
                 )
                 val mockOrder = createMockOrder(userId = 1L)

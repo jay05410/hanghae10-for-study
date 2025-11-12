@@ -203,11 +203,12 @@ class UserServiceTest : DescribeSpec({
                     every { id } returns userId
                     every { name } returns "기존이름"
                     every { email } returns "old@example.com"
-                    every { update(any(), any(), any()) } just Runs
                 }
 
+                every { mockUser.update(any(), any(), any()) } just runs
                 every { mockUserRepository.findById(userId) } returns mockUser
                 every { mockUserRepository.findByEmail(newEmail) } returns null
+                every { mockUserRepository.save(mockUser) } returns mockUser
 
                 val result = sut.updateUser(userId, newName, newEmail, updatedBy)
 
@@ -215,6 +216,7 @@ class UserServiceTest : DescribeSpec({
                 verify(exactly = 1) { mockUserRepository.findById(userId) }
                 verify(exactly = 1) { mockUserRepository.findByEmail(newEmail) }
                 verify(exactly = 1) { mockUser.update(newName, newEmail, updatedBy) }
+                verify(exactly = 1) { mockUserRepository.save(mockUser) }
             }
         }
 
@@ -265,10 +267,11 @@ class UserServiceTest : DescribeSpec({
                     every { id } returns userId
                     every { name } returns "기존이름"
                     every { email } returns sameEmail
-                    every { update(any(), any(), any()) } just Runs
                 }
 
+                every { mockUser.update(any(), any(), any()) } just runs
                 every { mockUserRepository.findById(userId) } returns mockUser
+                every { mockUserRepository.save(mockUser) } returns mockUser
 
                 val result = sut.updateUser(userId, "새이름", sameEmail, 1L)
 
@@ -276,6 +279,7 @@ class UserServiceTest : DescribeSpec({
                 verify(exactly = 1) { mockUserRepository.findById(userId) }
                 verify(exactly = 0) { mockUserRepository.findByEmail(any()) }
                 verify(exactly = 1) { mockUser.update("새이름", sameEmail, 1L) }
+                verify(exactly = 1) { mockUserRepository.save(mockUser) }
             }
         }
 
@@ -287,11 +291,12 @@ class UserServiceTest : DescribeSpec({
                     every { id } returns userId
                     every { name } returns "기존이름"
                     every { email } returns "old@example.com"
-                    every { update(any(), any(), any()) } just Runs
                 }
 
+                every { mockUser.update(any(), any(), any()) } just runs
                 every { mockUserRepository.findById(userId) } returns mockUser
                 every { mockUserRepository.findByEmail(newEmail) } returns null
+                every { mockUserRepository.save(mockUser) } returns mockUser
 
                 val result = sut.updateUser(userId, null, newEmail, 1L)
 
@@ -299,6 +304,7 @@ class UserServiceTest : DescribeSpec({
                 verify(exactly = 1) { mockUserRepository.findById(userId) }
                 verify(exactly = 1) { mockUserRepository.findByEmail(newEmail) }
                 verify(exactly = 1) { mockUser.update("기존이름", newEmail, 1L) }
+                verify(exactly = 1) { mockUserRepository.save(mockUser) }
             }
 
             it("email이 null인 경우 기존 email을 유지") {
@@ -308,10 +314,11 @@ class UserServiceTest : DescribeSpec({
                     every { id } returns userId
                     every { name } returns "기존이름"
                     every { email } returns "existing@example.com"
-                    every { update(any(), any(), any()) } just Runs
                 }
 
+                every { mockUser.update(any(), any(), any()) } just runs
                 every { mockUserRepository.findById(userId) } returns mockUser
+                every { mockUserRepository.save(mockUser) } returns mockUser
 
                 val result = sut.updateUser(userId, newName, null, 1L)
 
@@ -319,6 +326,7 @@ class UserServiceTest : DescribeSpec({
                 verify(exactly = 1) { mockUserRepository.findById(userId) }
                 verify(exactly = 0) { mockUserRepository.findByEmail(any()) }
                 verify(exactly = 1) { mockUser.update(newName, "existing@example.com", 1L) }
+                verify(exactly = 1) { mockUserRepository.save(mockUser) }
             }
 
             it("name과 email이 모두 null인 경우 기존 값들을 유지") {
@@ -327,10 +335,11 @@ class UserServiceTest : DescribeSpec({
                     every { id } returns userId
                     every { name } returns "기존이름"
                     every { email } returns "existing@example.com"
-                    every { update(any(), any(), any()) } just Runs
                 }
 
+                every { mockUser.update(any(), any(), any()) } just runs
                 every { mockUserRepository.findById(userId) } returns mockUser
+                every { mockUserRepository.save(mockUser) } returns mockUser
 
                 val result = sut.updateUser(userId, null, null, 1L)
 
@@ -338,6 +347,7 @@ class UserServiceTest : DescribeSpec({
                 verify(exactly = 1) { mockUserRepository.findById(userId) }
                 verify(exactly = 0) { mockUserRepository.findByEmail(any()) }
                 verify(exactly = 1) { mockUser.update("기존이름", "existing@example.com", 1L) }
+                verify(exactly = 1) { mockUserRepository.save(mockUser) }
             }
         }
 
@@ -349,14 +359,15 @@ class UserServiceTest : DescribeSpec({
                     every { id } returns userId
                     every { name } returns "기존이름"
                     every { email } returns "old@example.com"
-                    every { update(any(), any(), any()) } just Runs
                 }
                 val existingUserWithSameEmail = mockk<User> {
                     every { id } returns userId  // 동일한 사용자
                 }
 
+                every { mockUser.update(any(), any(), any()) } just runs
                 every { mockUserRepository.findById(userId) } returns mockUser
                 every { mockUserRepository.findByEmail(currentEmail) } returns existingUserWithSameEmail
+                every { mockUserRepository.save(mockUser) } returns mockUser
 
                 val result = sut.updateUser(userId, "새이름", currentEmail, 1L)
 
@@ -364,6 +375,7 @@ class UserServiceTest : DescribeSpec({
                 verify(exactly = 1) { mockUserRepository.findById(userId) }
                 verify(exactly = 1) { mockUserRepository.findByEmail(currentEmail) }
                 verify(exactly = 1) { mockUser.update("새이름", currentEmail, 1L) }
+                verify(exactly = 1) { mockUserRepository.save(mockUser) }
             }
         }
     }
@@ -374,7 +386,7 @@ class UserServiceTest : DescribeSpec({
                 val userId = 1L
                 val deactivatedBy = 1L
                 val mockUser = mockk<User> {
-                    every { deactivate() } just Runs
+                    every { deactivate(any()) } just runs
                 }
 
                 every { mockUserRepository.findById(userId) } returns mockUser
@@ -384,8 +396,8 @@ class UserServiceTest : DescribeSpec({
 
                 result shouldBe mockUser
                 verify(exactly = 1) { mockUserRepository.findById(userId) }
-                verify(exactly = 1) { mockUser.deactivate() }
-                verify(exactly = 1) { mockUserRepository.save(mockUser) }
+                verify(exactly = 1) { mockUser.deactivate(deactivatedBy) }
+                verify(exactly = 1) { mockUserRepository.save(any()) }
             }
         }
 
@@ -411,7 +423,7 @@ class UserServiceTest : DescribeSpec({
                 val userId = 1L
                 val activatedBy = 1L
                 val mockUser = mockk<User> {
-                    every { activate() } just Runs
+                    every { activate(any()) } just runs
                 }
 
                 every { mockUserRepository.findById(userId) } returns mockUser
@@ -421,8 +433,8 @@ class UserServiceTest : DescribeSpec({
 
                 result shouldBe mockUser
                 verify(exactly = 1) { mockUserRepository.findById(userId) }
-                verify(exactly = 1) { mockUser.activate() }
-                verify(exactly = 1) { mockUserRepository.save(mockUser) }
+                verify(exactly = 1) { mockUser.activate(activatedBy) }
+                verify(exactly = 1) { mockUserRepository.save(any()) }
             }
         }
 

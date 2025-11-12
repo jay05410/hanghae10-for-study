@@ -49,14 +49,16 @@ class StockReservationServiceTest : DescribeSpec({
         productId: Long = 1L,
         quantity: Int = 100,
         reservedQuantity: Int = 0
-    ): Inventory = mockk(relaxed = true) {
-        every { this@mockk.id } returns id
-        every { this@mockk.productId } returns productId
-        every { this@mockk.quantity } returns quantity
-        every { this@mockk.reservedQuantity } returns reservedQuantity
-        every { reserve(any(), any()) } returns reservedQuantity
-        every { releaseReservation(any(), any()) } returns reservedQuantity
-        every { confirmReservation(any(), any()) } returns quantity
+    ): Inventory {
+        val mockInventory = mockk<Inventory>(relaxed = true)
+        every { mockInventory.id } returns id
+        every { mockInventory.productId } returns productId
+        every { mockInventory.quantity } returns quantity
+        every { mockInventory.reservedQuantity } returns reservedQuantity
+        every { mockInventory.reserve(any(), any()) } just runs
+        every { mockInventory.releaseReservation(any(), any()) } just runs
+        every { mockInventory.confirmReservation(any(), any()) } just runs
+        return mockInventory
     }
 
     beforeEach {
