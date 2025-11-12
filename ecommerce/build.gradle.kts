@@ -25,6 +25,12 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 
+    // Spring Data JPA
+    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+
+    // H2 Database (for development and testing)
+    runtimeOnly("com.h2database:h2")
+
     // Spring Transaction (for @Transactional without JPA)
     implementation("org.springframework:spring-tx")
 

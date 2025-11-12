@@ -2,31 +2,37 @@ spring:
   application:
     name: ecommerce
 
-  # 인메모리 컬렉션 사용 - 데이터베이스 설정 불필요
-  # datasource:
-  #   url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-  #   driver-class-name: org.h2.Driver
-  #   username: sa
-  #   password:
+  jackson:
+    time-zone: Asia/Seoul
 
-  # h2:
-  #   console:
-  #     enabled: true
-  #     path: /h2-console
+  # H2 Database Configuration
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
 
-  # jpa:
-  #   hibernate:
-  #     ddl-auto: create-drop
-  #   show-sql: false
-  #   properties:
-  #     hibernate:
-  #       format_sql: false
-  #       use_sql_comments: true
-  #       jdbc:
-  #         batch_size: 20
-  #       order_inserts: true
-  #       order_updates: true
-  #   database-platform: org.hibernate.dialect.H2Dialect
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        # SQL 로깅 비활성화 (p6spy에서 담당)
+        show_sql: false
+        format_sql: false
+        use_sql_comments: false
+        jdbc:
+          time_zone: Asia/Seoul
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+    database-platform: org.hibernate.dialect.H2Dialect
 
   output:
     ansi:
@@ -35,12 +41,15 @@ spring:
 # 로깅 설정
 logging:
   level:
+    root: INFO
     io.hhplus.ecommerce: DEBUG
-    org.springframework.transaction: DEBUG
-    # 인메모리 사용으로 데이터베이스 로깅 불필요
-    # org.hibernate.SQL: OFF
-    # org.hibernate.type.descriptor.sql.BasicBinder: OFF
-    # com.p6spy: INFO
+    org.springframework: INFO
+    org.springframework.security: INFO
+    # Hibernate 로깅 비활성화 (p6spy에서 담당)
+    org.hibernate.SQL: OFF
+    org.hibernate.type.descriptor.sql: OFF
+    # p6spy 로그 레벨 설정
+    p6spy: INFO
 
 # 서버 설정
 server:
