@@ -30,14 +30,15 @@ dependencies {
     // Spring Data JPA
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 
-    // H2 Database (for development and testing)
-    runtimeOnly("com.h2database:h2")
+    // MySQL Database
+    runtimeOnly("mysql:mysql-connector-java:8.0.43")
 
-    // JANSI for console colors
-    implementation("org.fusesource.jansi:jansi:2.4.0")
+    // H2 Database (for testing only)
+    testRuntimeOnly("com.h2database:h2")
 
-    // P6Spy for SQL logging
-    implementation("p6spy:p6spy:3.9.1")
+
+    // P6Spy Spring Boot Starter for SQL logging
+    implementation("com.github.gavlyukovskiy:p6spy-spring-boot-starter:1.12.0")
 
     // Snowflake ID Generator
     implementation("cn.ipokerface:snowflake-id-generator:2.5.0")
