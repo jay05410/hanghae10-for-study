@@ -31,7 +31,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 
     // MySQL Database
-    runtimeOnly("mysql:mysql-connector-java:8.0.43")
+    runtimeOnly(libs.mysql.connector)
 
     // H2 Database (for testing only)
     testRuntimeOnly("com.h2database:h2")
@@ -43,12 +43,19 @@ dependencies {
     // Snowflake ID Generator
     implementation("cn.ipokerface:snowflake-id-generator:2.5.0")
 
+    // API 문서화
+    implementation(libs.springdoc.openapi.webmvc.ui)
+    implementation(libs.springdoc.openapi.common)
+
     // Test Dependencies
     testImplementation(libs.spring.boot.starter.test)
     testImplementation(kotlin("test"))
     testImplementation("io.mockk:mockk:1.13.8")
     testImplementation("io.kotest:kotest-runner-junit5:5.8.0")
     testImplementation("io.kotest:kotest-assertions-core:5.8.0")
+
+    // TestContainers
+    testImplementation(libs.bundles.testcontainers.mysql)
 }
 
 tasks.test {

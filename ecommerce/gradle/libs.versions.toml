@@ -2,12 +2,14 @@
 kotlin = "1.9.21"
 ktlint_plugin = "11.6.1"
 
-spring_boot = "3.2.0"
+spring_boot = "3.5.7"
 spring_cloud_dependencies = "2023.0.0"
 spring_io_dependency_management = "1.1.0"
 spring_mockk = "4.0.2"
 
 redisson = "3.25.2"
+springdoc = "2.8.5"
+
 # test
 junit = "5.9.3"
 assertj = "3.24.2"
@@ -51,5 +53,10 @@ micrometer_registry_prometheus = { module = "io.micrometer:micrometer-registry-p
 # test
 assertj = { module = "org.assertj:assertj-core", version.ref = "assertj" }
 spring_mockk = { module = "com.ninja-squad:springmockk", version.ref = "spring_mockk" }
+
+# API 문서화
+springdoc_openapi_webmvc_ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
+springdoc_openapi_common = { module = "org.springdoc:springdoc-openapi-starter-common", version.ref = "springdoc" }
+
 [bundles]
 testcontainers_mysql = ["test_containers_mysql", "spring_boot_testcontainers", "test_containers_junit_jupiter","spring_boot_starter_test"]
