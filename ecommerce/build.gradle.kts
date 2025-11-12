@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.spring)
+    alias(libs.plugins.kotlin.jpa)
     alias(libs.plugins.spring.boot)
     alias(libs.plugins.spring.dependency.management)
     id("jacoco")
@@ -21,6 +22,7 @@ dependencyManagement {
 
 dependencies {
     implementation(libs.spring.boot.starter.web)
+    implementation(libs.spring.boot.starter.data.jpa)
     implementation(libs.jackson.kotlin)
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
@@ -31,11 +33,11 @@ dependencies {
     // H2 Database (for development and testing)
     runtimeOnly("com.h2database:h2")
 
-    // Spring Transaction (for @Transactional without JPA)
-    implementation("org.springframework:spring-tx")
-
     // JANSI for console colors
     implementation("org.fusesource.jansi:jansi:2.4.0")
+
+    // P6Spy for SQL logging
+    implementation("p6spy:p6spy:3.9.1")
 
     // Snowflake ID Generator
     implementation("cn.ipokerface:snowflake-id-generator:2.5.0")
