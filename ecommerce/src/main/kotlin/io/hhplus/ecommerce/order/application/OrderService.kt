@@ -1,8 +1,10 @@
 package io.hhplus.ecommerce.order.application
 
 import io.hhplus.ecommerce.order.domain.entity.Order
+import io.hhplus.ecommerce.order.domain.entity.OrderItem
 import io.hhplus.ecommerce.order.domain.entity.OrderItemTea
 import io.hhplus.ecommerce.order.domain.repository.OrderRepository
+import io.hhplus.ecommerce.order.domain.repository.OrderItemRepository
 import io.hhplus.ecommerce.order.dto.OrderItemData
 import io.hhplus.ecommerce.common.util.SnowflakeGenerator
 import io.hhplus.ecommerce.product.application.ProductStatisticsService
@@ -28,6 +30,7 @@ import io.hhplus.ecommerce.common.util.IdPrefix
 @Service
 class OrderService(
     private val orderRepository: OrderRepository,
+    private val orderItemRepository: OrderItemRepository,
     private val orderItemTeaService: OrderItemTeaService,
     private val snowflakeGenerator: SnowflakeGenerator,
     private val productStatisticsService: ProductStatisticsService,
@@ -72,8 +75,12 @@ class OrderService(
             usedCouponId = usedCouponId
         )
 
-        items.forEach { item ->
-            order.addItem(
+        val savedOrder = orderRepository.save(order)
+
+        // 주문 아이템 생성 및 저장
+        val savedOrderItems = items.map { item ->
+            val orderItem = OrderItem.create(
+                orderId = savedOrder.id,
                 packageTypeId = item.packageTypeId,
                 packageTypeName = item.packageTypeName,
                 packageTypeDays = item.packageTypeDays,
@@ -86,13 +93,12 @@ class OrderService(
                 teaPrice = item.teaPrice,
                 giftWrapPrice = item.giftWrapPrice
             )
+            orderItemRepository.save(orderItem)
         }
-
-        val savedOrder = orderRepository.save(order)
 
         // 주문 아이템별 차 구성 저장
         items.forEachIndexed { index, item ->
-            val orderItem = savedOrder.items[index]
+            val orderItem = savedOrderItems[index]
             if (item.teaItems.isNotEmpty()) {
                 orderItemTeaService.saveOrderItemTeas(orderItem.id, item.teaItems)
             }
@@ -165,7 +171,8 @@ class OrderService(
         order.confirm(confirmedBy)
 
         // 주문 완료 시 판매량 증가
-        order.items.forEach { orderItem ->
+        val orderItems = orderItemRepository.findByOrderId(orderId)
+        orderItems.forEach { orderItem ->
             productStatisticsService.incrementSalesCount(
                 productId = orderItem.packageTypeId,
                 quantity = orderItem.quantity,
@@ -191,7 +198,8 @@ class OrderService(
             ?: throw IllegalArgumentException("주문을 찾을 수 없습니다")
 
         // 주문 아이템별 차 구성 삭제
-        order.items.forEach { orderItem ->
+        val orderItems = orderItemRepository.findByOrderId(orderId)
+        orderItems.forEach { orderItem ->
             orderItemTeaService.deleteOrderItemTeas(orderItem.id)
         }
 

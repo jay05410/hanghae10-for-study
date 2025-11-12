@@ -1,25 +1,42 @@
 package io.hhplus.ecommerce.cart.domain.entity
 
-import io.hhplus.ecommerce.common.baseentity.ActiveJpaEntity
 import io.hhplus.ecommerce.common.exception.cart.CartException
-// import jakarta.persistence.*
 import java.time.LocalDateTime
 
-// @Entity
-// @Table(name = "carts")
-class Cart(
-    // @Id
-    // @GeneratedValue(strategy = GenerationType.IDENTITY)
+/**
+ * 장바구니 도메인 모델 (순수 비즈니스 로직)
+ *
+ * 역할:
+ * - 사용자별 장바구니 정보 관리
+ * - 장바구니 아이템 추가/수정/삭제
+ * - 장바구니 비즈니스 규칙 검증
+ *
+ * 비즈니스 규칙:
+ * - 사용자당 장바구니 1개 (1:1 관계)
+ * - 최대 50개 아이템 제한
+ * - 동일 패키지 타입 중복 불가
+ *
+ * 주의: 이 클래스는 순수 도메인 모델이며 JPA 어노테이션이 없습니다.
+ *       영속성은 infra/persistence/entity/CartJpaEntity에서 처리됩니다.
+ */
+data class Cart(
     val id: Long = 0,
-
-    // @Column(nullable = false, unique = true)
     val userId: Long,
-
-    // @OneToMany(mappedBy = "cart", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
-    private val _items: MutableList<CartItem> = mutableListOf()
-) : ActiveJpaEntity() {
+    private val _items: MutableList<CartItem> = mutableListOf(),
+    val isActive: Boolean = true,
+    val createdAt: LocalDateTime = LocalDateTime.now(),
+    var updatedAt: LocalDateTime = LocalDateTime.now(),
+    val createdBy: Long = 0,
+    var updatedBy: Long = 0
+) {
     val items: List<CartItem> get() = _items.toList()
 
+    /**
+     * 장바구니에 새 아이템 추가
+     *
+     * @return 추가된 CartItem
+     * @throws IllegalArgumentException 최대 아이템 수 초과 또는 중복 패키지 타입
+     */
     fun addItem(
         packageTypeId: Long,
         packageTypeName: String,
@@ -45,31 +62,50 @@ class Cart(
         )
 
         _items.add(cartItem)
+        this.updatedBy = addedBy
+        this.updatedAt = LocalDateTime.now()
 
         return cartItem
     }
 
-    fun updateItemQuantity(cartItemId: Long, newTotalQuantity: Double, updatedBy: Long): CartItem {
+    /**
+     * 장바구니 아이템 수량 업데이트
+     *
+     * @throws CartException.CartItemNotFound 아이템을 찾을 수 없는 경우
+     */
+    fun updateItemQuantity(cartItemId: Long, newTotalQuantity: Double, updatedBy: Long) {
         val item = findItem(cartItemId)
-        // CartItem은 이제 immutable이므로 새로운 인스턴스를 생성해서 교체해야 함
-        // 또는 업데이트 메서드를 CartItem에 추가해야 함
-        return item
+        item.updateQuantity(newTotalQuantity)
+        this.updatedBy = updatedBy
+        this.updatedAt = LocalDateTime.now()
     }
 
+    /**
+     * 장바구니에서 아이템 제거
+     *
+     * @throws CartException.CartItemNotFound 아이템을 찾을 수 없는 경우
+     */
     fun removeItem(cartItemId: Long, removedBy: Long) {
         val item = findItem(cartItemId)
         _items.remove(item)
+        this.updatedBy = removedBy
+        this.updatedAt = LocalDateTime.now()
     }
 
+    /**
+     * 장바구니 전체 비우기
+     */
     fun clear(clearedBy: Long) {
         _items.clear()
+        this.updatedBy = clearedBy
+        this.updatedAt = LocalDateTime.now()
     }
 
-    fun isEmpty(): Boolean = _items.isEmpty()
+    fun isEmpty(): Boolean = items.isEmpty()
 
-    fun getTotalItemCount(): Int = _items.size
+    fun getTotalItemCount(): Int = items.size
 
-    fun getTotalQuantity(): Double = _items.sumOf { it.totalQuantity }
+    fun getTotalQuantity(): Double = items.sumOf { it.totalQuantity }
 
     fun getTotalPrice(): Long {
         // TODO: ProductService를 통해 실제 상품 가격을 가져와서 계산해야 함
@@ -78,17 +114,31 @@ class Cart(
     }
 
     private fun findItem(cartItemId: Long): CartItem {
-        return _items.find { it.id == cartItemId }
+        return items.find { it.id == cartItemId }
             ?: throw CartException.CartItemNotFound(cartItemId)
     }
 
     companion object {
         private const val MAX_CART_ITEMS = 50
 
+        /**
+         * 장바구니 생성 팩토리 메서드
+         *
+         * @param userId 사용자 ID
+         * @param createdBy 생성자 ID
+         * @return 생성된 Cart 도메인 모델
+         */
         fun create(userId: Long, createdBy: Long): Cart {
             require(userId > 0) { "사용자 ID는 유효해야 합니다" }
 
-            return Cart(userId = userId)
+            val now = LocalDateTime.now()
+            return Cart(
+                userId = userId,
+                createdBy = createdBy,
+                updatedBy = createdBy,
+                createdAt = now,
+                updatedAt = now
+            )
         }
     }
 }

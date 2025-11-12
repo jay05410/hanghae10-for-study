@@ -1,73 +1,106 @@
 package io.hhplus.ecommerce.product.domain.entity
 
-import io.hhplus.ecommerce.common.baseentity.ActiveJpaEntity
 import io.hhplus.ecommerce.product.domain.constant.ProductStatus
-// import jakarta.persistence.*
+import java.time.LocalDateTime
 
-// @Entity
-// @Table(name = "items")
-class Product(
-    // @Id
-    // @GeneratedValue(strategy = GenerationType.IDENTITY)
+/**
+ * 상품 도메인 모델 (순수 비즈니스 로직)
+ *
+ * 역할:
+ * - 상품 정보 관리
+ * - 상품 상태 전환 및 검증
+ * - 상품 정보 업데이트 및 재고 관리
+ *
+ * 비즈니스 규칙:
+ * - 상품명은 필수이며 빈 값일 수 없음
+ * - 가격은 0보다 커야 함
+ * - 티백 용량은 0보다 커야 함
+ * - 상품 정보는 가변 객체로 관리 (직접 필드 수정)
+ *
+ * 주의: 이 클래스는 순수 도메인 모델이며 JPA 어노테이션이 없습니다.
+ *       영속성은 infra/persistence/entity/ProductJpaEntity에서 처리됩니다.
+ */
+data class Product(
     val id: Long = 0,
-
-    // @Column(nullable = false)
     val categoryId: Long,
-
-    // @Column(nullable = false, length = 100)
     var name: String,
-
-    // @Column(nullable = false, columnDefinition = "TEXT")
     var description: String,
-
-    // @Column(nullable = false, length = 20)
     val caffeineType: String,
-
-    // @Column(nullable = false, length = 100)
     val tasteProfile: String,
-
-    // @Column(nullable = false, length = 100)
     val aromaProfile: String,
-
-    // @Column(nullable = false, length = 100)
     val colorProfile: String,
-
-    // @Column(nullable = false)
     val bagPerWeight: Int,
-
-    // @Column(nullable = false)
     var pricePer100g: Int,
-
-    // @Column(nullable = false, columnDefinition = "TEXT")
     val ingredients: String,
-
-    // @Column(nullable = false, length = 100)
     val origin: String,
-
-    // @Column(nullable = false, length = 20)
-    // @Enumerated(EnumType.STRING)
-    var status: ProductStatus = ProductStatus.ACTIVE
-) : ActiveJpaEntity() {
+    var status: ProductStatus = ProductStatus.ACTIVE,
+    var isActive: Boolean = true,
+    val createdAt: LocalDateTime = LocalDateTime.now(),
+    var updatedAt: LocalDateTime = LocalDateTime.now(),
+    val createdBy: Long = 0,
+    var updatedBy: Long = 0,
+    val deletedAt: LocalDateTime? = null
+) {
     val price: Long get() = pricePer100g.toLong()
 
+    /**
+     * 상품 사용 가능 여부 확인
+     */
     fun isAvailable(): Boolean = status == ProductStatus.ACTIVE && isActive
 
+    /**
+     * 품절 상태로 변경
+     *
+     * @param updatedBy 변경자 ID
+     */
     fun markOutOfStock(updatedBy: Long) {
         this.status = ProductStatus.OUT_OF_STOCK
+        this.updatedBy = updatedBy
+        this.updatedAt = LocalDateTime.now()
     }
 
+    /**
+     * 단종 상태로 변경
+     *
+     * @param updatedBy 변경자 ID
+     */
     fun markDiscontinued(updatedBy: Long) {
         this.status = ProductStatus.DISCONTINUED
+        this.updatedBy = updatedBy
+        this.updatedAt = LocalDateTime.now()
     }
 
+    /**
+     * 숨김 상태로 변경
+     *
+     * @param updatedBy 변경자 ID
+     */
     fun hide(updatedBy: Long) {
         this.status = ProductStatus.HIDDEN
+        this.updatedBy = updatedBy
+        this.updatedAt = LocalDateTime.now()
     }
 
+    /**
+     * 활성 상태로 복구
+     *
+     * @param updatedBy 변경자 ID
+     */
     fun restore(updatedBy: Long) {
         this.status = ProductStatus.ACTIVE
+        this.updatedBy = updatedBy
+        this.updatedAt = LocalDateTime.now()
     }
 
+    /**
+     * 상품 정보 업데이트
+     *
+     * @param name 변경할 상품명
+     * @param description 변경할 상품 설명
+     * @param price 변경할 가격
+     * @param updatedBy 변경자 ID
+     * @throws IllegalArgumentException 필수 정보 누락 시
+     */
     fun updateInfo(
         name: String,
         description: String,
@@ -80,10 +113,36 @@ class Product(
         this.name = name
         this.description = description
         this.pricePer100g = price.toInt()
-        this.updateAuditInfo(updatedBy)
+        this.updatedBy = updatedBy
+        this.updatedAt = LocalDateTime.now()
+    }
+
+    /**
+     * 상품 비활성화
+     *
+     * @param deactivatedBy 비활성화 처리자 ID
+     */
+    fun deactivate(deactivatedBy: Long) {
+        this.isActive = false
+        this.updatedBy = deactivatedBy
+        this.updatedAt = LocalDateTime.now()
+    }
+
+    /**
+     * 상품 활성화
+     *
+     * @param activatedBy 활성화 처리자 ID
+     */
+    fun activate(activatedBy: Long) {
+        this.isActive = true
+        this.updatedBy = activatedBy
+        this.updatedAt = LocalDateTime.now()
     }
 
     companion object {
+        /**
+         * 기본 상품 생성
+         */
         fun create(
             name: String,
             description: String,
@@ -94,6 +153,7 @@ class Product(
             require(name.isNotBlank()) { "상품명은 필수입니다" }
             require(price > 0) { "가격은 0보다 커야 합니다" }
 
+            val now = LocalDateTime.now()
             return Product(
                 categoryId = categoryId,
                 name = name,
@@ -105,10 +165,17 @@ class Product(
                 bagPerWeight = 3,        // 기본값
                 pricePer100g = price.toInt(),
                 ingredients = "차 잎 100%", // 기본값
-                origin = "한국"          // 기본값
+                origin = "한국",          // 기본값
+                createdBy = createdBy,
+                updatedBy = createdBy,
+                createdAt = now,
+                updatedAt = now
             )
         }
 
+        /**
+         * 상세 정보를 포함한 상품 생성
+         */
         fun createDetailed(
             categoryId: Long,
             name: String,
@@ -127,6 +194,7 @@ class Product(
             require(pricePer100g > 0) { "가격은 0보다 커야 합니다" }
             require(bagPerWeight > 0) { "티백 용량은 0보다 커야 합니다" }
 
+            val now = LocalDateTime.now()
             return Product(
                 categoryId = categoryId,
                 name = name,
@@ -138,7 +206,11 @@ class Product(
                 bagPerWeight = bagPerWeight,
                 pricePer100g = pricePer100g,
                 ingredients = ingredients,
-                origin = origin
+                origin = origin,
+                createdBy = createdBy,
+                updatedBy = createdBy,
+                createdAt = now,
+                updatedAt = now
             )
         }
     }

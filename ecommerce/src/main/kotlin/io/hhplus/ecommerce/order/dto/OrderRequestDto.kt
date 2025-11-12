@@ -1,9 +1,12 @@
 package io.hhplus.ecommerce.order.dto
 
+import io.hhplus.ecommerce.delivery.dto.DeliveryAddressRequest
+
 /** Controller 요청 DTO */
 data class CreateOrderRequest(
     val userId: Long,
     val items: List<CreateOrderItemRequest>,
+    val deliveryAddress: DeliveryAddressRequest,
     val usedCouponId: Long? = null
 )
 

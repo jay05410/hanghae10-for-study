@@ -31,6 +31,7 @@ class PointHistoryService(
         amount: PointAmount,
         balanceBefore: Balance,
         balanceAfter: Balance,
+        createdBy: Long,
         description: String? = null,
         orderId: Long? = null
     ): PointHistory {
@@ -40,7 +41,8 @@ class PointHistoryService(
             balanceBefore = balanceBefore.value,
             balanceAfter = balanceAfter.value,
             orderId = orderId,
-            description = description
+            description = description,
+            createdBy = createdBy
         )
         return pointHistoryRepository.save(history)
     }
@@ -51,6 +53,7 @@ class PointHistoryService(
         amount: PointAmount,
         balanceBefore: Balance,
         balanceAfter: Balance,
+        createdBy: Long,
         description: String? = null,
         orderId: Long? = null
     ): PointHistory {
@@ -60,7 +63,8 @@ class PointHistoryService(
             balanceBefore = balanceBefore.value,
             balanceAfter = balanceAfter.value,
             orderId = orderId,
-            description = description
+            description = description,
+            createdBy = createdBy
         )
         return pointHistoryRepository.save(history)
     }
@@ -71,6 +75,7 @@ class PointHistoryService(
         amount: PointAmount,
         balanceBefore: Balance,
         balanceAfter: Balance,
+        createdBy: Long,
         description: String? = null
     ): PointHistory {
         val history = PointHistory.createExpireHistory(
@@ -78,7 +83,8 @@ class PointHistoryService(
             amount = amount,
             balanceBefore = balanceBefore.value,
             balanceAfter = balanceAfter.value,
-            description = description
+            description = description,
+            createdBy = createdBy
         )
         return pointHistoryRepository.save(history)
     }

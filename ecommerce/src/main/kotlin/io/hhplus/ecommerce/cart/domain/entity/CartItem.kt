@@ -1,42 +1,46 @@
 package io.hhplus.ecommerce.cart.domain.entity
 
-import io.hhplus.ecommerce.common.baseentity.ActiveJpaEntity
-// import jakarta.persistence.*
 import java.time.LocalDateTime
 
-// @Entity
-// @Table(name = "cart_item")
-class CartItem(
-    // @Id
-    // @GeneratedValue(strategy = GenerationType.IDENTITY)
+/**
+ * 장바구니 아이템 도메인 모델 (순수 비즈니스 로직)
+ *
+ * 역할:
+ * - 장바구니에 담긴 개별 상품 정보 관리
+ * - 패키지 타입, 수량, 선물 옵션 등 관리
+ *
+ * 비즈니스 규칙:
+ * - 하루 섭취량은 1-3 사이
+ * - 총 그램수는 0보다 커야 함
+ * - 선물 포장 시 선물 메시지 선택 가능
+ *
+ * 주의: 이 클래스는 순수 도메인 모델이며 JPA 어노테이션이 없습니다.
+ *       영속성은 infra/persistence/entity/CartItemJpaEntity에서 처리됩니다.
+ */
+data class CartItem(
     val id: Long = 0,
-
-    // @Column(nullable = false)
     val cartId: Long,
-
-    // @Column(nullable = false)
     val packageTypeId: Long,
-
-    // @Column(nullable = false, length = 100)
     val packageTypeName: String,
-
-    // @Column(nullable = false)
     val packageTypeDays: Int,
-
-    // @Column(nullable = false)
     val dailyServing: Int = 1,
-
-    // @Column(nullable = false)
-    val totalQuantity: Double,
-
-    // @Column(nullable = false)
+    var totalQuantity: Double,
     val giftWrap: Boolean = false,
-
-    // @Column(length = 500)
-    val giftMessage: String? = null
-) : ActiveJpaEntity() {
+    val giftMessage: String? = null,
+    val isActive: Boolean = true,
+    val createdAt: LocalDateTime = LocalDateTime.now(),
+    var updatedAt: LocalDateTime = LocalDateTime.now(),
+    val createdBy: Long = 0,
+    var updatedBy: Long = 0
+) {
     fun validateTotalQuantity() {
         require(totalQuantity > 0) { "총 그램수는 0보다 커야 합니다: $totalQuantity" }
+    }
+
+    fun updateQuantity(newQuantity: Double) {
+        require(newQuantity > 0) { "총 그램수는 0보다 커야 합니다: $newQuantity" }
+        this.totalQuantity = newQuantity
+        this.updatedAt = LocalDateTime.now()
     }
 
     // 이전 버전 호환성을 위한 프로퍼티
@@ -49,6 +53,11 @@ class CartItem(
         get() = totalQuantity.toInt()
 
     companion object {
+        /**
+         * 장바구니 아이템 생성 팩토리 메서드
+         *
+         * @return 생성된 CartItem 도메인 모델
+         */
         fun create(
             cartId: Long,
             packageTypeId: Long,
@@ -66,6 +75,7 @@ class CartItem(
             require(dailyServing in 1..3) { "하루 섭취량은 1-3 사이여야 합니다" }
             require(totalQuantity > 0) { "총 그램수는 0보다 커야 합니다" }
 
+            val now = LocalDateTime.now()
             return CartItem(
                 cartId = cartId,
                 packageTypeId = packageTypeId,
@@ -74,7 +84,9 @@ class CartItem(
                 dailyServing = dailyServing,
                 totalQuantity = totalQuantity,
                 giftWrap = giftWrap,
-                giftMessage = giftMessage
+                giftMessage = giftMessage,
+                createdAt = now,
+                updatedAt = now
             ).also { it.validateTotalQuantity() }
         }
     }

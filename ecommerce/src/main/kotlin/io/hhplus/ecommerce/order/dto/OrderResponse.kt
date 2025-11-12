@@ -49,7 +49,7 @@ data class OrderItemResponse(
     val updatedAt: LocalDateTime
 )
 
-fun Order.toResponse(): OrderResponse = OrderResponse(
+fun Order.toResponse(orderItems: List<OrderItem> = emptyList()): OrderResponse = OrderResponse(
     id = this.id,
     orderNumber = this.orderNumber,
     userId = this.userId,
@@ -58,7 +58,7 @@ fun Order.toResponse(): OrderResponse = OrderResponse(
     finalAmount = this.finalAmount,
     usedCouponId = this.usedCouponId,
     status = this.status,
-    orderItems = this.items.map { it.toResponse() },
+    orderItems = orderItems.map { it.toResponse() },
     createdAt = this.createdAt,
     updatedAt = this.updatedAt
 )

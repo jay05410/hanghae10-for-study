@@ -74,7 +74,7 @@ class CartService(
         val existingItem = cart.items.find { it.packageTypeId == packageTypeId }
 
         if (existingItem != null) {
-            // 기존 아이템이 있으면 업데이트 (실제로는 새로운 아이템으로 교체)
+            // 기존 아이템이 있으면 제거
             cart.removeItem(existingItem.id, userId)
         }
 

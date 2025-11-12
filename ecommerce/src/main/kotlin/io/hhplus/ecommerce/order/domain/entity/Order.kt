@@ -1,102 +1,72 @@
 package io.hhplus.ecommerce.order.domain.entity
 
-import io.hhplus.ecommerce.common.baseentity.ActiveJpaEntity
 import io.hhplus.ecommerce.common.exception.order.OrderException
 import io.hhplus.ecommerce.order.domain.constant.OrderStatus
-//import jakarta.persistence.*
+import java.time.LocalDateTime
 
-//@Entity
-//@Table(name = "orders")
-class Order(
-//    @Id
-//    @GeneratedValue(strategy = GenerationType.IDENTITY)
+/**
+ * Order 도메인 모델 (mutable)
+ *
+ * 역할:
+ * - 주문의 핵심 비즈니스 로직 포함
+ * - 상태 변경은 직접 필드 수정 (가변 구조)
+ * - JPA 의존성 제거로 도메인 순수성 유지
+ */
+data class Order(
     val id: Long = 0,
-
-//    @Column(nullable = false, unique = true, length = 50)
     val orderNumber: String,
-
-//    @Column(nullable = false)
     val userId: Long,
-
-//    @Column(nullable = false)
     val totalAmount: Long,
-
-//    @Column(nullable = false)
     val discountAmount: Long = 0,
-
-//    @Column(nullable = false)
     val finalAmount: Long,
-
-//    @Column(nullable = false)
     val usedCouponId: Long? = null,
-
-//    @Column(nullable = false, length = 20)
-//    @Enumerated(EnumType.STRING)
     var status: OrderStatus = OrderStatus.PENDING,
-
-//    @OneToMany(mappedBy = "order", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
-    private val _items: MutableList<OrderItem> = mutableListOf()
-) : ActiveJpaEntity() {
-    val items: List<OrderItem> get() = _items.toList()
-
-
-    fun addItem(
-        packageTypeId: Long,
-        packageTypeName: String,
-        packageTypeDays: Int,
-        dailyServing: Int,
-        totalQuantity: Double,
-        giftWrap: Boolean = false,
-        giftMessage: String? = null,
-        quantity: Int,
-        containerPrice: Int,
-        teaPrice: Int,
-        giftWrapPrice: Int = 0
-    ): OrderItem {
-        val orderItem = OrderItem.create(
-            orderId = this.id,
-            packageTypeId = packageTypeId,
-            packageTypeName = packageTypeName,
-            packageTypeDays = packageTypeDays,
-            dailyServing = dailyServing,
-            totalQuantity = totalQuantity,
-            giftWrap = giftWrap,
-            giftMessage = giftMessage,
-            quantity = quantity,
-            containerPrice = containerPrice,
-            teaPrice = teaPrice,
-            giftWrapPrice = giftWrapPrice
-        )
-
-        _items.add(orderItem)
-        return orderItem
-    }
-
+    val isActive: Boolean = true,
+    val createdAt: LocalDateTime = LocalDateTime.now(),
+    var updatedAt: LocalDateTime = LocalDateTime.now(),
+    val createdBy: Long? = null,
+    var updatedBy: Long? = null,
+    val deletedAt: LocalDateTime? = null
+) {
+    /**
+     * 주문 확정
+     */
     fun confirm(confirmedBy: Long) {
         validateStatusTransition(OrderStatus.CONFIRMED)
         this.status = OrderStatus.CONFIRMED
-        updateAuditInfo(confirmedBy)
+        this.updatedBy = confirmedBy
+        this.updatedAt = LocalDateTime.now()
     }
 
+    /**
+     * 주문 취소
+     */
     fun cancel(cancelledBy: Long) {
-        // 취소 가능 상태 검증: PENDING, CONFIRMED 상태만 취소 가능
         if (!canBeCancelled()) {
             throw OrderException.OrderCancellationNotAllowed(orderNumber, status)
         }
-
         this.status = OrderStatus.CANCELLED
-        updateAuditInfo(cancelledBy)
+        this.updatedBy = cancelledBy
+        this.updatedAt = LocalDateTime.now()
     }
 
+    /**
+     * 주문 완료
+     */
     fun complete(completedBy: Long) {
         validateStatusTransition(OrderStatus.COMPLETED)
         this.status = OrderStatus.COMPLETED
-        updateAuditInfo(completedBy)
+        this.updatedBy = completedBy
+        this.updatedAt = LocalDateTime.now()
     }
 
+    /**
+     * 주문 실패
+     */
     fun fail(failedBy: Long) {
         this.status = OrderStatus.FAILED
-        updateAuditInfo(failedBy)
+        this.updatedBy = failedBy
+        this.updatedAt = LocalDateTime.now()
     }
 
     fun canBeCancelled(): Boolean = status.canBeCancelled()
@@ -125,7 +95,7 @@ class Order(
             val finalAmount = totalAmount - discountAmount
             require(finalAmount >= 0) { "최종 금액은 0 이상이어야 합니다" }
 
-            val order = Order(
+            return Order(
                 orderNumber = orderNumber,
                 userId = userId,
                 totalAmount = totalAmount,
@@ -133,7 +103,6 @@ class Order(
                 finalAmount = finalAmount,
                 usedCouponId = usedCouponId
             )
-            return order
         }
     }
 }

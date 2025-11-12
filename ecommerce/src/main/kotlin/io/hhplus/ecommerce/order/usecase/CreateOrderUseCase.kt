@@ -7,6 +7,7 @@ import io.hhplus.ecommerce.order.dto.OrderItemData
 import io.hhplus.ecommerce.product.application.ProductService
 import io.hhplus.ecommerce.coupon.application.CouponService
 import io.hhplus.ecommerce.payment.application.PaymentService
+import io.hhplus.ecommerce.delivery.application.DeliveryService
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
@@ -28,7 +29,8 @@ class CreateOrderUseCase(
     private val orderService: OrderService,
     private val productService: ProductService,
     private val couponService: CouponService,
-    private val paymentService: PaymentService
+    private val paymentService: PaymentService,
+    private val deliveryService: DeliveryService
 ) {
 
     /**
@@ -88,6 +90,14 @@ class CreateOrderUseCase(
         request.usedCouponId?.let { couponId ->
             couponService.applyCoupon(request.userId, couponId, order.id, totalAmount)
         }
+
+        // 6. 배송 정보 생성
+        deliveryService.createDelivery(
+            orderId = order.id,
+            deliveryAddress = request.deliveryAddress.toVo(),
+            deliveryMemo = request.deliveryAddress.deliveryMessage,
+            createdBy = request.userId
+        )
 
         return order
     }

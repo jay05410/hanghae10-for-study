@@ -2,6 +2,9 @@ package io.hhplus.ecommerce.order.controller
 
 import io.hhplus.ecommerce.order.usecase.*
 import io.hhplus.ecommerce.order.dto.*
+import io.hhplus.ecommerce.delivery.usecase.GetDeliveryQueryUseCase
+import io.hhplus.ecommerce.delivery.dto.DeliveryResponse
+import io.hhplus.ecommerce.delivery.dto.toResponse
 import io.hhplus.ecommerce.common.response.ApiResponse
 import org.springframework.web.bind.annotation.*
 
@@ -24,7 +27,8 @@ class OrderController(
     private val createOrderUseCase: CreateOrderUseCase,
     private val getOrderQueryUseCase: GetOrderQueryUseCase,
     private val confirmOrderUseCase: ConfirmOrderUseCase,
-    private val cancelOrderUseCase: CancelOrderUseCase
+    private val cancelOrderUseCase: CancelOrderUseCase,
+    private val getDeliveryQueryUseCase: GetDeliveryQueryUseCase
 ) {
 
     /**
@@ -93,6 +97,18 @@ class OrderController(
     ): ApiResponse<OrderResponse> {
         val order = cancelOrderUseCase.execute(orderId, request.cancelledBy, request.reason)
         return ApiResponse.success(order.toResponse())
+    }
+
+    /**
+     * 주문의 배송 정보를 조회한다
+     *
+     * @param orderId 조회할 주문의 ID
+     * @return 배송 정보를 포함한 API 응답
+     */
+    @GetMapping("/{orderId}/delivery")
+    fun getDelivery(@PathVariable orderId: Long): ApiResponse<DeliveryResponse> {
+        val delivery = getDeliveryQueryUseCase.getDeliveryByOrderId(orderId)
+        return ApiResponse.success(delivery.toResponse())
     }
 
 }

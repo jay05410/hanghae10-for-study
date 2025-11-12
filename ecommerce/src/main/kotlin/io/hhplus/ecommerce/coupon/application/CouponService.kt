@@ -76,6 +76,7 @@ class CouponService(
             throw CouponException.AlreadyIssuedCoupon(userId, coupon.name)
         }
 
+        // 가변 모델이므로 issue() 메서드 호출 후 저장
         coupon.issue(userId)
         couponRepository.save(coupon)
 
@@ -140,6 +141,7 @@ class CouponService(
 
         val discountAmount = coupon.calculateDiscountAmount(orderAmount)
 
+        // 가변 모델이므로 use() 메서드 호출 후 저장
         userCoupon.use(orderId, userId)
         userCouponRepository.save(userCoupon)
 

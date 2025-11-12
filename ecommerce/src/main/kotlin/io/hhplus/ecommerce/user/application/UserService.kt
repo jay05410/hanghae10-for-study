@@ -74,21 +74,22 @@ class UserService(
             }
         }
 
-        // Since User properties are immutable, we validate inputs but don't actually update
+        // 가변 모델: update 메서드 호출 후 저장
         user.update(
             name = name ?: user.name,
             email = email ?: user.email,
             updatedBy = updatedBy
         )
 
-        return user
+        return userRepository.save(user)
     }
 
     fun deactivateUser(userId: Long, deactivatedBy: Long): User {
         val user = userRepository.findById(userId)
             ?: throw UserException.UserNotFound(userId)
 
-        user.deactivate()
+        // 가변 모델: deactivate 메서드 호출 후 저장
+        user.deactivate(deactivatedBy)
         return userRepository.save(user)
     }
 
@@ -96,7 +97,8 @@ class UserService(
         val user = userRepository.findById(userId)
             ?: throw UserException.UserNotFound(userId)
 
-        user.activate()
+        // 가변 모델: activate 메서드 호출 후 저장
+        user.activate(activatedBy)
         return userRepository.save(user)
     }
 

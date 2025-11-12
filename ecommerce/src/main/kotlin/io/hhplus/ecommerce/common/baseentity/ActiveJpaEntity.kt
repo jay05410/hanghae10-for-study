@@ -1,12 +1,23 @@
 package io.hhplus.ecommerce.common.baseentity
 
-// import jakarta.persistence.Column
-// import jakarta.persistence.MappedSuperclass
+import jakarta.persistence.Column
+import jakarta.persistence.MappedSuperclass
 
-// @MappedSuperclass
+/**
+ * 활성화 상태 관리 JPA 엔티티
+ *
+ * 역할:
+ * - 엔티티의 활성화/비활성화 상태 관리
+ *
+ * 계층 구조:
+ * - SoftDeletableJpaEntity (deletedAt)
+ *   └── BaseJpaEntity (audit fields)
+ *       └── ActiveJpaEntity (isActive) ← 이 클래스
+ */
+@MappedSuperclass
 abstract class ActiveJpaEntity(
-    // @Column(nullable = false)
-    var isActive: Boolean = true
+    @Column(nullable = false, name = "is_active")
+    open var isActive: Boolean = true
 ) : BaseJpaEntity() {
 
     open fun activate() {

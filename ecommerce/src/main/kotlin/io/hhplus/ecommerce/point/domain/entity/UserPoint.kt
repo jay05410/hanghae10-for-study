@@ -1,35 +1,37 @@
 package io.hhplus.ecommerce.point.domain.entity
 
-import io.hhplus.ecommerce.common.baseentity.ActiveJpaEntity
 import io.hhplus.ecommerce.common.exception.point.PointException
 import io.hhplus.ecommerce.point.domain.vo.Balance
 import io.hhplus.ecommerce.point.domain.vo.PointAmount
-// import jakarta.persistence.*
+import java.time.LocalDateTime
 
 /**
- * 사용자 포인트 엔티티
+ * 사용자 포인트 도메인 엔티티 (Pure Domain Model)
+ *
+ * 역할:
+ * - 포인트 비즈니스 로직 캡슐화
+ * - 가변 구조로 도메인 무결성 보장
+ * - JPA 어노테이션 제거로 인프라 의존성 제거
  *
  * 포인트는 구매 적립 혜택 시스템:
  * - 상품 구매 시 일정 % 자동 적립
  * - 다음 구매 시 포인트로 할인 가능
  * - 일정 기간 후 자동 소멸
+ *
+ * 주의: 모든 상태 변경 메서드는 직접 필드를 수정하고 이전 잔액을 반환합니다.
  */
-// @Entity
-// @Table(name = "user_point")
-class UserPoint(
-    // @Id
-    // @GeneratedValue(strategy = GenerationType.IDENTITY)
+data class UserPoint(
     val id: Long = 0,
-
-    // @Column(nullable = false, unique = true)
     val userId: Long,
-
-    // @Column(nullable = false)
     var balance: Balance = Balance.zero(),
-
-    // @Version
-    var version: Int = 0
-) : ActiveJpaEntity() {
+    var version: Int = 0,
+    var isActive: Boolean = true,
+    val createdAt: LocalDateTime = LocalDateTime.now(),
+    var updatedAt: LocalDateTime = LocalDateTime.now(),
+    val createdBy: Long? = null,
+    var updatedBy: Long? = null,
+    var deletedAt: LocalDateTime? = null
+) {
 
     /**
      * 포인트 적립 (구매 시 자동 적립)
@@ -42,6 +44,8 @@ class UserPoint(
     fun earn(amount: PointAmount, earnedBy: Long): Balance {
         val oldBalance = this.balance
         this.balance = this.balance + amount.value
+        this.updatedBy = earnedBy
+        this.updatedAt = LocalDateTime.now()
         return oldBalance
     }
 
@@ -64,6 +68,8 @@ class UserPoint(
 
         val oldBalance = this.balance
         this.balance = this.balance - amount.value
+        this.updatedBy = usedBy
+        this.updatedAt = LocalDateTime.now()
         return oldBalance
     }
 
@@ -85,12 +91,51 @@ class UserPoint(
 
         val oldBalance = this.balance
         this.balance = this.balance - amount.value
+        this.updatedAt = LocalDateTime.now()
         return oldBalance
     }
 
+    /**
+     * 활성화
+     */
+    fun activate() {
+        this.isActive = true
+        this.updatedAt = LocalDateTime.now()
+    }
+
+    /**
+     * 비활성화
+     */
+    fun deactivate() {
+        this.isActive = false
+        this.updatedAt = LocalDateTime.now()
+    }
+
+    /**
+     * 소프트 삭제
+     */
+    fun delete() {
+        this.deletedAt = LocalDateTime.now()
+    }
+
+    /**
+     * 복원
+     */
+    fun restore() {
+        this.deletedAt = null
+    }
+
+    fun isDeleted(): Boolean = deletedAt != null
+    fun isDeactivated(): Boolean = !isActive
+
     companion object {
         fun create(userId: Long, createdBy: Long): UserPoint {
-            return UserPoint(userId = userId, balance = Balance.zero())
+            return UserPoint(
+                userId = userId,
+                balance = Balance.zero(),
+                createdBy = createdBy,
+                updatedBy = createdBy
+            )
         }
     }
 }

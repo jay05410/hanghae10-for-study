@@ -55,6 +55,7 @@ class DeductPointUseCase(
             amount = pointAmount,
             balanceBefore = balanceBefore,
             balanceAfter = updatedUserPoint.balance,
+            createdBy = userId,
             description = description,
             orderId = orderId
         )

@@ -1,49 +1,43 @@
 package io.hhplus.ecommerce.coupon.domain.entity
 
-import io.hhplus.ecommerce.common.baseentity.ActiveJpaEntity
 import io.hhplus.ecommerce.common.exception.coupon.CouponException
 import io.hhplus.ecommerce.coupon.domain.constant.DiscountType
-// import jakarta.persistence.*
 import java.time.LocalDateTime
 
-// @Entity
-// @Table(name = "coupons")
-class Coupon(
-    // @Id
-    // @GeneratedValue(strategy = GenerationType.IDENTITY)
+/**
+ * 쿠폰 도메인 모델 (순수 비즈니스 로직)
+ *
+ * 역할:
+ * - 쿠폰 정보 관리 및 발급 처리
+ * - 할인 금액 계산 및 검증
+ * - 쿠폰 유효성 검증
+ *
+ * 비즈니스 규칙:
+ * - 쿠폰은 발급량이 남아있고 유효기간 내에만 발급 가능
+ * - 쿠폰 사용 시 최소 주문 금액 이상이어야 함
+ * - 할인 타입에 따라 고정 금액 또는 퍼센트 할인 적용
+ *
+ * 주의: 이 클래스는 순수 도메인 모델이며 JPA 어노테이션이 없습니다.
+ *       영속성은 infra/persistence/entity/CouponJpaEntity에서 처리됩니다.
+ */
+data class Coupon(
     val id: Long = 0,
-
-    // @Column(nullable = false, unique = true, length = 50)
     val name: String,
-
-    // @Column(nullable = false, unique = true, length = 20)
     val code: String,
-
-    // @Column(nullable = false, length = 20)
-    // @Enumerated(EnumType.STRING)
     val discountType: DiscountType,
-
-    // @Column(nullable = false)
     val discountValue: Long,
-
-    // @Column(nullable = false)
     val minimumOrderAmount: Long = 0,
-
-    // @Column(nullable = false)
     val totalQuantity: Int,
-
-    // @Column(nullable = false)
     var issuedQuantity: Int = 0,
-
-    // @Version
     var version: Int = 0,
-
-    // @Column(nullable = false)
     val validFrom: LocalDateTime,
-
-    // @Column(nullable = false)
-    val validTo: LocalDateTime
-) : ActiveJpaEntity() {
+    val validTo: LocalDateTime,
+    var isActive: Boolean = true,
+    val createdAt: LocalDateTime = LocalDateTime.now(),
+    var updatedAt: LocalDateTime = LocalDateTime.now(),
+    val createdBy: Long = 0,
+    var updatedBy: Long = 0
+) {
     fun getRemainingQuantity(): Int = totalQuantity - issuedQuantity
 
     fun isAvailableForIssue(): Boolean =
@@ -57,15 +51,20 @@ class Coupon(
         return now.isAfter(validFrom) && now.isBefore(validTo)
     }
 
-    fun issue(issuedBy: Long): Int {
+    /**
+     * 쿠폰을 발급하고 발급 수량을 증가
+     *
+     * @param issuedBy 발급자 ID
+     * @throws CouponException.CouponSoldOut 쿠폰이 품절된 경우
+     */
+    fun issue(issuedBy: Long) {
         if (!isAvailableForIssue()) {
             throw CouponException.CouponSoldOut(name, getRemainingQuantity())
         }
 
-        val oldIssuedQuantity = this.issuedQuantity
         this.issuedQuantity += 1
-
-        return oldIssuedQuantity
+        this.updatedBy = issuedBy
+        this.updatedAt = LocalDateTime.now()
     }
 
     fun calculateDiscountAmount(orderAmount: Long): Long {
@@ -102,6 +101,7 @@ class Coupon(
                 require(discountValue <= 100) { "퍼센트 할인값은 100 이하여야 합니다" }
             }
 
+            val now = LocalDateTime.now()
             return Coupon(
                 name = name,
                 code = code,
@@ -110,7 +110,11 @@ class Coupon(
                 minimumOrderAmount = minimumOrderAmount,
                 totalQuantity = totalQuantity,
                 validFrom = validFrom,
-                validTo = validTo
+                validTo = validTo,
+                createdBy = createdBy,
+                updatedBy = createdBy,
+                createdAt = now,
+                updatedAt = now
             )
         }
     }

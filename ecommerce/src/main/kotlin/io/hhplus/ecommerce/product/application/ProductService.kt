@@ -17,6 +17,10 @@ import org.springframework.stereotype.Service
  * - 상품 생성, 수정, 조회, 삭제 로직
  * - 카테고리별 상품 관리
  * - 상품 활성화 상태 관리
+ *
+ * 주의:
+ * - Product는 불변 객체이므로 상태 변경 메서드는 새로운 인스턴스를 반환
+ * - 반환된 인스턴스를 반드시 save()로 저장해야 함
  */
 @Service
 class ProductService(
@@ -58,9 +62,70 @@ class ProductService(
     }
 
     /**
-     * 상품 업데이트
+     * 상품 정보 업데이트
+     *
+     * 주의: 불변 객체이므로 updateInfo()의 반환값을 save()로 저장
+     */
+    fun updateProductInfo(
+        productId: Long,
+        name: String,
+        description: String,
+        price: Long,
+        updatedBy: Long
+    ): Product {
+        val product = getProduct(productId)
+        product.updateInfo(name, description, price, updatedBy)
+        return productRepository.save(product)
+    }
+
+    /**
+     * 상품 업데이트 (범용)
      */
     fun updateProduct(product: Product): Product {
+        return productRepository.save(product)
+    }
+
+    /**
+     * 상품 품절 처리
+     *
+     * 주의: 가변 객체이므로 markOutOfStock() 호출 후 저장
+     */
+    fun markProductOutOfStock(productId: Long, updatedBy: Long): Product {
+        val product = getProduct(productId)
+        product.markOutOfStock(updatedBy)
+        return productRepository.save(product)
+    }
+
+    /**
+     * 상품 단종 처리
+     *
+     * 주의: 가변 객체이므로 markDiscontinued() 호출 후 저장
+     */
+    fun discontinueProduct(productId: Long, updatedBy: Long): Product {
+        val product = getProduct(productId)
+        product.markDiscontinued(updatedBy)
+        return productRepository.save(product)
+    }
+
+    /**
+     * 상품 숨김 처리
+     *
+     * 주의: 가변 객체이므로 hide() 호출 후 저장
+     */
+    fun hideProduct(productId: Long, updatedBy: Long): Product {
+        val product = getProduct(productId)
+        product.hide(updatedBy)
+        return productRepository.save(product)
+    }
+
+    /**
+     * 상품 복구 처리
+     *
+     * 주의: 가변 객체이므로 restore() 호출 후 저장
+     */
+    fun restoreProduct(productId: Long, updatedBy: Long): Product {
+        val product = getProduct(productId)
+        product.restore(updatedBy)
         return productRepository.save(product)
     }
 
@@ -70,6 +135,4 @@ class ProductService(
     fun getProductsByCategory(categoryId: Long): List<Product> {
         return productRepository.findByCategoryIdAndIsActive(categoryId, true)
     }
-
-
 }

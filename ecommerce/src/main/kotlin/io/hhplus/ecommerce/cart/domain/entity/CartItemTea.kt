@@ -5,7 +5,7 @@ import io.hhplus.ecommerce.common.baseentity.ActiveJpaEntity
 
 // @Entity
 // @Table(name = "cart_item_tea")
-class CartItemTea(
+data class CartItemTea(
     // @Id
     // @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,

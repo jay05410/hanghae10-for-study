@@ -1,54 +1,36 @@
 package io.hhplus.ecommerce.order.domain.entity
 
-import io.hhplus.ecommerce.common.baseentity.ActiveJpaEntity
-//import jakarta.persistence.*
+import java.time.LocalDateTime
 
-//@Entity
-//@Table(name = "order_item")
-class OrderItem(
-//    @Id
-//    @GeneratedValue(strategy = GenerationType.IDENTITY)
+/**
+ * OrderItem 도메인 모델 (immutable)
+ *
+ * 역할:
+ * - 주문 아이템의 정보 보관
+ * - JPA 의존성 제거로 도메인 순수성 유지
+ */
+data class OrderItem(
     val id: Long = 0,
-
-//    @Column(nullable = false)
     val orderId: Long,
-
-//    @Column(nullable = false)
     val packageTypeId: Long,
-
-//    @Column(nullable = false, length = 100)
     val packageTypeName: String,
-
-//    @Column(nullable = false)
     val packageTypeDays: Int,
-
-//    @Column(nullable = false)
     val dailyServing: Int,
-
-//    @Column(nullable = false)
     val totalQuantity: Double,
-
-//    @Column(nullable = false)
     val giftWrap: Boolean = false,
-
-//    @Column(length = 500)
     val giftMessage: String? = null,
-
-//    @Column(nullable = false)
     val quantity: Int,
-
-//    @Column(nullable = false)
     val containerPrice: Int,
-
-//    @Column(nullable = false)
     val teaPrice: Int,
-
-//    @Column(nullable = false)
     val giftWrapPrice: Int = 0,
-
-//    @Column(nullable = false)
-    val totalPrice: Int
-) : ActiveJpaEntity() {
+    val totalPrice: Int,
+    val isActive: Boolean = true,
+    val createdAt: LocalDateTime = LocalDateTime.now(),
+    val updatedAt: LocalDateTime = LocalDateTime.now(),
+    val createdBy: Long? = null,
+    val updatedBy: Long? = null,
+    val deletedAt: LocalDateTime? = null
+) {
     fun validatePrices() {
         require(containerPrice >= 0) { "용기 가격은 0 이상이어야 합니다: $containerPrice" }
         require(teaPrice >= 0) { "차 가격은 0 이상이어야 합니다: $teaPrice" }
