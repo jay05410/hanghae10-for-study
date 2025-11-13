@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.unit.cart.controller
 
+import io.hhplus.ecommerce.cart.controller.CartController
 import io.hhplus.ecommerce.cart.dto.AddToCartRequest
 import io.hhplus.ecommerce.cart.dto.TeaItemRequest
 import io.hhplus.ecommerce.cart.domain.entity.Cart

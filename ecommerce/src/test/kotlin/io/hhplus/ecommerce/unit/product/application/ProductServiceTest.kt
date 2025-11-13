@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.unit.product.application
 
+import io.hhplus.ecommerce.product.application.ProductService
 import io.hhplus.ecommerce.product.domain.entity.Product
 import io.hhplus.ecommerce.product.domain.repository.ProductRepository
 import io.hhplus.ecommerce.common.exception.product.ProductException

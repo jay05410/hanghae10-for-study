@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.unit.inventory.application
 
+import io.hhplus.ecommerce.inventory.application.StockReservationService
 import io.hhplus.ecommerce.inventory.domain.entity.StockReservation
 import io.hhplus.ecommerce.inventory.domain.entity.Inventory
 import io.hhplus.ecommerce.inventory.domain.repository.StockReservationRepository

@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.unit.inventory.application
 
+import io.hhplus.ecommerce.inventory.application.InventoryService
 import io.hhplus.ecommerce.inventory.domain.entity.Inventory
 import io.hhplus.ecommerce.inventory.domain.repository.InventoryRepository
 import io.hhplus.ecommerce.common.exception.inventory.InventoryException

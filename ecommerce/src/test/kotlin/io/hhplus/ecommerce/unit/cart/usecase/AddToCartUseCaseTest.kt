@@ -1,6 +1,7 @@
 package io.hhplus.ecommerce.unit.cart.usecase
 
 import io.hhplus.ecommerce.cart.application.CartService
+import io.hhplus.ecommerce.cart.usecase.AddToCartUseCase
 import io.hhplus.ecommerce.cart.domain.entity.Cart
 import io.hhplus.ecommerce.cart.dto.AddToCartRequest
 import io.hhplus.ecommerce.cart.dto.TeaItemRequest

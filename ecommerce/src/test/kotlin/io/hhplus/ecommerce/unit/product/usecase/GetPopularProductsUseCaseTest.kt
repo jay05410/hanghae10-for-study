@@ -1,6 +1,7 @@
 package io.hhplus.ecommerce.unit.product.usecase
 
 import io.hhplus.ecommerce.product.application.ProductService
+import io.hhplus.ecommerce.product.usecase.GetPopularProductsUseCase
 import io.hhplus.ecommerce.product.application.ProductStatisticsService
 import io.hhplus.ecommerce.product.domain.constant.ProductStatus
 import io.hhplus.ecommerce.product.domain.entity.Product

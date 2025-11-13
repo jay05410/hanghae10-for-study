@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.unit.point.usecase
 
+import io.hhplus.ecommerce.point.usecase.GetPointQueryUseCase
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.assertions.throwables.shouldThrow

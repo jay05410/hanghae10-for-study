@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.unit.point.controller
 
+import io.hhplus.ecommerce.point.controller.PointController
 import io.hhplus.ecommerce.point.usecase.GetPointQueryUseCase
 import io.hhplus.ecommerce.point.usecase.ChargePointUseCase
 import io.hhplus.ecommerce.point.usecase.DeductPointUseCase

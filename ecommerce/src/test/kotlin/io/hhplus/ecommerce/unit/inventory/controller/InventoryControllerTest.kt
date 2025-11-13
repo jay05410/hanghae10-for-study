@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.unit.inventory.controller
 
+import io.hhplus.ecommerce.inventory.controller.InventoryController
 import io.hhplus.ecommerce.inventory.usecase.*
 import io.hhplus.ecommerce.inventory.dto.*
 import io.hhplus.ecommerce.inventory.dto.toResponse

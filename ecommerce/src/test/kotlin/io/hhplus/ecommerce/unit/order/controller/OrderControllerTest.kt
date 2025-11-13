@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.unit.order.controller
 
+import io.hhplus.ecommerce.order.controller.OrderController
 import io.hhplus.ecommerce.order.usecase.*
 import io.hhplus.ecommerce.order.dto.*
 import io.hhplus.ecommerce.order.domain.entity.Order

@@ -1,6 +1,7 @@
 package io.hhplus.ecommerce.unit.cart.usecase
 
 import io.hhplus.ecommerce.cart.application.CartService
+import io.hhplus.ecommerce.cart.usecase.UpdateCartItemUseCase
 import io.hhplus.ecommerce.cart.domain.entity.Cart
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe

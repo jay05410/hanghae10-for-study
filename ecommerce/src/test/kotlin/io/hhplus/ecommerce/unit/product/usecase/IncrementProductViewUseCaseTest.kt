@@ -1,6 +1,7 @@
 package io.hhplus.ecommerce.unit.product.usecase
 
 import io.hhplus.ecommerce.product.application.ProductStatisticsService
+import io.hhplus.ecommerce.product.usecase.IncrementProductViewUseCase
 import io.hhplus.ecommerce.product.domain.entity.ProductStatistics
 import io.kotest.core.spec.style.DescribeSpec
 import io.mockk.*

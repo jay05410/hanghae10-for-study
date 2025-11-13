@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.unit.coupon.controller
 
+import io.hhplus.ecommerce.coupon.controller.CouponController
 import io.hhplus.ecommerce.coupon.usecase.GetCouponQueryUseCase
 import io.hhplus.ecommerce.coupon.usecase.IssueCouponUseCase
 import io.hhplus.ecommerce.coupon.usecase.ValidateCouponUseCase

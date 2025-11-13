@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.unit.order.domain.entity
 
+import io.hhplus.ecommerce.order.domain.entity.Order
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe

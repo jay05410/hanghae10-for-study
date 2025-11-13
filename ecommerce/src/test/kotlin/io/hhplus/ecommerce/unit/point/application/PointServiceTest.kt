@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.unit.point.application
 
+import io.hhplus.ecommerce.point.application.PointService
 import io.hhplus.ecommerce.point.domain.entity.UserPoint
 import io.hhplus.ecommerce.point.domain.repository.UserPointRepository
 import io.hhplus.ecommerce.point.domain.vo.PointAmount

@@ -1,6 +1,7 @@
 package io.hhplus.ecommerce.unit.product.usecase
 
 import io.hhplus.ecommerce.product.application.ProductService
+import io.hhplus.ecommerce.product.usecase.CreateProductUseCase
 import io.hhplus.ecommerce.product.domain.entity.Product
 import io.hhplus.ecommerce.product.dto.CreateProductRequest
 import io.kotest.core.spec.style.DescribeSpec

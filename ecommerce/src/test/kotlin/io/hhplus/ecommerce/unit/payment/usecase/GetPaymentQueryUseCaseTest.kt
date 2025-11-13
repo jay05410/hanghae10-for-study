@@ -1,6 +1,7 @@
 package io.hhplus.ecommerce.unit.payment.usecase
 
 import io.hhplus.ecommerce.payment.application.PaymentService
+import io.hhplus.ecommerce.payment.usecase.GetPaymentQueryUseCase
 import io.hhplus.ecommerce.payment.domain.entity.Payment
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe

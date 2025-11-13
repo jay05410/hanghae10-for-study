@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.unit.order.usecase
 
+import io.hhplus.ecommerce.order.usecase.GetOrderQueryUseCase
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.*

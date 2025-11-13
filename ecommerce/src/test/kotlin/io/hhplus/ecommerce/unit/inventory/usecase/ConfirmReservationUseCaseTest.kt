@@ -1,6 +1,7 @@
 package io.hhplus.ecommerce.unit.inventory.usecase
 
 import io.hhplus.ecommerce.inventory.application.StockReservationService
+import io.hhplus.ecommerce.inventory.usecase.ConfirmReservationUseCase
 import io.hhplus.ecommerce.inventory.domain.entity.StockReservation
 import io.hhplus.ecommerce.inventory.domain.constant.ReservationStatus
 import io.hhplus.ecommerce.common.exception.inventory.InventoryException

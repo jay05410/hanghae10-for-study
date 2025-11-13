@@ -1,6 +1,7 @@
 package io.hhplus.ecommerce.unit.point.usecase
 
 import io.hhplus.ecommerce.point.application.PointService
+import io.hhplus.ecommerce.point.usecase.DeductPointUseCase
 import io.hhplus.ecommerce.point.application.PointHistoryService
 import io.hhplus.ecommerce.point.domain.entity.UserPoint
 import io.hhplus.ecommerce.point.domain.vo.PointAmount

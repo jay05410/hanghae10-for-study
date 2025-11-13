@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.unit.point.application
 
+import io.hhplus.ecommerce.point.application.PointHistoryService
 import io.hhplus.ecommerce.point.domain.entity.PointHistory
 import io.hhplus.ecommerce.point.domain.repository.PointHistoryRepository
 import io.hhplus.ecommerce.point.domain.vo.Balance

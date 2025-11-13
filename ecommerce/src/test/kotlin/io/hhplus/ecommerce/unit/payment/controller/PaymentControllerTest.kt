@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.unit.payment.controller
 
+import io.hhplus.ecommerce.payment.controller.PaymentController
 import io.hhplus.ecommerce.payment.usecase.ProcessPaymentUseCase
 import io.hhplus.ecommerce.payment.usecase.GetPaymentQueryUseCase
 import io.hhplus.ecommerce.payment.dto.ProcessPaymentRequest

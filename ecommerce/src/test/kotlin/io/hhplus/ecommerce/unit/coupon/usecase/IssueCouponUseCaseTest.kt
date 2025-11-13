@@ -1,6 +1,7 @@
 package io.hhplus.ecommerce.unit.coupon.usecase
 
 import io.hhplus.ecommerce.coupon.application.CouponService
+import io.hhplus.ecommerce.coupon.usecase.IssueCouponUseCase
 import io.hhplus.ecommerce.coupon.domain.entity.UserCoupon
 import io.hhplus.ecommerce.coupon.dto.IssueCouponRequest
 import io.kotest.core.spec.style.DescribeSpec

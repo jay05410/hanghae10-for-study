@@ -1,5 +1,7 @@
 package io.hhplus.ecommerce.unit.coupon.application
 
+import io.hhplus.ecommerce.coupon.application.CouponIssueHistoryService
+import io.hhplus.ecommerce.coupon.application.CouponService
 import io.hhplus.ecommerce.coupon.domain.repository.CouponRepository
 import io.hhplus.ecommerce.coupon.domain.repository.UserCouponRepository
 import io.hhplus.ecommerce.common.exception.coupon.CouponException

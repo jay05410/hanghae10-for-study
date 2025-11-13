@@ -1,6 +1,7 @@
 package io.hhplus.ecommerce.unit.payment.usecase
 
 import io.hhplus.ecommerce.payment.application.PaymentService
+import io.hhplus.ecommerce.payment.usecase.ProcessPaymentUseCase
 import io.hhplus.ecommerce.payment.domain.entity.Payment
 import io.hhplus.ecommerce.payment.dto.ProcessPaymentRequest
 import io.hhplus.ecommerce.payment.domain.constant.PaymentMethod

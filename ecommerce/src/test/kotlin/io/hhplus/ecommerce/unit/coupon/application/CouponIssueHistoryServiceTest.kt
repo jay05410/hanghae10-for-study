@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.unit.coupon.application
 
+import io.hhplus.ecommerce.coupon.application.CouponIssueHistoryService
 import io.hhplus.ecommerce.coupon.domain.entity.CouponIssueHistory
 import io.hhplus.ecommerce.coupon.domain.repository.CouponIssueHistoryRepository
 import io.hhplus.ecommerce.coupon.domain.constant.UserCouponStatus

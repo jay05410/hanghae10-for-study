@@ -1,6 +1,7 @@
 package io.hhplus.ecommerce.unit.product.usecase
 
 import io.hhplus.ecommerce.product.application.ProductService
+import io.hhplus.ecommerce.product.usecase.GetProductQueryUseCase
 import io.hhplus.ecommerce.product.domain.entity.Product
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe

@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.unit.payment.application
 
+import io.hhplus.ecommerce.payment.application.PaymentService
 import io.hhplus.ecommerce.payment.domain.entity.Payment
 import io.hhplus.ecommerce.payment.domain.repository.PaymentRepository
 import io.hhplus.ecommerce.payment.domain.constant.PaymentMethod

@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.unit.product.controller
 
+import io.hhplus.ecommerce.product.controller.ProductController
 import io.hhplus.ecommerce.product.usecase.*
 import io.hhplus.ecommerce.product.dto.*
 import io.hhplus.ecommerce.product.domain.entity.Product

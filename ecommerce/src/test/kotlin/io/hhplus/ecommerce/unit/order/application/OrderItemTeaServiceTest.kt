@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.unit.order.application
 
+import io.hhplus.ecommerce.order.application.OrderItemTeaService
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.assertions.throwables.shouldThrow

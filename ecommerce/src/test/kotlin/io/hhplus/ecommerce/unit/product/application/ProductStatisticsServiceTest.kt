@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.unit.product.application
 
+import io.hhplus.ecommerce.product.application.ProductStatisticsService
 import io.hhplus.ecommerce.product.domain.entity.ProductStatistics
 import io.hhplus.ecommerce.product.domain.repository.ProductStatisticsRepository
 import io.kotest.core.spec.style.DescribeSpec
