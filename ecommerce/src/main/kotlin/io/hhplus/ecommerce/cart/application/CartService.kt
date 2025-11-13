@@ -92,8 +92,10 @@ class CartService(
 
         val savedCart = cartRepository.save(cart)
 
-        // 새로 추가된 아이템의 차 구성 저장
-        cartItemTeaService.saveCartItemTeas(newCartItem.id, teaItems)
+        // 새로 추가된 아이템의 차 구성 저장 (저장 후 ID 가져오기)
+        val savedCartItem = savedCart.items.find { it.packageTypeId == packageTypeId }
+            ?: throw IllegalStateException("저장된 장바구니 아이템을 찾을 수 없습니다")
+        cartItemTeaService.saveCartItemTeas(savedCartItem.id, teaItems)
 
         return savedCart
     }

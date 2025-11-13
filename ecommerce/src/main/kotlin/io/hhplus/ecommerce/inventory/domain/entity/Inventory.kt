@@ -59,7 +59,6 @@ data class Inventory(
         }
 
         this.quantity -= requestedQuantity
-        this.version += 1
         this.updatedBy = deductedBy
         this.updatedAt = LocalDateTime.now()
     }
@@ -75,7 +74,6 @@ data class Inventory(
         require(additionalQuantity > 0) { "추가할 재고 수량은 0보다 커야 합니다" }
 
         this.quantity += additionalQuantity
-        this.version += 1
         this.updatedBy = restockedBy
         this.updatedAt = LocalDateTime.now()
     }
@@ -93,7 +91,6 @@ data class Inventory(
         }
 
         this.reservedQuantity += requestedQuantity
-        this.version += 1
         this.updatedBy = reservedBy
         this.updatedAt = LocalDateTime.now()
     }
@@ -110,7 +107,6 @@ data class Inventory(
         require(releaseQuantity <= reservedQuantity) { "해제할 수량이 예약된 수량보다 클 수 없습니다" }
 
         this.reservedQuantity -= releaseQuantity
-        this.version += 1
         this.updatedBy = releasedBy
         this.updatedAt = LocalDateTime.now()
     }
@@ -128,7 +124,6 @@ data class Inventory(
 
         this.quantity -= confirmQuantity
         this.reservedQuantity -= confirmQuantity
-        this.version += 1
         this.updatedBy = confirmedBy
         this.updatedAt = LocalDateTime.now()
     }

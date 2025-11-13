@@ -64,7 +64,7 @@ class CouponService(
      */
     @Transactional
     fun issueCoupon(userId: Long, couponId: Long): UserCoupon {
-        val coupon = couponRepository.findById(couponId)
+        val coupon = couponRepository.findByIdWithLock(couponId)
             ?: throw CouponException.CouponNotFound(couponId)
 
         if (!coupon.isAvailableForIssue()) {

@@ -33,13 +33,25 @@ class CartRepositoryImpl(
         // 1. Cart 엔티티 저장
         val savedCartEntity = cartJpaRepository.save(cart.toEntity(cartMapper))
 
-        // 2. CartItem 엔티티들 저장
+        // 2. 기존 CartItem들 조회
+        val existingItems = if (cart.id > 0) {
+            cartItemJpaRepository.findByCartIdAndIsActive(cart.id, true)
+        } else {
+            emptyList()
+        }
+
+        // 3. 삭제된 아이템들 제거 (기존에는 있었지만 cart.items에는 없는 것들)
+        val currentItemIds = cart.items.map { it.id }.toSet()
+        val itemsToDelete = existingItems.filter { it.id !in currentItemIds }
+        itemsToDelete.forEach { cartItemJpaRepository.deleteById(it.id) }
+
+        // 4. CartItem 엔티티들 저장
         val savedItems = cart.items.map { item ->
             val itemEntity = item.toEntity(cartItemMapper)
             cartItemJpaRepository.save(itemEntity).toDomain(cartItemMapper)!!
         }
 
-        // 3. 저장된 Cart와 Items를 조합하여 도메인 모델 반환
+        // 5. 저장된 Cart와 Items를 조합하여 도메인 모델 반환
         return cartMapper.toDomain(savedCartEntity, savedItems)
     }
 
