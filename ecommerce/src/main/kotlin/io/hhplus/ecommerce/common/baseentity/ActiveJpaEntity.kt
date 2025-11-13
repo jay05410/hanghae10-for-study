@@ -12,7 +12,7 @@ import jakarta.persistence.MappedSuperclass
  * 계층 구조:
  * - SoftDeletableJpaEntity (deletedAt)
  *   └── BaseJpaEntity (audit fields)
- *       └── ActiveJpaEntity (isActive) ← 이 클래스
+ *       └── ActiveJpaEntity (isActive)
  */
 @MappedSuperclass
 abstract class ActiveJpaEntity(

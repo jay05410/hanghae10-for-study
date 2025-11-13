@@ -21,6 +21,11 @@ import org.springframework.web.bind.annotation.*
  * - 적절한 UseCase로 비즈니스 로직 위임
  * - HTTP 상태 코드 및 에러 처리
  */
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
+import io.swagger.v3.oas.annotations.tags.Tag
+
+@Tag(name = "주문", description = "주문 관리 API")
 @RestController
 @RequestMapping("/api/v1/orders")
 class OrderController(
@@ -37,8 +42,12 @@ class OrderController(
      * @param request 주문 생성 요청 데이터
      * @return 생성된 주문 정보를 포함한 API 응답
      */
+    @Operation(summary = "주문 생성", description = "새로운 주문을 생성합니다.")
     @PostMapping
-    fun createOrder(@RequestBody request: CreateOrderRequest): ApiResponse<OrderResponse> {
+    fun createOrder(
+        @Parameter(description = "주문 생성 요청 정보", required = true)
+        @RequestBody request: CreateOrderRequest
+    ): ApiResponse<OrderResponse> {
         val order = createOrderUseCase.execute(request)
         return ApiResponse.success(order.toResponse())
     }
@@ -49,8 +58,12 @@ class OrderController(
      * @param orderId 조회할 주문의 ID
      * @return 주문 정보를 포함한 API 응답
      */
+    @Operation(summary = "주문 조회", description = "주문 ID로 주문 정보를 조회합니다.")
     @GetMapping("/{orderId}")
-    fun getOrder(@PathVariable orderId: Long): ApiResponse<OrderResponse?> {
+    fun getOrder(
+        @Parameter(description = "주문 ID", required = true, example = "1")
+        @PathVariable orderId: Long
+    ): ApiResponse<OrderResponse?> {
         val order = getOrderQueryUseCase.getOrder(orderId)
         return ApiResponse.success(order?.toResponse())
     }
@@ -61,8 +74,12 @@ class OrderController(
      * @param userId 조회할 사용자의 ID
      * @return 사용자의 주문 목록을 포함한 API 응답
      */
+    @Operation(summary = "사용자 주문 목록 조회", description = "특정 사용자의 모든 주문 내역을 조회합니다.")
     @GetMapping
-    fun getOrders(@RequestParam userId: Long): ApiResponse<List<OrderResponse>> {
+    fun getOrders(
+        @Parameter(description = "사용자 ID", required = true, example = "1")
+        @RequestParam userId: Long
+    ): ApiResponse<List<OrderResponse>> {
         val orders = getOrderQueryUseCase.getOrdersByUser(userId)
         return ApiResponse.success(orders.map { it.toResponse() })
     }
@@ -74,9 +91,12 @@ class OrderController(
      * @param request 주문 확정 요청 데이터
      * @return 확정된 주문 정보를 포함한 API 응답
      */
+    @Operation(summary = "주문 확정", description = "주문을 확정 처리합니다.")
     @PostMapping("/{orderId}/confirm")
     fun confirmOrder(
+        @Parameter(description = "주문 ID", required = true, example = "1")
         @PathVariable orderId: Long,
+        @Parameter(description = "주문 확정 요청 정보", required = true)
         @RequestBody request: OrderConfirmRequest
     ): ApiResponse<OrderResponse> {
         val order = confirmOrderUseCase.execute(orderId, request.confirmedBy)
@@ -90,9 +110,12 @@ class OrderController(
      * @param request 주문 취소 요청 데이터
      * @return 취소된 주문 정보를 포함한 API 응답
      */
+    @Operation(summary = "주문 취소", description = "주문을 취소 처리합니다.")
     @PostMapping("/{orderId}/cancel")
     fun cancelOrder(
+        @Parameter(description = "주문 ID", required = true, example = "1")
         @PathVariable orderId: Long,
+        @Parameter(description = "주문 취소 요청 정보", required = true)
         @RequestBody request: OrderCancelRequest
     ): ApiResponse<OrderResponse> {
         val order = cancelOrderUseCase.execute(orderId, request.cancelledBy, request.reason)
@@ -105,8 +128,12 @@ class OrderController(
      * @param orderId 조회할 주문의 ID
      * @return 배송 정보를 포함한 API 응답
      */
+    @Operation(summary = "주문 배송 정보 조회", description = "특정 주문의 배송 정보를 조회합니다.")
     @GetMapping("/{orderId}/delivery")
-    fun getDelivery(@PathVariable orderId: Long): ApiResponse<DeliveryResponse> {
+    fun getDelivery(
+        @Parameter(description = "주문 ID", required = true, example = "1")
+        @PathVariable orderId: Long
+    ): ApiResponse<DeliveryResponse> {
         val delivery = getDeliveryQueryUseCase.getDeliveryByOrderId(orderId)
         return ApiResponse.success(delivery.toResponse())
     }

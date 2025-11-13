@@ -3,6 +3,9 @@ package io.hhplus.ecommerce.product.controller
 import io.hhplus.ecommerce.product.usecase.*
 import io.hhplus.ecommerce.product.dto.*
 import io.hhplus.ecommerce.common.response.ApiResponse
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.web.bind.annotation.*
 
 /**
@@ -18,6 +21,7 @@ import org.springframework.web.bind.annotation.*
  * - 적절한 UseCase로 비즈니스 로직 위임
  * - HTTP 상태 코드 및 에러 처리
  */
+@Tag(name = "상품 관리", description = "상품 조회, 생성, 수정, 인기 상품 API")
 @RestController
 @RequestMapping("/api/v1/products")
 class ProductController(
@@ -28,16 +32,12 @@ class ProductController(
     private val incrementProductViewUseCase: IncrementProductViewUseCase
 ) {
 
-    /**
-     * 상품 목록을 조회한다 (페이지네이션 또는 카테고리 필터링)
-     *
-     * @param page 조회할 페이지 번호 (기본값: 1)
-     * @param categoryId 조회할 카테고리 ID (선택사항)
-     * @return 상품 목록을 포함한 API 응답
-     */
+    @Operation(summary = "상품 목록 조회", description = "페이지네이션 또는 카테고리별 상품 목록을 조회합니다.")
     @GetMapping
     fun getProducts(
+        @Parameter(description = "페이지 번호", example = "1")
         @RequestParam(defaultValue = "1") page: Int,
+        @Parameter(description = "카테고리 ID (선택)")
         @RequestParam(required = false) categoryId: Long?
     ): ApiResponse<List<ProductResponse>> {
         val products = if (categoryId != null) {
@@ -48,16 +48,12 @@ class ProductController(
         return ApiResponse.success(products.map { it.toResponse() })
     }
 
-    /**
-     * 상품 ID로 단일 상품을 조회하고 조회수를 증가시킨다
-     *
-     * @param productId 조회할 상품의 ID
-     * @param userId 조회를 요청한 사용자 ID (기본값: 1)
-     * @return 상품 정보를 포함한 API 응답
-     */
+    @Operation(summary = "상품 상세 조회", description = "상품 ID로 단일 상품을 조회하고 조회수를 증가시킵니다.")
     @GetMapping("/{productId}")
     fun getProduct(
+        @Parameter(description = "조회할 상품 ID", required = true)
         @PathVariable productId: Long,
+        @Parameter(description = "사용자 ID", example = "1")
         @RequestHeader("User-Id", defaultValue = "1") userId: Long
     ): ApiResponse<ProductResponse> {
         incrementProductViewUseCase.execute(productId, userId)
@@ -65,42 +61,34 @@ class ProductController(
         return ApiResponse.success(product.toResponse())
     }
 
-    /**
-     * 새로운 상품을 생성한다
-     *
-     * @param request 상품 생성 요청 데이터
-     * @return 생성된 상품 정보를 포함한 API 응답
-     */
+    @Operation(summary = "상품 생성", description = "새로운 상품을 생성합니다.")
     @PostMapping
-    fun createProduct(@RequestBody request: CreateProductRequest): ApiResponse<ProductResponse> {
+    fun createProduct(
+        @Parameter(description = "상품 생성 정보", required = true)
+        @RequestBody request: CreateProductRequest
+    ): ApiResponse<ProductResponse> {
         val product = createProductUseCase.execute(request)
         return ApiResponse.success(product.toResponse())
     }
 
-    /**
-     * 기존 상품 정보를 업데이트한다
-     *
-     * @param productId 업데이트할 상품의 ID
-     * @param request 상품 업데이트 요청 데이터
-     * @return 업데이트된 상품 정보를 포함한 API 응답
-     */
+    @Operation(summary = "상품 정보 수정", description = "기존 상품 정보를 업데이트합니다.")
     @PutMapping("/{productId}")
     fun updateProduct(
+        @Parameter(description = "수정할 상품 ID", required = true)
         @PathVariable productId: Long,
+        @Parameter(description = "상품 수정 정보", required = true)
         @RequestBody request: UpdateProductRequest
     ): ApiResponse<ProductResponse> {
         val product = updateProductUseCase.execute(productId, request)
         return ApiResponse.success(product.toResponse())
     }
 
-    /**
-     * 인기 상품 목록을 조회한다
-     *
-     * @param limit 조회할 상품 수 (기본값: 10)
-     * @return 인기 상품 목록을 포함한 API 응답
-     */
+    @Operation(summary = "인기 상품 조회", description = "인기 상품 목록을 조회합니다.")
     @GetMapping("/popular")
-    fun getPopularProducts(@RequestParam(defaultValue = "10") limit: Int): ApiResponse<List<ProductResponse>> {
+    fun getPopularProducts(
+        @Parameter(description = "조회할 상품 수", example = "10")
+        @RequestParam(defaultValue = "10") limit: Int
+    ): ApiResponse<List<ProductResponse>> {
         val products = getPopularProductsUseCase.execute(limit)
         return ApiResponse.success(products.map { it.toResponse() })
     }

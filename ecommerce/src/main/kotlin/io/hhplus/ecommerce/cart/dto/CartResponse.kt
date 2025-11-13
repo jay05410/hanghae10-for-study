@@ -1,5 +1,7 @@
 package io.hhplus.ecommerce.cart.dto
 
+import io.swagger.v3.oas.annotations.media.Schema
+
 import io.hhplus.ecommerce.cart.domain.entity.Cart
 import io.hhplus.ecommerce.cart.domain.entity.CartItem
 import java.time.LocalDateTime
@@ -12,14 +14,30 @@ import java.time.LocalDateTime
  * - 클라이언트에게 필요한 정보만 노출
  * - 도메인 객체와 API 스펙 간의 격리
  */
+@Schema(description = "장바구니 정보")
 data class CartResponse(
+    @Schema(description = "장바구니 ID", example = "1")
     val id: Long,
+
+    @Schema(description = "사용자 ID", example = "100")
     val userId: Long,
+
+    @Schema(description = "장바구니 아이템 목록")
     val items: List<CartItemResponse>,
+
+    @Schema(description = "총 아이템 개수", example = "3")
     val totalItemCount: Int,
+
+    @Schema(description = "총 수량", example = "5.0")
     val totalQuantity: Double,
+
+    @Schema(description = "총 가격", example = "50000")
     val totalPrice: Long,
+
+    @Schema(description = "생성 일시", example = "2025-01-13T10:00:00")
     val createdAt: LocalDateTime,
+
+    @Schema(description = "수정 일시", example = "2025-01-13T14:30:00")
     val updatedAt: LocalDateTime
 ) {
 }
@@ -27,16 +45,36 @@ data class CartResponse(
 /**
  * 장바구니 아이템 정보 응답 DTO
  */
+@Schema(description = "장바구니 아이템 정보")
 data class CartItemResponse(
+    @Schema(description = "아이템 ID", example = "1")
     val id: Long,
+
+    @Schema(description = "패키지 타입 ID", example = "10")
     val packageTypeId: Long,
+
+    @Schema(description = "패키지 타입 이름", example = "30일 정기배송")
     val packageTypeName: String,
+
+    @Schema(description = "패키지 일수", example = "30")
     val packageTypeDays: Int,
+
+    @Schema(description = "일일 제공량", example = "2")
     val dailyServing: Int,
+
+    @Schema(description = "총 수량", example = "2.0")
     val totalQuantity: Double,
+
+    @Schema(description = "선물 포장 여부", example = "true")
     val giftWrap: Boolean,
+
+    @Schema(description = "선물 메시지 (선택)", example = "생일 축하합니다!")
     val giftMessage: String?,
+
+    @Schema(description = "생성 일시", example = "2025-01-13T10:00:00")
     val createdAt: LocalDateTime,
+
+    @Schema(description = "수정 일시", example = "2025-01-13T14:30:00")
     val updatedAt: LocalDateTime
 )
 

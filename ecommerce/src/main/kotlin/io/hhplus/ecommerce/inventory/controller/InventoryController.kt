@@ -3,6 +3,9 @@ package io.hhplus.ecommerce.inventory.controller
 import io.hhplus.ecommerce.inventory.usecase.*
 import io.hhplus.ecommerce.inventory.dto.*
 import io.hhplus.ecommerce.common.response.ApiResponse
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.web.bind.annotation.*
 
 /**
@@ -18,6 +21,7 @@ import org.springframework.web.bind.annotation.*
  * - 적절한 UseCase로 비즈니스 로직 위임
  * - HTTP 상태 코드 및 에러 처리
  */
+@Tag(name = "재고 관리", description = "재고 예약, 확정, 취소 API")
 @RestController
 @RequestMapping("/api/v1/inventory")
 class InventoryController(
@@ -27,18 +31,14 @@ class InventoryController(
     private val getUserReservationsUseCase: GetUserReservationsUseCase
 ) {
 
-    /**
-     * 상품의 재고를 예약한다
-     *
-     * @param productId 예약할 상품 ID
-     * @param request 재고 예약 요청 데이터
-     * @param userId 예약을 요청할 사용자 ID
-     * @return 생성된 재고 예약 정보를 포함한 API 응답
-     */
+    @Operation(summary = "재고 예약", description = "상품의 재고를 예약합니다.")
     @PostMapping("/products/{productId}/reserve")
     fun reserveStock(
+        @Parameter(description = "예약할 상품 ID", required = true)
         @PathVariable productId: Long,
+        @Parameter(description = "재고 예약 정보", required = true)
         @RequestBody request: ReserveStockRequest,
+        @Parameter(description = "사용자 ID", required = true)
         @RequestHeader("User-Id") userId: Long
     ): ApiResponse<StockReservationResponse> {
         val reservation = reserveStockUseCase.execute(
@@ -50,46 +50,36 @@ class InventoryController(
         return ApiResponse.success(reservation.toResponse())
     }
 
-    /**
-     * 재고 예약을 확정한다
-     *
-     * @param reservationId 확정할 예약 ID
-     * @param userId 예약을 확정할 사용자 ID
-     * @return 확정된 재고 예약 정보를 포함한 API 응답
-     */
+    @Operation(summary = "재고 예약 확정", description = "재고 예약을 확정합니다.")
     @PostMapping("/reservations/{reservationId}/confirm")
     fun confirmReservation(
+        @Parameter(description = "확정할 예약 ID", required = true)
         @PathVariable reservationId: Long,
+        @Parameter(description = "사용자 ID", required = true)
         @RequestHeader("User-Id") userId: Long
     ): ApiResponse<StockReservationResponse> {
         val reservation = confirmReservationUseCase.execute(reservationId, userId)
         return ApiResponse.success(reservation.toResponse())
     }
 
-    /**
-     * 재고 예약을 취소한다
-     *
-     * @param reservationId 취소할 예약 ID
-     * @param userId 예약을 취소할 사용자 ID
-     * @return 취소된 재고 예약 정보를 포함한 API 응답
-     */
+    @Operation(summary = "재고 예약 취소", description = "재고 예약을 취소합니다.")
     @PostMapping("/reservations/{reservationId}/cancel")
     fun cancelReservation(
+        @Parameter(description = "취소할 예약 ID", required = true)
         @PathVariable reservationId: Long,
+        @Parameter(description = "사용자 ID", required = true)
         @RequestHeader("User-Id") userId: Long
     ): ApiResponse<StockReservationResponse> {
         val reservation = cancelReservationUseCase.execute(reservationId, userId)
         return ApiResponse.success(reservation.toResponse())
     }
 
-    /**
-     * 사용자의 모든 재고 예약 내역을 조회한다
-     *
-     * @param userId 조회할 사용자 ID
-     * @return 사용자의 재고 예약 목록을 포함한 API 응답
-     */
+    @Operation(summary = "재고 예약 내역 조회", description = "사용자의 모든 재고 예약 내역을 조회합니다.")
     @GetMapping("/reservations")
-    fun getUserReservations(@RequestHeader("User-Id") userId: Long): ApiResponse<List<StockReservationResponse>> {
+    fun getUserReservations(
+        @Parameter(description = "사용자 ID", required = true)
+        @RequestHeader("User-Id") userId: Long
+    ): ApiResponse<List<StockReservationResponse>> {
         val reservations = getUserReservationsUseCase.execute(userId)
         return ApiResponse.success(reservations.map { it.toResponse() })
     }

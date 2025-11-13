@@ -53,3 +53,19 @@ logging:
 # 서버 설정
 server:
   port: 8080
+
+# Swagger 설정
+springdoc:
+  api-docs:
+    enabled: true  # false로 변경하면 Swagger 완전 비활성화
+  swagger-ui:
+    enabled: true  # false로 변경하면 Swagger UI 비활성화
+    path: /swagger-ui.html
+  show-actuator: false
+
+# Swagger 커스터마이징 설정
+swagger:
+  title: HH Plus E-Commerce API
+  description: HH Plus E-Commerce Platform API Documentation
+  version: 1.0.0
+  auto-wrap-response: true  # false로 변경하면 ApiResponse 자동 래핑 비활성화
