@@ -1,0 +1,310 @@
+package io.hhplus.ecommerce.integration.inventory
+
+import io.hhplus.ecommerce.support.KotestIntegrationTestBase
+
+import io.hhplus.ecommerce.support.config.IntegrationTestFixtures
+import io.hhplus.ecommerce.inventory.application.InventoryService
+import io.hhplus.ecommerce.inventory.domain.repository.InventoryRepository
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
+
+/**
+ * 재고 동시성 통합 테스트
+ *
+ * TestContainers MySQL을 사용하여 재고 동시 처리 정합성을 검증합니다.
+ * - 동시 재고 차감 (비관적 락)
+ * - 동시 재고 예약
+ * - 재고 부족 시 동시 처리
+ */
+class InventoryConcurrencyIntegrationTest(
+    private val inventoryService: InventoryService,
+    private val inventoryRepository: InventoryRepository
+) : KotestIntegrationTestBase({
+
+    describe("재고 동시성 제어") {
+        context("동시에 재고를 차감할 때") {
+            it("비관적 락으로 정합성이 보장된다") {
+                // Given
+                val productId = IntegrationTestFixtures.createTestProductId(1)
+                val initialQuantity = 100
+                val deductQuantity = 10
+                val threadCount = 10 // 정확히 재고만큼 차감
+                val createdBy = 1L
+
+                // 재고 생성
+                inventoryService.createInventory(productId, initialQuantity, createdBy)
+
+                // When - 10개 스레드가 동시에 10개씩 차감
+                val executor = Executors.newFixedThreadPool(threadCount)
+                val latch = CountDownLatch(threadCount)
+                val successCount = AtomicInteger(0)
+                val failCount = AtomicInteger(0)
+
+                repeat(threadCount) {
+                    executor.submit {
+                        try {
+                            inventoryService.deductStock(productId, deductQuantity, createdBy)
+                            successCount.incrementAndGet()
+                        } catch (e: Exception) {
+                            failCount.incrementAndGet()
+                        } finally {
+                            latch.countDown()
+                        }
+                    }
+                }
+
+                latch.await()
+                executor.shutdown()
+
+                // Then - 정확히 10번 모두 성공해야 함
+                successCount.get() shouldBe 10
+                failCount.get() shouldBe 0
+
+                // 최종 재고 확인
+                val finalInventory = inventoryRepository.findByProductId(productId)
+                finalInventory shouldNotBe null
+                finalInventory!!.quantity shouldBe 0 // 100 - (10 * 10)
+            }
+        }
+
+        context("동시 차감 시 재고가 부족할 때") {
+            it("일부만 성공한다") {
+                // Given
+                val productId = IntegrationTestFixtures.createTestProductId(2)
+                val initialQuantity = 50
+                val deductQuantity = 10
+                val threadCount = 10 // 50개인데 10개 스레드가 10개씩 차감 시도
+                val createdBy = 1L
+
+                // 재고 생성
+                inventoryService.createInventory(productId, initialQuantity, createdBy)
+
+                // When - 10개 스레드가 동시에 10개씩 차감
+                val executor = Executors.newFixedThreadPool(threadCount)
+                val latch = CountDownLatch(threadCount)
+                val successCount = AtomicInteger(0)
+                val failCount = AtomicInteger(0)
+
+                repeat(threadCount) {
+                    executor.submit {
+                        try {
+                            inventoryService.deductStock(productId, deductQuantity, createdBy)
+                            successCount.incrementAndGet()
+                        } catch (e: Exception) {
+                            failCount.incrementAndGet()
+                        } finally {
+                            latch.countDown()
+                        }
+                    }
+                }
+
+                latch.await()
+                executor.shutdown()
+
+                // Then - 5번 성공, 5번 실패
+                successCount.get() shouldBe 5
+                failCount.get() shouldBe 5
+
+                // 최종 재고 확인
+                val finalInventory = inventoryRepository.findByProductId(productId)
+                finalInventory shouldNotBe null
+                finalInventory!!.quantity shouldBe 0 // 50 - (10 * 5)
+            }
+        }
+
+        context("동시에 재고를 예약할 때") {
+            it("정합성이 보장된다") {
+                // Given
+                val productId = IntegrationTestFixtures.createTestProductId(3)
+                val initialQuantity = 100
+                val reserveQuantity = 5
+                val threadCount = 20 // 100개를 20명이 5개씩 예약
+                val createdBy = 1L
+
+                // 재고 생성
+                inventoryService.createInventory(productId, initialQuantity, createdBy)
+
+                // When - 20개 스레드가 동시에 5개씩 예약
+                val executor = Executors.newFixedThreadPool(threadCount)
+                val latch = CountDownLatch(threadCount)
+                val successCount = AtomicInteger(0)
+                val failCount = AtomicInteger(0)
+
+                repeat(threadCount) {
+                    executor.submit {
+                        try {
+                            inventoryService.reserveStock(productId, reserveQuantity, createdBy)
+                            successCount.incrementAndGet()
+                        } catch (e: Exception) {
+                            failCount.incrementAndGet()
+                        } finally {
+                            latch.countDown()
+                        }
+                    }
+                }
+
+                latch.await()
+                executor.shutdown()
+
+                // Then - 정확히 20번 모두 성공
+                successCount.get() shouldBe 20
+                failCount.get() shouldBe 0
+
+                // 최종 재고 확인
+                val finalInventory = inventoryRepository.findByProductId(productId)
+                finalInventory shouldNotBe null
+                finalInventory!!.quantity shouldBe 100 // 전체 재고는 그대로
+                finalInventory.reservedQuantity shouldBe 100 // 5 * 20
+                finalInventory.getAvailableQuantity() shouldBe 0 // 가용 재고 = 0
+            }
+        }
+
+        context("동시에 예약과 차감을 할 때") {
+            it("정합성이 보장된다") {
+                // Given
+                val productId = IntegrationTestFixtures.createTestProductId(4)
+                val initialQuantity = 100
+                val reserveQuantity = 5
+                val deductQuantity = 5
+                val threadCount = 20 // 10번 예약, 10번 차감
+                val createdBy = 1L
+
+                // 재고 생성
+                inventoryService.createInventory(productId, initialQuantity, createdBy)
+
+                // When - 10개는 예약, 10개는 차감
+                val executor = Executors.newFixedThreadPool(threadCount)
+                val latch = CountDownLatch(threadCount)
+                val reserveSuccessCount = AtomicInteger(0)
+                val deductSuccessCount = AtomicInteger(0)
+
+                repeat(threadCount) { index ->
+                    executor.submit {
+                        try {
+                            if (index % 2 == 0) {
+                                // 짝수: 예약
+                                inventoryService.reserveStock(productId, reserveQuantity, createdBy)
+                                reserveSuccessCount.incrementAndGet()
+                            } else {
+                                // 홀수: 차감
+                                inventoryService.deductStock(productId, deductQuantity, createdBy)
+                                deductSuccessCount.incrementAndGet()
+                            }
+                        } catch (e: Exception) {
+                            // 재고 부족으로 실패할 수 있음
+                        } finally {
+                            latch.countDown()
+                        }
+                    }
+                }
+
+                latch.await()
+                executor.shutdown()
+
+                // Then
+                val finalInventory = inventoryRepository.findByProductId(productId)
+                finalInventory shouldNotBe null
+
+                // 최종 재고 검증
+                val expectedQuantity = 100 - (deductSuccessCount.get() * 5)
+                val expectedReserved = reserveSuccessCount.get() * 5
+                finalInventory!!.quantity shouldBe expectedQuantity
+                finalInventory.reservedQuantity shouldBe expectedReserved
+            }
+        }
+
+        context("높은 동시성 환경에서") {
+            it("재고 정합성이 보장된다") {
+                // Given
+                val productId = IntegrationTestFixtures.createTestProductId(5)
+                val initialQuantity = 1000
+                val deductQuantity = 1
+                val threadCount = 100
+                val createdBy = 1L
+
+                // 재고 생성
+                inventoryService.createInventory(productId, initialQuantity, createdBy)
+
+                // When - 100개 스레드가 동시에 1개씩 차감
+                val executor = Executors.newFixedThreadPool(threadCount)
+                val latch = CountDownLatch(threadCount)
+                val successCount = AtomicInteger(0)
+
+                repeat(threadCount) {
+                    executor.submit {
+                        try {
+                            inventoryService.deductStock(productId, deductQuantity, createdBy)
+                            successCount.incrementAndGet()
+                        } catch (e: Exception) {
+                            // 동시성 제어 실패
+                        } finally {
+                            latch.countDown()
+                        }
+                    }
+                }
+
+                latch.await()
+                executor.shutdown()
+
+                // Then
+                successCount.get() shouldBe threadCount
+
+                // 최종 재고 확인
+                val finalInventory = inventoryRepository.findByProductId(productId)
+                finalInventory shouldNotBe null
+                finalInventory!!.quantity shouldBe 900 // 1000 - 100
+            }
+        }
+
+        context("동시에 예약 확정을 할 때") {
+            it("정합성이 보장된다") {
+                // Given
+                val productId = IntegrationTestFixtures.createTestProductId(6)
+                val initialQuantity = 100
+                val reserveQuantity = 10
+                val confirmQuantity = 10
+                val threadCount = 10
+                val createdBy = 1L
+
+                // 재고 생성 및 예약
+                inventoryService.createInventory(productId, initialQuantity, createdBy)
+
+                // 10번 예약 (각 10개씩)
+                repeat(10) {
+                    inventoryService.reserveStock(productId, reserveQuantity, createdBy)
+                }
+
+                // When - 10개 스레드가 동시에 10개씩 예약 확정
+                val executor = Executors.newFixedThreadPool(threadCount)
+                val latch = CountDownLatch(threadCount)
+                val successCount = AtomicInteger(0)
+
+                repeat(threadCount) {
+                    executor.submit {
+                        try {
+                            inventoryService.confirmReservation(productId, confirmQuantity, createdBy)
+                            successCount.incrementAndGet()
+                        } finally {
+                            latch.countDown()
+                        }
+                    }
+                }
+
+                latch.await()
+                executor.shutdown()
+
+                // Then - 모두 성공
+                successCount.get() shouldBe 10
+
+                // 최종 재고 확인
+                val finalInventory = inventoryRepository.findByProductId(productId)
+                finalInventory shouldNotBe null
+                finalInventory!!.quantity shouldBe 0 // 100 - (10 * 10)
+                finalInventory.reservedQuantity shouldBe 0 // 모두 확정되어 예약 0
+            }
+        }
+    }
+})
