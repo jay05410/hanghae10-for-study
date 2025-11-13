@@ -1,6 +1,7 @@
 package io.hhplus.ecommerce.product.infra.persistence.repository
 
 import io.hhplus.ecommerce.product.domain.entity.ProductStatistics
+import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Lock
 import org.springframework.data.jpa.repository.Query
@@ -15,5 +16,5 @@ interface ProductStatisticsJpaRepository : JpaRepository<ProductStatistics, Long
     fun findByProductIdWithLock(productId: Long): ProductStatistics?
 
     @Query("SELECT p FROM ProductStatistics p ORDER BY (p.viewCount * 0.3 + p.salesCount * 0.7) DESC")
-    fun findTopPopularProducts(limit: Int): List<ProductStatistics>
+    fun findTopPopularProducts(pageable: Pageable): List<ProductStatistics>
 }

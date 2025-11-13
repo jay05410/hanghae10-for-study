@@ -22,8 +22,7 @@ class ProductStatisticsRepositoryImpl(
 
     override fun findTopPopularProducts(limit: Int): List<ProductStatistics> {
         val pageable = PageRequest.of(0, limit)
-        return jpaRepository.findAll(pageable).content
-            .sortedByDescending { it.getPopularityScore() }
+        return jpaRepository.findTopPopularProducts(pageable)
     }
 
     override fun save(productStatistics: ProductStatistics): ProductStatistics =

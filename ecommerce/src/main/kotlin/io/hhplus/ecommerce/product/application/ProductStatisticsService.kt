@@ -3,6 +3,7 @@ package io.hhplus.ecommerce.product.application
 import io.hhplus.ecommerce.product.domain.entity.ProductStatistics
 import io.hhplus.ecommerce.product.domain.repository.ProductStatisticsRepository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 /**
  * 상품 통계 서비스 - 애플리케이션 계층
@@ -22,6 +23,7 @@ class ProductStatisticsService(
     private val productStatisticsRepository: ProductStatisticsRepository
 ) {
 
+    @Transactional
     fun incrementViewCount(productId: Long, userId: Long): ProductStatistics {
         val statistics = productStatisticsRepository.findByProductIdWithLock(productId)
             ?: createStatistics(productId, userId)
@@ -30,6 +32,7 @@ class ProductStatisticsService(
         return productStatisticsRepository.save(statistics)
     }
 
+    @Transactional
     fun incrementSalesCount(productId: Long, quantity: Int, userId: Long): ProductStatistics {
         val statistics = productStatisticsRepository.findByProductIdWithLock(productId)
             ?: createStatistics(productId, userId)
