@@ -1,7 +1,9 @@
 package io.hhplus.ecommerce.product.usecase
 
 import io.hhplus.ecommerce.product.application.ProductService
+import io.hhplus.ecommerce.product.application.ProductStatisticsService
 import io.hhplus.ecommerce.product.domain.entity.Product
+import io.hhplus.ecommerce.product.domain.entity.ProductStatistics
 import org.springframework.stereotype.Component
 
 /**
@@ -19,7 +21,8 @@ import org.springframework.stereotype.Component
  */
 @Component
 class GetProductQueryUseCase(
-    private val productService: ProductService
+    private val productService: ProductService,
+    private val productStatisticsService: ProductStatisticsService
 ) {
 
     /**
@@ -51,5 +54,39 @@ class GetProductQueryUseCase(
      */
     fun getProductsByCategory(categoryId: Long): List<Product> {
         return productService.getProductsByCategory(categoryId)
+    }
+
+    /**
+     * 상품 통계를 조회합니다.
+     *
+     * @param productId 상품 ID
+     * @return 상품 통계 정보 (없으면 null)
+     */
+    fun getProductStatistics(productId: Long): ProductStatistics? {
+        return productStatisticsService.getProductStatistics(productId)
+    }
+
+    /**
+     * 인기 상품 통계 목록을 순위순으로 조회한다
+     *
+     * @param limit 조회할 인기 상품 수 (기본 10개)
+     * @return 인기 순위에 따른 상품 통계 목록
+     */
+    fun getPopularStatistics(limit: Int = 10): List<ProductStatistics> {
+        return productStatisticsService.getPopularProducts(limit)
+    }
+
+    /**
+     * 인기 상품 목록을 순위순으로 조회한다
+     *
+     * @param limit 조회할 인기 상품 수 (기본 10개)
+     * @return 인기 순위에 따른 상품 목록
+     */
+    fun getPopularProducts(limit: Int = 10): List<Product> {
+        val popularStatistics = productStatisticsService.getPopularProducts(limit)
+
+        return popularStatistics.map { statistics ->
+            productService.getProduct(statistics.productId)
+        }
     }
 }

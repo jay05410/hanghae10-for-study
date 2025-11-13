@@ -3,8 +3,8 @@ package io.hhplus.ecommerce.integration.point
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 
 import io.hhplus.ecommerce.support.config.IntegrationTestFixtures
-import io.hhplus.ecommerce.point.application.PointService
-import io.hhplus.ecommerce.point.domain.repository.UserPointRepository
+import io.hhplus.ecommerce.point.usecase.PointCommandUseCase
+import io.hhplus.ecommerce.point.usecase.GetPointQueryUseCase
 import io.hhplus.ecommerce.point.domain.vo.PointAmount
 import io.kotest.matchers.longs.shouldBeLessThanOrEqual
 import io.kotest.matchers.shouldBe
@@ -22,8 +22,8 @@ import java.util.concurrent.atomic.AtomicInteger
  * - 동시 포인트 사용 시 잔액 부족 처리
  */
 class PointConcurrencyIntegrationTest(
-    private val pointService: PointService,
-    private val userPointRepository: UserPointRepository
+    private val pointCommandUseCase: PointCommandUseCase,
+    private val getPointQueryUseCase: GetPointQueryUseCase
 ) : KotestIntegrationTestBase({
 
     describe("포인트 동시성 제어") {
@@ -37,8 +37,8 @@ class PointConcurrencyIntegrationTest(
                 val createdBy = userId
 
                 // 사용자 포인트 생성 및 초기 적립
-                pointService.createUserPoint(userId, createdBy)
-                pointService.earnPoint(userId, initialAmount, createdBy)
+                pointCommandUseCase.createUserPoint(userId, createdBy)
+                pointCommandUseCase.earnPoint(userId, initialAmount, createdBy)
 
                 // When - 10개 스레드가 동시에 1,000원씩 사용
                 val executor = Executors.newFixedThreadPool(threadCount)
@@ -49,7 +49,7 @@ class PointConcurrencyIntegrationTest(
                 repeat(threadCount) {
                     executor.submit {
                         try {
-                            pointService.usePoint(userId, useAmount, createdBy)
+                            pointCommandUseCase.deductPoint(userId, useAmount, createdBy)
                             successCount.incrementAndGet()
                         } catch (e: Exception) {
                             failCount.incrementAndGet()
@@ -67,7 +67,7 @@ class PointConcurrencyIntegrationTest(
                 failCount.get() shouldBe 0
 
                 // 최종 잔액 확인
-                val finalUserPoint = userPointRepository.findByUserId(userId)
+                val finalUserPoint = getPointQueryUseCase.getUserPoint(userId)
                 finalUserPoint shouldNotBe null
                 finalUserPoint!!.balance.value shouldBe 0L // 10,000 - (1,000 * 10)
             }
@@ -83,8 +83,8 @@ class PointConcurrencyIntegrationTest(
                 val createdBy = userId
 
                 // 사용자 포인트 생성 및 초기 적립
-                pointService.createUserPoint(userId, createdBy)
-                pointService.earnPoint(userId, initialAmount, createdBy)
+                pointCommandUseCase.createUserPoint(userId, createdBy)
+                pointCommandUseCase.earnPoint(userId, initialAmount, createdBy)
 
                 // When - 10개 스레드가 동시에 1,000원씩 사용
                 val executor = Executors.newFixedThreadPool(threadCount)
@@ -95,7 +95,7 @@ class PointConcurrencyIntegrationTest(
                 repeat(threadCount) {
                     executor.submit {
                         try {
-                            pointService.usePoint(userId, useAmount, createdBy)
+                            pointCommandUseCase.deductPoint(userId, useAmount, createdBy)
                             successCount.incrementAndGet()
                         } catch (e: Exception) {
                             failCount.incrementAndGet()
@@ -113,7 +113,7 @@ class PointConcurrencyIntegrationTest(
                 failCount.get() shouldBe 5
 
                 // 최종 잔액 확인
-                val finalUserPoint = userPointRepository.findByUserId(userId)
+                val finalUserPoint = getPointQueryUseCase.getUserPoint(userId)
                 finalUserPoint shouldNotBe null
                 finalUserPoint!!.balance.value shouldBe 0L // 5,000 - (1,000 * 5)
             }
@@ -128,7 +128,7 @@ class PointConcurrencyIntegrationTest(
                 val createdBy = userId
 
                 // 사용자 포인트 생성
-                pointService.createUserPoint(userId, createdBy)
+                pointCommandUseCase.createUserPoint(userId, createdBy)
 
                 // When - 20개 스레드가 동시에 1,000원씩 적립
                 val executor = Executors.newFixedThreadPool(threadCount)
@@ -138,7 +138,7 @@ class PointConcurrencyIntegrationTest(
                 repeat(threadCount) {
                     executor.submit {
                         try {
-                            pointService.earnPoint(userId, earnAmount, createdBy)
+                            pointCommandUseCase.earnPoint(userId, earnAmount, createdBy)
                             successCount.incrementAndGet()
                         } finally {
                             latch.countDown()
@@ -153,7 +153,7 @@ class PointConcurrencyIntegrationTest(
                 successCount.get() shouldBe 20
 
                 // 최종 잔액 확인
-                val finalUserPoint = userPointRepository.findByUserId(userId)
+                val finalUserPoint = getPointQueryUseCase.getUserPoint(userId)
                 finalUserPoint shouldNotBe null
                 finalUserPoint!!.balance.value shouldBe 20_000L // 1,000 * 20
             }
@@ -170,8 +170,8 @@ class PointConcurrencyIntegrationTest(
                 val createdBy = userId
 
                 // 사용자 포인트 생성 및 초기 적립
-                pointService.createUserPoint(userId, createdBy)
-                pointService.earnPoint(userId, initialAmount, createdBy)
+                pointCommandUseCase.createUserPoint(userId, createdBy)
+                pointCommandUseCase.earnPoint(userId, initialAmount, createdBy)
 
                 // When - 10개 스레드는 적립, 10개 스레드는 사용
                 val executor = Executors.newFixedThreadPool(threadCount)
@@ -184,11 +184,11 @@ class PointConcurrencyIntegrationTest(
                         try {
                             if (index % 2 == 0) {
                                 // 짝수 인덱스: 적립
-                                pointService.earnPoint(userId, earnAmount, createdBy)
+                                pointCommandUseCase.earnPoint(userId, earnAmount, createdBy)
                                 earnSuccessCount.incrementAndGet()
                             } else {
                                 // 홀수 인덱스: 사용
-                                pointService.usePoint(userId, useAmount, createdBy)
+                                pointCommandUseCase.deductPoint(userId, useAmount, createdBy)
                                 useSuccessCount.incrementAndGet()
                             }
                         } catch (e: Exception) {
@@ -206,7 +206,7 @@ class PointConcurrencyIntegrationTest(
                 earnSuccessCount.get() shouldBe 10
 
                 // 최종 잔액 확인 (정확한 계산)
-                val finalUserPoint = userPointRepository.findByUserId(userId)
+                val finalUserPoint = getPointQueryUseCase.getUserPoint(userId)
                 finalUserPoint shouldNotBe null
 
                 // 최종 잔액 = 초기 + (적립 * 10) - (사용 성공 횟수 * 500)
@@ -226,8 +226,8 @@ class PointConcurrencyIntegrationTest(
                 val createdBy = userId
 
                 // 사용자 포인트 생성 및 초기 적립
-                pointService.createUserPoint(userId, createdBy)
-                pointService.earnPoint(userId, initialAmount, createdBy)
+                pointCommandUseCase.createUserPoint(userId, createdBy)
+                pointCommandUseCase.earnPoint(userId, initialAmount, createdBy)
 
                 // When - 100개 스레드가 동시에 100원씩 사용
                 val executor = Executors.newFixedThreadPool(threadCount)
@@ -237,7 +237,7 @@ class PointConcurrencyIntegrationTest(
                 repeat(threadCount) {
                     executor.submit {
                         try {
-                            pointService.usePoint(userId, useAmount, createdBy)
+                            pointCommandUseCase.deductPoint(userId, useAmount, createdBy)
                             successCount.incrementAndGet()
                         } catch (e: Exception) {
                             // 동시성 제어 실패 또는 잔액 부족
@@ -254,7 +254,7 @@ class PointConcurrencyIntegrationTest(
                 successCount.get() shouldBe threadCount
 
                 // 최종 잔액 확인
-                val finalUserPoint = userPointRepository.findByUserId(userId)
+                val finalUserPoint = getPointQueryUseCase.getUserPoint(userId)
                 finalUserPoint shouldNotBe null
                 finalUserPoint!!.balance.value shouldBe 90_000L // 100,000 - (100 * 100)
             }

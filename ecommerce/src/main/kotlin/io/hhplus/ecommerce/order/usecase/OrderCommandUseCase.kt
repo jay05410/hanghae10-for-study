@@ -12,20 +12,19 @@ import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
 /**
- * 주문 생성 유스케이스 - 애플리케이션 계층
+ * 주문 명령 UseCase
  *
  * 역할:
- * - 주문 생성의 비즈니스 플로우 조율
- * - 상품, 쿠폰, 결제 서비스 간 연계
- * - CQRS Command 패턴 구현
+ * - 모든 주문 변경 작업을 통합 관리
+ * - 주문 생성, 취소, 확정 기능 제공
  *
  * 책임:
- * - 주문 생성 전 단계 비즈니스 검증
- * - 여러 도메인 서비스 조합 및 트랜잭션 관리
- * - 주문 생성 후 후처리 작업 수행
+ * - 주문 변경 요청 검증 및 실행
+ * - 다른 도메인과의 연계 처리
+ * - 주문 데이터 무결성 보장
  */
 @Component
-class CreateOrderUseCase(
+class OrderCommandUseCase(
     private val orderService: OrderService,
     private val productService: ProductService,
     private val couponService: CouponService,
@@ -42,7 +41,7 @@ class CreateOrderUseCase(
      * @throws RuntimeException 결제 처리에 실패한 경우
      */
     @Transactional
-    fun execute(request: CreateOrderRequest): Order {
+    fun createOrder(request: CreateOrderRequest): Order {
         // 1. 상품 정보 검증 및 가격 계산
         val orderItems = request.items.map { item ->
             val product = productService.getProduct(item.packageTypeId)
@@ -100,5 +99,34 @@ class CreateOrderUseCase(
         )
 
         return order
+    }
+
+    /**
+     * 지정된 주문을 취소하고 관련 후처리를 수행한다
+     *
+     * @param orderId 취소할 주문 ID
+     * @param cancelledBy 취소를 요청하는 사용자 ID
+     * @param reason 주문 취소 사유 (선택적)
+     * @return 취소 처리가 완료된 주문 정보
+     * @throws IllegalArgumentException 주문을 찾을 수 없거나 취소 권한이 없는 경우
+     * @throws RuntimeException 주문 취소 처리에 실패한 경우
+     */
+    @Transactional
+    fun cancelOrder(orderId: Long, cancelledBy: Long, reason: String?): Order {
+        return orderService.cancelOrder(orderId, cancelledBy, reason)
+    }
+
+    /**
+     * 지정된 주문을 확정하고 최종 처리를 수행한다
+     *
+     * @param orderId 확정할 주문 ID
+     * @param confirmedBy 확정을 수행하는 사용자 ID
+     * @return 확정 처리가 완료된 주문 정보
+     * @throws IllegalArgumentException 주문을 찾을 수 없거나 확정 권한이 없는 경우
+     * @throws RuntimeException 주문 확정 처리에 실패한 경우
+     */
+    @Transactional
+    fun confirmOrder(orderId: Long, confirmedBy: Long): Order {
+        return orderService.confirmOrder(orderId, confirmedBy)
     }
 }

@@ -1,6 +1,7 @@
 package io.hhplus.ecommerce.unit.product.usecase
 
 import io.hhplus.ecommerce.product.application.ProductService
+import io.hhplus.ecommerce.product.application.ProductStatisticsService
 import io.hhplus.ecommerce.product.usecase.GetProductQueryUseCase
 import io.hhplus.ecommerce.product.domain.entity.Product
 import io.kotest.core.spec.style.DescribeSpec
@@ -25,10 +26,11 @@ import io.mockk.*
  */
 class GetProductQueryUseCaseTest : DescribeSpec({
     val mockProductService = mockk<ProductService>()
-    val sut = GetProductQueryUseCase(mockProductService)
+    val mockProductStatisticsService = mockk<ProductStatisticsService>()
+    val sut = GetProductQueryUseCase(mockProductService, mockProductStatisticsService)
 
     beforeEach {
-        clearMocks(mockProductService)
+        clearMocks(mockProductService, mockProductStatisticsService)
     }
 
     describe("getProducts") {

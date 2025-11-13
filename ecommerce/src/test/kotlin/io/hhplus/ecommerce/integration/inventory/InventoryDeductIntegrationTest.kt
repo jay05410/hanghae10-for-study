@@ -4,8 +4,9 @@ import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 
 import io.hhplus.ecommerce.common.exception.inventory.InventoryException
 import io.hhplus.ecommerce.support.config.IntegrationTestFixtures
-import io.hhplus.ecommerce.inventory.application.InventoryService
-import io.hhplus.ecommerce.inventory.domain.repository.InventoryRepository
+import io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
+import io.hhplus.ecommerce.inventory.usecase.InventoryReservationUseCase
+import io.hhplus.ecommerce.inventory.usecase.GetInventoryQueryUseCase
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -19,8 +20,9 @@ import io.kotest.matchers.shouldNotBe
  * - 가용 재고 계산
  */
 class InventoryDeductIntegrationTest(
-    private val inventoryService: InventoryService,
-    private val inventoryRepository: InventoryRepository
+    private val inventoryCommandUseCase: InventoryCommandUseCase,
+    private val inventoryReservationUseCase: InventoryReservationUseCase,
+    private val getInventoryQueryUseCase: GetInventoryQueryUseCase
 ) : KotestIntegrationTestBase({
 
     describe("재고 차감") {
@@ -33,10 +35,10 @@ class InventoryDeductIntegrationTest(
                 val createdBy = 1L
 
                 // 재고 생성
-                inventoryService.createInventory(productId, initialQuantity, createdBy)
+                inventoryCommandUseCase.createInventory(productId, initialQuantity, createdBy)
 
                 // When
-                val updatedInventory = inventoryService.deductStock(productId, deductQuantity, createdBy)
+                val updatedInventory = inventoryCommandUseCase.deductStock(productId, deductQuantity, createdBy)
 
                 // Then
                 updatedInventory shouldNotBe null
@@ -45,7 +47,7 @@ class InventoryDeductIntegrationTest(
                 updatedInventory.getAvailableQuantity() shouldBe 70
 
                 // 데이터베이스에서 확인
-                val savedInventory = inventoryRepository.findByProductId(productId)
+                val savedInventory = getInventoryQueryUseCase.getInventory(productId)
                 savedInventory shouldNotBe null
                 savedInventory!!.quantity shouldBe 70
             }
@@ -58,10 +60,10 @@ class InventoryDeductIntegrationTest(
                 val initialQuantity = 50
                 val createdBy = 1L
 
-                inventoryService.createInventory(productId, initialQuantity, createdBy)
+                inventoryCommandUseCase.createInventory(productId, initialQuantity, createdBy)
 
                 // When - 전액 차감
-                val updatedInventory = inventoryService.deductStock(productId, initialQuantity, createdBy)
+                val updatedInventory = inventoryCommandUseCase.deductStock(productId, initialQuantity, createdBy)
 
                 // Then
                 updatedInventory.quantity shouldBe 0
@@ -77,15 +79,15 @@ class InventoryDeductIntegrationTest(
                 val deductQuantity = 30 // 재고보다 많은 수량
                 val createdBy = 1L
 
-                inventoryService.createInventory(productId, initialQuantity, createdBy)
+                inventoryCommandUseCase.createInventory(productId, initialQuantity, createdBy)
 
                 // When & Then
                 shouldThrow<InventoryException.InsufficientStock> {
-                    inventoryService.deductStock(productId, deductQuantity, createdBy)
+                    inventoryCommandUseCase.deductStock(productId, deductQuantity, createdBy)
                 }
 
                 // 재고가 변경되지 않았는지 확인
-                val inventory = inventoryRepository.findByProductId(productId)
+                val inventory = getInventoryQueryUseCase.getInventory(productId)
                 inventory?.quantity shouldBe 20
             }
         }
@@ -100,15 +102,15 @@ class InventoryDeductIntegrationTest(
                 val thirdDeduct = 10
                 val createdBy = 1L
 
-                inventoryService.createInventory(productId, initialQuantity, createdBy)
+                inventoryCommandUseCase.createInventory(productId, initialQuantity, createdBy)
 
                 // When - 연속 차감
-                inventoryService.deductStock(productId, firstDeduct, createdBy)
-                inventoryService.deductStock(productId, secondDeduct, createdBy)
-                inventoryService.deductStock(productId, thirdDeduct, createdBy)
+                inventoryCommandUseCase.deductStock(productId, firstDeduct, createdBy)
+                inventoryCommandUseCase.deductStock(productId, secondDeduct, createdBy)
+                inventoryCommandUseCase.deductStock(productId, thirdDeduct, createdBy)
 
                 // Then
-                val finalInventory = inventoryRepository.findByProductId(productId)
+                val finalInventory = getInventoryQueryUseCase.getInventory(productId)
                 finalInventory shouldNotBe null
                 finalInventory!!.quantity shouldBe 40 // 100 - 20 - 30 - 10
             }
@@ -124,11 +126,11 @@ class InventoryDeductIntegrationTest(
                 val createdBy = 1L
 
                 // 재고 생성 및 예약
-                inventoryService.createInventory(productId, initialQuantity, createdBy)
-                inventoryService.reserveStock(productId, reserveQuantity, createdBy)
+                inventoryCommandUseCase.createInventory(productId, initialQuantity, createdBy)
+                inventoryReservationUseCase.reserveStock(productId, createdBy, reserveQuantity)
 
                 // When - 가용 재고만큼 차감
-                val updatedInventory = inventoryService.deductStock(productId, deductQuantity, createdBy)
+                val updatedInventory = inventoryCommandUseCase.deductStock(productId, deductQuantity, createdBy)
 
                 // Then
                 updatedInventory.quantity shouldBe 30 // 100 - 70
@@ -145,16 +147,16 @@ class InventoryDeductIntegrationTest(
                 val createdBy = 1L
 
                 // 재고 생성 및 예약
-                inventoryService.createInventory(productId, initialQuantity, createdBy)
-                inventoryService.reserveStock(productId, reserveQuantity, createdBy)
+                inventoryCommandUseCase.createInventory(productId, initialQuantity, createdBy)
+                inventoryReservationUseCase.reserveStock(productId, createdBy, reserveQuantity)
 
                 // When & Then
                 shouldThrow<InventoryException.InsufficientStock> {
-                    inventoryService.deductStock(productId, deductQuantity, createdBy)
+                    inventoryCommandUseCase.deductStock(productId, deductQuantity, createdBy)
                 }
 
                 // 재고가 변경되지 않았는지 확인
-                val inventory = inventoryRepository.findByProductId(productId)
+                val inventory = getInventoryQueryUseCase.getInventory(productId)
                 inventory?.quantity shouldBe 100
                 inventory?.reservedQuantity shouldBe 40
             }
@@ -170,11 +172,11 @@ class InventoryDeductIntegrationTest(
                 val createdBy = 1L
 
                 // 재고 생성
-                inventoryService.createInventory(productId, initialQuantity, createdBy)
+                inventoryCommandUseCase.createInventory(productId, initialQuantity, createdBy)
 
                 // When - 보충 후 차감
-                inventoryService.restockInventory(productId, restockQuantity, createdBy)
-                val updatedInventory = inventoryService.deductStock(productId, deductQuantity, createdBy)
+                inventoryCommandUseCase.restockInventory(productId, restockQuantity, createdBy)
+                val updatedInventory = inventoryCommandUseCase.deductStock(productId, deductQuantity, createdBy)
 
                 // Then
                 updatedInventory.quantity shouldBe 10 // (50 + 30) - 70
@@ -190,7 +192,7 @@ class InventoryDeductIntegrationTest(
 
                 // When & Then
                 shouldThrow<InventoryException.InventoryNotFound> {
-                    inventoryService.deductStock(productId, deductQuantity, createdBy)
+                    inventoryCommandUseCase.deductStock(productId, deductQuantity, createdBy)
                 }
             }
         }

@@ -19,6 +19,7 @@ abstract class DatabaseIntegrationTest : IntegrationTestBase() {
         entityManager.clear()
     }
 
+
     /**
      * 테스트 데이터 정리를 위한 헬퍼 메서드
      */

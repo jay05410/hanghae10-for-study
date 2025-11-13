@@ -1,7 +1,9 @@
 package io.hhplus.ecommerce.integration.payment
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
-import io.hhplus.ecommerce.payment.application.PaymentService
+import io.hhplus.ecommerce.payment.usecase.ProcessPaymentUseCase
+import io.hhplus.ecommerce.payment.usecase.GetPaymentQueryUseCase
+import io.hhplus.ecommerce.payment.dto.ProcessPaymentRequest
 import io.hhplus.ecommerce.payment.domain.constant.PaymentMethod
 import io.hhplus.ecommerce.payment.domain.constant.PaymentStatus
 import io.hhplus.ecommerce.payment.domain.repository.PaymentRepository
@@ -19,7 +21,8 @@ import io.kotest.matchers.string.shouldStartWith
  * - 사용자별 결제 내역 조회
  */
 class PaymentCreateIntegrationTest(
-    private val paymentService: PaymentService,
+    private val processPaymentUseCase: ProcessPaymentUseCase,
+    private val getPaymentQueryUseCase: GetPaymentQueryUseCase,
     private val paymentRepository: PaymentRepository
 ) : KotestIntegrationTestBase({
 
@@ -32,11 +35,13 @@ class PaymentCreateIntegrationTest(
                 val amount = 50000L
 
                 // When
-                val payment = paymentService.processPayment(
-                    userId = userId,
-                    orderId = orderId,
-                    amount = amount,
-                    paymentMethod = PaymentMethod.BALANCE
+                val payment = processPaymentUseCase.execute(
+                    ProcessPaymentRequest(
+                        userId = userId,
+                        orderId = orderId,
+                        amount = amount,
+                        paymentMethod = PaymentMethod.BALANCE
+                    )
                 )
 
                 // Then
@@ -56,8 +61,8 @@ class PaymentCreateIntegrationTest(
             it("고유한 결제 번호가 생성된다") {
                 // Given
                 val userId = 2000L
-                val payment1 = paymentService.processPayment(2000L, 201L, 10000L, PaymentMethod.BALANCE)
-                val payment2 = paymentService.processPayment(2000L, 202L, 20000L, PaymentMethod.BALANCE)
+                val payment1 = processPaymentUseCase.execute(ProcessPaymentRequest(2000L, 201L, 10000L, PaymentMethod.BALANCE))
+                val payment2 = processPaymentUseCase.execute(ProcessPaymentRequest(2000L, 202L, 20000L, PaymentMethod.BALANCE))
 
                 // When & Then
                 payment1.paymentNumber shouldNotBe payment2.paymentNumber
@@ -70,10 +75,10 @@ class PaymentCreateIntegrationTest(
             it("결제 정보를 조회할 수 있다") {
                 // Given
                 val userId = 3000L
-                val payment = paymentService.processPayment(userId, 301L, 30000L, PaymentMethod.BALANCE)
+                val payment = processPaymentUseCase.execute(ProcessPaymentRequest(userId, 301L, 30000L, PaymentMethod.BALANCE))
 
                 // When
-                val foundPayment = paymentService.getPayment(payment.id)
+                val foundPayment = getPaymentQueryUseCase.getPayment(payment.id)
 
                 // Then
                 foundPayment shouldNotBe null
@@ -86,12 +91,12 @@ class PaymentCreateIntegrationTest(
             it("해당 사용자의 모든 결제를 조회할 수 있다") {
                 // Given
                 val userId = 4000L
-                paymentService.processPayment(userId, 401L, 10000L, PaymentMethod.BALANCE)
-                paymentService.processPayment(userId, 402L, 20000L, PaymentMethod.BALANCE)
-                paymentService.processPayment(userId, 403L, 30000L, PaymentMethod.BALANCE)
+                processPaymentUseCase.execute(ProcessPaymentRequest(userId, 401L, 10000L, PaymentMethod.BALANCE))
+                processPaymentUseCase.execute(ProcessPaymentRequest(userId, 402L, 20000L, PaymentMethod.BALANCE))
+                processPaymentUseCase.execute(ProcessPaymentRequest(userId, 403L, 30000L, PaymentMethod.BALANCE))
 
                 // When
-                val payments = paymentService.getPaymentsByUser(userId)
+                val payments = getPaymentQueryUseCase.getUserPayments(userId)
 
                 // Then
                 payments.size shouldBe 3
@@ -105,8 +110,8 @@ class PaymentCreateIntegrationTest(
                 val userId = 5000L
 
                 // When
-                val payment1 = paymentService.processPayment(userId, 501L, 15000L, PaymentMethod.BALANCE)
-                val payment2 = paymentService.processPayment(userId, 502L, 25000L, PaymentMethod.BALANCE)
+                val payment1 = processPaymentUseCase.execute(ProcessPaymentRequest(userId, 501L, 15000L, PaymentMethod.BALANCE))
+                val payment2 = processPaymentUseCase.execute(ProcessPaymentRequest(userId, 502L, 25000L, PaymentMethod.BALANCE))
 
                 // Then
                 payment1.orderId shouldBe 501L
@@ -123,7 +128,7 @@ class PaymentCreateIntegrationTest(
 
                 // When
                 val payments = amounts.mapIndexed { index, amount ->
-                    paymentService.processPayment(userId, 601L + index, amount, PaymentMethod.BALANCE)
+                    processPaymentUseCase.execute(ProcessPaymentRequest(userId, 601L + index, amount, PaymentMethod.BALANCE))
                 }
 
                 // Then
@@ -139,7 +144,7 @@ class PaymentCreateIntegrationTest(
             it("상태가 COMPLETED이고 외부 트랜잭션 ID가 기록된다") {
                 // Given
                 val userId = 7000L
-                val payment = paymentService.processPayment(userId, 701L, 40000L, PaymentMethod.BALANCE)
+                val payment = processPaymentUseCase.execute(ProcessPaymentRequest(userId, 701L, 40000L, PaymentMethod.BALANCE))
 
                 // When
                 val savedPayment = paymentRepository.findById(payment.id)

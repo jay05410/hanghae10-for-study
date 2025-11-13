@@ -27,7 +27,7 @@ import io.swagger.v3.oas.annotations.tags.Tag
 @RequestMapping("/api/v1/coupons")
 class CouponController(
     private val getCouponQueryUseCase: GetCouponQueryUseCase,
-    private val issueCouponUseCase: IssueCouponUseCase,
+    private val couponCommandUseCase: CouponCommandUseCase,
     private val validateCouponUseCase: ValidateCouponUseCase
 ) {
 
@@ -58,7 +58,7 @@ class CouponController(
         @Parameter(description = "쿠폰 발급 요청 정보", required = true)
         @RequestBody request: IssueCouponRequest
     ): ApiResponse<UserCouponResponse> {
-        val userCoupon = issueCouponUseCase.execute(userId, request)
+        val userCoupon = couponCommandUseCase.issueCoupon(userId, request)
         return ApiResponse.success(userCoupon.toResponse())
     }
 

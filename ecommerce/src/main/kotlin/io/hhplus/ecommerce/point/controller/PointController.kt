@@ -26,8 +26,7 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/api/v1/points")
 class PointController(
     private val getPointQueryUseCase: GetPointQueryUseCase,
-    private val chargePointUseCase: ChargePointUseCase,
-    private val deductPointUseCase: DeductPointUseCase
+    private val pointCommandUseCase: PointCommandUseCase
 ) {
 
     /**
@@ -61,7 +60,7 @@ class PointController(
         @Parameter(description = "포인트 적립 요청 정보", required = true)
         @RequestBody request: ChargePointRequest
     ): ApiResponse<UserPointResponse> {
-        val userPoint = chargePointUseCase.execute(userId, request.amount, request.description)
+        val userPoint = pointCommandUseCase.chargePoint(userId, request.amount, request.description)
         return ApiResponse.success(userPoint.toResponse())
     }
 
@@ -80,7 +79,7 @@ class PointController(
         @Parameter(description = "포인트 사용 요청 정보", required = true)
         @RequestBody request: DeductPointRequest
     ): ApiResponse<UserPointResponse> {
-        val userPoint = deductPointUseCase.execute(userId, request.amount, request.description)
+        val userPoint = pointCommandUseCase.usePoint(userId, request.amount, request.description)
         return ApiResponse.success(userPoint.toResponse())
     }
 

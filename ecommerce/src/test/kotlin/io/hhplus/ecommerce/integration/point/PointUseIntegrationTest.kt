@@ -4,12 +4,10 @@ import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 
 import io.hhplus.ecommerce.common.exception.point.PointException
 import io.hhplus.ecommerce.support.config.IntegrationTestFixtures
-import io.hhplus.ecommerce.point.application.PointHistoryService
-import io.hhplus.ecommerce.point.application.PointService
+import io.hhplus.ecommerce.point.usecase.PointCommandUseCase
+import io.hhplus.ecommerce.point.usecase.GetPointQueryUseCase
+import io.hhplus.ecommerce.point.usecase.PointHistoryUseCase
 import io.hhplus.ecommerce.point.domain.constant.PointTransactionType
-import io.hhplus.ecommerce.point.domain.repository.PointHistoryRepository
-import io.hhplus.ecommerce.point.domain.repository.UserPointRepository
-import io.hhplus.ecommerce.point.domain.vo.PointAmount
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -24,10 +22,9 @@ import io.kotest.matchers.shouldNotBe
  * - 최소 사용 단위 검증 (100원)
  */
 class PointUseIntegrationTest(
-    private val pointService: PointService,
-    private val pointHistoryService: PointHistoryService,
-    private val userPointRepository: UserPointRepository,
-    private val pointHistoryRepository: PointHistoryRepository
+    private val pointCommandUseCase: PointCommandUseCase,
+    private val getPointQueryUseCase: GetPointQueryUseCase,
+    private val pointHistoryUseCase: PointHistoryUseCase
 ) : KotestIntegrationTestBase({
 
     describe("포인트 사용") {
@@ -35,30 +32,14 @@ class PointUseIntegrationTest(
             it("포인트를 정상적으로 사용할 수 있다") {
                 // Given
                 val userId = IntegrationTestFixtures.createTestUserId(1)
-                val initialAmount = PointAmount(10_000)
-                val useAmount = PointAmount(3_000)
-                val createdBy = userId
+                val initialAmount = 10_000L
+                val useAmount = 3_000L
 
-                // 사용자 포인트 생성 및 초기 적립
-                pointService.createUserPoint(userId, createdBy)
-                pointService.earnPoint(userId, initialAmount, createdBy)
-
-                // When
-                val balanceBefore = pointService.getUserPoint(userId)!!.balance
-                val updatedUserPoint = pointService.usePoint(
+                // When - 초기 적립 후 사용
+                pointCommandUseCase.chargePoint(userId, initialAmount, "초기 적립")
+                val updatedUserPoint = pointCommandUseCase.usePoint(
                     userId = userId,
                     amount = useAmount,
-                    usedBy = createdBy,
-                    description = "주문 결제"
-                )
-
-                // 포인트 이력 기록
-                pointHistoryService.recordUseHistory(
-                    userId = userId,
-                    amount = useAmount,
-                    balanceBefore = balanceBefore,
-                    balanceAfter = updatedUserPoint.balance,
-                    createdBy = createdBy,
                     description = "주문 결제"
                 )
 
@@ -67,17 +48,16 @@ class PointUseIntegrationTest(
                 updatedUserPoint.balance.value shouldBe 7_000L // 10,000 - 3,000
 
                 // 데이터베이스에서 확인
-                val savedUserPoint = userPointRepository.findByUserId(userId)
-                savedUserPoint shouldNotBe null
-                savedUserPoint!!.balance.value shouldBe 7_000L
+                val savedUserPoint = getPointQueryUseCase.getUserPoint(userId)
+                savedUserPoint.balance.value shouldBe 7_000L
 
                 // 포인트 이력 확인
-                val histories = pointHistoryRepository.findByUserIdOrderByCreatedAtDesc(userId)
-                histories.size shouldBe 1
-                histories[0].transactionType shouldBe PointTransactionType.USE
-                histories[0].amount shouldBe -3_000L // USE는 음수로 저장
-                histories[0].balanceBefore shouldBe 10_000L
-                histories[0].balanceAfter shouldBe 7_000L
+                val histories = pointHistoryUseCase.getPointHistory(userId)
+                histories.size shouldBe 2  // 충전 1회 + 사용 1회
+                val useHistory = histories.first { it.transactionType == PointTransactionType.USE }
+                useHistory.amount shouldBe -3_000L // USE는 음수로 저장
+                useHistory.balanceBefore shouldBe 10_000L
+                useHistory.balanceAfter shouldBe 7_000L
             }
         }
 
@@ -85,22 +65,20 @@ class PointUseIntegrationTest(
             it("예외가 발생한다") {
                 // Given
                 val userId = IntegrationTestFixtures.createTestUserId(2)
-                val initialAmount = PointAmount(5_000)
-                val useAmount = PointAmount(6_000) // 잔액보다 많은 금액
-                val createdBy = userId
+                val initialAmount = 5_000L
+                val useAmount = 6_000L // 잔액보다 많은 금액
 
                 // 사용자 포인트 생성 및 초기 적립
-                pointService.createUserPoint(userId, createdBy)
-                pointService.earnPoint(userId, initialAmount, createdBy)
+                pointCommandUseCase.chargePoint(userId, initialAmount, "초기 적립")
 
                 // When & Then
                 shouldThrow<PointException.InsufficientBalance> {
-                    pointService.usePoint(userId, useAmount, createdBy)
+                    pointCommandUseCase.usePoint(userId, useAmount, "테스트 사용")
                 }
 
                 // 잔액이 변경되지 않았는지 확인
-                val userPoint = userPointRepository.findByUserId(userId)
-                userPoint?.balance?.value shouldBe 5_000L
+                val userPoint = getPointQueryUseCase.getUserPoint(userId)
+                userPoint.balance.value shouldBe 5_000L
             }
         }
 
@@ -108,24 +86,17 @@ class PointUseIntegrationTest(
             it("포인트를 전액 사용할 수 있다") {
                 // Given
                 val userId = IntegrationTestFixtures.createTestUserId(3)
-                val initialAmount = PointAmount(8_000)
-                val createdBy = userId
+                val initialAmount = 8_000L
 
                 // 사용자 포인트 생성 및 초기 적립
-                pointService.createUserPoint(userId, createdBy)
-                pointService.earnPoint(userId, initialAmount, createdBy)
+                pointCommandUseCase.chargePoint(userId, initialAmount, "초기 적립")
 
                 // When - 전액 사용
-                val balanceBefore = pointService.getUserPoint(userId)!!.balance
-                val updatedUserPoint = pointService.usePoint(userId, initialAmount, createdBy)
-                pointHistoryService.recordUseHistory(
-                    userId, initialAmount, balanceBefore, updatedUserPoint.balance, createdBy
-                )
+                pointCommandUseCase.usePoint(userId, initialAmount)
 
                 // Then
-                val userPoint = userPointRepository.findByUserId(userId)
-                userPoint shouldNotBe null
-                userPoint!!.balance.value shouldBe 0L
+                val userPoint = getPointQueryUseCase.getUserPoint(userId)
+                userPoint.balance.value shouldBe 0L
             }
         }
 
@@ -133,39 +104,30 @@ class PointUseIntegrationTest(
             it("여러 번 포인트를 사용할 수 있다") {
                 // Given
                 val userId = IntegrationTestFixtures.createTestUserId(4)
-                val initialAmount = PointAmount(10_000)
-                val firstUse = PointAmount(3_000)
-                val secondUse = PointAmount(2_000)
-                val createdBy = userId
+                val initialAmount = 10_000L
+                val firstUse = 3_000L
+                val secondUse = 2_000L
 
                 // 사용자 포인트 생성 및 초기 적립
-                pointService.createUserPoint(userId, createdBy)
-                pointService.earnPoint(userId, initialAmount, createdBy)
+                pointCommandUseCase.chargePoint(userId, initialAmount, "초기 적립")
 
                 // When - 첫 번째 사용
-                val firstBalance = pointService.getUserPoint(userId)!!.balance
-                val firstUpdated = pointService.usePoint(userId, firstUse, createdBy)
-                pointHistoryService.recordUseHistory(
-                    userId, firstUse, firstBalance, firstUpdated.balance, createdBy
-                )
+                pointCommandUseCase.usePoint(userId, firstUse, "첫 번째 사용")
 
                 // When - 두 번째 사용
-                val secondBalance = pointService.getUserPoint(userId)!!.balance
-                val secondUpdated = pointService.usePoint(userId, secondUse, createdBy)
-                pointHistoryService.recordUseHistory(
-                    userId, secondUse, secondBalance, secondUpdated.balance, createdBy
-                )
+                pointCommandUseCase.usePoint(userId, secondUse, "두 번째 사용")
 
                 // Then
-                val finalUserPoint = userPointRepository.findByUserId(userId)
-                finalUserPoint shouldNotBe null
-                finalUserPoint!!.balance.value shouldBe 5_000L // 10,000 - 3,000 - 2,000
+                val finalUserPoint = getPointQueryUseCase.getUserPoint(userId)
+                finalUserPoint.balance.value shouldBe 5_000L // 10,000 - 3,000 - 2,000
 
                 // 포인트 이력 확인 (최신순)
-                val histories = pointHistoryRepository.findByUserIdOrderByCreatedAtDesc(userId)
-                histories.size shouldBe 2
-                histories[0].amount shouldBe -2_000L // USE는 음수로 저장 (최신)
-                histories[1].amount shouldBe -3_000L // USE는 음수로 저장 (과거)
+                val histories = pointHistoryUseCase.getPointHistory(userId)
+                histories.size shouldBe 3  // 충전 1회 + 사용 2회
+                val useHistories = histories.filter { it.transactionType == PointTransactionType.USE }
+                useHistories.size shouldBe 2
+                useHistories[0].amount shouldBe -2_000L // USE는 음수로 저장 (최신)
+                useHistories[1].amount shouldBe -3_000L // USE는 음수로 저장 (과거)
             }
         }
 
@@ -173,21 +135,19 @@ class PointUseIntegrationTest(
             it("예외가 발생한다") {
                 // Given
                 val userId = IntegrationTestFixtures.createTestUserId(5)
-                val initialAmount = PointAmount(10_000)
-                val createdBy = userId
+                val initialAmount = 10_000L
 
                 // 사용자 포인트 생성 및 초기 적립
-                pointService.createUserPoint(userId, createdBy)
-                pointService.earnPoint(userId, initialAmount, createdBy)
+                pointCommandUseCase.chargePoint(userId, initialAmount, "초기 적립")
 
                 // When & Then - 0원 사용 시도
                 shouldThrow<PointException.InvalidAmount> {
-                    pointService.usePoint(userId, PointAmount(0), createdBy)
+                    pointCommandUseCase.usePoint(userId, 0)
                 }
 
-                // When & Then - 음수 사용 시도 (PointAmount 생성 시점에 검증)
+                // When & Then - 음수 사용 시도
                 shouldThrow<IllegalArgumentException> {
-                    PointAmount(-1000)
+                    pointCommandUseCase.usePoint(userId, -1000)
                 }
             }
         }
@@ -196,40 +156,28 @@ class PointUseIntegrationTest(
             it("주문 정보가 포함된 사용 이력이 기록된다") {
                 // Given
                 val userId = IntegrationTestFixtures.createTestUserId(6)
-                val initialAmount = PointAmount(20_000)
-                val useAmount = PointAmount(5_000)
+                val initialAmount = 20_000L
+                val useAmount = 5_000L
                 val orderId = 12345L
-                val createdBy = userId
 
                 // 사용자 포인트 생성 및 초기 적립
-                pointService.createUserPoint(userId, createdBy)
-                pointService.earnPoint(userId, initialAmount, createdBy)
+                pointCommandUseCase.chargePoint(userId, initialAmount, "초기 적립")
 
                 // When
-                val balanceBefore = pointService.getUserPoint(userId)!!.balance
-                val updatedUserPoint = pointService.usePoint(
+                pointCommandUseCase.usePoint(
                     userId = userId,
                     amount = useAmount,
-                    usedBy = createdBy,
-                    description = "주문 결제"
-                )
-
-                pointHistoryService.recordUseHistory(
-                    userId = userId,
-                    amount = useAmount,
-                    balanceBefore = balanceBefore,
-                    balanceAfter = updatedUserPoint.balance,
-                    createdBy = createdBy,
                     description = "주문 결제",
                     orderId = orderId
                 )
 
                 // Then
-                val histories = pointHistoryRepository.findByUserIdOrderByCreatedAtDesc(userId)
-                histories.size shouldBe 1
-                histories[0].orderId shouldBe orderId
-                histories[0].description shouldBe "주문 결제"
-                histories[0].transactionType shouldBe PointTransactionType.USE
+                val histories = pointHistoryUseCase.getPointHistory(userId)
+                histories.size shouldBe 2  // 충전 1회 + 사용 1회
+                val useHistory = histories.first { it.transactionType == PointTransactionType.USE }
+                useHistory.orderId shouldBe orderId
+                useHistory.description shouldBe "주문 결제"
+                useHistory.transactionType shouldBe PointTransactionType.USE
             }
         }
 
@@ -237,25 +185,20 @@ class PointUseIntegrationTest(
             it("적립과 사용이 연속으로 정상 동작한다") {
                 // Given
                 val userId = IntegrationTestFixtures.createTestUserId(7)
-                val firstEarn = PointAmount(10_000)
-                val firstUse = PointAmount(3_000)
-                val secondEarn = PointAmount(5_000)
-                val secondUse = PointAmount(2_000)
-                val createdBy = userId
-
-                // 사용자 포인트 생성
-                pointService.createUserPoint(userId, createdBy)
+                val firstEarn = 10_000L
+                val firstUse = 3_000L
+                val secondEarn = 5_000L
+                val secondUse = 2_000L
 
                 // When - 적립 → 사용 → 적립 → 사용
-                pointService.earnPoint(userId, firstEarn, createdBy)
-                pointService.usePoint(userId, firstUse, createdBy)
-                pointService.earnPoint(userId, secondEarn, createdBy)
-                pointService.usePoint(userId, secondUse, createdBy)
+                pointCommandUseCase.chargePoint(userId, firstEarn, "첫 번째 적립")
+                pointCommandUseCase.usePoint(userId, firstUse, "첫 번째 사용")
+                pointCommandUseCase.chargePoint(userId, secondEarn, "두 번째 적립")
+                pointCommandUseCase.usePoint(userId, secondUse, "두 번째 사용")
 
                 // Then
-                val userPoint = userPointRepository.findByUserId(userId)
-                userPoint shouldNotBe null
-                userPoint!!.balance.value shouldBe 10_000L // 10,000 - 3,000 + 5,000 - 2,000
+                val userPoint = getPointQueryUseCase.getUserPoint(userId)
+                userPoint.balance.value shouldBe 10_000L // 10,000 - 3,000 + 5,000 - 2,000
             }
         }
     }

@@ -1,6 +1,9 @@
 package io.hhplus.ecommerce.delivery.usecase
 
-import io.hhplus.ecommerce.delivery.application.DeliveryService
+import io.hhplus.ecommerce.delivery.domain.repository.DeliveryRepository
+import io.hhplus.ecommerce.delivery.domain.constant.DeliveryStatus
+import io.hhplus.ecommerce.common.exception.delivery.DeliveryException
+import org.springframework.transaction.annotation.Transactional
 import io.hhplus.ecommerce.delivery.domain.entity.Delivery
 import org.springframework.stereotype.Component
 
@@ -18,7 +21,7 @@ import org.springframework.stereotype.Component
  */
 @Component
 class GetDeliveryQueryUseCase(
-    private val deliveryService: DeliveryService
+    private val deliveryRepository: DeliveryRepository
 ) {
 
     /**
@@ -28,8 +31,10 @@ class GetDeliveryQueryUseCase(
      * @return 배송 엔티티
      * @throws io.hhplus.ecommerce.common.exception.delivery.DeliveryException.DeliveryNotFound 배송을 찾을 수 없을 때
      */
+    @Transactional(readOnly = true)
     fun getDelivery(deliveryId: Long): Delivery {
-        return deliveryService.getDelivery(deliveryId)
+        return deliveryRepository.findById(deliveryId)
+            ?: throw DeliveryException.DeliveryNotFound(deliveryId)
     }
 
     /**
@@ -39,8 +44,10 @@ class GetDeliveryQueryUseCase(
      * @return 배송 엔티티
      * @throws io.hhplus.ecommerce.common.exception.delivery.DeliveryException.DeliveryNotFoundByOrder 배송을 찾을 수 없을 때
      */
+    @Transactional(readOnly = true)
     fun getDeliveryByOrderId(orderId: Long): Delivery {
-        return deliveryService.getDeliveryByOrderId(orderId)
+        return deliveryRepository.findByOrderId(orderId)
+            ?: throw DeliveryException.DeliveryNotFoundByOrder(orderId)
     }
 
     /**
@@ -50,8 +57,10 @@ class GetDeliveryQueryUseCase(
      * @return 배송 엔티티
      * @throws io.hhplus.ecommerce.common.exception.delivery.DeliveryException.DeliveryNotFound 배송을 찾을 수 없을 때
      */
+    @Transactional(readOnly = true)
     fun getDeliveryByTrackingNumber(trackingNumber: String): Delivery {
-        return deliveryService.getDeliveryByTrackingNumber(trackingNumber)
+        return deliveryRepository.findByTrackingNumber(trackingNumber)
+            ?: throw DeliveryException.DeliveryNotFound(0L)
     }
 
     /**
@@ -60,7 +69,19 @@ class GetDeliveryQueryUseCase(
      * @param orderIds 조회할 주문 ID 목록
      * @return 배송 엔티티 목록
      */
+    @Transactional(readOnly = true)
     fun getDeliveriesByOrderIds(orderIds: List<Long>): List<Delivery> {
-        return deliveryService.getDeliveriesByOrderIds(orderIds)
+        return deliveryRepository.findByOrderIdIn(orderIds)
+    }
+
+    /**
+     * 배송 상태로 배송 목록 조회
+     *
+     * @param status 배송 상태
+     * @return 배송 엔티티 목록
+     */
+    @Transactional(readOnly = true)
+    fun getDeliveriesByStatus(status: DeliveryStatus): List<Delivery> {
+        return deliveryRepository.findByStatus(status)
     }
 }

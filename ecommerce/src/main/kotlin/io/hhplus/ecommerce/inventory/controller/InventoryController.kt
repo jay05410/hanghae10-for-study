@@ -25,9 +25,7 @@ import org.springframework.web.bind.annotation.*
 @RestController
 @RequestMapping("/api/v1/inventory")
 class InventoryController(
-    private val reserveStockUseCase: ReserveStockUseCase,
-    private val confirmReservationUseCase: ConfirmReservationUseCase,
-    private val cancelReservationUseCase: CancelReservationUseCase,
+    private val inventoryReservationUseCase: InventoryReservationUseCase,
     private val getUserReservationsUseCase: GetUserReservationsUseCase
 ) {
 
@@ -41,7 +39,7 @@ class InventoryController(
         @Parameter(description = "사용자 ID", required = true)
         @RequestHeader("User-Id") userId: Long
     ): ApiResponse<StockReservationResponse> {
-        val reservation = reserveStockUseCase.execute(
+        val reservation = inventoryReservationUseCase.reserveStock(
             productId = productId,
             userId = userId,
             quantity = request.quantity,
@@ -58,7 +56,7 @@ class InventoryController(
         @Parameter(description = "사용자 ID", required = true)
         @RequestHeader("User-Id") userId: Long
     ): ApiResponse<StockReservationResponse> {
-        val reservation = confirmReservationUseCase.execute(reservationId, userId)
+        val reservation = inventoryReservationUseCase.confirmReservation(reservationId, userId)
         return ApiResponse.success(reservation.toResponse())
     }
 
@@ -70,7 +68,7 @@ class InventoryController(
         @Parameter(description = "사용자 ID", required = true)
         @RequestHeader("User-Id") userId: Long
     ): ApiResponse<StockReservationResponse> {
-        val reservation = cancelReservationUseCase.execute(reservationId, userId)
+        val reservation = inventoryReservationUseCase.cancelReservation(reservationId, userId)
         return ApiResponse.success(reservation.toResponse())
     }
 

@@ -2,7 +2,8 @@ package io.hhplus.ecommerce.integration.coupon
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 
-import io.hhplus.ecommerce.coupon.application.CouponService
+import io.hhplus.ecommerce.coupon.usecase.CouponCommandUseCase
+import io.hhplus.ecommerce.coupon.dto.IssueCouponRequest
 import io.hhplus.ecommerce.coupon.domain.constant.DiscountType
 import io.hhplus.ecommerce.coupon.domain.entity.Coupon
 import io.hhplus.ecommerce.coupon.domain.repository.CouponRepository
@@ -20,7 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger
  * 선착순 쿠폰 발급 시 동시성 제어를 검증합니다.
  */
 class CouponConcurrencyIntegrationTest(
-    private val couponService: CouponService,
+    private val couponCommandUseCase: CouponCommandUseCase,
     private val couponRepository: CouponRepository,
     private val userCouponRepository: UserCouponRepository
 ) : KotestIntegrationTestBase({
@@ -52,7 +53,7 @@ class CouponConcurrencyIntegrationTest(
                 repeat(threadCount) { index ->
                     executor.submit {
                         try {
-                            couponService.issueCoupon(userId = 1000L + index, couponId = savedCoupon.id)
+                            couponCommandUseCase.issueCoupon(userId = 1000L + index, request = IssueCouponRequest(savedCoupon.id))
                             successCount.incrementAndGet()
                         } catch (e: Exception) {
                             failCount.incrementAndGet()

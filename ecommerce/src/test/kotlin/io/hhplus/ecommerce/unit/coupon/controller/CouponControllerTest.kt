@@ -2,7 +2,7 @@ package io.hhplus.ecommerce.unit.coupon.controller
 
 import io.hhplus.ecommerce.coupon.controller.CouponController
 import io.hhplus.ecommerce.coupon.usecase.GetCouponQueryUseCase
-import io.hhplus.ecommerce.coupon.usecase.IssueCouponUseCase
+import io.hhplus.ecommerce.coupon.usecase.CouponCommandUseCase
 import io.hhplus.ecommerce.coupon.usecase.ValidateCouponUseCase
 import io.hhplus.ecommerce.coupon.dto.IssueCouponRequest
 import io.hhplus.ecommerce.coupon.dto.UseCouponRequest
@@ -30,19 +30,19 @@ import io.mockk.*
  */
 class CouponControllerTest : DescribeSpec({
     val mockGetCouponQueryUseCase = mockk<GetCouponQueryUseCase>()
-    val mockIssueCouponUseCase = mockk<IssueCouponUseCase>()
+    val mockCouponCommandUseCase = mockk<CouponCommandUseCase>()
     val mockValidateCouponUseCase = mockk<ValidateCouponUseCase>()
 
     val sut = CouponController(
         getCouponQueryUseCase = mockGetCouponQueryUseCase,
-        issueCouponUseCase = mockIssueCouponUseCase,
+        couponCommandUseCase = mockCouponCommandUseCase,
         validateCouponUseCase = mockValidateCouponUseCase
     )
 
     beforeEach {
         clearMocks(
             mockGetCouponQueryUseCase,
-            mockIssueCouponUseCase,
+            mockCouponCommandUseCase,
             mockValidateCouponUseCase
         )
     }
@@ -86,12 +86,12 @@ class CouponControllerTest : DescribeSpec({
                 val request = IssueCouponRequest(couponId = 1L)
                 val mockUserCoupon = mockk<UserCoupon>(relaxed = true)
 
-                every { mockIssueCouponUseCase.execute(userId, request) } returns mockUserCoupon
+                every { mockCouponCommandUseCase.issueCoupon(userId, request) } returns mockUserCoupon
 
                 val result = sut.issueCoupon(userId, request)
 
                 result.success shouldBe true
-                verify(exactly = 1) { mockIssueCouponUseCase.execute(userId, request) }
+                verify(exactly = 1) { mockCouponCommandUseCase.issueCoupon(userId, request) }
             }
         }
 
@@ -101,12 +101,12 @@ class CouponControllerTest : DescribeSpec({
                 val request = IssueCouponRequest(couponId = 5L)
                 val mockUserCoupon = mockk<UserCoupon>(relaxed = true)
 
-                every { mockIssueCouponUseCase.execute(userId, request) } returns mockUserCoupon
+                every { mockCouponCommandUseCase.issueCoupon(userId, request) } returns mockUserCoupon
 
                 val result = sut.issueCoupon(userId, request)
 
                 result.success shouldBe true
-                verify(exactly = 1) { mockIssueCouponUseCase.execute(userId, request) }
+                verify(exactly = 1) { mockCouponCommandUseCase.issueCoupon(userId, request) }
             }
         }
 
@@ -119,13 +119,13 @@ class CouponControllerTest : DescribeSpec({
                     val request = IssueCouponRequest(couponId = couponId)
                     val mockUserCoupon = mockk<UserCoupon>(relaxed = true)
 
-                    every { mockIssueCouponUseCase.execute(userId, request) } returns mockUserCoupon
+                    every { mockCouponCommandUseCase.issueCoupon(userId, request) } returns mockUserCoupon
 
                     val result = sut.issueCoupon(userId, request)
 
                     result.success shouldBe true
-                    verify(exactly = 1) { mockIssueCouponUseCase.execute(userId, request) }
-                    clearMocks(mockIssueCouponUseCase)
+                    verify(exactly = 1) { mockCouponCommandUseCase.issueCoupon(userId, request) }
+                    clearMocks(mockCouponCommandUseCase)
                 }
             }
         }
@@ -285,29 +285,29 @@ class CouponControllerTest : DescribeSpec({
                 every { mockGetCouponQueryUseCase.getAvailableCoupons() } returns emptyList()
                 sut.getAvailableCoupons()
                 verify(exactly = 1) { mockGetCouponQueryUseCase.getAvailableCoupons() }
-                verify(exactly = 0) { mockIssueCouponUseCase.execute(any(), any()) }
+                verify(exactly = 0) { mockCouponCommandUseCase.issueCoupon(any(), any()) }
                 verify(exactly = 0) { mockValidateCouponUseCase.execute(any(), any()) }
 
-                clearMocks(mockGetCouponQueryUseCase, mockIssueCouponUseCase, mockValidateCouponUseCase)
+                clearMocks(mockGetCouponQueryUseCase, mockCouponCommandUseCase, mockValidateCouponUseCase)
 
                 // issueCoupon 테스트
                 val issueRequest = IssueCouponRequest(couponId = 1L)
-                every { mockIssueCouponUseCase.execute(1L, issueRequest) } returns mockk(relaxed = true)
+                every { mockCouponCommandUseCase.issueCoupon(1L, issueRequest) } returns mockk(relaxed = true)
                 sut.issueCoupon(1L, issueRequest)
-                verify(exactly = 1) { mockIssueCouponUseCase.execute(1L, issueRequest) }
+                verify(exactly = 1) { mockCouponCommandUseCase.issueCoupon(1L, issueRequest) }
                 verify(exactly = 0) { mockGetCouponQueryUseCase.getAvailableCoupons() }
                 verify(exactly = 0) { mockValidateCouponUseCase.execute(any(), any()) }
 
-                clearMocks(mockGetCouponQueryUseCase, mockIssueCouponUseCase, mockValidateCouponUseCase)
+                clearMocks(mockGetCouponQueryUseCase, mockCouponCommandUseCase, mockValidateCouponUseCase)
 
                 // getUserCoupons 테스트
                 every { mockGetCouponQueryUseCase.getUserCoupons(1L) } returns emptyList()
                 sut.getUserCoupons(1L)
                 verify(exactly = 1) { mockGetCouponQueryUseCase.getUserCoupons(1L) }
-                verify(exactly = 0) { mockIssueCouponUseCase.execute(any(), any()) }
+                verify(exactly = 0) { mockCouponCommandUseCase.issueCoupon(any(), any()) }
                 verify(exactly = 0) { mockValidateCouponUseCase.execute(any(), any()) }
 
-                clearMocks(mockGetCouponQueryUseCase, mockIssueCouponUseCase, mockValidateCouponUseCase)
+                clearMocks(mockGetCouponQueryUseCase, mockCouponCommandUseCase, mockValidateCouponUseCase)
 
                 // validateCoupon 테스트
                 val validateRequest = UseCouponRequest(userCouponId = 1L, orderAmount = 50000L)
@@ -315,7 +315,7 @@ class CouponControllerTest : DescribeSpec({
                 sut.validateCoupon(1L, validateRequest)
                 verify(exactly = 1) { mockValidateCouponUseCase.execute(1L, validateRequest) }
                 verify(exactly = 0) { mockGetCouponQueryUseCase.getAvailableCoupons() }
-                verify(exactly = 0) { mockIssueCouponUseCase.execute(any(), any()) }
+                verify(exactly = 0) { mockCouponCommandUseCase.issueCoupon(any(), any()) }
             }
         }
     }

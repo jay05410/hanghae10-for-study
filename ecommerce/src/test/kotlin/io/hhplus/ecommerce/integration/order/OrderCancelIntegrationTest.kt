@@ -1,14 +1,16 @@
 package io.hhplus.ecommerce.integration.order
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
-import io.hhplus.ecommerce.order.application.OrderService
 import io.hhplus.ecommerce.order.domain.constant.OrderStatus
 import io.hhplus.ecommerce.order.dto.OrderItemData
-import io.hhplus.ecommerce.order.usecase.CancelOrderUseCase
-import io.hhplus.ecommerce.order.usecase.ConfirmOrderUseCase
-import io.hhplus.ecommerce.point.application.PointService
-import io.hhplus.ecommerce.point.domain.vo.PointAmount
-import io.hhplus.ecommerce.inventory.application.InventoryService
+import io.hhplus.ecommerce.order.usecase.OrderCommandUseCase
+import io.hhplus.ecommerce.order.usecase.GetOrderQueryUseCase
+import io.hhplus.ecommerce.order.dto.CreateOrderRequest
+import io.hhplus.ecommerce.order.dto.CreateOrderItemRequest
+import io.hhplus.ecommerce.delivery.dto.DeliveryAddressRequest
+import io.hhplus.ecommerce.point.usecase.PointCommandUseCase
+import io.hhplus.ecommerce.point.usecase.GetPointQueryUseCase
+import io.hhplus.ecommerce.inventory.usecase.GetInventoryQueryUseCase
 import io.hhplus.ecommerce.product.domain.repository.ProductRepository
 import io.hhplus.ecommerce.product.domain.entity.Product
 import io.hhplus.ecommerce.inventory.domain.entity.Inventory
@@ -31,11 +33,11 @@ import io.kotest.matchers.shouldNotBe
  * 4. 포인트 환불 확인
  */
 class OrderCancelIntegrationTest(
-    private val orderService: OrderService,
-    private val cancelOrderUseCase: CancelOrderUseCase,
-    private val confirmOrderUseCase: ConfirmOrderUseCase,
-    private val pointService: PointService,
-    private val inventoryService: InventoryService,
+    private val orderCommandUseCase: OrderCommandUseCase,
+    private val getOrderQueryUseCase: GetOrderQueryUseCase,
+    private val pointCommandUseCase: PointCommandUseCase,
+    private val getPointQueryUseCase: GetPointQueryUseCase,
+    private val getInventoryQueryUseCase: GetInventoryQueryUseCase,
     private val productRepository: ProductRepository,
     private val inventoryRepository: InventoryRepository
 ) : KotestIntegrationTestBase({
@@ -67,12 +69,12 @@ class OrderCancelIntegrationTest(
                 val initialStock = savedInventory.quantity
 
                 // 포인트 충전
-                pointService.earnPoint(userId, PointAmount(50000), userId)
-                val initialBalance = pointService.getUserPoint(userId)?.balance?.value ?: 0L
+                pointCommandUseCase.chargePoint(userId, 50000, "테스트용 충전")
+                val initialBalance = getPointQueryUseCase.getUserPoint(userId).balance.value
 
                 // 주문 생성 (재고 차감 + 포인트 사용)
                 val orderItems = listOf(
-                    OrderItemData(
+                    CreateOrderItemRequest(
                         packageTypeId = 1L,
                         packageTypeName = "테스트 패키지",
                         packageTypeDays = 7,
@@ -88,25 +90,32 @@ class OrderCancelIntegrationTest(
                     )
                 )
 
-                val createdOrder = orderService.createOrder(
+                val createOrderRequest = CreateOrderRequest(
                     userId = userId,
                     items = orderItems,
                     usedCouponId = null,
-                    totalAmount = 40000L,
-                    discountAmount = 0L,
-                    createdBy = userId
+                    deliveryAddress = DeliveryAddressRequest(
+                        recipientName = "테스트 수령인",
+                        phone = "010-1234-5678",
+                        zipCode = "12345",
+                        address = "서울시 강남구",
+                        addressDetail = "테스트 상세주소",
+                        deliveryMessage = "테스트 배송 메시지"
+                    )
                 )
 
+                val createdOrder = orderCommandUseCase.createOrder(createOrderRequest)
+
                 // 주문 후 재고 확인
-                val stockAfterOrder = inventoryService.getInventory(savedProduct.id)?.getAvailableQuantity() ?: 0
+                val stockAfterOrder = getInventoryQueryUseCase.getAvailableQuantity(savedProduct.id)
                 stockAfterOrder shouldBe (initialStock - orderQuantity)
 
                 // 주문 후 포인트 확인
-                val balanceAfterOrder = pointService.getUserPoint(userId)?.balance?.value ?: 0L
+                val balanceAfterOrder = getPointQueryUseCase.getUserPoint(userId).balance.value
                 balanceAfterOrder shouldBe (initialBalance - 40000L)
 
                 // When: 주문 취소
-                val cancelledOrder = cancelOrderUseCase.execute(
+                val cancelledOrder = orderCommandUseCase.cancelOrder(
                     orderId = createdOrder.id,
                     cancelledBy = userId,
                     reason = "단순 변심"
@@ -116,11 +125,11 @@ class OrderCancelIntegrationTest(
                 cancelledOrder.status shouldBe OrderStatus.CANCELLED
 
                 // 재고 복구 확인
-                val stockAfterCancel = inventoryService.getInventory(savedProduct.id)?.getAvailableQuantity() ?: 0
+                val stockAfterCancel = getInventoryQueryUseCase.getAvailableQuantity(savedProduct.id)
                 stockAfterCancel shouldBe initialStock
 
                 // 포인트 환불 확인
-                val balanceAfterCancel = pointService.getUserPoint(userId)?.balance?.value ?: 0L
+                val balanceAfterCancel = getPointQueryUseCase.getUserPoint(userId).balance.value
                 balanceAfterCancel shouldBe initialBalance
             }
         }
@@ -146,10 +155,10 @@ class OrderCancelIntegrationTest(
                 )
                 inventoryRepository.save(inventory)
 
-                pointService.earnPoint(userId, PointAmount(50000), userId)
+                pointCommandUseCase.chargePoint(userId, 50000, "테스트용 충전")
 
                 val orderItems = listOf(
-                    OrderItemData(
+                    CreateOrderItemRequest(
                         packageTypeId = 1L,
                         packageTypeName = "테스트 패키지",
                         packageTypeDays = 7,
@@ -165,21 +174,28 @@ class OrderCancelIntegrationTest(
                     )
                 )
 
-                val createdOrder = orderService.createOrder(
+                val createOrderRequest = CreateOrderRequest(
                     userId = userId,
                     items = orderItems,
                     usedCouponId = null,
-                    totalAmount = 20000L,
-                    discountAmount = 0L,
-                    createdBy = userId
+                    deliveryAddress = DeliveryAddressRequest(
+                        recipientName = "테스트 수령인",
+                        phone = "010-1234-5678",
+                        zipCode = "12345",
+                        address = "서울시 강남구",
+                        addressDetail = "테스트 상세주소",
+                        deliveryMessage = "테스트 배송 메시지"
+                    )
                 )
 
+                val createdOrder = orderCommandUseCase.createOrder(createOrderRequest)
+
                 // 주문 확정 (배송 시작)
-                confirmOrderUseCase.execute(createdOrder.id, userId)
+                orderCommandUseCase.confirmOrder(createdOrder.id, userId)
 
                 // When & Then: 확정된 주문은 취소 불가
                 val exception = runCatching {
-                    cancelOrderUseCase.execute(createdOrder.id, userId, "취소 시도")
+                    orderCommandUseCase.cancelOrder(createdOrder.id, userId, "취소 시도")
                 }.exceptionOrNull()
 
                 exception shouldNotBe null
@@ -195,7 +211,7 @@ class OrderCancelIntegrationTest(
 
                 // When & Then
                 val exception = runCatching {
-                    cancelOrderUseCase.execute(nonExistentOrderId, 1L, "취소")
+                    orderCommandUseCase.cancelOrder(nonExistentOrderId, 1L, "취소")
                 }.exceptionOrNull()
 
                 exception shouldNotBe null

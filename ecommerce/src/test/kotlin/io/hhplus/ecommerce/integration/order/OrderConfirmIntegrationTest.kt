@@ -1,13 +1,13 @@
 package io.hhplus.ecommerce.integration.order
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
-import io.hhplus.ecommerce.order.application.OrderService
 import io.hhplus.ecommerce.order.domain.constant.OrderStatus
 import io.hhplus.ecommerce.order.dto.OrderItemData
-import io.hhplus.ecommerce.order.usecase.CancelOrderUseCase
-import io.hhplus.ecommerce.order.usecase.ConfirmOrderUseCase
-import io.hhplus.ecommerce.point.application.PointService
-import io.hhplus.ecommerce.point.domain.vo.PointAmount
+import io.hhplus.ecommerce.order.usecase.OrderCommandUseCase
+import io.hhplus.ecommerce.order.dto.CreateOrderRequest
+import io.hhplus.ecommerce.order.dto.CreateOrderItemRequest
+import io.hhplus.ecommerce.delivery.dto.DeliveryAddressRequest
+import io.hhplus.ecommerce.point.usecase.PointCommandUseCase
 import io.hhplus.ecommerce.product.domain.repository.ProductRepository
 import io.hhplus.ecommerce.product.domain.entity.Product
 import io.hhplus.ecommerce.inventory.domain.entity.Inventory
@@ -28,10 +28,8 @@ import io.kotest.matchers.shouldNotBe
  * 3. 상태가 CONFIRMED로 변경되었는지 확인
  */
 class OrderConfirmIntegrationTest(
-    private val orderService: OrderService,
-    private val confirmOrderUseCase: ConfirmOrderUseCase,
-    private val cancelOrderUseCase: CancelOrderUseCase,
-    private val pointService: PointService,
+    private val orderCommandUseCase: OrderCommandUseCase,
+    private val pointCommandUseCase: PointCommandUseCase,
     private val productRepository: ProductRepository,
     private val inventoryRepository: InventoryRepository
 ) : KotestIntegrationTestBase({
@@ -58,10 +56,10 @@ class OrderConfirmIntegrationTest(
                 )
                 inventoryRepository.save(inventory)
 
-                pointService.earnPoint(userId, PointAmount(50000), userId)
+                pointCommandUseCase.chargePoint(userId, 50000, "테스트용 충전")
 
                 val orderItems = listOf(
-                    OrderItemData(
+                    CreateOrderItemRequest(
                         packageTypeId = 1L,
                         packageTypeName = "확정 테스트 패키지",
                         packageTypeDays = 7,
@@ -77,20 +75,27 @@ class OrderConfirmIntegrationTest(
                     )
                 )
 
-                val createdOrder = orderService.createOrder(
+                val createOrderRequest = CreateOrderRequest(
                     userId = userId,
                     items = orderItems,
                     usedCouponId = null,
-                    totalAmount = 20000L,
-                    discountAmount = 0L,
-                    createdBy = userId
+                    deliveryAddress = DeliveryAddressRequest(
+                        recipientName = "테스트 수령인",
+                        phone = "010-1234-5678",
+                        zipCode = "12345",
+                        address = "서울시 강남구",
+                        addressDetail = "테스트 상세주소",
+                        deliveryMessage = "테스트 배송 메시지"
+                    )
                 )
+
+                val createdOrder = orderCommandUseCase.createOrder(createOrderRequest)
 
                 // 주문 생성 직후 상태 확인
                 createdOrder.status shouldBe OrderStatus.PENDING
 
                 // When: 주문 확정
-                val confirmedOrder = confirmOrderUseCase.execute(
+                val confirmedOrder = orderCommandUseCase.confirmOrder(
                     orderId = createdOrder.id,
                     confirmedBy = userId
                 )
@@ -122,10 +127,10 @@ class OrderConfirmIntegrationTest(
                 )
                 inventoryRepository.save(inventory)
 
-                pointService.earnPoint(userId, PointAmount(50000), userId)
+                pointCommandUseCase.chargePoint(userId, 50000, "테스트용 충전")
 
                 val orderItems = listOf(
-                    OrderItemData(
+                    CreateOrderItemRequest(
                         packageTypeId = 1L,
                         packageTypeName = "테스트 패키지",
                         packageTypeDays = 7,
@@ -141,21 +146,28 @@ class OrderConfirmIntegrationTest(
                     )
                 )
 
-                val createdOrder = orderService.createOrder(
+                val createOrderRequest = CreateOrderRequest(
                     userId = userId,
                     items = orderItems,
                     usedCouponId = null,
-                    totalAmount = 20000L,
-                    discountAmount = 0L,
-                    createdBy = userId
+                    deliveryAddress = DeliveryAddressRequest(
+                        recipientName = "테스트 수령인",
+                        phone = "010-1234-5678",
+                        zipCode = "12345",
+                        address = "서울시 강남구",
+                        addressDetail = "테스트 상세주소",
+                        deliveryMessage = "테스트 배송 메시지"
+                    )
                 )
 
+                val createdOrder = orderCommandUseCase.createOrder(createOrderRequest)
+
                 // 첫 번째 확정
-                confirmOrderUseCase.execute(createdOrder.id, userId)
+                orderCommandUseCase.confirmOrder(createdOrder.id, userId)
 
                 // When & Then: 두 번째 확정 시도
                 val result = runCatching {
-                    confirmOrderUseCase.execute(createdOrder.id, userId)
+                    orderCommandUseCase.confirmOrder(createdOrder.id, userId)
                 }
 
                 // 멱등성 보장 또는 예외 발생
@@ -185,10 +197,10 @@ class OrderConfirmIntegrationTest(
                 )
                 inventoryRepository.save(inventory)
 
-                pointService.earnPoint(userId, PointAmount(50000), userId)
+                pointCommandUseCase.chargePoint(userId, 50000, "테스트용 충전")
 
                 val orderItems = listOf(
-                    OrderItemData(
+                    CreateOrderItemRequest(
                         packageTypeId = 1L,
                         packageTypeName = "테스트 패키지",
                         packageTypeDays = 7,
@@ -204,21 +216,28 @@ class OrderConfirmIntegrationTest(
                     )
                 )
 
-                val createdOrder = orderService.createOrder(
+                val createOrderRequest = CreateOrderRequest(
                     userId = userId,
                     items = orderItems,
                     usedCouponId = null,
-                    totalAmount = 20000L,
-                    discountAmount = 0L,
-                    createdBy = userId
+                    deliveryAddress = DeliveryAddressRequest(
+                        recipientName = "테스트 수령인",
+                        phone = "010-1234-5678",
+                        zipCode = "12345",
+                        address = "서울시 강남구",
+                        addressDetail = "테스트 상세주소",
+                        deliveryMessage = "테스트 배송 메시지"
+                    )
                 )
 
+                val createdOrder = orderCommandUseCase.createOrder(createOrderRequest)
+
                 // 주문 취소
-                cancelOrderUseCase.execute(createdOrder.id, userId, "테스트 취소")
+                orderCommandUseCase.cancelOrder(createdOrder.id, userId, "테스트 취소")
 
                 // When & Then: 취소된 주문 확정 시도
                 val exception = runCatching {
-                    confirmOrderUseCase.execute(createdOrder.id, userId)
+                    orderCommandUseCase.confirmOrder(createdOrder.id, userId)
                 }.exceptionOrNull()
 
                 exception shouldNotBe null

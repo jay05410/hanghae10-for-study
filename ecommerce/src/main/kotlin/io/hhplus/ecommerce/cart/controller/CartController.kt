@@ -27,10 +27,7 @@ import io.swagger.v3.oas.annotations.tags.Tag
 @RequestMapping("/api/v1/cart")
 class CartController(
     private val getCartUseCase: GetCartUseCase,
-    private val addToCartUseCase: AddToCartUseCase,
-    private val updateCartItemUseCase: UpdateCartItemUseCase,
-    private val removeCartItemUseCase: RemoveCartItemUseCase,
-    private val clearCartUseCase: ClearCartUseCase
+    private val cartCommandUseCase: CartCommandUseCase
 ) {
 
     @Operation(summary = "장바구니 조회", description = "사용자의 장바구니를 조회합니다.")
@@ -51,7 +48,7 @@ class CartController(
         @Parameter(description = "장바구니 추가 정보", required = true)
         @RequestBody request: AddToCartRequest
     ): ApiResponse<CartResponse> {
-        val cart = addToCartUseCase.execute(userId, request)
+        val cart = cartCommandUseCase.addToCart(userId, request)
         return ApiResponse.success(cart.toResponse())
     }
 
@@ -65,7 +62,7 @@ class CartController(
         @Parameter(description = "변경할 수량", required = true)
         @RequestParam quantity: Int
     ): ApiResponse<CartResponse> {
-        val cart = updateCartItemUseCase.execute(userId, cartItemId, quantity)
+        val cart = cartCommandUseCase.updateCartItem(userId, cartItemId, quantity)
         return ApiResponse.success(cart.toResponse())
     }
 
@@ -77,7 +74,7 @@ class CartController(
         @Parameter(description = "사용자 ID", required = true)
         @RequestParam userId: Long
     ): ApiResponse<CartResponse> {
-        val cart = removeCartItemUseCase.execute(userId, cartItemId)
+        val cart = cartCommandUseCase.removeCartItem(userId, cartItemId)
         return ApiResponse.success(cart.toResponse())
     }
 
@@ -87,7 +84,7 @@ class CartController(
         @Parameter(description = "사용자 ID", required = true)
         @RequestParam userId: Long
     ): ApiResponse<CartResponse> {
-        val cart = clearCartUseCase.execute(userId)
+        val cart = cartCommandUseCase.clearCart(userId)
         return ApiResponse.success(cart.toResponse())
     }
 }

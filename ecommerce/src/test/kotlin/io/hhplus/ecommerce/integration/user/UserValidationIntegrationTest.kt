@@ -2,7 +2,8 @@ package io.hhplus.ecommerce.integration.user
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 import io.hhplus.ecommerce.common.exception.user.UserException
-import io.hhplus.ecommerce.user.application.UserService
+import io.hhplus.ecommerce.user.usecase.UserCommandUseCase
+import io.hhplus.ecommerce.user.usecase.GetUserQueryUseCase
 import io.hhplus.ecommerce.user.domain.constant.LoginType
 import io.hhplus.ecommerce.user.domain.repository.UserRepository
 import io.kotest.assertions.throwables.shouldThrow
@@ -19,7 +20,8 @@ import io.kotest.matchers.shouldNotBe
  * - 사용자 수정 및 활성화/비활성화
  */
 class UserValidationIntegrationTest(
-    private val userService: UserService,
+    private val userCommandUseCase: UserCommandUseCase,
+    private val getUserQueryUseCase: GetUserQueryUseCase,
     private val userRepository: UserRepository
 ) : KotestIntegrationTestBase({
 
@@ -36,7 +38,7 @@ class UserValidationIntegrationTest(
                 val createdBy = 1L
 
                 // When
-                val user = userService.createUser(
+                val user = userCommandUseCase.createUser(
                     loginType = loginType,
                     loginId = loginId,
                     password = password,
@@ -62,7 +64,7 @@ class UserValidationIntegrationTest(
                 val email = "duplicate@example.com"
 
                 // 첫 번째 사용자 생성
-                userService.createUser(
+                userCommandUseCase.createUser(
                     loginType = LoginType.LOCAL,
                     loginId = email,
                     password = "password123",
@@ -75,7 +77,7 @@ class UserValidationIntegrationTest(
 
                 // When & Then - 동일 이메일로 두 번째 사용자 생성 시도
                 shouldThrow<UserException.EmailAlreadyExists> {
-                    userService.createUser(
+                    userCommandUseCase.createUser(
                         loginType = LoginType.LOCAL,
                         loginId = email,
                         password = "password456",
@@ -100,7 +102,7 @@ class UserValidationIntegrationTest(
 
                 // When & Then
                 validPhones.forEachIndexed { index, phone ->
-                    val user = userService.createUser(
+                    val user = userCommandUseCase.createUser(
                         loginType = LoginType.LOCAL,
                         loginId = "user$index@example.com",
                         password = "password123",
@@ -132,7 +134,7 @@ class UserValidationIntegrationTest(
                 invalidPhones.forEachIndexed { index, phone ->
                     // User.create()가 자동으로 validatePhoneFormat()을 호출하므로 생성 시점에 예외 발생
                     shouldThrow<IllegalArgumentException> {
-                        userService.createUser(
+                        userCommandUseCase.createUser(
                             loginType = LoginType.LOCAL,
                             loginId = "invalid$index@example.com",
                             password = "password123",
@@ -152,7 +154,7 @@ class UserValidationIntegrationTest(
         context("존재하는 사용자 ID로 조회할 때") {
             it("사용자를 조회할 수 있다") {
                 // Given
-                val createdUser = userService.createUser(
+                val createdUser = userCommandUseCase.createUser(
                     loginType = LoginType.LOCAL,
                     loginId = "lookup@example.com",
                     password = "password123",
@@ -164,7 +166,7 @@ class UserValidationIntegrationTest(
                 )
 
                 // When
-                val foundUser = userService.getUser(createdUser.id)
+                val foundUser = getUserQueryUseCase.getUser(createdUser.id)
 
                 // Then
                 foundUser shouldNotBe null
@@ -176,7 +178,7 @@ class UserValidationIntegrationTest(
         context("존재하지 않는 사용자 ID로 조회할 때") {
             it("null을 반환한다") {
                 // When
-                val foundUser = userService.getUser(99999L)
+                val foundUser = getUserQueryUseCase.getUser(99999L)
 
                 // Then
                 foundUser shouldBe null
@@ -187,7 +189,7 @@ class UserValidationIntegrationTest(
             it("사용자를 찾을 수 있다") {
                 // Given
                 val email = "email-search@example.com"
-                userService.createUser(
+                userCommandUseCase.createUser(
                     loginType = LoginType.LOCAL,
                     loginId = email,
                     password = "password123",
@@ -199,7 +201,7 @@ class UserValidationIntegrationTest(
                 )
 
                 // When
-                val foundUser = userService.getUserByEmail(email)
+                val foundUser = getUserQueryUseCase.getUserByEmail(email)
 
                 // Then
                 foundUser shouldNotBe null
@@ -213,7 +215,7 @@ class UserValidationIntegrationTest(
             it("사용자 정보를 수정할 수 있다") {
                 // Given
                 val originalEmail = "original@example.com"
-                val user = userService.createUser(
+                val user = userCommandUseCase.createUser(
                     loginType = LoginType.LOCAL,
                     loginId = originalEmail,
                     password = "password123",
@@ -227,7 +229,7 @@ class UserValidationIntegrationTest(
                 // When
                 val updatedName = "변경된 이름"
                 val updatedEmail = "updated@example.com"
-                val updatedUser = userService.updateUser(
+                val updatedUser = userCommandUseCase.updateUser(
                     userId = user.id,
                     name = updatedName,
                     email = updatedEmail,
@@ -246,7 +248,7 @@ class UserValidationIntegrationTest(
                 val existingEmail = "existing@example.com"
 
                 // 첫 번째 사용자
-                userService.createUser(
+                userCommandUseCase.createUser(
                     loginType = LoginType.LOCAL,
                     loginId = existingEmail,
                     password = "password123",
@@ -258,7 +260,7 @@ class UserValidationIntegrationTest(
                 )
 
                 // 두 번째 사용자
-                val secondUser = userService.createUser(
+                val secondUser = userCommandUseCase.createUser(
                     loginType = LoginType.LOCAL,
                     loginId = "second@example.com",
                     password = "password123",
@@ -271,7 +273,7 @@ class UserValidationIntegrationTest(
 
                 // When & Then - 두 번째 사용자의 이메일을 첫 번째 사용자 이메일로 변경 시도
                 shouldThrow<UserException.EmailAlreadyExists> {
-                    userService.updateUser(
+                    userCommandUseCase.updateUser(
                         userId = secondUser.id,
                         name = secondUser.name,
                         email = existingEmail,
@@ -286,7 +288,7 @@ class UserValidationIntegrationTest(
         context("사용자를 비활성화할 때") {
             it("isActive가 false로 변경된다") {
                 // Given
-                val user = userService.createUser(
+                val user = userCommandUseCase.createUser(
                     loginType = LoginType.LOCAL,
                     loginId = "deactivate@example.com",
                     password = "password123",
@@ -298,7 +300,7 @@ class UserValidationIntegrationTest(
                 )
 
                 // When
-                val deactivatedUser = userService.deactivateUser(user.id, 1L)
+                val deactivatedUser = userCommandUseCase.deactivateUser(user.id, 1L)
 
                 // Then
                 deactivatedUser.isActive shouldBe false
@@ -308,7 +310,7 @@ class UserValidationIntegrationTest(
         context("비활성화된 사용자를 다시 활성화할 때") {
             it("isActive가 true로 변경된다") {
                 // Given
-                val user = userService.createUser(
+                val user = userCommandUseCase.createUser(
                     loginType = LoginType.LOCAL,
                     loginId = "reactivate@example.com",
                     password = "password123",
@@ -318,10 +320,10 @@ class UserValidationIntegrationTest(
                     providerId = null,
                     createdBy = 1L
                 )
-                userService.deactivateUser(user.id, 1L)
+                userCommandUseCase.deactivateUser(user.id, 1L)
 
                 // When
-                val activatedUser = userService.activateUser(user.id, 1L)
+                val activatedUser = userCommandUseCase.activateUser(user.id, 1L)
 
                 // Then
                 activatedUser.isActive shouldBe true

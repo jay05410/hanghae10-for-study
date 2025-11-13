@@ -20,15 +20,11 @@ import java.time.LocalDateTime
  * - UseCase와의 상호작용 검증
  */
 class InventoryControllerTest : DescribeSpec({
-    val mockReserveStockUseCase = mockk<ReserveStockUseCase>()
-    val mockConfirmReservationUseCase = mockk<ConfirmReservationUseCase>()
-    val mockCancelReservationUseCase = mockk<CancelReservationUseCase>()
+    val mockInventoryReservationUseCase = mockk<InventoryReservationUseCase>()
     val mockGetUserReservationsUseCase = mockk<GetUserReservationsUseCase>()
 
     val sut = InventoryController(
-        reserveStockUseCase = mockReserveStockUseCase,
-        confirmReservationUseCase = mockConfirmReservationUseCase,
-        cancelReservationUseCase = mockCancelReservationUseCase,
+        inventoryReservationUseCase = mockInventoryReservationUseCase,
         getUserReservationsUseCase = mockGetUserReservationsUseCase
     )
 
@@ -50,9 +46,7 @@ class InventoryControllerTest : DescribeSpec({
 
     beforeEach {
         clearMocks(
-            mockReserveStockUseCase,
-            mockConfirmReservationUseCase,
-            mockCancelReservationUseCase,
+            mockInventoryReservationUseCase,
             mockGetUserReservationsUseCase
         )
     }
@@ -65,12 +59,12 @@ class InventoryControllerTest : DescribeSpec({
                 val request = ReserveStockRequest(quantity = 5, reservationMinutes = 20)
                 val mockReservation = createMockStockReservation(productId = productId, userId = userId, quantity = 5)
 
-                every { mockReserveStockUseCase.execute(productId, userId, 5, 20) } returns mockReservation
+                every { mockInventoryReservationUseCase.reserveStock(productId, userId, 5, 20) } returns mockReservation
 
                 val result = sut.reserveStock(productId, request, userId)
 
                 result shouldBe ApiResponse.success(mockReservation.toResponse())
-                verify(exactly = 1) { mockReserveStockUseCase.execute(productId, userId, 5, 20) }
+                verify(exactly = 1) { mockInventoryReservationUseCase.reserveStock(productId, userId, 5, 20) }
             }
         }
 
@@ -81,12 +75,12 @@ class InventoryControllerTest : DescribeSpec({
                 val request = ReserveStockRequest(quantity = 3, reservationMinutes = null)
                 val mockReservation = createMockStockReservation(productId = productId, userId = userId, quantity = 3)
 
-                every { mockReserveStockUseCase.execute(productId, userId, 3, 20) } returns mockReservation
+                every { mockInventoryReservationUseCase.reserveStock(productId, userId, 3, 20) } returns mockReservation
 
                 val result = sut.reserveStock(productId, request, userId)
 
                 result shouldBe ApiResponse.success(mockReservation.toResponse())
-                verify(exactly = 1) { mockReserveStockUseCase.execute(productId, userId, 3, 20) }
+                verify(exactly = 1) { mockInventoryReservationUseCase.reserveStock(productId, userId, 3, 20) }
             }
         }
     }
@@ -98,12 +92,12 @@ class InventoryControllerTest : DescribeSpec({
                 val userId = 1L
                 val mockReservation = createMockStockReservation(id = reservationId, userId = userId, status = ReservationStatus.CONFIRMED)
 
-                every { mockConfirmReservationUseCase.execute(reservationId, userId) } returns mockReservation
+                every { mockInventoryReservationUseCase.confirmReservation(reservationId, userId) } returns mockReservation
 
                 val result = sut.confirmReservation(reservationId, userId)
 
                 result shouldBe ApiResponse.success(mockReservation.toResponse())
-                verify(exactly = 1) { mockConfirmReservationUseCase.execute(reservationId, userId) }
+                verify(exactly = 1) { mockInventoryReservationUseCase.confirmReservation(reservationId, userId) }
             }
         }
     }
@@ -115,12 +109,12 @@ class InventoryControllerTest : DescribeSpec({
                 val userId = 1L
                 val mockReservation = createMockStockReservation(id = reservationId, userId = userId, status = ReservationStatus.CANCELLED)
 
-                every { mockCancelReservationUseCase.execute(reservationId, userId) } returns mockReservation
+                every { mockInventoryReservationUseCase.cancelReservation(reservationId, userId) } returns mockReservation
 
                 val result = sut.cancelReservation(reservationId, userId)
 
                 result shouldBe ApiResponse.success(mockReservation.toResponse())
-                verify(exactly = 1) { mockCancelReservationUseCase.execute(reservationId, userId) }
+                verify(exactly = 1) { mockInventoryReservationUseCase.cancelReservation(reservationId, userId) }
             }
         }
     }

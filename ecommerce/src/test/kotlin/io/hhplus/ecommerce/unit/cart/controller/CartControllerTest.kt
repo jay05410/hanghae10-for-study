@@ -4,7 +4,8 @@ import io.hhplus.ecommerce.cart.controller.CartController
 import io.hhplus.ecommerce.cart.dto.AddToCartRequest
 import io.hhplus.ecommerce.cart.dto.TeaItemRequest
 import io.hhplus.ecommerce.cart.domain.entity.Cart
-import io.hhplus.ecommerce.cart.usecase.*
+import io.hhplus.ecommerce.cart.usecase.GetCartUseCase
+import io.hhplus.ecommerce.cart.usecase.CartCommandUseCase
 import io.hhplus.ecommerce.common.response.ApiResponse
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
@@ -27,26 +28,17 @@ import io.mockk.*
  */
 class CartControllerTest : DescribeSpec({
     val mockGetCartUseCase = mockk<GetCartUseCase>()
-    val mockAddToCartUseCase = mockk<AddToCartUseCase>()
-    val mockUpdateCartItemUseCase = mockk<UpdateCartItemUseCase>()
-    val mockRemoveCartItemUseCase = mockk<RemoveCartItemUseCase>()
-    val mockClearCartUseCase = mockk<ClearCartUseCase>()
+    val mockCartCommandUseCase = mockk<CartCommandUseCase>()
 
     val sut = CartController(
         getCartUseCase = mockGetCartUseCase,
-        addToCartUseCase = mockAddToCartUseCase,
-        updateCartItemUseCase = mockUpdateCartItemUseCase,
-        removeCartItemUseCase = mockRemoveCartItemUseCase,
-        clearCartUseCase = mockClearCartUseCase
+        cartCommandUseCase = mockCartCommandUseCase
     )
 
     beforeEach {
         clearMocks(
             mockGetCartUseCase,
-            mockAddToCartUseCase,
-            mockUpdateCartItemUseCase,
-            mockRemoveCartItemUseCase,
-            mockClearCartUseCase
+            mockCartCommandUseCase
         )
     }
 
@@ -112,12 +104,12 @@ class CartControllerTest : DescribeSpec({
                 )
                 val mockCart = mockk<Cart>(relaxed = true)
 
-                every { mockAddToCartUseCase.execute(userId, request) } returns mockCart
+                every { mockCartCommandUseCase.addToCart(userId, request) } returns mockCart
 
                 val result = sut.addToCart(userId, request)
 
                 result.success shouldBe true
-                verify(exactly = 1) { mockAddToCartUseCase.execute(userId, request) }
+                verify(exactly = 1) { mockCartCommandUseCase.addToCart(userId, request) }
             }
         }
 
@@ -136,12 +128,12 @@ class CartControllerTest : DescribeSpec({
                 )
                 val mockCart = mockk<Cart>(relaxed = true)
 
-                every { mockAddToCartUseCase.execute(userId, request) } returns mockCart
+                every { mockCartCommandUseCase.addToCart(userId, request) } returns mockCart
 
                 val result = sut.addToCart(userId, request)
 
                 result.success shouldBe true
-                verify(exactly = 1) { mockAddToCartUseCase.execute(userId, request) }
+                verify(exactly = 1) { mockCartCommandUseCase.addToCart(userId, request) }
             }
         }
 
@@ -165,12 +157,12 @@ class CartControllerTest : DescribeSpec({
                 )
                 val mockCart = mockk<Cart>(relaxed = true)
 
-                every { mockAddToCartUseCase.execute(userId, request) } returns mockCart
+                every { mockCartCommandUseCase.addToCart(userId, request) } returns mockCart
 
                 val result = sut.addToCart(userId, request)
 
                 result.success shouldBe true
-                verify(exactly = 1) { mockAddToCartUseCase.execute(userId, request) }
+                verify(exactly = 1) { mockCartCommandUseCase.addToCart(userId, request) }
             }
         }
     }
@@ -183,12 +175,12 @@ class CartControllerTest : DescribeSpec({
                 val quantity = 500
                 val mockCart = mockk<Cart>(relaxed = true)
 
-                every { mockUpdateCartItemUseCase.execute(userId, cartItemId, quantity) } returns mockCart
+                every { mockCartCommandUseCase.updateCartItem(userId, cartItemId, quantity) } returns mockCart
 
                 val result = sut.updateCartItem(cartItemId, userId, quantity)
 
                 result.success shouldBe true
-                verify(exactly = 1) { mockUpdateCartItemUseCase.execute(userId, cartItemId, quantity) }
+                verify(exactly = 1) { mockCartCommandUseCase.updateCartItem(userId, cartItemId, quantity) }
             }
         }
 
@@ -199,12 +191,12 @@ class CartControllerTest : DescribeSpec({
                 val quantity = 0
                 val mockCart = mockk<Cart>(relaxed = true)
 
-                every { mockUpdateCartItemUseCase.execute(userId, cartItemId, quantity) } returns mockCart
+                every { mockCartCommandUseCase.updateCartItem(userId, cartItemId, quantity) } returns mockCart
 
                 val result = sut.updateCartItem(cartItemId, userId, quantity)
 
                 result.success shouldBe true
-                verify(exactly = 1) { mockUpdateCartItemUseCase.execute(userId, cartItemId, quantity) }
+                verify(exactly = 1) { mockCartCommandUseCase.updateCartItem(userId, cartItemId, quantity) }
             }
         }
 
@@ -218,13 +210,13 @@ class CartControllerTest : DescribeSpec({
 
                 testCases.forEach { (cartItemId, userId, quantity) ->
                     val mockCart = mockk<Cart>(relaxed = true)
-                    every { mockUpdateCartItemUseCase.execute(userId, cartItemId, quantity) } returns mockCart
+                    every { mockCartCommandUseCase.updateCartItem(userId, cartItemId, quantity) } returns mockCart
 
                     val result = sut.updateCartItem(cartItemId, userId, quantity)
 
                     result.success shouldBe true
-                    verify(exactly = 1) { mockUpdateCartItemUseCase.execute(userId, cartItemId, quantity) }
-                    clearMocks(mockUpdateCartItemUseCase)
+                    verify(exactly = 1) { mockCartCommandUseCase.updateCartItem(userId, cartItemId, quantity) }
+                    clearMocks(mockCartCommandUseCase)
                 }
             }
         }
@@ -237,12 +229,12 @@ class CartControllerTest : DescribeSpec({
                 val userId = 1L
                 val mockCart = mockk<Cart>(relaxed = true)
 
-                every { mockRemoveCartItemUseCase.execute(userId, cartItemId) } returns mockCart
+                every { mockCartCommandUseCase.removeCartItem(userId, cartItemId) } returns mockCart
 
                 val result = sut.removeCartItem(cartItemId, userId)
 
                 result.success shouldBe true
-                verify(exactly = 1) { mockRemoveCartItemUseCase.execute(userId, cartItemId) }
+                verify(exactly = 1) { mockCartCommandUseCase.removeCartItem(userId, cartItemId) }
             }
         }
 
@@ -256,13 +248,13 @@ class CartControllerTest : DescribeSpec({
 
                 testCases.forEach { (cartItemId, userId) ->
                     val mockCart = mockk<Cart>(relaxed = true)
-                    every { mockRemoveCartItemUseCase.execute(userId, cartItemId) } returns mockCart
+                    every { mockCartCommandUseCase.removeCartItem(userId, cartItemId) } returns mockCart
 
                     val result = sut.removeCartItem(cartItemId, userId)
 
                     result.success shouldBe true
-                    verify(exactly = 1) { mockRemoveCartItemUseCase.execute(userId, cartItemId) }
-                    clearMocks(mockRemoveCartItemUseCase)
+                    verify(exactly = 1) { mockCartCommandUseCase.removeCartItem(userId, cartItemId) }
+                    clearMocks(mockCartCommandUseCase)
                 }
             }
         }
@@ -274,12 +266,12 @@ class CartControllerTest : DescribeSpec({
                 val userId = 1L
                 val mockCart = mockk<Cart>(relaxed = true)
 
-                every { mockClearCartUseCase.execute(userId) } returns mockCart
+                every { mockCartCommandUseCase.clearCart(userId) } returns mockCart
 
                 val result = sut.clearCart(userId)
 
                 result.success shouldBe true
-                verify(exactly = 1) { mockClearCartUseCase.execute(userId) }
+                verify(exactly = 1) { mockCartCommandUseCase.clearCart(userId) }
             }
         }
 
@@ -289,13 +281,13 @@ class CartControllerTest : DescribeSpec({
 
                 userIds.forEach { userId ->
                     val mockCart = mockk<Cart>(relaxed = true)
-                    every { mockClearCartUseCase.execute(userId) } returns mockCart
+                    every { mockCartCommandUseCase.clearCart(userId) } returns mockCart
 
                     val result = sut.clearCart(userId)
 
                     result.success shouldBe true
-                    verify(exactly = 1) { mockClearCartUseCase.execute(userId) }
-                    clearMocks(mockClearCartUseCase)
+                    verify(exactly = 1) { mockCartCommandUseCase.clearCart(userId) }
+                    clearMocks(mockCartCommandUseCase)
                 }
             }
         }
@@ -308,10 +300,10 @@ class CartControllerTest : DescribeSpec({
                 every { mockGetCartUseCase.execute(1L) } returns mockk(relaxed = true)
                 sut.getCart(1L)
                 verify(exactly = 1) { mockGetCartUseCase.execute(1L) }
-                verify(exactly = 0) { mockAddToCartUseCase.execute(any(), any()) }
-                verify(exactly = 0) { mockUpdateCartItemUseCase.execute(any(), any(), any()) }
+                verify(exactly = 0) { mockCartCommandUseCase.addToCart(any(), any()) }
+                verify(exactly = 0) { mockCartCommandUseCase.updateCartItem(any(), any(), any()) }
 
-                clearMocks(mockGetCartUseCase, mockAddToCartUseCase, mockUpdateCartItemUseCase, mockRemoveCartItemUseCase, mockClearCartUseCase)
+                clearMocks(mockGetCartUseCase, mockCartCommandUseCase)
 
                 // addToCart 테스트
                 val addRequest = AddToCartRequest(
@@ -324,20 +316,20 @@ class CartControllerTest : DescribeSpec({
                     giftMessage = null,
                     teaItems = emptyList()
                 )
-                every { mockAddToCartUseCase.execute(1L, addRequest) } returns mockk(relaxed = true)
+                every { mockCartCommandUseCase.addToCart(1L, addRequest) } returns mockk(relaxed = true)
                 sut.addToCart(1L, addRequest)
-                verify(exactly = 1) { mockAddToCartUseCase.execute(1L, addRequest) }
+                verify(exactly = 1) { mockCartCommandUseCase.addToCart(1L, addRequest) }
                 verify(exactly = 0) { mockGetCartUseCase.execute(any()) }
-                verify(exactly = 0) { mockUpdateCartItemUseCase.execute(any(), any(), any()) }
+                verify(exactly = 0) { mockCartCommandUseCase.updateCartItem(any(), any(), any()) }
 
-                clearMocks(mockGetCartUseCase, mockAddToCartUseCase, mockUpdateCartItemUseCase, mockRemoveCartItemUseCase, mockClearCartUseCase)
+                clearMocks(mockGetCartUseCase, mockCartCommandUseCase)
 
                 // updateCartItem 테스트
-                every { mockUpdateCartItemUseCase.execute(1L, 1L, 1) } returns mockk(relaxed = true)
+                every { mockCartCommandUseCase.updateCartItem(1L, 1L, 1) } returns mockk(relaxed = true)
                 sut.updateCartItem(1L, 1L, 1)
-                verify(exactly = 1) { mockUpdateCartItemUseCase.execute(1L, 1L, 1) }
+                verify(exactly = 1) { mockCartCommandUseCase.updateCartItem(1L, 1L, 1) }
                 verify(exactly = 0) { mockGetCartUseCase.execute(any()) }
-                verify(exactly = 0) { mockAddToCartUseCase.execute(any(), any()) }
+                verify(exactly = 0) { mockCartCommandUseCase.addToCart(any(), any()) }
             }
         }
     }

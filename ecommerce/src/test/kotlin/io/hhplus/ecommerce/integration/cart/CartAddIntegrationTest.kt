@@ -2,9 +2,11 @@ package io.hhplus.ecommerce.integration.cart
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 
-import io.hhplus.ecommerce.cart.application.CartService
+import io.hhplus.ecommerce.cart.usecase.CartCommandUseCase
+import io.hhplus.ecommerce.cart.usecase.GetCartUseCase
 import io.hhplus.ecommerce.cart.domain.repository.CartItemTeaRepository
 import io.hhplus.ecommerce.cart.domain.repository.CartRepository
+import io.hhplus.ecommerce.cart.dto.AddToCartRequest
 import io.hhplus.ecommerce.cart.dto.TeaItemRequest
 import io.hhplus.ecommerce.support.config.IntegrationTestFixtures
 import io.kotest.matchers.shouldBe
@@ -20,7 +22,7 @@ import io.kotest.matchers.shouldNotBe
  * - 커스텀 박스 구성 검증 (박스 일수 = 선택한 차 개수)
  */
 class CartAddIntegrationTest(
-    private val cartService: CartService,
+    private val cartCommandUseCase: CartCommandUseCase,
     private val cartRepository: CartRepository,
     private val cartItemTeaRepository: CartItemTeaRepository
 ) : KotestIntegrationTestBase({
@@ -37,16 +39,18 @@ class CartAddIntegrationTest(
                 )
 
                 // When
-                val cart = cartService.addToCart(
+                val cart = cartCommandUseCase.addToCart(
                     userId = userId,
-                    packageTypeId = packageTypeId,
-                    packageTypeName = "7일 패키지",
-                    packageTypeDays = 7,
-                    dailyServing = 1,
-                    totalQuantity = 7.0,
-                    giftWrap = false,
-                    giftMessage = null,
-                    teaItems = teaItems
+                    request = AddToCartRequest(
+                        packageTypeId = packageTypeId,
+                        packageTypeName = "7일 패키지",
+                        packageTypeDays = 7,
+                        dailyServing = 1,
+                        totalQuantity = 7.0,
+                        giftWrap = false,
+                        giftMessage = null,
+                        teaItems = teaItems
+                    )
                 )
 
                 // Then
@@ -72,18 +76,18 @@ class CartAddIntegrationTest(
                 val userId = IntegrationTestFixtures.createTestUserId(2)
 
                 // When - 3개 아이템 추가
-                cartService.addToCart(
-                    userId, 1L, "7일 패키지", 7, 1, 7.0, false, null,
+                cartCommandUseCase.addToCart(userId, AddToCartRequest(
+                    1L, "7일 패키지", 7, 1, 7.0, false, null,
                     listOf(TeaItemRequest(1L, 1, 100))
-                )
-                cartService.addToCart(
-                    userId, 2L, "14일 패키지", 14, 1, 14.0, false, null,
+                ))
+                cartCommandUseCase.addToCart(userId, AddToCartRequest(
+                    2L, "14일 패키지", 14, 1, 14.0, false, null,
                     listOf(TeaItemRequest(2L, 1, 100))
-                )
-                cartService.addToCart(
-                    userId, 3L, "30일 패키지", 30, 1, 30.0, false, null,
+                ))
+                cartCommandUseCase.addToCart(userId, AddToCartRequest(
+                    3L, "30일 패키지", 30, 1, 30.0, false, null,
                     listOf(TeaItemRequest(3L, 1, 100))
-                )
+                ))
 
                 // Then
                 val savedCart = cartRepository.findByUserId(userId)
@@ -99,16 +103,16 @@ class CartAddIntegrationTest(
                 val packageTypeId = 1L
 
                 // 첫 번째 추가
-                cartService.addToCart(
-                    userId, packageTypeId, "7일 패키지", 7, 1, 7.0, false, null,
+                cartCommandUseCase.addToCart(userId, AddToCartRequest(
+                    packageTypeId, "7일 패키지", 7, 1, 7.0, false, null,
                     listOf(TeaItemRequest(1L, 1, 100))
-                )
+                ))
 
                 // When - 동일 박스타입 다시 추가 (덮어쓰기)
-                val cart = cartService.addToCart(
-                    userId, packageTypeId, "7일 패키지 V2", 7, 2, 14.0, true, "선물입니다",
+                val cart = cartCommandUseCase.addToCart(userId, AddToCartRequest(
+                    packageTypeId, "7일 패키지 V2", 7, 2, 14.0, true, "선물입니다",
                     listOf(TeaItemRequest(2L, 1, 100))
-                )
+                ))
 
                 // Then - 1개만 있어야 함 (덮어써짐)
                 cart.items.size shouldBe 1
@@ -127,12 +131,16 @@ class CartAddIntegrationTest(
                 val giftMessage = "생일 축하합니다!"
 
                 // When
-                val cart = cartService.addToCart(
-                    userId, 1L, "선물 패키지", 7, 1, 7.0,
+                val cart = cartCommandUseCase.addToCart(userId, AddToCartRequest(
+                    packageTypeId = 1L,
+                    packageTypeName = "선물 패키지",
+                    packageTypeDays = 7,
+                    dailyServing = 1,
+                    totalQuantity = 7.0,
                     giftWrap = true,
                     giftMessage = giftMessage,
                     teaItems = listOf(TeaItemRequest(1L, 1, 100))
-                )
+                ))
 
                 // Then
                 val item = cart.items.first()
@@ -152,10 +160,16 @@ class CartAddIntegrationTest(
                 )
 
                 // When
-                val cart = cartService.addToCart(
-                    userId, 1L, "커스텀 패키지", 7, 1, 7.0, false, null,
+                val cart = cartCommandUseCase.addToCart(userId, AddToCartRequest(
+                    packageTypeId = 1L,
+                    packageTypeName = "커스텀 패키지",
+                    packageTypeDays = 7,
+                    dailyServing = 1,
+                    totalQuantity = 7.0,
+                    giftWrap = false,
+                    giftMessage = null,
                     teaItems = teaItems
-                )
+                ))
 
                 // Then
                 cart shouldNotBe null
@@ -181,10 +195,16 @@ class CartAddIntegrationTest(
                 cartBeforeAdd shouldBe null
 
                 // When - 아이템 추가
-                cartService.addToCart(
-                    newUserId, 1L, "첫 패키지", 7, 1, 7.0, false, null,
-                    listOf(TeaItemRequest(1L, 1, 100))
-                )
+                cartCommandUseCase.addToCart(newUserId, AddToCartRequest(
+                    packageTypeId = 1L,
+                    packageTypeName = "첫 패키지",
+                    packageTypeDays = 7,
+                    dailyServing = 1,
+                    totalQuantity = 7.0,
+                    giftWrap = false,
+                    giftMessage = null,
+                    teaItems = listOf(TeaItemRequest(1L, 1, 100))
+                ))
 
                 // Then - 장바구니가 자동 생성되었는지 확인
                 val cartAfterAdd = cartRepository.findByUserId(newUserId)
@@ -200,14 +220,20 @@ class CartAddIntegrationTest(
             it("아이템의 수량을 업데이트할 수 있다") {
                 // Given
                 val userId = IntegrationTestFixtures.createTestUserId(6)
-                val cart = cartService.addToCart(
-                    userId, 1L, "기본 패키지", 7, 1, 7.0, false, null,
-                    listOf(TeaItemRequest(1L, 1, 100))
-                )
+                val cart = cartCommandUseCase.addToCart(userId, AddToCartRequest(
+                    packageTypeId = 1L,
+                    packageTypeName = "기본 패키지",
+                    packageTypeDays = 7,
+                    dailyServing = 1,
+                    totalQuantity = 7.0,
+                    giftWrap = false,
+                    giftMessage = null,
+                    teaItems = listOf(TeaItemRequest(1L, 1, 100))
+                ))
                 val cartItemId = cart.items.first().id
 
                 // When - 수량 업데이트
-                val updatedCart = cartService.updateCartItem(userId, cartItemId, 14.0, userId)
+                val updatedCart = cartCommandUseCase.updateCartItem(userId, cartItemId, 14)
 
                 // Then
                 val updatedItem = updatedCart.items.find { it.id == cartItemId }
@@ -222,14 +248,20 @@ class CartAddIntegrationTest(
             it("아이템을 삭제할 수 있다") {
                 // Given
                 val userId = IntegrationTestFixtures.createTestUserId(7)
-                val cart = cartService.addToCart(
-                    userId, 1L, "삭제 테스트", 7, 1, 7.0, false, null,
-                    listOf(TeaItemRequest(1L, 1, 100))
-                )
+                val cart = cartCommandUseCase.addToCart(userId, AddToCartRequest(
+                    packageTypeId = 1L,
+                    packageTypeName = "삭제 테스트",
+                    packageTypeDays = 7,
+                    dailyServing = 1,
+                    totalQuantity = 7.0,
+                    giftWrap = false,
+                    giftMessage = null,
+                    teaItems = listOf(TeaItemRequest(1L, 1, 100))
+                ))
                 val cartItemId = cart.items.first().id
 
                 // When - 아이템 삭제
-                val updatedCart = cartService.removeCartItem(userId, cartItemId)
+                val updatedCart = cartCommandUseCase.removeCartItem(userId, cartItemId)
 
                 // Then
                 updatedCart.items.size shouldBe 0
@@ -242,12 +274,12 @@ class CartAddIntegrationTest(
                 val userId = IntegrationTestFixtures.createTestUserId(8)
 
                 // 3개 아이템 추가
-                cartService.addToCart(userId, 1L, "패키지1", 7, 1, 7.0, false, null, listOf(TeaItemRequest(1L, 1, 100)))
-                cartService.addToCart(userId, 2L, "패키지2", 14, 1, 14.0, false, null, listOf(TeaItemRequest(2L, 1, 100)))
-                cartService.addToCart(userId, 3L, "패키지3", 30, 1, 30.0, false, null, listOf(TeaItemRequest(3L, 1, 100)))
+                cartCommandUseCase.addToCart(userId, AddToCartRequest(1L, "패키지1", 7, 1, 7.0, false, null, listOf(TeaItemRequest(1L, 1, 100))))
+                cartCommandUseCase.addToCart(userId, AddToCartRequest(2L, "패키지2", 14, 1, 14.0, false, null, listOf(TeaItemRequest(2L, 1, 100))))
+                cartCommandUseCase.addToCart(userId, AddToCartRequest(3L, "패키지3", 30, 1, 30.0, false, null, listOf(TeaItemRequest(3L, 1, 100))))
 
                 // When - 전체 비우기
-                cartService.clearCart(userId)
+                cartCommandUseCase.clearCart(userId)
 
                 // Then
                 val clearedCart = cartRepository.findByUserId(userId)

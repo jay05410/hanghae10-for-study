@@ -29,10 +29,8 @@ import io.swagger.v3.oas.annotations.tags.Tag
 @RestController
 @RequestMapping("/api/v1/orders")
 class OrderController(
-    private val createOrderUseCase: CreateOrderUseCase,
+    private val orderCommandUseCase: OrderCommandUseCase,
     private val getOrderQueryUseCase: GetOrderQueryUseCase,
-    private val confirmOrderUseCase: ConfirmOrderUseCase,
-    private val cancelOrderUseCase: CancelOrderUseCase,
     private val getDeliveryQueryUseCase: GetDeliveryQueryUseCase
 ) {
 
@@ -48,7 +46,7 @@ class OrderController(
         @Parameter(description = "주문 생성 요청 정보", required = true)
         @RequestBody request: CreateOrderRequest
     ): ApiResponse<OrderResponse> {
-        val order = createOrderUseCase.execute(request)
+        val order = orderCommandUseCase.createOrder(request)
         return ApiResponse.success(order.toResponse())
     }
 
@@ -99,7 +97,7 @@ class OrderController(
         @Parameter(description = "주문 확정 요청 정보", required = true)
         @RequestBody request: OrderConfirmRequest
     ): ApiResponse<OrderResponse> {
-        val order = confirmOrderUseCase.execute(orderId, request.confirmedBy)
+        val order = orderCommandUseCase.confirmOrder(orderId, request.confirmedBy)
         return ApiResponse.success(order.toResponse())
     }
 
@@ -118,7 +116,7 @@ class OrderController(
         @Parameter(description = "주문 취소 요청 정보", required = true)
         @RequestBody request: OrderCancelRequest
     ): ApiResponse<OrderResponse> {
-        val order = cancelOrderUseCase.execute(orderId, request.cancelledBy, request.reason)
+        val order = orderCommandUseCase.cancelOrder(orderId, request.cancelledBy, request.reason)
         return ApiResponse.success(order.toResponse())
     }
 

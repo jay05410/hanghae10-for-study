@@ -1,11 +1,13 @@
 package io.hhplus.ecommerce.integration.order
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
-import io.hhplus.ecommerce.order.application.OrderService
+import io.hhplus.ecommerce.order.usecase.OrderCommandUseCase
 import io.hhplus.ecommerce.order.domain.constant.OrderStatus
 import io.hhplus.ecommerce.order.domain.repository.OrderRepository
 import io.hhplus.ecommerce.order.domain.repository.OrderItemRepository
-import io.hhplus.ecommerce.order.dto.OrderItemData
+import io.hhplus.ecommerce.order.dto.CreateOrderRequest
+import io.hhplus.ecommerce.order.dto.CreateOrderItemRequest
+import io.hhplus.ecommerce.delivery.dto.DeliveryAddressRequest
 import io.hhplus.ecommerce.cart.dto.TeaItemRequest
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
@@ -22,7 +24,7 @@ import io.kotest.matchers.string.shouldStartWith
  * - 쿠폰 적용 주문
  */
 class OrderCreateIntegrationTest(
-    private val orderService: OrderService,
+    private val orderCommandUseCase: OrderCommandUseCase,
     private val orderRepository: OrderRepository,
     private val orderItemRepository: OrderItemRepository
 ) : KotestIntegrationTestBase({
@@ -33,7 +35,7 @@ class OrderCreateIntegrationTest(
                 // Given
                 val userId = 1000L
                 val items = listOf(
-                    OrderItemData(
+                    CreateOrderItemRequest(
                         packageTypeId = 1L,
                         packageTypeName = "7일 패키지",
                         packageTypeDays = 7,
@@ -52,14 +54,20 @@ class OrderCreateIntegrationTest(
                 val discountAmount = 0L
 
                 // When
-                val order = orderService.createOrder(
+                val createOrderRequest = CreateOrderRequest(
                     userId = userId,
                     items = items,
                     usedCouponId = null,
-                    totalAmount = totalAmount,
-                    discountAmount = discountAmount,
-                    createdBy = userId
+                    deliveryAddress = DeliveryAddressRequest(
+                        recipientName = "테스트 수령인",
+                        phone = "010-1234-5678",
+                        zipCode = "12345",
+                        address = "서울시 강남구",
+                        addressDetail = "테스트 상세주소",
+                        deliveryMessage = "테스트 배송 메시지"
+                    )
                 )
+                val order = orderCommandUseCase.createOrder(createOrderRequest)
 
                 // Then
                 order shouldNotBe null
@@ -76,7 +84,7 @@ class OrderCreateIntegrationTest(
                 // Given
                 val userId = 2000L
                 val items = listOf(
-                    OrderItemData(
+                    CreateOrderItemRequest(
                         packageTypeId = 2L,
                         packageTypeName = "14일 패키지",
                         packageTypeDays = 14,
@@ -96,14 +104,20 @@ class OrderCreateIntegrationTest(
                 val usedCouponId = 100L
 
                 // When
-                val order = orderService.createOrder(
+                val createOrderRequest = CreateOrderRequest(
                     userId = userId,
                     items = items,
                     usedCouponId = usedCouponId,
-                    totalAmount = totalAmount,
-                    discountAmount = discountAmount,
-                    createdBy = userId
+                    deliveryAddress = DeliveryAddressRequest(
+                        recipientName = "테스트 수령인",
+                        phone = "010-1234-5678",
+                        zipCode = "12345",
+                        address = "서울시 강남구",
+                        addressDetail = "테스트 상세주소",
+                        deliveryMessage = "테스트 배송 메시지"
+                    )
                 )
+                val order = orderCommandUseCase.createOrder(createOrderRequest)
 
                 // Then
                 order.usedCouponId shouldBe usedCouponId
@@ -117,7 +131,7 @@ class OrderCreateIntegrationTest(
                 // Given
                 val userId = 3000L
                 val items = listOf(
-                    OrderItemData(
+                    CreateOrderItemRequest(
                         packageTypeId = 3L,
                         packageTypeName = "7일 패키지",
                         packageTypeDays = 7,
@@ -131,7 +145,7 @@ class OrderCreateIntegrationTest(
                         giftWrapPrice = 0,
                         teaItems = emptyList()
                     ),
-                    OrderItemData(
+                    CreateOrderItemRequest(
                         packageTypeId = 4L,
                         packageTypeName = "14일 패키지",
                         packageTypeDays = 14,
@@ -149,14 +163,20 @@ class OrderCreateIntegrationTest(
                 val totalAmount = 112000L // (10000+20000)*2 + 15000+35000+2000
 
                 // When
-                val order = orderService.createOrder(
+                val createOrderRequest = CreateOrderRequest(
                     userId = userId,
                     items = items,
                     usedCouponId = null,
-                    totalAmount = totalAmount,
-                    discountAmount = 0L,
-                    createdBy = userId
+                    deliveryAddress = DeliveryAddressRequest(
+                        recipientName = "테스트 수령인",
+                        phone = "010-1234-5678",
+                        zipCode = "12345",
+                        address = "서울시 강남구",
+                        addressDetail = "테스트 상세주소",
+                        deliveryMessage = "테스트 배송 메시지"
+                    )
                 )
+                val order = orderCommandUseCase.createOrder(createOrderRequest)
 
                 // Then
                 val savedOrder = orderRepository.findById(order.id)
@@ -175,7 +195,7 @@ class OrderCreateIntegrationTest(
                 val userId = 4000L
                 val giftMessage = "사랑하는 사람에게"
                 val items = listOf(
-                    OrderItemData(
+                    CreateOrderItemRequest(
                         packageTypeId = 5L,
                         packageTypeName = "30일 패키지",
                         packageTypeDays = 30,
@@ -192,14 +212,20 @@ class OrderCreateIntegrationTest(
                 )
 
                 // When
-                val order = orderService.createOrder(
+                val createOrderRequest = CreateOrderRequest(
                     userId = userId,
                     items = items,
                     usedCouponId = null,
-                    totalAmount = 103000L,
-                    discountAmount = 0L,
-                    createdBy = userId
+                    deliveryAddress = DeliveryAddressRequest(
+                        recipientName = "테스트 수령인",
+                        phone = "010-1234-5678",
+                        zipCode = "12345",
+                        address = "서울시 강남구",
+                        addressDetail = "테스트 상세주소",
+                        deliveryMessage = "테스트 배송 메시지"
+                    )
                 )
+                val order = orderCommandUseCase.createOrder(createOrderRequest)
 
                 // Then
                 val savedOrderItems = orderItemRepository.findByOrderId(order.id)
@@ -227,7 +253,7 @@ class OrderCreateIntegrationTest(
                     )
                 )
                 val items = listOf(
-                    OrderItemData(
+                    CreateOrderItemRequest(
                         packageTypeId = 6L,
                         packageTypeName = "7일 패키지",
                         packageTypeDays = 7,
@@ -244,14 +270,20 @@ class OrderCreateIntegrationTest(
                 )
 
                 // When
-                val order = orderService.createOrder(
+                val createOrderRequest = CreateOrderRequest(
                     userId = userId,
                     items = items,
                     usedCouponId = null,
-                    totalAmount = 30000L,
-                    discountAmount = 0L,
-                    createdBy = userId
+                    deliveryAddress = DeliveryAddressRequest(
+                        recipientName = "테스트 수령인",
+                        phone = "010-1234-5678",
+                        zipCode = "12345",
+                        address = "서울시 강남구",
+                        addressDetail = "테스트 상세주소",
+                        deliveryMessage = "테스트 배송 메시지"
+                    )
                 )
+                val order = orderCommandUseCase.createOrder(createOrderRequest)
 
                 // Then
                 order shouldNotBe null
@@ -267,7 +299,7 @@ class OrderCreateIntegrationTest(
                 // Given
                 val userId = 6000L
                 val items = listOf(
-                    OrderItemData(
+                    CreateOrderItemRequest(
                         packageTypeId = 7L,
                         packageTypeName = "테스트 패키지",
                         packageTypeDays = 7,
@@ -284,8 +316,32 @@ class OrderCreateIntegrationTest(
                 )
 
                 // When
-                val order1 = orderService.createOrder(userId, items, null, 20000L, 0L, userId)
-                val order2 = orderService.createOrder(userId, items, null, 20000L, 0L, userId)
+                val order1 = orderCommandUseCase.createOrder(CreateOrderRequest(
+                    userId = userId,
+                    items = items,
+                    usedCouponId = null,
+                    deliveryAddress = DeliveryAddressRequest(
+                        recipientName = "테스트 수령인",
+                        phone = "010-1234-5678",
+                        zipCode = "12345",
+                        address = "서울시 강남구",
+                        addressDetail = "테스트 상세주소",
+                        deliveryMessage = "테스트 배송 메시지"
+                    )
+                ))
+                val order2 = orderCommandUseCase.createOrder(CreateOrderRequest(
+                    userId = userId,
+                    items = items,
+                    usedCouponId = null,
+                    deliveryAddress = DeliveryAddressRequest(
+                        recipientName = "테스트 수령인",
+                        phone = "010-1234-5678",
+                        zipCode = "12345",
+                        address = "서울시 강남구",
+                        addressDetail = "테스트 상세주소",
+                        deliveryMessage = "테스트 배송 메시지"
+                    )
+                ))
 
                 // Then
                 order1.orderNumber shouldNotBe order2.orderNumber
@@ -301,7 +357,7 @@ class OrderCreateIntegrationTest(
                 // Given
                 val userId = 7000L
                 val items = listOf(
-                    OrderItemData(
+                    CreateOrderItemRequest(
                         packageTypeId = 8L,
                         packageTypeName = "조회 테스트 패키지",
                         packageTypeDays = 7,
@@ -316,7 +372,19 @@ class OrderCreateIntegrationTest(
                         teaItems = emptyList()
                     )
                 )
-                val order = orderService.createOrder(userId, items, null, 20000L, 0L, userId)
+                val order = orderCommandUseCase.createOrder(CreateOrderRequest(
+                    userId = userId,
+                    items = items,
+                    usedCouponId = null,
+                    deliveryAddress = DeliveryAddressRequest(
+                        recipientName = "테스트 수령인",
+                        phone = "010-1234-5678",
+                        zipCode = "12345",
+                        address = "서울시 강남구",
+                        addressDetail = "테스트 상세주소",
+                        deliveryMessage = "테스트 배송 메시지"
+                    )
+                ))
 
                 // When
                 val foundOrder = orderRepository.findById(order.id)
@@ -336,7 +404,7 @@ class OrderCreateIntegrationTest(
                 // Given
                 val userId = 8000L
                 val items = listOf(
-                    OrderItemData(
+                    CreateOrderItemRequest(
                         packageTypeId = 9L,
                         packageTypeName = "상태 테스트 패키지",
                         packageTypeDays = 7,
@@ -353,7 +421,19 @@ class OrderCreateIntegrationTest(
                 )
 
                 // When
-                val order = orderService.createOrder(userId, items, null, 20000L, 0L, userId)
+                val order = orderCommandUseCase.createOrder(CreateOrderRequest(
+                    userId = userId,
+                    items = items,
+                    usedCouponId = null,
+                    deliveryAddress = DeliveryAddressRequest(
+                        recipientName = "테스트 수령인",
+                        phone = "010-1234-5678",
+                        zipCode = "12345",
+                        address = "서울시 강남구",
+                        addressDetail = "테스트 상세주소",
+                        deliveryMessage = "테스트 배송 메시지"
+                    )
+                ))
 
                 // Then
                 order.status shouldBe OrderStatus.PENDING

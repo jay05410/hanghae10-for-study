@@ -2,7 +2,11 @@ package io.hhplus.ecommerce.integration.coupon
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 import io.hhplus.ecommerce.common.exception.coupon.CouponException
-import io.hhplus.ecommerce.coupon.application.CouponService
+import io.hhplus.ecommerce.coupon.usecase.CouponCommandUseCase
+import io.hhplus.ecommerce.coupon.usecase.GetCouponQueryUseCase
+import io.hhplus.ecommerce.coupon.usecase.ValidateCouponUseCase
+import io.hhplus.ecommerce.coupon.dto.IssueCouponRequest
+import io.hhplus.ecommerce.coupon.dto.UseCouponRequest
 import io.hhplus.ecommerce.coupon.domain.constant.DiscountType
 import io.hhplus.ecommerce.coupon.domain.constant.UserCouponStatus
 import io.hhplus.ecommerce.coupon.domain.entity.Coupon
@@ -25,7 +29,9 @@ import java.time.LocalDateTime
  * - 쿠폰 발급 이력 기록
  */
 class CouponIssueIntegrationTest(
-    private val couponService: CouponService,
+    private val couponCommandUseCase: CouponCommandUseCase,
+    private val getCouponQueryUseCase: GetCouponQueryUseCase,
+    private val validateCouponUseCase: ValidateCouponUseCase,
     private val couponRepository: CouponRepository,
     private val userCouponRepository: UserCouponRepository
 ) : KotestIntegrationTestBase({
@@ -49,7 +55,7 @@ class CouponIssueIntegrationTest(
                 val userId = 1000L
 
                 // When
-                val userCoupon = couponService.issueCoupon(userId, savedCoupon.id)
+                val userCoupon = couponCommandUseCase.issueCoupon(userId, IssueCouponRequest(savedCoupon.id))
 
                 // Then
                 userCoupon shouldNotBe null
@@ -81,11 +87,11 @@ class CouponIssueIntegrationTest(
                 val userId = 2000L
 
                 // 첫 번째 발급
-                couponService.issueCoupon(userId, savedCoupon.id)
+                couponCommandUseCase.issueCoupon(userId, IssueCouponRequest(savedCoupon.id))
 
                 // When & Then - 중복 발급 시도
                 shouldThrow<CouponException.AlreadyIssuedCoupon> {
-                    couponService.issueCoupon(userId, savedCoupon.id)
+                    couponCommandUseCase.issueCoupon(userId, IssueCouponRequest(savedCoupon.id))
                 }
             }
         }
@@ -107,11 +113,11 @@ class CouponIssueIntegrationTest(
                 val savedCoupon = couponRepository.save(coupon)
 
                 // 첫 번째 사용자가 발급받음
-                couponService.issueCoupon(3000L, savedCoupon.id)
+                couponCommandUseCase.issueCoupon(3000L, IssueCouponRequest(savedCoupon.id))
 
                 // When & Then - 두 번째 사용자 발급 시도
                 shouldThrow<CouponException.CouponSoldOut> {
-                    couponService.issueCoupon(3001L, savedCoupon.id)
+                    couponCommandUseCase.issueCoupon(3001L, IssueCouponRequest(savedCoupon.id))
                 }
             }
         }
@@ -120,7 +126,7 @@ class CouponIssueIntegrationTest(
             it("예외가 발생한다") {
                 // When & Then
                 shouldThrow<CouponException.CouponNotFound> {
-                    couponService.issueCoupon(4000L, 99999L)
+                    couponCommandUseCase.issueCoupon(4000L, IssueCouponRequest(99999L))
                 }
             }
         }
@@ -159,10 +165,10 @@ class CouponIssueIntegrationTest(
                     createdBy = 1L
                 )
                 val saved = couponRepository.save(soldOutCoupon)
-                couponService.issueCoupon(5000L, saved.id) // 품절 처리
+                couponCommandUseCase.issueCoupon(5000L, IssueCouponRequest(saved.id)) // 품절 처리
 
                 // When
-                val availableCoupons = couponService.getAvailableCoupons()
+                val availableCoupons = getCouponQueryUseCase.getAvailableCoupons()
 
                 // Then
                 availableCoupons shouldHaveSize 1
@@ -201,11 +207,11 @@ class CouponIssueIntegrationTest(
                     )
                 )
 
-                couponService.issueCoupon(userId, coupon1.id)
-                couponService.issueCoupon(userId, coupon2.id)
+                couponCommandUseCase.issueCoupon(userId, IssueCouponRequest(coupon1.id))
+                couponCommandUseCase.issueCoupon(userId, IssueCouponRequest(coupon2.id))
 
                 // When
-                val userCoupons = couponService.getUserCoupons(userId)
+                val userCoupons = getCouponQueryUseCase.getUserCoupons(userId)
 
                 // Then
                 userCoupons shouldHaveSize 2
@@ -229,10 +235,10 @@ class CouponIssueIntegrationTest(
                         createdBy = 1L
                     )
                 )
-                couponService.issueCoupon(userId, coupon.id)
+                couponCommandUseCase.issueCoupon(userId, IssueCouponRequest(coupon.id))
 
                 // When
-                val availableUserCoupons = couponService.getAvailableUserCoupons(userId)
+                val availableUserCoupons = getCouponQueryUseCase.getAvailableUserCoupons(userId)
 
                 // Then
                 availableUserCoupons shouldHaveSize 1
@@ -260,14 +266,13 @@ class CouponIssueIntegrationTest(
                         createdBy = 1L
                     )
                 )
-                val userCoupon = couponService.issueCoupon(userId, coupon.id)
+                val userCoupon = couponCommandUseCase.issueCoupon(userId, IssueCouponRequest(coupon.id))
 
                 // When
-                val discountAmount = couponService.applyCoupon(
+                val discountAmount = couponCommandUseCase.applyCoupon(
                     userId = userId,
-                    userCouponId = userCoupon.id,
-                    orderId = 100L,
-                    orderAmount = orderAmount
+                    request = UseCouponRequest(userCoupon.id, orderAmount),
+                    orderId = 100L
                 )
 
                 // Then
@@ -298,14 +303,13 @@ class CouponIssueIntegrationTest(
                         createdBy = 1L
                     )
                 )
-                val userCoupon = couponService.issueCoupon(userId, coupon.id)
+                val userCoupon = couponCommandUseCase.issueCoupon(userId, IssueCouponRequest(coupon.id))
 
                 // When
-                val discountAmount = couponService.applyCoupon(
+                val discountAmount = couponCommandUseCase.applyCoupon(
                     userId = userId,
-                    userCouponId = userCoupon.id,
-                    orderId = 101L,
-                    orderAmount = orderAmount
+                    request = UseCouponRequest(userCoupon.id, orderAmount),
+                    orderId = 101L
                 )
 
                 // Then
@@ -331,15 +335,14 @@ class CouponIssueIntegrationTest(
                         createdBy = 1L
                     )
                 )
-                val userCoupon = couponService.issueCoupon(userId, coupon.id)
+                val userCoupon = couponCommandUseCase.issueCoupon(userId, IssueCouponRequest(coupon.id))
 
                 // When & Then
                 shouldThrow<CouponException.MinimumOrderAmountNotMet> {
-                    couponService.applyCoupon(
+                    couponCommandUseCase.applyCoupon(
                         userId = userId,
-                        userCouponId = userCoupon.id,
-                        orderId = 102L,
-                        orderAmount = orderAmount
+                        request = UseCouponRequest(userCoupon.id, orderAmount),
+                        orderId = 102L
                     )
                 }
             }
@@ -363,14 +366,14 @@ class CouponIssueIntegrationTest(
                         createdBy = 1L
                     )
                 )
-                val userCoupon = couponService.issueCoupon(userId, coupon.id)
+                val userCoupon = couponCommandUseCase.issueCoupon(userId, IssueCouponRequest(coupon.id))
 
                 // 첫 번째 사용
-                couponService.applyCoupon(userId, userCoupon.id, 103L, orderAmount)
+                couponCommandUseCase.applyCoupon(userId, UseCouponRequest(userCoupon.id, orderAmount), 103L)
 
                 // When & Then - 재사용 시도
                 shouldThrow<CouponException.AlreadyUsedCoupon> {
-                    couponService.applyCoupon(userId, userCoupon.id, 104L, orderAmount)
+                    couponCommandUseCase.applyCoupon(userId, UseCouponRequest(userCoupon.id, orderAmount), 104L)
                 }
             }
         }
@@ -395,13 +398,12 @@ class CouponIssueIntegrationTest(
                         createdBy = 1L
                     )
                 )
-                val userCoupon = couponService.issueCoupon(userId, coupon.id)
+                val userCoupon = couponCommandUseCase.issueCoupon(userId, IssueCouponRequest(coupon.id))
 
                 // When
-                val expectedDiscount = couponService.validateCouponUsage(
+                val expectedDiscount = validateCouponUseCase.execute(
                     userId = userId,
-                    userCouponId = userCoupon.id,
-                    orderAmount = orderAmount
+                    request = UseCouponRequest(userCoupon.id, orderAmount)
                 )
 
                 // Then

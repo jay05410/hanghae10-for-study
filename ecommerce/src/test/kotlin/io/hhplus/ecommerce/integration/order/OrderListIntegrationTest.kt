@@ -1,11 +1,13 @@
 package io.hhplus.ecommerce.integration.order
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
-import io.hhplus.ecommerce.order.application.OrderService
 import io.hhplus.ecommerce.order.dto.OrderItemData
 import io.hhplus.ecommerce.order.usecase.GetOrderQueryUseCase
-import io.hhplus.ecommerce.point.application.PointService
-import io.hhplus.ecommerce.point.domain.vo.PointAmount
+import io.hhplus.ecommerce.order.usecase.OrderCommandUseCase
+import io.hhplus.ecommerce.order.dto.CreateOrderRequest
+import io.hhplus.ecommerce.order.dto.CreateOrderItemRequest
+import io.hhplus.ecommerce.delivery.dto.DeliveryAddressRequest
+import io.hhplus.ecommerce.point.usecase.PointCommandUseCase
 import io.hhplus.ecommerce.product.domain.repository.ProductRepository
 import io.hhplus.ecommerce.product.domain.entity.Product
 import io.hhplus.ecommerce.inventory.domain.entity.Inventory
@@ -29,9 +31,9 @@ import io.kotest.matchers.collections.shouldBeSortedWith
  * 4. 정렬 확인 (최신순)
  */
 class OrderListIntegrationTest(
-    private val orderService: OrderService,
+    private val orderCommandUseCase: OrderCommandUseCase,
     private val getOrderQueryUseCase: GetOrderQueryUseCase,
-    private val pointService: PointService,
+    private val pointCommandUseCase: PointCommandUseCase,
     private val productRepository: ProductRepository,
     private val inventoryRepository: InventoryRepository
 ) : KotestIntegrationTestBase({
@@ -60,11 +62,11 @@ class OrderListIntegrationTest(
                 inventoryRepository.save(inventory)
 
                 // 충분한 포인트 충전
-                pointService.earnPoint(userId, PointAmount(500000), userId)
+                pointCommandUseCase.chargePoint(userId, 500000, "테스트용 충전")
 
                 // 주문 10개 생성
                 val orderItems = listOf(
-                    OrderItemData(
+                    CreateOrderItemRequest(
                         packageTypeId = 1L,
                         packageTypeName = "목록 테스트 패키지",
                         packageTypeDays = 7,
@@ -80,15 +82,22 @@ class OrderListIntegrationTest(
                     )
                 )
 
-                val createdOrderIds = (1..orderCount).map {
-                    val order = orderService.createOrder(
-                        userId = userId,
-                        items = orderItems,
-                        usedCouponId = null,
-                        totalAmount = 20000L,
-                        discountAmount = 0L,
-                        createdBy = userId
+                val createOrderRequest = CreateOrderRequest(
+                    userId = userId,
+                    items = orderItems,
+                    usedCouponId = null,
+                    deliveryAddress = DeliveryAddressRequest(
+                        recipientName = "테스트 수령인",
+                        phone = "010-1234-5678",
+                        zipCode = "12345",
+                        address = "서울시 강남구",
+                        addressDetail = "테스트 상세주소",
+                        deliveryMessage = "테스트 배송 메시지"
                     )
+                )
+
+                val createdOrderIds = (1..orderCount).map {
+                    val order = orderCommandUseCase.createOrder(createOrderRequest)
                     Thread.sleep(10) // 주문 시간 차이를 두기 위해
                     order.id
                 }
@@ -145,10 +154,10 @@ class OrderListIntegrationTest(
                 )
                 inventoryRepository.save(inventory)
 
-                pointService.earnPoint(userId, PointAmount(2000000), userId)
+                pointCommandUseCase.chargePoint(userId, 2000000, "테스트용 충전")
 
                 val orderItems = listOf(
-                    OrderItemData(
+                    CreateOrderItemRequest(
                         packageTypeId = 1L,
                         packageTypeName = "대량 테스트 패키지",
                         packageTypeDays = 7,
@@ -164,16 +173,23 @@ class OrderListIntegrationTest(
                     )
                 )
 
+                val createOrderRequest = CreateOrderRequest(
+                    userId = userId,
+                    items = orderItems,
+                    usedCouponId = null,
+                    deliveryAddress = DeliveryAddressRequest(
+                        recipientName = "테스트 수령인",
+                        phone = "010-1234-5678",
+                        zipCode = "12345",
+                        address = "서울시 강남구",
+                        addressDetail = "테스트 상세주소",
+                        deliveryMessage = "테스트 배송 메시지"
+                    )
+                )
+
                 // 대량 주문 생성
                 repeat(largeOrderCount) {
-                    orderService.createOrder(
-                        userId = userId,
-                        items = orderItems,
-                        usedCouponId = null,
-                        totalAmount = 20000L,
-                        discountAmount = 0L,
-                        createdBy = userId
-                    )
+                    orderCommandUseCase.createOrder(createOrderRequest)
                 }
 
                 // When: 조회 시간 측정

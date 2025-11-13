@@ -1,10 +1,9 @@
 package io.hhplus.ecommerce.integration.point
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
-import io.hhplus.ecommerce.point.application.PointService
-import io.hhplus.ecommerce.point.application.PointHistoryService
+import io.hhplus.ecommerce.point.usecase.PointCommandUseCase
+import io.hhplus.ecommerce.point.usecase.GetPointQueryUseCase
 import io.hhplus.ecommerce.point.domain.constant.PointTransactionType
-import io.hhplus.ecommerce.point.domain.vo.PointAmount
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.collections.shouldBeSortedWith
 import io.kotest.matchers.shouldBe
@@ -24,8 +23,8 @@ import io.kotest.matchers.shouldBe
  * 4. 거래 타입별 필터링 (선택)
  */
 class PointHistoryIntegrationTest(
-    private val pointService: PointService,
-    private val pointHistoryService: PointHistoryService
+    private val pointCommandUseCase: PointCommandUseCase,
+    private val getPointQueryUseCase: GetPointQueryUseCase
 ) : KotestIntegrationTestBase({
 
     describe("포인트 히스토리 조회") {
@@ -35,20 +34,20 @@ class PointHistoryIntegrationTest(
                 val userId = 4000L
 
                 // 충전 3회
-                pointService.earnPoint(userId, PointAmount(10000), userId)
+                pointCommandUseCase.chargePoint(userId, 10000)
                 Thread.sleep(10)
-                pointService.earnPoint(userId, PointAmount(20000), userId)
+                pointCommandUseCase.chargePoint(userId, 20000)
                 Thread.sleep(10)
-                pointService.earnPoint(userId, PointAmount(30000), userId)
+                pointCommandUseCase.chargePoint(userId, 30000)
                 Thread.sleep(10)
 
                 // 사용 2회
-                pointService.usePoint(userId, PointAmount(5000), userId)
+                pointCommandUseCase.usePoint(userId, 5000)
                 Thread.sleep(10)
-                pointService.usePoint(userId, PointAmount(10000), userId)
+                pointCommandUseCase.usePoint(userId, 10000)
 
                 // When: 히스토리 조회
-                val histories = pointHistoryService.getPointHistories(userId)
+                val histories = getPointQueryUseCase.getPointHistories(userId)
 
                 // Then: 총 5건 조회
                 histories shouldHaveSize 5
@@ -73,16 +72,16 @@ class PointHistoryIntegrationTest(
                 val transactionCount = 100
 
                 repeat(transactionCount / 2) {
-                    pointService.earnPoint(userId, PointAmount(1000), userId)
+                    pointCommandUseCase.chargePoint(userId, 1000)
                 }
 
                 repeat(transactionCount / 2) {
-                    pointService.usePoint(userId, PointAmount(500), userId)
+                    pointCommandUseCase.usePoint(userId, 500)
                 }
 
                 // When: 조회 시간 측정
                 val startTime = System.currentTimeMillis()
-                val histories = pointHistoryService.getPointHistories(userId)
+                val histories = getPointQueryUseCase.getPointHistories(userId)
                 val elapsedTime = System.currentTimeMillis() - startTime
 
                 // Then: 조회 성공
@@ -101,7 +100,7 @@ class PointHistoryIntegrationTest(
                 val userId = 4002L
 
                 // When: 히스토리 조회
-                val histories = pointHistoryService.getPointHistories(userId)
+                val histories = getPointQueryUseCase.getPointHistories(userId)
 
                 // Then: 빈 목록
                 histories shouldHaveSize 0
@@ -114,12 +113,12 @@ class PointHistoryIntegrationTest(
                 val userId = 4003L
 
                 repeat(5) {
-                    pointService.earnPoint(userId, PointAmount(((it + 1) * 1000).toLong()), userId)
+                    pointCommandUseCase.chargePoint(userId, ((it + 1) * 1000).toLong())
                     Thread.sleep(10)
                 }
 
                 // When: 히스토리 조회
-                val histories = pointHistoryService.getPointHistories(userId)
+                val histories = getPointQueryUseCase.getPointHistories(userId)
 
                 // Then: 충전 내역만 5건
                 histories shouldHaveSize 5
@@ -138,17 +137,17 @@ class PointHistoryIntegrationTest(
                 // Given: 충전 후 사용
                 val userId = 4004L
 
-                pointService.earnPoint(userId, PointAmount(50000), userId)
+                pointCommandUseCase.chargePoint(userId, 50000)
                 Thread.sleep(10)
 
                 // 사용만 3회
                 repeat(3) {
-                    pointService.usePoint(userId, PointAmount(((it + 1) * 1000).toLong()), userId)
+                    pointCommandUseCase.usePoint(userId, ((it + 1) * 1000).toLong())
                     Thread.sleep(10)
                 }
 
                 // When: 히스토리 조회
-                val histories = pointHistoryService.getPointHistories(userId)
+                val histories = getPointQueryUseCase.getPointHistories(userId)
 
                 // Then: 총 4건 (충전 1 + 사용 3)
                 histories shouldHaveSize 4
@@ -167,16 +166,16 @@ class PointHistoryIntegrationTest(
                 // Given
                 val userId = 4005L
 
-                pointService.earnPoint(userId, PointAmount(10000), userId)
+                pointCommandUseCase.chargePoint(userId, 10000)
                 Thread.sleep(10)
-                pointService.usePoint(userId, PointAmount(3000), userId)
+                pointCommandUseCase.usePoint(userId, 3000)
                 Thread.sleep(10)
-                pointService.earnPoint(userId, PointAmount(5000), userId)
+                pointCommandUseCase.chargePoint(userId, 5000)
                 Thread.sleep(10)
-                pointService.usePoint(userId, PointAmount(2000), userId)
+                pointCommandUseCase.usePoint(userId, 2000)
 
                 // When
-                val histories = pointHistoryService.getPointHistories(userId)
+                val histories = getPointQueryUseCase.getPointHistories(userId)
 
                 // Then: 잔액 연속성 확인
                 histories shouldHaveSize 4
@@ -201,8 +200,8 @@ class PointHistoryIntegrationTest(
                 chronologicalHistories[3].balanceAfter shouldBe 10000
 
                 // 최종 잔액 확인
-                val currentBalance = pointService.getUserPoint(userId)?.balance?.value ?: 0
-                currentBalance shouldBe 10000
+                val currentBalance = getPointQueryUseCase.getUserPoint(userId).balance.value
+                currentBalance shouldBe 10000L
             }
         }
     }

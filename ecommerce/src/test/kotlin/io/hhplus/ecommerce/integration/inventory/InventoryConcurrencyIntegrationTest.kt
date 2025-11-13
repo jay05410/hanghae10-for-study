@@ -3,8 +3,9 @@ package io.hhplus.ecommerce.integration.inventory
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 
 import io.hhplus.ecommerce.support.config.IntegrationTestFixtures
-import io.hhplus.ecommerce.inventory.application.InventoryService
-import io.hhplus.ecommerce.inventory.domain.repository.InventoryRepository
+import io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
+import io.hhplus.ecommerce.inventory.usecase.InventoryReservationUseCase
+import io.hhplus.ecommerce.inventory.usecase.GetInventoryQueryUseCase
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import java.util.concurrent.CountDownLatch
@@ -20,8 +21,9 @@ import java.util.concurrent.atomic.AtomicInteger
  * - 재고 부족 시 동시 처리
  */
 class InventoryConcurrencyIntegrationTest(
-    private val inventoryService: InventoryService,
-    private val inventoryRepository: InventoryRepository
+    private val inventoryCommandUseCase: InventoryCommandUseCase,
+    private val inventoryReservationUseCase: InventoryReservationUseCase,
+    private val getInventoryQueryUseCase: GetInventoryQueryUseCase
 ) : KotestIntegrationTestBase({
 
     describe("재고 동시성 제어") {
@@ -35,7 +37,7 @@ class InventoryConcurrencyIntegrationTest(
                 val createdBy = 1L
 
                 // 재고 생성
-                inventoryService.createInventory(productId, initialQuantity, createdBy)
+                inventoryCommandUseCase.createInventory(productId, initialQuantity, createdBy)
 
                 // When - 10개 스레드가 동시에 10개씩 차감
                 val executor = Executors.newFixedThreadPool(threadCount)
@@ -46,7 +48,7 @@ class InventoryConcurrencyIntegrationTest(
                 repeat(threadCount) {
                     executor.submit {
                         try {
-                            inventoryService.deductStock(productId, deductQuantity, createdBy)
+                            inventoryCommandUseCase.deductStock(productId, deductQuantity, createdBy)
                             successCount.incrementAndGet()
                         } catch (e: Exception) {
                             failCount.incrementAndGet()
@@ -64,7 +66,7 @@ class InventoryConcurrencyIntegrationTest(
                 failCount.get() shouldBe 0
 
                 // 최종 재고 확인
-                val finalInventory = inventoryRepository.findByProductId(productId)
+                val finalInventory = getInventoryQueryUseCase.getInventory(productId)
                 finalInventory shouldNotBe null
                 finalInventory!!.quantity shouldBe 0 // 100 - (10 * 10)
             }
@@ -80,7 +82,7 @@ class InventoryConcurrencyIntegrationTest(
                 val createdBy = 1L
 
                 // 재고 생성
-                inventoryService.createInventory(productId, initialQuantity, createdBy)
+                inventoryCommandUseCase.createInventory(productId, initialQuantity, createdBy)
 
                 // When - 10개 스레드가 동시에 10개씩 차감
                 val executor = Executors.newFixedThreadPool(threadCount)
@@ -91,7 +93,7 @@ class InventoryConcurrencyIntegrationTest(
                 repeat(threadCount) {
                     executor.submit {
                         try {
-                            inventoryService.deductStock(productId, deductQuantity, createdBy)
+                            inventoryCommandUseCase.deductStock(productId, deductQuantity, createdBy)
                             successCount.incrementAndGet()
                         } catch (e: Exception) {
                             failCount.incrementAndGet()
@@ -109,7 +111,7 @@ class InventoryConcurrencyIntegrationTest(
                 failCount.get() shouldBe 5
 
                 // 최종 재고 확인
-                val finalInventory = inventoryRepository.findByProductId(productId)
+                val finalInventory = getInventoryQueryUseCase.getInventory(productId)
                 finalInventory shouldNotBe null
                 finalInventory!!.quantity shouldBe 0 // 50 - (10 * 5)
             }
@@ -125,7 +127,7 @@ class InventoryConcurrencyIntegrationTest(
                 val createdBy = 1L
 
                 // 재고 생성
-                inventoryService.createInventory(productId, initialQuantity, createdBy)
+                inventoryCommandUseCase.createInventory(productId, initialQuantity, createdBy)
 
                 // When - 20개 스레드가 동시에 5개씩 예약
                 val executor = Executors.newFixedThreadPool(threadCount)
@@ -136,7 +138,7 @@ class InventoryConcurrencyIntegrationTest(
                 repeat(threadCount) {
                     executor.submit {
                         try {
-                            inventoryService.reserveStock(productId, reserveQuantity, createdBy)
+                            inventoryReservationUseCase.reserveStock(productId, createdBy, reserveQuantity)
                             successCount.incrementAndGet()
                         } catch (e: Exception) {
                             failCount.incrementAndGet()
@@ -154,7 +156,7 @@ class InventoryConcurrencyIntegrationTest(
                 failCount.get() shouldBe 0
 
                 // 최종 재고 확인
-                val finalInventory = inventoryRepository.findByProductId(productId)
+                val finalInventory = getInventoryQueryUseCase.getInventory(productId)
                 finalInventory shouldNotBe null
                 finalInventory!!.quantity shouldBe 100 // 전체 재고는 그대로
                 finalInventory.reservedQuantity shouldBe 100 // 5 * 20
@@ -173,7 +175,7 @@ class InventoryConcurrencyIntegrationTest(
                 val createdBy = 1L
 
                 // 재고 생성
-                inventoryService.createInventory(productId, initialQuantity, createdBy)
+                inventoryCommandUseCase.createInventory(productId, initialQuantity, createdBy)
 
                 // When - 10개는 예약, 10개는 차감
                 val executor = Executors.newFixedThreadPool(threadCount)
@@ -186,11 +188,11 @@ class InventoryConcurrencyIntegrationTest(
                         try {
                             if (index % 2 == 0) {
                                 // 짝수: 예약
-                                inventoryService.reserveStock(productId, reserveQuantity, createdBy)
+                                inventoryReservationUseCase.reserveStock(productId, createdBy, reserveQuantity)
                                 reserveSuccessCount.incrementAndGet()
                             } else {
                                 // 홀수: 차감
-                                inventoryService.deductStock(productId, deductQuantity, createdBy)
+                                inventoryCommandUseCase.deductStock(productId, deductQuantity, createdBy)
                                 deductSuccessCount.incrementAndGet()
                             }
                         } catch (e: Exception) {
@@ -205,7 +207,7 @@ class InventoryConcurrencyIntegrationTest(
                 executor.shutdown()
 
                 // Then
-                val finalInventory = inventoryRepository.findByProductId(productId)
+                val finalInventory = getInventoryQueryUseCase.getInventory(productId)
                 finalInventory shouldNotBe null
 
                 // 최종 재고 검증
@@ -226,7 +228,7 @@ class InventoryConcurrencyIntegrationTest(
                 val createdBy = 1L
 
                 // 재고 생성
-                inventoryService.createInventory(productId, initialQuantity, createdBy)
+                inventoryCommandUseCase.createInventory(productId, initialQuantity, createdBy)
 
                 // When - 100개 스레드가 동시에 1개씩 차감
                 val executor = Executors.newFixedThreadPool(threadCount)
@@ -236,7 +238,7 @@ class InventoryConcurrencyIntegrationTest(
                 repeat(threadCount) {
                     executor.submit {
                         try {
-                            inventoryService.deductStock(productId, deductQuantity, createdBy)
+                            inventoryCommandUseCase.deductStock(productId, deductQuantity, createdBy)
                             successCount.incrementAndGet()
                         } catch (e: Exception) {
                             // 동시성 제어 실패
@@ -253,7 +255,7 @@ class InventoryConcurrencyIntegrationTest(
                 successCount.get() shouldBe threadCount
 
                 // 최종 재고 확인
-                val finalInventory = inventoryRepository.findByProductId(productId)
+                val finalInventory = getInventoryQueryUseCase.getInventory(productId)
                 finalInventory shouldNotBe null
                 finalInventory!!.quantity shouldBe 900 // 1000 - 100
             }
@@ -270,11 +272,11 @@ class InventoryConcurrencyIntegrationTest(
                 val createdBy = 1L
 
                 // 재고 생성 및 예약
-                inventoryService.createInventory(productId, initialQuantity, createdBy)
+                inventoryCommandUseCase.createInventory(productId, initialQuantity, createdBy)
 
                 // 10번 예약 (각 10개씩)
                 repeat(10) {
-                    inventoryService.reserveStock(productId, reserveQuantity, createdBy)
+                    inventoryReservationUseCase.reserveStock(productId, createdBy, reserveQuantity)
                 }
 
                 // When - 10개 스레드가 동시에 10개씩 예약 확정
@@ -285,7 +287,7 @@ class InventoryConcurrencyIntegrationTest(
                 repeat(threadCount) {
                     executor.submit {
                         try {
-                            inventoryService.confirmReservation(productId, confirmQuantity, createdBy)
+                            inventoryReservationUseCase.confirmReservation(1L, createdBy)
                             successCount.incrementAndGet()
                         } finally {
                             latch.countDown()
@@ -300,7 +302,7 @@ class InventoryConcurrencyIntegrationTest(
                 successCount.get() shouldBe 10
 
                 // 최종 재고 확인
-                val finalInventory = inventoryRepository.findByProductId(productId)
+                val finalInventory = getInventoryQueryUseCase.getInventory(productId)
                 finalInventory shouldNotBe null
                 finalInventory!!.quantity shouldBe 0 // 100 - (10 * 10)
                 finalInventory.reservedQuantity shouldBe 0 // 모두 확정되어 예약 0

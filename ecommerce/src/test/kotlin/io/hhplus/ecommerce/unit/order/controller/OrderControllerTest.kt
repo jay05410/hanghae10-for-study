@@ -1,7 +1,8 @@
 package io.hhplus.ecommerce.unit.order.controller
 
 import io.hhplus.ecommerce.order.controller.OrderController
-import io.hhplus.ecommerce.order.usecase.*
+import io.hhplus.ecommerce.order.usecase.OrderCommandUseCase
+import io.hhplus.ecommerce.order.usecase.GetOrderQueryUseCase
 import io.hhplus.ecommerce.order.dto.*
 import io.hhplus.ecommerce.order.domain.entity.Order
 import io.hhplus.ecommerce.order.domain.constant.OrderStatus
@@ -21,17 +22,13 @@ import java.time.LocalDateTime
  * - UseCase와의 상호작용 검증
  */
 class OrderControllerTest : DescribeSpec({
-    val mockCreateOrderUseCase = mockk<CreateOrderUseCase>()
+    val mockOrderCommandUseCase = mockk<OrderCommandUseCase>()
     val mockGetOrderQueryUseCase = mockk<GetOrderQueryUseCase>()
-    val mockConfirmOrderUseCase = mockk<ConfirmOrderUseCase>()
-    val mockCancelOrderUseCase = mockk<CancelOrderUseCase>()
     val mockGetDeliveryQueryUseCase = mockk<GetDeliveryQueryUseCase>()
 
     val sut = OrderController(
-        createOrderUseCase = mockCreateOrderUseCase,
+        orderCommandUseCase = mockOrderCommandUseCase,
         getOrderQueryUseCase = mockGetOrderQueryUseCase,
-        confirmOrderUseCase = mockConfirmOrderUseCase,
-        cancelOrderUseCase = mockCancelOrderUseCase,
         getDeliveryQueryUseCase = mockGetDeliveryQueryUseCase
     )
 
@@ -57,7 +54,7 @@ class OrderControllerTest : DescribeSpec({
     }
 
     beforeEach {
-        clearMocks(mockCreateOrderUseCase, mockGetOrderQueryUseCase, mockConfirmOrderUseCase, mockCancelOrderUseCase)
+        clearMocks(mockOrderCommandUseCase, mockGetOrderQueryUseCase)
     }
 
     describe("createOrder") {
@@ -92,12 +89,12 @@ class OrderControllerTest : DescribeSpec({
                 )
                 val mockOrder = createMockOrder(userId = 1L)
 
-                every { mockCreateOrderUseCase.execute(request) } returns mockOrder
+                every { mockOrderCommandUseCase.createOrder(request) } returns mockOrder
 
                 val result = sut.createOrder(request)
 
                 result.success shouldBe true
-                verify(exactly = 1) { mockCreateOrderUseCase.execute(request) }
+                verify(exactly = 1) { mockOrderCommandUseCase.createOrder(request) }
             }
         }
     }

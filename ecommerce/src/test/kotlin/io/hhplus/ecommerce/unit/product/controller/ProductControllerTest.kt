@@ -1,7 +1,9 @@
 package io.hhplus.ecommerce.unit.product.controller
 
 import io.hhplus.ecommerce.product.controller.ProductController
-import io.hhplus.ecommerce.product.usecase.*
+import io.hhplus.ecommerce.product.usecase.GetProductQueryUseCase
+import io.hhplus.ecommerce.product.usecase.ProductCommandUseCase
+import io.hhplus.ecommerce.product.usecase.ProductStatsUseCase
 import io.hhplus.ecommerce.product.dto.*
 import io.hhplus.ecommerce.product.domain.entity.Product
 import io.hhplus.ecommerce.common.response.ApiResponse
@@ -27,17 +29,13 @@ import java.time.LocalDateTime
  */
 class ProductControllerTest : DescribeSpec({
     val mockGetProductQueryUseCase = mockk<GetProductQueryUseCase>()
-    val mockCreateProductUseCase = mockk<CreateProductUseCase>()
-    val mockUpdateProductUseCase = mockk<UpdateProductUseCase>()
-    val mockGetPopularProductsUseCase = mockk<GetPopularProductsUseCase>()
-    val mockIncrementProductViewUseCase = mockk<IncrementProductViewUseCase>()
+    val mockProductCommandUseCase = mockk<ProductCommandUseCase>()
+    val mockProductStatsUseCase = mockk<ProductStatsUseCase>()
 
     val sut = ProductController(
         getProductQueryUseCase = mockGetProductQueryUseCase,
-        createProductUseCase = mockCreateProductUseCase,
-        updateProductUseCase = mockUpdateProductUseCase,
-        getPopularProductsUseCase = mockGetPopularProductsUseCase,
-        incrementProductViewUseCase = mockIncrementProductViewUseCase
+        productCommandUseCase = mockProductCommandUseCase,
+        productStatsUseCase = mockProductStatsUseCase
     )
 
     fun createMockProduct(
@@ -61,10 +59,8 @@ class ProductControllerTest : DescribeSpec({
     beforeEach {
         clearMocks(
             mockGetProductQueryUseCase,
-            mockCreateProductUseCase,
-            mockUpdateProductUseCase,
-            mockGetPopularProductsUseCase,
-            mockIncrementProductViewUseCase
+            mockProductCommandUseCase,
+            mockProductStatsUseCase
         )
     }
 
@@ -155,12 +151,12 @@ class ProductControllerTest : DescribeSpec({
                 val userId = 1L
                 val mockProduct = createMockProduct()
 
-                every { mockIncrementProductViewUseCase.execute(productId, userId) } just Runs
+                every { mockProductStatsUseCase.incrementViewCount(productId, userId) } just Runs
                 every { mockGetProductQueryUseCase.getProduct(productId) } returns mockProduct
 
                 val result = sut.getProduct(productId, userId)
 
-                verify(exactly = 1) { mockIncrementProductViewUseCase.execute(productId, userId) }
+                verify(exactly = 1) { mockProductStatsUseCase.incrementViewCount(productId, userId) }
                 verify(exactly = 1) { mockGetProductQueryUseCase.getProduct(productId) }
                 result.success shouldBe true
             }
@@ -172,12 +168,12 @@ class ProductControllerTest : DescribeSpec({
                 val defaultUserId = 1L
                 val mockProduct = createMockProduct()
 
-                every { mockIncrementProductViewUseCase.execute(productId, defaultUserId) } just Runs
+                every { mockProductStatsUseCase.incrementViewCount(productId, defaultUserId) } just Runs
                 every { mockGetProductQueryUseCase.getProduct(productId) } returns mockProduct
 
                 val result = sut.getProduct(productId, defaultUserId) // 기본값 테스트 시뮬레이션
 
-                verify(exactly = 1) { mockIncrementProductViewUseCase.execute(productId, defaultUserId) }
+                verify(exactly = 1) { mockProductStatsUseCase.incrementViewCount(productId, defaultUserId) }
                 verify(exactly = 1) { mockGetProductQueryUseCase.getProduct(productId) }
                 result.success shouldBe true
             }
@@ -194,16 +190,16 @@ class ProductControllerTest : DescribeSpec({
                 testCases.forEach { (productId, userId) ->
                     val mockProduct = createMockProduct()
 
-                    every { mockIncrementProductViewUseCase.execute(productId, userId) } just Runs
+                    every { mockProductStatsUseCase.incrementViewCount(productId, userId) } just Runs
                     every { mockGetProductQueryUseCase.getProduct(productId) } returns mockProduct
 
                     val result = sut.getProduct(productId, userId)
 
-                    verify(exactly = 1) { mockIncrementProductViewUseCase.execute(productId, userId) }
+                    verify(exactly = 1) { mockProductStatsUseCase.incrementViewCount(productId, userId) }
                     verify(exactly = 1) { mockGetProductQueryUseCase.getProduct(productId) }
                     result.success shouldBe true
 
-                    clearMocks(mockIncrementProductViewUseCase, mockGetProductQueryUseCase)
+                    clearMocks(mockProductStatsUseCase, mockGetProductQueryUseCase)
                 }
             }
         }
@@ -214,13 +210,13 @@ class ProductControllerTest : DescribeSpec({
                 val userId = 3L
                 val mockProduct = createMockProduct()
 
-                every { mockIncrementProductViewUseCase.execute(productId, userId) } just Runs
+                every { mockProductStatsUseCase.incrementViewCount(productId, userId) } just Runs
                 every { mockGetProductQueryUseCase.getProduct(productId) } returns mockProduct
 
                 sut.getProduct(productId, userId)
 
                 verifyOrder {
-                    mockIncrementProductViewUseCase.execute(productId, userId)
+                    mockProductStatsUseCase.incrementViewCount(productId, userId)
                     mockGetProductQueryUseCase.getProduct(productId)
                 }
             }
@@ -239,11 +235,11 @@ class ProductControllerTest : DescribeSpec({
                 )
                 val mockProduct = createMockProduct()
 
-                every { mockCreateProductUseCase.execute(request) } returns mockProduct
+                every { mockProductCommandUseCase.createProduct(request) } returns mockProduct
 
                 val result = sut.createProduct(request)
 
-                verify(exactly = 1) { mockCreateProductUseCase.execute(request) }
+                verify(exactly = 1) { mockProductCommandUseCase.createProduct(request) }
                 result.success shouldBe true
             }
         }
@@ -258,13 +254,13 @@ class ProductControllerTest : DescribeSpec({
 
                 requests.forEach { request ->
                     val mockProduct = createMockProduct()
-                    every { mockCreateProductUseCase.execute(request) } returns mockProduct
+                    every { mockProductCommandUseCase.createProduct(request) } returns mockProduct
 
                     val result = sut.createProduct(request)
 
-                    verify(exactly = 1) { mockCreateProductUseCase.execute(request) }
+                    verify(exactly = 1) { mockProductCommandUseCase.createProduct(request) }
                     result.success shouldBe true
-                    clearMocks(mockCreateProductUseCase)
+                    clearMocks(mockProductCommandUseCase)
                 }
             }
         }
@@ -282,11 +278,11 @@ class ProductControllerTest : DescribeSpec({
                 )
                 val mockProduct = createMockProduct()
 
-                every { mockUpdateProductUseCase.execute(productId, request) } returns mockProduct
+                every { mockProductCommandUseCase.updateProduct(productId, request) } returns mockProduct
 
                 val result = sut.updateProduct(productId, request)
 
-                verify(exactly = 1) { mockUpdateProductUseCase.execute(productId, request) }
+                verify(exactly = 1) { mockProductCommandUseCase.updateProduct(productId, request) }
                 result.success shouldBe true
             }
         }
@@ -301,13 +297,13 @@ class ProductControllerTest : DescribeSpec({
 
                 testCases.forEach { (productId, request) ->
                     val mockProduct = createMockProduct()
-                    every { mockUpdateProductUseCase.execute(productId, request) } returns mockProduct
+                    every { mockProductCommandUseCase.updateProduct(productId, request) } returns mockProduct
 
                     val result = sut.updateProduct(productId, request)
 
-                    verify(exactly = 1) { mockUpdateProductUseCase.execute(productId, request) }
+                    verify(exactly = 1) { mockProductCommandUseCase.updateProduct(productId, request) }
                     result.success shouldBe true
-                    clearMocks(mockUpdateProductUseCase)
+                    clearMocks(mockProductCommandUseCase)
                 }
             }
         }
@@ -322,11 +318,11 @@ class ProductControllerTest : DescribeSpec({
                     createMockProduct(2L, "Product 2")
                 )
 
-                every { mockGetPopularProductsUseCase.execute(limit) } returns mockProducts
+                every { mockGetProductQueryUseCase.getPopularProducts(limit) } returns mockProducts
 
                 val result = sut.getPopularProducts(limit)
 
-                verify(exactly = 1) { mockGetPopularProductsUseCase.execute(limit) }
+                verify(exactly = 1) { mockGetProductQueryUseCase.getPopularProducts(limit) }
                 result.success shouldBe true
             }
         }
@@ -336,11 +332,11 @@ class ProductControllerTest : DescribeSpec({
                 val defaultLimit = 10
                 val mockProducts = listOf(createMockProduct())
 
-                every { mockGetPopularProductsUseCase.execute(defaultLimit) } returns mockProducts
+                every { mockGetProductQueryUseCase.getPopularProducts(defaultLimit) } returns mockProducts
 
                 val result = sut.getPopularProducts(defaultLimit) // 기본값 테스트 시뮬레이션
 
-                verify(exactly = 1) { mockGetPopularProductsUseCase.execute(defaultLimit) }
+                verify(exactly = 1) { mockGetProductQueryUseCase.getPopularProducts(defaultLimit) }
                 result.success shouldBe true
             }
         }
@@ -351,13 +347,13 @@ class ProductControllerTest : DescribeSpec({
 
                 limits.forEach { limit ->
                     val mockProducts = (1..limit).map { createMockProduct(it.toLong()) }
-                    every { mockGetPopularProductsUseCase.execute(limit) } returns mockProducts
+                    every { mockGetProductQueryUseCase.getPopularProducts(limit) } returns mockProducts
 
                     val result = sut.getPopularProducts(limit)
 
-                    verify(exactly = 1) { mockGetPopularProductsUseCase.execute(limit) }
+                    verify(exactly = 1) { mockGetProductQueryUseCase.getPopularProducts(limit) }
                     result.success shouldBe true
-                    clearMocks(mockGetPopularProductsUseCase)
+                    clearMocks(mockGetProductQueryUseCase)
                 }
             }
         }
@@ -372,26 +368,26 @@ class ProductControllerTest : DescribeSpec({
                 every { mockGetProductQueryUseCase.getProducts(1) } returns listOf(mockProduct)
                 sut.getProducts(1, null)
                 verify(exactly = 1) { mockGetProductQueryUseCase.getProducts(1) }
-                verify(exactly = 0) { mockCreateProductUseCase.execute(any()) }
-                verify(exactly = 0) { mockUpdateProductUseCase.execute(any(), any()) }
+                verify(exactly = 0) { mockProductCommandUseCase.createProduct(any()) }
+                verify(exactly = 0) { mockProductCommandUseCase.updateProduct(any(), any()) }
 
-                clearMocks(mockGetProductQueryUseCase, mockCreateProductUseCase, mockUpdateProductUseCase, mockGetPopularProductsUseCase, mockIncrementProductViewUseCase)
+                clearMocks(mockGetProductQueryUseCase, mockProductCommandUseCase, mockProductStatsUseCase)
 
                 // createProduct 테스트
                 val createRequest = CreateProductRequest("테스트", "설명", 1000L, 1L, 1L)
-                every { mockCreateProductUseCase.execute(createRequest) } returns mockProduct
+                every { mockProductCommandUseCase.createProduct(createRequest) } returns mockProduct
                 sut.createProduct(createRequest)
-                verify(exactly = 1) { mockCreateProductUseCase.execute(createRequest) }
+                verify(exactly = 1) { mockProductCommandUseCase.createProduct(createRequest) }
                 verify(exactly = 0) { mockGetProductQueryUseCase.getProducts(any()) }
-                verify(exactly = 0) { mockUpdateProductUseCase.execute(any(), any()) }
+                verify(exactly = 0) { mockProductCommandUseCase.updateProduct(any(), any()) }
 
-                clearMocks(mockGetProductQueryUseCase, mockCreateProductUseCase, mockUpdateProductUseCase, mockGetPopularProductsUseCase, mockIncrementProductViewUseCase)
+                clearMocks(mockGetProductQueryUseCase, mockProductCommandUseCase, mockProductStatsUseCase)
 
                 // getPopularProducts 테스트
-                every { mockGetPopularProductsUseCase.execute(10) } returns listOf(mockProduct)
+                every { mockGetProductQueryUseCase.getPopularProducts(10) } returns listOf(mockProduct)
                 sut.getPopularProducts(10)
-                verify(exactly = 1) { mockGetPopularProductsUseCase.execute(10) }
-                verify(exactly = 0) { mockCreateProductUseCase.execute(any()) }
+                verify(exactly = 1) { mockGetProductQueryUseCase.getPopularProducts(10) }
+                verify(exactly = 0) { mockProductCommandUseCase.createProduct(any()) }
                 verify(exactly = 0) { mockGetProductQueryUseCase.getProducts(any()) }
             }
         }
@@ -406,10 +402,10 @@ class ProductControllerTest : DescribeSpec({
                 // 각 엔드포인트의 응답이 ApiResponse.success로 감싸져 있는지 확인
                 every { mockGetProductQueryUseCase.getProducts(any()) } returns mockProducts
                 every { mockGetProductQueryUseCase.getProduct(any()) } returns mockProduct
-                every { mockCreateProductUseCase.execute(any()) } returns mockProduct
-                every { mockUpdateProductUseCase.execute(any(), any()) } returns mockProduct
-                every { mockGetPopularProductsUseCase.execute(any()) } returns mockProducts
-                every { mockIncrementProductViewUseCase.execute(any(), any()) } just Runs
+                every { mockProductCommandUseCase.createProduct(any()) } returns mockProduct
+                every { mockProductCommandUseCase.updateProduct(any(), any()) } returns mockProduct
+                every { mockGetProductQueryUseCase.getPopularProducts(any()) } returns mockProducts
+                every { mockProductStatsUseCase.incrementViewCount(any(), any()) } just Runs
 
                 val getProductsResult = sut.getProducts(1, null)
                 val getProductResult = sut.getProduct(1L, 1L)

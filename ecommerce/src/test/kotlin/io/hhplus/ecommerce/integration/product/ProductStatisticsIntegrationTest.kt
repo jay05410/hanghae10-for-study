@@ -1,8 +1,8 @@
 package io.hhplus.ecommerce.integration.product
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
-import io.hhplus.ecommerce.product.application.ProductStatisticsService
-import io.hhplus.ecommerce.product.domain.repository.ProductStatisticsRepository
+import io.hhplus.ecommerce.product.usecase.ProductStatsUseCase
+import io.hhplus.ecommerce.product.usecase.GetProductQueryUseCase
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -16,8 +16,8 @@ import io.kotest.matchers.shouldNotBe
  * - 인기 상품 조회
  */
 class ProductStatisticsIntegrationTest(
-    private val productStatisticsService: ProductStatisticsService,
-    private val productStatisticsRepository: ProductStatisticsRepository
+    private val productStatsUseCase: ProductStatsUseCase,
+    private val getProductQueryUseCase: GetProductQueryUseCase
 ) : KotestIntegrationTestBase({
 
     describe("조회수 증가") {
@@ -28,7 +28,8 @@ class ProductStatisticsIntegrationTest(
                 val userId = 1L
 
                 // When
-                val statistics = productStatisticsService.incrementViewCount(productId, userId)
+                productStatsUseCase.incrementViewCount(productId, userId)
+                val statistics = getProductQueryUseCase.getProductStatistics(productId)!!
 
                 // Then
                 statistics shouldNotBe null
@@ -44,9 +45,10 @@ class ProductStatisticsIntegrationTest(
                 val userId = 1L
 
                 // When
-                productStatisticsService.incrementViewCount(productId, userId)
-                productStatisticsService.incrementViewCount(productId, userId)
-                val statistics = productStatisticsService.incrementViewCount(productId, userId)
+                productStatsUseCase.incrementViewCount(productId, userId)
+                productStatsUseCase.incrementViewCount(productId, userId)
+                productStatsUseCase.incrementViewCount(productId, userId)
+                val statistics = getProductQueryUseCase.getProductStatistics(productId)!!
 
                 // Then
                 statistics.viewCount shouldBe 3
@@ -60,7 +62,8 @@ class ProductStatisticsIntegrationTest(
                 val userId = 1L
 
                 // When
-                val statistics = productStatisticsService.incrementViewCount(newProductId, userId)
+                productStatsUseCase.incrementViewCount(newProductId, userId)
+                val statistics = getProductQueryUseCase.getProductStatistics(newProductId)!!
 
                 // Then
                 statistics shouldNotBe null
@@ -80,7 +83,7 @@ class ProductStatisticsIntegrationTest(
                 val userId = 1L
 
                 // When
-                val statistics = productStatisticsService.incrementSalesCount(productId, quantity, userId)
+                val statistics = productStatsUseCase.incrementSalesCount(productId, quantity, userId)
 
                 // Then
                 statistics shouldNotBe null
@@ -96,9 +99,9 @@ class ProductStatisticsIntegrationTest(
                 val userId = 1L
 
                 // When
-                productStatisticsService.incrementSalesCount(productId, 3, userId)
-                productStatisticsService.incrementSalesCount(productId, 5, userId)
-                val statistics = productStatisticsService.incrementSalesCount(productId, 2, userId)
+                productStatsUseCase.incrementSalesCount(productId, 3, userId)
+                productStatsUseCase.incrementSalesCount(productId, 5, userId)
+                val statistics = productStatsUseCase.incrementSalesCount(productId, 2, userId)
 
                 // Then
                 statistics.salesCount shouldBe 10 // 3 + 5 + 2
@@ -113,7 +116,7 @@ class ProductStatisticsIntegrationTest(
                 val userId = 1L
 
                 // When
-                val statistics = productStatisticsService.incrementSalesCount(newProductId, quantity, userId)
+                val statistics = productStatsUseCase.incrementSalesCount(newProductId, quantity, userId)
 
                 // Then
                 statistics shouldNotBe null
@@ -132,10 +135,10 @@ class ProductStatisticsIntegrationTest(
                 val userId = 1L
 
                 // When
-                productStatisticsService.incrementViewCount(productId, userId)
-                productStatisticsService.incrementViewCount(productId, userId)
-                productStatisticsService.incrementViewCount(productId, userId)
-                val statistics = productStatisticsService.incrementSalesCount(productId, 2, userId)
+                productStatsUseCase.incrementViewCount(productId, userId)
+                productStatsUseCase.incrementViewCount(productId, userId)
+                productStatsUseCase.incrementViewCount(productId, userId)
+                val statistics = productStatsUseCase.incrementSalesCount(productId, 2, userId)
 
                 // Then
                 statistics.viewCount shouldBe 3
@@ -150,8 +153,9 @@ class ProductStatisticsIntegrationTest(
                 val userId = 1L
 
                 // When
-                productStatisticsService.incrementSalesCount(productId, 5, userId)
-                val statistics = productStatisticsService.incrementViewCount(productId, userId)
+                productStatsUseCase.incrementSalesCount(productId, 5, userId)
+                productStatsUseCase.incrementViewCount(productId, userId)
+                val statistics = getProductQueryUseCase.getProductStatistics(productId)!!
 
                 // Then
                 statistics.salesCount shouldBe 5
@@ -165,22 +169,22 @@ class ProductStatisticsIntegrationTest(
             it("판매량 순으로 인기 상품을 조회할 수 있다") {
                 // Given
                 val userId = 1L
-                productStatisticsService.incrementSalesCount(4001L, 10, userId)
-                productStatisticsService.incrementSalesCount(4002L, 30, userId)
-                productStatisticsService.incrementSalesCount(4003L, 20, userId)
-                productStatisticsService.incrementSalesCount(4004L, 5, userId)
+                productStatsUseCase.incrementSalesCount(4001L, 10, userId)
+                productStatsUseCase.incrementSalesCount(4002L, 30, userId)
+                productStatsUseCase.incrementSalesCount(4003L, 20, userId)
+                productStatsUseCase.incrementSalesCount(4004L, 5, userId)
 
                 // When
-                val topProducts = productStatisticsService.getPopularProducts(3)
+                val topStatistics = getProductQueryUseCase.getPopularStatistics(3)
 
                 // Then
-                topProducts shouldHaveSize 3
-                topProducts[0].productId shouldBe 4002L // 30 판매
-                topProducts[0].salesCount shouldBe 30
-                topProducts[1].productId shouldBe 4003L // 20 판매
-                topProducts[1].salesCount shouldBe 20
-                topProducts[2].productId shouldBe 4001L // 10 판매
-                topProducts[2].salesCount shouldBe 10
+                topStatistics shouldHaveSize 3
+                topStatistics[0].productId shouldBe 4002L // 30 판매
+                topStatistics[0].salesCount shouldBe 30
+                topStatistics[1].productId shouldBe 4003L // 20 판매
+                topStatistics[1].salesCount shouldBe 20
+                topStatistics[2].productId shouldBe 4001L // 10 판매
+                topStatistics[2].salesCount shouldBe 10
             }
         }
 
@@ -188,16 +192,16 @@ class ProductStatisticsIntegrationTest(
             it("존재하는 상품만 반환한다") {
                 // Given
                 val userId = 1L
-                productStatisticsService.incrementSalesCount(5001L, 15, userId)
-                productStatisticsService.incrementSalesCount(5002L, 25, userId)
+                productStatsUseCase.incrementSalesCount(5001L, 15, userId)
+                productStatsUseCase.incrementSalesCount(5002L, 25, userId)
 
                 // When
-                val topProducts = productStatisticsService.getPopularProducts(10)
+                val topStatistics = getProductQueryUseCase.getPopularStatistics(10)
 
                 // Then
-                topProducts.size shouldBe 2
-                topProducts[0].productId shouldBe 5002L
-                topProducts[1].productId shouldBe 5001L
+                topStatistics.size shouldBe 2
+                topStatistics[0].productId shouldBe 5002L
+                topStatistics[1].productId shouldBe 5001L
             }
         }
 
@@ -207,20 +211,20 @@ class ProductStatisticsIntegrationTest(
                 val userId = 1L
 
                 // 높은 조회수, 낮은 판매량
-                productStatisticsService.incrementViewCount(6001L, userId)
-                repeat(100) { productStatisticsService.incrementViewCount(6001L, userId) }
-                productStatisticsService.incrementSalesCount(6001L, 5, userId)
+                productStatsUseCase.incrementViewCount(6001L, userId)
+                repeat(100) { productStatsUseCase.incrementViewCount(6001L, userId) }
+                productStatsUseCase.incrementSalesCount(6001L, 5, userId)
 
                 // 낮은 조회수, 높은 판매량
-                productStatisticsService.incrementViewCount(6002L, userId)
-                productStatisticsService.incrementSalesCount(6002L, 50, userId)
+                productStatsUseCase.incrementViewCount(6002L, userId)
+                productStatsUseCase.incrementSalesCount(6002L, 50, userId)
 
                 // When
-                val topProducts = productStatisticsService.getPopularProducts(2)
+                val topStatistics = getProductQueryUseCase.getPopularStatistics(2)
 
                 // Then
-                topProducts[0].productId shouldBe 6002L // 판매량 50
-                topProducts[1].productId shouldBe 6001L // 판매량 5
+                topStatistics[0].productId shouldBe 6002L // 판매량 50
+                topStatistics[1].productId shouldBe 6001L // 판매량 5
             }
         }
     }
@@ -231,12 +235,12 @@ class ProductStatisticsIntegrationTest(
                 // Given
                 val productId = 7001L
                 val userId = 1L
-                productStatisticsService.incrementViewCount(productId, userId)
-                productStatisticsService.incrementViewCount(productId, userId)
-                productStatisticsService.incrementSalesCount(productId, 3, userId)
+                productStatsUseCase.incrementViewCount(productId, userId)
+                productStatsUseCase.incrementViewCount(productId, userId)
+                productStatsUseCase.incrementSalesCount(productId, 3, userId)
 
                 // When
-                val statistics = productStatisticsService.getProductStatistics(productId)
+                val statistics = getProductQueryUseCase.getProductStatistics(productId)
 
                 // Then
                 statistics shouldNotBe null
@@ -249,7 +253,7 @@ class ProductStatisticsIntegrationTest(
         context("통계가 없는 상품을 조회할 때") {
             it("null을 반환한다") {
                 // When
-                val statistics = productStatisticsService.getProductStatistics(99999L)
+                val statistics = getProductQueryUseCase.getProductStatistics(99999L)
 
                 // Then
                 statistics shouldBe null

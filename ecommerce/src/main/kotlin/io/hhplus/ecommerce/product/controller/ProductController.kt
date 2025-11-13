@@ -26,10 +26,8 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/api/v1/products")
 class ProductController(
     private val getProductQueryUseCase: GetProductQueryUseCase,
-    private val createProductUseCase: CreateProductUseCase,
-    private val updateProductUseCase: UpdateProductUseCase,
-    private val getPopularProductsUseCase: GetPopularProductsUseCase,
-    private val incrementProductViewUseCase: IncrementProductViewUseCase
+    private val productCommandUseCase: ProductCommandUseCase,
+    private val productStatsUseCase: ProductStatsUseCase
 ) {
 
     @Operation(summary = "상품 목록 조회", description = "페이지네이션 또는 카테고리별 상품 목록을 조회합니다.")
@@ -56,7 +54,7 @@ class ProductController(
         @Parameter(description = "사용자 ID", example = "1")
         @RequestHeader("User-Id", defaultValue = "1") userId: Long
     ): ApiResponse<ProductResponse> {
-        incrementProductViewUseCase.execute(productId, userId)
+        productStatsUseCase.incrementViewCount(productId, userId)
         val product = getProductQueryUseCase.getProduct(productId)
         return ApiResponse.success(product.toResponse())
     }
@@ -67,7 +65,7 @@ class ProductController(
         @Parameter(description = "상품 생성 정보", required = true)
         @RequestBody request: CreateProductRequest
     ): ApiResponse<ProductResponse> {
-        val product = createProductUseCase.execute(request)
+        val product = productCommandUseCase.createProduct(request)
         return ApiResponse.success(product.toResponse())
     }
 
@@ -79,7 +77,7 @@ class ProductController(
         @Parameter(description = "상품 수정 정보", required = true)
         @RequestBody request: UpdateProductRequest
     ): ApiResponse<ProductResponse> {
-        val product = updateProductUseCase.execute(productId, request)
+        val product = productCommandUseCase.updateProduct(productId, request)
         return ApiResponse.success(product.toResponse())
     }
 
@@ -89,7 +87,7 @@ class ProductController(
         @Parameter(description = "조회할 상품 수", example = "10")
         @RequestParam(defaultValue = "10") limit: Int
     ): ApiResponse<List<ProductResponse>> {
-        val products = getPopularProductsUseCase.execute(limit)
+        val products = getProductQueryUseCase.getPopularProducts(limit)
         return ApiResponse.success(products.map { it.toResponse() })
     }
 
