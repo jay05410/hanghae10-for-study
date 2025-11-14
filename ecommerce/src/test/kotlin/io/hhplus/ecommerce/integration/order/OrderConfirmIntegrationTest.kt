@@ -131,7 +131,7 @@ class OrderConfirmIntegrationTest(
 
                 val orderItems = listOf(
                     CreateOrderItemRequest(
-                        packageTypeId = 1L,
+                        packageTypeId = savedProduct.id,
                         packageTypeName = "테스트 패키지",
                         packageTypeDays = 7,
                         dailyServing = 1,
@@ -202,7 +202,7 @@ class OrderConfirmIntegrationTest(
 
                 val orderItems = listOf(
                     CreateOrderItemRequest(
-                        packageTypeId = 1L,
+                        packageTypeId = savedProduct.id,
                         packageTypeName = "테스트 패키지",
                         packageTypeDays = 7,
                         dailyServing = 1,

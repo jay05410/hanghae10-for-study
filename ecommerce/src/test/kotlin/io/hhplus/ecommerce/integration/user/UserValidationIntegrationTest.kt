@@ -22,7 +22,6 @@ import io.kotest.matchers.shouldNotBe
 class UserValidationIntegrationTest(
     private val userCommandUseCase: UserCommandUseCase,
     private val getUserQueryUseCase: GetUserQueryUseCase,
-    private val userRepository: UserRepository
 ) : KotestIntegrationTestBase({
 
     describe("사용자 생성") {
