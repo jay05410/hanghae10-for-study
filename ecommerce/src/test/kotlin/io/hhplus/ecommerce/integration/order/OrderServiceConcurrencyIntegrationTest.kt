@@ -1,37 +1,32 @@
-package io.hhplus.ecommerce.unit.order.application
+package io.hhplus.ecommerce.integration.order
 
 import io.hhplus.ecommerce.order.application.OrderService
 import io.hhplus.ecommerce.order.dto.OrderItemData
 import io.hhplus.ecommerce.order.domain.repository.OrderRepository
-import io.hhplus.ecommerce.support.IntegrationTestBase
-import org.junit.jupiter.api.DisplayName
-import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.test.annotation.Rollback
+import io.hhplus.ecommerce.support.KotestIntegrationTestBase
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.string.shouldNotBeEmpty
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 /**
- * OrderService 동시성 통합 테스트
+ * 주문 동시성 통합 테스트
  *
- * TestContainers MySQL을 사용하여 실제 데이터베이스 환경에서 동시성 시나리오를 검증합니다.
- * 여러 스레드에서 동시에 주문을 생성하고, 데이터 정합성을 확인합니다.
+ * TestContainers MySQL을 사용하여 주문 동시 처리 정합성을 검증합니다.
+ * - 동시 주문 생성
+ * - 동시 같은 사용자 주문 생성
+ * - 주문 생성과 조회 동시 처리
  */
-@DisplayName("주문 서비스 동시성 통합 테스트")
-class OrderServiceConcurrencyIntegrationTest : IntegrationTestBase() {
+class OrderServiceConcurrencyIntegrationTest(
+    private val orderService: OrderService,
+    private val orderRepository: OrderRepository
+) : KotestIntegrationTestBase({
 
-    @Autowired
-    private lateinit var orderService: OrderService
-
-    @Autowired
-    private lateinit var orderRepository: OrderRepository
-
-    @Test
-    @DisplayName("동시에 여러 주문을 생성할 때 모든 주문이 정상 생성되어야 한다")
-    @Rollback
-    fun `should handle concurrent order creation successfully`() {
+    describe("동시성 주문 서비스") {
+        context("동시에 여러 주문을 생성할 때") {
+            it("모든 주문이 정상 생성되어야 한다") {
         // Given
         val threadCount = 10
         val executor = Executors.newFixedThreadPool(threadCount)
@@ -72,30 +67,29 @@ class OrderServiceConcurrencyIntegrationTest : IntegrationTestBase() {
         // 모든 작업 완료 대기
         val orderIds = futures.map { it.get() }
 
-        // Then
-        assertEquals(threadCount, orderIds.size)
-        assertEquals(threadCount, orderIds.distinct().size) // 모든 ID가 유니크해야 함
+                // Then
+                orderIds shouldHaveSize threadCount
+                orderIds.distinct() shouldHaveSize threadCount // 모든 ID가 유니크해야 함
 
-        // 데이터베이스에서 실제 저장된 주문 확인
-        val savedOrders = orderIds.mapNotNull { orderRepository.findById(it) }
-        assertEquals(threadCount, savedOrders.size)
+                // 데이터베이스에서 실제 저장된 주문 확인
+                val savedOrders = orderIds.mapNotNull { orderRepository.findById(it) }
+                savedOrders shouldHaveSize threadCount
 
-        // 각 주문의 데이터 정합성 확인
-        savedOrders.forEach { order ->
-            assertTrue(order.userId >= 1000L && order.userId < 1000L + threadCount)
-            assertEquals(18000L, order.totalAmount)
-            assertEquals(0L, order.discountAmount)
-            assertEquals(18000L, order.finalAmount)
-            assertTrue(order.orderNumber.isNotEmpty())
+                // 각 주문의 데이터 정합성 확인
+                savedOrders.forEach { order ->
+                    (order.userId >= 1000L && order.userId < 1000L + threadCount) shouldBe true
+                    order.totalAmount shouldBe 18000L
+                    order.discountAmount shouldBe 0L
+                    order.finalAmount shouldBe 18000L
+                    order.orderNumber.shouldNotBeEmpty()
+                }
+
+                executor.shutdown()
+            }
         }
 
-        executor.shutdown()
-    }
-
-    @Test
-    @DisplayName("동시에 같은 사용자가 여러 주문을 생성할 때 모든 주문이 정상 생성되어야 한다")
-    @Rollback
-    fun `should handle concurrent orders from same user successfully`() {
+        context("동시에 같은 사용자가 여러 주문을 생성할 때") {
+            it("모든 주문이 정상 생성되어야 한다") {
         // Given
         val threadCount = 5
         val userId = 2000L
@@ -136,28 +130,27 @@ class OrderServiceConcurrencyIntegrationTest : IntegrationTestBase() {
         // 모든 작업 완료 대기
         val orderIds = futures.map { it.get() }
 
-        // Then
-        assertEquals(threadCount, orderIds.size)
-        assertEquals(threadCount, orderIds.distinct().size)
+                // Then
+                orderIds shouldHaveSize threadCount
+                orderIds.distinct() shouldHaveSize threadCount
 
-        // 사용자별 주문 목록 조회로 검증
-        val userOrders = orderService.getOrdersByUser(userId)
-        assertEquals(threadCount, userOrders.size)
+                // 사용자별 주문 목록 조회로 검증
+                val userOrders = orderService.getOrdersByUser(userId)
+                userOrders shouldHaveSize threadCount
 
-        userOrders.forEach { order ->
-            assertEquals(userId, order.userId)
-            assertEquals(32000L, order.totalAmount)
-            assertEquals(2000L, order.discountAmount)
-            assertEquals(30000L, order.finalAmount)
+                userOrders.forEach { order ->
+                    order.userId shouldBe userId
+                    order.totalAmount shouldBe 32000L
+                    order.discountAmount shouldBe 2000L
+                    order.finalAmount shouldBe 30000L
+                }
+
+                executor.shutdown()
+            }
         }
 
-        executor.shutdown()
-    }
-
-    @Test
-    @DisplayName("동시에 주문 생성과 조회가 발생할 때 데이터 일관성이 유지되어야 한다")
-    @Rollback
-    fun `should maintain data consistency during concurrent create and read operations`() {
+        context("동시에 주문 생성과 조회가 발생할 때") {
+            it("데이터 일관성이 유지되어야 한다") {
         // Given
         val createThreadCount = 3
         val readThreadCount = 2
@@ -218,20 +211,22 @@ class OrderServiceConcurrencyIntegrationTest : IntegrationTestBase() {
         val createdOrderIds = createFutures.map { it.get() }
         val readResults = readFutures.map { it.get() }
 
-        // Then
-        assertEquals(createThreadCount, createdOrderIds.size)
-        assertTrue(readResults.all { it >= 0 }) // 읽기 작업이 에러 없이 완료
+                // Then
+                createdOrderIds shouldHaveSize createThreadCount
+                readResults.all { it >= 0 } shouldBe true // 읽기 작업이 에러 없이 완료
 
-        // 최종 데이터 일관성 확인
-        val finalOrders = orderService.getOrdersByUser(userId)
-        assertEquals(createThreadCount, finalOrders.size)
+                // 최종 데이터 일관성 확인
+                val finalOrders = orderService.getOrdersByUser(userId)
+                finalOrders shouldHaveSize createThreadCount
 
-        finalOrders.forEach { order ->
-            assertEquals(userId, order.userId)
-            assertEquals(48000L, order.totalAmount)
-            assertTrue(createdOrderIds.contains(order.id))
+                finalOrders.forEach { order ->
+                    order.userId shouldBe userId
+                    order.totalAmount shouldBe 48000L
+                    createdOrderIds.contains(order.id) shouldBe true
+                }
+
+                executor.shutdown()
+            }
         }
-
-        executor.shutdown()
     }
-}
+})

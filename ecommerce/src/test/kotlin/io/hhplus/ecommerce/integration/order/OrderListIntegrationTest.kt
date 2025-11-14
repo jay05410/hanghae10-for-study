@@ -1,7 +1,6 @@
 package io.hhplus.ecommerce.integration.order
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
-import io.hhplus.ecommerce.order.dto.OrderItemData
 import io.hhplus.ecommerce.order.usecase.GetOrderQueryUseCase
 import io.hhplus.ecommerce.order.usecase.OrderCommandUseCase
 import io.hhplus.ecommerce.order.dto.CreateOrderRequest

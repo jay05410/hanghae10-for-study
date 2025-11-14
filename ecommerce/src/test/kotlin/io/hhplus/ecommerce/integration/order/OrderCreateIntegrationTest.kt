@@ -9,8 +9,11 @@ import io.hhplus.ecommerce.order.dto.CreateOrderRequest
 import io.hhplus.ecommerce.order.dto.CreateOrderItemRequest
 import io.hhplus.ecommerce.delivery.dto.DeliveryAddressRequest
 import io.hhplus.ecommerce.cart.dto.TeaItemRequest
+import io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
+import io.hhplus.ecommerce.point.usecase.PointCommandUseCase
 import io.hhplus.ecommerce.product.dto.CreateProductRequest
 import io.hhplus.ecommerce.product.domain.entity.Product
+import io.hhplus.ecommerce.product.usecase.ProductCommandUseCase
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -29,9 +32,9 @@ class OrderCreateIntegrationTest(
     private val orderCommandUseCase: OrderCommandUseCase,
     private val orderRepository: OrderRepository,
     private val orderItemRepository: OrderItemRepository,
-    private val productCommandUseCase: io.hhplus.ecommerce.product.usecase.ProductCommandUseCase,
-    private val inventoryCommandUseCase: io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase,
-    private val pointCommandUseCase: io.hhplus.ecommerce.point.usecase.PointCommandUseCase
+    private val productCommandUseCase: ProductCommandUseCase,
+    private val inventoryCommandUseCase: InventoryCommandUseCase,
+    private val pointCommandUseCase: PointCommandUseCase
 ) : KotestIntegrationTestBase({
 
     // 테스트용 상품 ID를 저장할 변수

@@ -2,9 +2,7 @@ package io.hhplus.ecommerce.integration.order
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 import io.hhplus.ecommerce.order.domain.constant.OrderStatus
-import io.hhplus.ecommerce.order.dto.OrderItemData
 import io.hhplus.ecommerce.order.usecase.OrderCommandUseCase
-import io.hhplus.ecommerce.order.usecase.GetOrderQueryUseCase
 import io.hhplus.ecommerce.order.dto.CreateOrderRequest
 import io.hhplus.ecommerce.order.dto.CreateOrderItemRequest
 import io.hhplus.ecommerce.delivery.dto.DeliveryAddressRequest
@@ -36,7 +34,6 @@ import io.kotest.matchers.string.shouldContain
  */
 class OrderCancelIntegrationTest(
     private val orderCommandUseCase: OrderCommandUseCase,
-    private val getOrderQueryUseCase: GetOrderQueryUseCase,
     private val pointCommandUseCase: PointCommandUseCase,
     private val getPointQueryUseCase: GetPointQueryUseCase,
     private val getInventoryQueryUseCase: GetInventoryQueryUseCase,
