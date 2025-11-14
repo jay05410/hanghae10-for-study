@@ -26,19 +26,10 @@ jobs:
           cache: gradle
 
       # 3. gradlew 스크립트 실행 권한 부여
-      - name: Grant execute permission for gradlew (week01)
-        run: chmod +x week01/gradlew
-
       - name: Grant execute permission for gradlew (ecommerce)
         run: chmod +x ecommerce/gradlew
 
-      # 4. week01 모듈 테스트 및 빌드
-      - name: Test and build week01 module
-        run: |
-          cd week01
-          ./gradlew clean test build --no-daemon
-
-      # 5. ecommerce 모듈 단위 테스트만 실행 (통합 테스트 제외)
+      # 4. ecommerce 모듈 단위 테스트만 실행 (통합 테스트 제외)
       - name: Test and build ecommerce module (unit tests only)
         run: |
           cd ecommerce
@@ -46,25 +37,7 @@ jobs:
         env:
           SPRING_PROFILES_ACTIVE: test
 
-      # 6. 테스트 결과 아티팩트 업로드 (선택사항)
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-results
-          path: |
-            week01/build/reports/tests/test/
-            ecommerce/build/reports/tests/test/
-            week01/build/test-results/test/
-            ecommerce/build/test-results/test/
-
-      # 7. 코드 커버리지 리포트 생성 (선택사항)
-      - name: Generate coverage report for week01
-        run: |
-          cd week01
-          ./gradlew jacocoTestReport --no-daemon
-        continue-on-error: true
-
+      # 5. 코드 커버리지 리포트 생성
       - name: Generate coverage report for ecommerce
         run: |
           cd ecommerce
@@ -73,12 +46,21 @@ jobs:
           SPRING_PROFILES_ACTIVE: test
         continue-on-error: true
 
-      # 8. 커버리지 리포트 업로드 (선택사항)
+      # 6. 테스트 결과 아티팩트 업로드
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: |
+            ecommerce/build/reports/tests/test/
+            ecommerce/build/test-results/test/
+
+      # 7. 커버리지 리포트 업로드
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: coverage-reports
           path: |
-            week01/build/reports/jacoco/test/
             ecommerce/build/reports/jacoco/test/
