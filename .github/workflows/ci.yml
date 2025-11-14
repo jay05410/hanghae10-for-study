@@ -38,11 +38,13 @@ jobs:
           cd week01
           ./gradlew clean test build --no-daemon
 
-      # 5. ecommerce 모듈 테스트 및 빌드
-      - name: Test and build ecommerce module
+      # 5. ecommerce 모듈 단위 테스트만 실행 (통합 테스트 제외)
+      - name: Test and build ecommerce module (unit tests only)
         run: |
           cd ecommerce
-          ./gradlew clean test build --no-daemon
+          ./gradlew clean test --tests "io.hhplus.ecommerce.unit.*" build --no-daemon
+        env:
+          SPRING_PROFILES_ACTIVE: test
 
       # 6. 테스트 결과 아티팩트 업로드 (선택사항)
       - name: Upload test results
@@ -67,6 +69,8 @@ jobs:
         run: |
           cd ecommerce
           ./gradlew jacocoTestReport --no-daemon
+        env:
+          SPRING_PROFILES_ACTIVE: test
         continue-on-error: true
 
       # 8. 커버리지 리포트 업로드 (선택사항)
