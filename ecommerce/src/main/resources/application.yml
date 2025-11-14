@@ -26,8 +26,8 @@ spring:
         show_sql: false
         format_sql: false
         use_sql_comments: false
-        # Hibernate Statistics 활성화
-        generate_statistics: true
+        # Hibernate Statistics 비활성화
+        generate_statistics: false
         jdbc:
           time_zone: Asia/Seoul
           batch_size: 20
