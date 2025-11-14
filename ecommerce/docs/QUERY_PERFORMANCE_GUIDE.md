@@ -11,10 +11,14 @@
 # 1. 프로젝트 디렉토리로 이동
 cd ecommerce
 
-# 2. MySQL + 데이터 함께 실행
+# 2. Git LFS(Large File Storage) 파일 다운로드 (최초 1회만)
+# Git LFS는 대용량 파일을 효율적으로 관리하는 Git 확장으로 SQL 덤프 용량이 100MB를 넘어 사용함
+git lfs pull
+
+# 3. MySQL + 데이터 함께 실행
 docker-compose up -d mysql
 
-# 3. 애플리케이션 실행 (데이터 로딩 자동 건너뜀)
+# 4. 애플리케이션 실행 (데이터 로딩 자동 건너뜀)
 ./gradlew bootRun
 ```
 
