@@ -9,6 +9,8 @@ import io.hhplus.ecommerce.order.dto.CreateOrderRequest
 import io.hhplus.ecommerce.order.dto.CreateOrderItemRequest
 import io.hhplus.ecommerce.delivery.dto.DeliveryAddressRequest
 import io.hhplus.ecommerce.cart.dto.TeaItemRequest
+import io.hhplus.ecommerce.product.dto.CreateProductRequest
+import io.hhplus.ecommerce.product.domain.entity.Product
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -26,8 +28,47 @@ import io.kotest.matchers.string.shouldStartWith
 class OrderCreateIntegrationTest(
     private val orderCommandUseCase: OrderCommandUseCase,
     private val orderRepository: OrderRepository,
-    private val orderItemRepository: OrderItemRepository
+    private val orderItemRepository: OrderItemRepository,
+    private val productCommandUseCase: io.hhplus.ecommerce.product.usecase.ProductCommandUseCase,
+    private val inventoryCommandUseCase: io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase,
+    private val pointCommandUseCase: io.hhplus.ecommerce.point.usecase.PointCommandUseCase
 ) : KotestIntegrationTestBase({
+
+    // 테스트용 상품 ID를 저장할 변수
+    lateinit var product1: Product
+    lateinit var product2: Product
+
+    beforeEach {
+        // 모든 테스트 전에 상품과 재고 생성
+        product1 = productCommandUseCase.createProduct(
+            CreateProductRequest(
+                name = "주문 테스트 티 1",
+                description = "주문 테스트용 차",
+                price = 20000L,
+                categoryId = 1L,
+                createdBy = 0L
+            )
+        )
+        product2 = productCommandUseCase.createProduct(
+            CreateProductRequest(
+                name = "주문 테스트 티 2",
+                description = "주문 테스트용 차",
+                price = 15000L,
+                categoryId = 1L,
+                createdBy = 0L
+            )
+        )
+
+        inventoryCommandUseCase.createInventory(product1.id, 1000, 0L)
+        inventoryCommandUseCase.createInventory(product2.id, 1000, 0L)
+
+        // 포인트 충전 (주문에 필요)
+        pointCommandUseCase.chargePoint(1000L, 500000, "주문 테스트용 충전")
+        pointCommandUseCase.chargePoint(2000L, 500000, "주문 테스트용 충전")
+        pointCommandUseCase.chargePoint(3000L, 500000, "주문 테스트용 충전")
+        pointCommandUseCase.chargePoint(4000L, 500000, "주문 테스트용 충전")
+        pointCommandUseCase.chargePoint(5000L, 500000, "주문 테스트용 충전")
+    }
 
     describe("주문 생성") {
         context("정상적인 주문 생성 요청일 때") {
@@ -36,7 +77,7 @@ class OrderCreateIntegrationTest(
                 val userId = 1000L
                 val items = listOf(
                     CreateOrderItemRequest(
-                        packageTypeId = 1L,
+                        packageTypeId = product1.id, // 실제 생성한 상품 ID 사용
                         packageTypeName = "7일 패키지",
                         packageTypeDays = 7,
                         dailyServing = 1,

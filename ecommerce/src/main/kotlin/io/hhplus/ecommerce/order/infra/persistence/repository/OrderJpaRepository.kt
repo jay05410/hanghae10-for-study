@@ -15,7 +15,7 @@ import java.time.LocalDateTime
 interface OrderJpaRepository : JpaRepository<OrderJpaEntity, Long> {
     fun findByOrderNumber(orderNumber: String): OrderJpaEntity?
     fun findByUserId(userId: Long): List<OrderJpaEntity>
-    fun findByUserIdAndIsActive(userId: Long, isActive: Boolean): List<OrderJpaEntity>
+    fun findByUserIdAndIsActiveOrderByCreatedAtDesc(userId: Long, isActive: Boolean): List<OrderJpaEntity>
     fun findByUserIdAndStatus(userId: Long, status: OrderStatus): List<OrderJpaEntity>
     fun findByStatus(status: OrderStatus): List<OrderJpaEntity>
     fun findByCreatedAtBetween(startDate: LocalDateTime, endDate: LocalDateTime): List<OrderJpaEntity>

@@ -8,6 +8,8 @@ import io.hhplus.ecommerce.cart.domain.repository.CartItemTeaRepository
 import io.hhplus.ecommerce.cart.domain.repository.CartRepository
 import io.hhplus.ecommerce.cart.dto.AddToCartRequest
 import io.hhplus.ecommerce.cart.dto.TeaItemRequest
+import io.hhplus.ecommerce.product.dto.CreateProductRequest
+import io.hhplus.ecommerce.product.domain.entity.Product
 import io.hhplus.ecommerce.support.config.IntegrationTestFixtures
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -24,18 +26,49 @@ import io.kotest.matchers.shouldNotBe
 class CartAddIntegrationTest(
     private val cartCommandUseCase: CartCommandUseCase,
     private val cartRepository: CartRepository,
-    private val cartItemTeaRepository: CartItemTeaRepository
+    private val cartItemTeaRepository: CartItemTeaRepository,
+    private val productCommandUseCase: io.hhplus.ecommerce.product.usecase.ProductCommandUseCase,
+    private val inventoryCommandUseCase: io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
 ) : KotestIntegrationTestBase({
+
+    // 테스트용 상품 ID를 저장할 변수
+    lateinit var product1: Product
+    lateinit var product2: Product
+
+    beforeEach {
+        // 모든 테스트 전에 상품과 재고 생성
+        product1 = productCommandUseCase.createProduct(
+            CreateProductRequest(
+                name = "테스트 티 1",
+                description = "장바구니 테스트용 차",
+                price = 10000L,
+                categoryId = 1L,
+                createdBy = 0L
+            )
+        )
+        product2 = productCommandUseCase.createProduct(
+            CreateProductRequest(
+                name = "테스트 티 2",
+                description = "장바구니 테스트용 차",
+                price = 15000L,
+                categoryId = 1L,
+                createdBy = 0L
+            )
+        )
+
+        inventoryCommandUseCase.createInventory(product1.id, 1000, 0L)
+        inventoryCommandUseCase.createInventory(product2.id, 1000, 0L)
+    }
 
     describe("장바구니 아이템 추가") {
         context("정상적인 추가 요청일 때") {
             it("아이템을 정상적으로 추가할 수 있다") {
                 // Given
                 val userId = IntegrationTestFixtures.createTestUserId(1)
-                val packageTypeId = IntegrationTestFixtures.createTestBoxTypeId(1)
+                val packageTypeId = product1.id // 실제 생성한 상품 ID 사용
                 val teaItems = listOf(
-                    TeaItemRequest(productId = 1L, selectionOrder = 1, ratioPercent = 70),
-                    TeaItemRequest(productId = 2L, selectionOrder = 2, ratioPercent = 30)
+                    TeaItemRequest(productId = product1.id, selectionOrder = 1, ratioPercent = 70),
+                    TeaItemRequest(productId = product2.id, selectionOrder = 2, ratioPercent = 30)
                 )
 
                 // When

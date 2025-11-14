@@ -1,7 +1,7 @@
 package io.hhplus.ecommerce.support.performance
 
-import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 import io.kotest.core.spec.style.DescribeSpec
+import io.kotest.extensions.spring.SpringExtension
 import io.kotest.matchers.longs.shouldBeGreaterThan
 import io.kotest.matchers.longs.shouldBeLessThan
 import org.slf4j.LoggerFactory
@@ -18,30 +18,37 @@ import kotlin.system.measureTimeMillis
  * - 쿼리 보고서 작성을 위한 실제 성능 데이터 수집
  *
  * 전제 조건:
- * - PerformanceDataLoader로 대용량 데이터 적재 완료
+ * - PerformanceDataLoader로 대용량 데이터 적재 완료 (기존 Docker 컨테이너)
  *
  * 사용법:
- * 1. 데이터 적재:
- *    ./gradlew bootRun --args='--spring.profiles.active=data-load'
- *
- * 2. 인덱스 없이 테스트 실행:
+ * 1. 인덱스 없이 테스트 실행:
  *    ./gradlew test --tests IndexPerformanceComparisonTest
  *
- * 3. 인덱스 추가:
+ * 2. 인덱스 추가:
  *    MySQL에 접속하여 인덱스 생성 SQL 실행
  *
- * 4. 인덱스 있는 상태로 다시 테스트 실행:
+ * 3. 인덱스 있는 상태로 다시 테스트 실행:
  *    ./gradlew test --tests IndexPerformanceComparisonTest
  *
- * 5. 성능 로그 비교 분석
+ * 4. 성능 로그 비교 분석
  */
-@SpringBootTest
-@ActiveProfiles("test")
+@SpringBootTest(
+    properties = [
+        "spring.jpa.show-sql=false",  // 성능 측정 시 로그 최소화
+        "springdoc.api-docs.enabled=false",
+        "springdoc.swagger-ui.enabled=false"
+    ]
+)
+@ActiveProfiles("default")  // 기존 Docker 컨테이너 사용
 class IndexPerformanceComparisonTest(
     private val jdbcTemplate: JdbcTemplate
-) : KotestIntegrationTestBase({
+) : DescribeSpec() {
 
-    val log = LoggerFactory.getLogger(IndexPerformanceComparisonTest::class.java)
+    override fun extensions() = listOf(SpringExtension)
+
+    private val log = LoggerFactory.getLogger(IndexPerformanceComparisonTest::class.java)
+
+    init {
 
     /**
      * 시나리오 1: 사용자별 주문 조회 (user_id로 조회)
@@ -142,21 +149,21 @@ class IndexPerformanceComparisonTest(
 
             val time = measureTimeMillis {
                 jdbcTemplate.query(
-                    "SELECT * FROM point_histories WHERE user_id = ? ORDER BY created_at DESC LIMIT 20",
+                    "SELECT * FROM point_history WHERE user_id = ? ORDER BY created_at DESC LIMIT 20",
                     { rs, _ -> rs.getLong("id") },
                     userId
                 )
             }
 
             log.info("✅ 포인트 히스토리 조회 (user_id=$userId): ${time}ms")
-            log.info("   권장 인덱스: CREATE INDEX idx_point_histories_user_id ON point_histories(user_id);")
+            log.info("   권장 인덱스: CREATE INDEX idx_point_history_user_id ON point_history(user_id);")
         }
 
         it("특정 기간 포인트 히스토리 조회") {
             val time = measureTimeMillis {
                 jdbcTemplate.query(
                     """
-                    SELECT * FROM point_histories
+                    SELECT * FROM point_history
                     WHERE user_id = ?
                       AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
                     ORDER BY created_at DESC
@@ -167,7 +174,7 @@ class IndexPerformanceComparisonTest(
             }
 
             log.info("✅ 특정 기간 포인트 히스토리 조회: ${time}ms")
-            log.info("   권장 인덱스: CREATE INDEX idx_point_histories_user_created ON point_histories(user_id, created_at);")
+            log.info("   권장 인덱스: CREATE INDEX idx_point_history_user_created ON point_history(user_id, created_at);")
         }
     }
 
@@ -218,11 +225,11 @@ class IndexPerformanceComparisonTest(
                     """
                     SELECT
                         o.id, o.order_number, o.user_id, o.total_amount,
-                        oi.product_id, oi.quantity, oi.price_per_unit,
+                        oi.package_type_id, oi.quantity, oi.total_price,
                         i.name as product_name
                     FROM orders o
-                    INNER JOIN order_items oi ON o.id = oi.order_id
-                    INNER JOIN items i ON oi.product_id = i.id
+                    INNER JOIN order_item oi ON o.id = oi.order_id
+                    INNER JOIN items i ON oi.package_type_id = i.id
                     WHERE o.user_id = ?
                     ORDER BY o.created_at DESC
                     LIMIT 100
@@ -234,8 +241,8 @@ class IndexPerformanceComparisonTest(
 
             log.info("✅ 주문 상세 정보 조회 (3개 테이블 JOIN): ${time}ms")
             log.info("   권장 인덱스:")
-            log.info("     - CREATE INDEX idx_order_items_order_id ON order_items(order_id);")
-            log.info("     - CREATE INDEX idx_order_items_product_id ON order_items(product_id);")
+            log.info("     - CREATE INDEX idx_order_item_order_id ON order_item(order_id);")
+            log.info("     - CREATE INDEX idx_order_item_package_type ON order_item(package_type_id);")
         }
 
         it("사용자 주문 통계 (GROUP BY, COUNT)") {
@@ -278,7 +285,7 @@ class IndexPerformanceComparisonTest(
         }
 
         it("현재 테이블별 인덱스 목록 확인") {
-            val tables = listOf("users", "items", "orders", "order_items", "point_histories", "inventory")
+            val tables = listOf("users", "items", "orders", "order_item", "point_history", "inventory")
 
             tables.forEach { table ->
                 val indexes = jdbcTemplate.queryForList("SHOW INDEX FROM $table")
@@ -304,21 +311,21 @@ class IndexPerformanceComparisonTest(
             log.info("")
             log.info("-- 사용자별 조회 최적화")
             log.info("CREATE INDEX idx_orders_user_id ON orders(user_id);")
-            log.info("CREATE INDEX idx_point_histories_user_id ON point_histories(user_id);")
+            log.info("CREATE INDEX idx_point_history_user_id ON point_history(user_id);")
             log.info("")
             log.info("-- 주문 상태별 조회 최적화")
             log.info("CREATE INDEX idx_orders_status ON orders(status);")
             log.info("CREATE INDEX idx_orders_user_status ON orders(user_id, status);")
             log.info("")
             log.info("-- 포인트 히스토리 기간별 조회 최적화")
-            log.info("CREATE INDEX idx_point_histories_user_created ON point_histories(user_id, created_at);")
+            log.info("CREATE INDEX idx_point_history_user_created ON point_history(user_id, created_at);")
             log.info("")
             log.info("-- 상품 검색 최적화")
             log.info("CREATE INDEX idx_items_category_active ON items(category_id, is_active);")
             log.info("")
             log.info("-- JOIN 성능 최적화 (FK)")
-            log.info("CREATE INDEX idx_order_items_order_id ON order_items(order_id);")
-            log.info("CREATE INDEX idx_order_items_product_id ON order_items(product_id);")
+            log.info("CREATE INDEX idx_order_item_order_id ON order_item(order_id);")
+            log.info("CREATE INDEX idx_order_item_package_type ON order_item(package_type_id);")
             log.info("")
             log.info("📝 다음 단계:")
             log.info("1. 위 SQL을 MySQL에서 실행하여 인덱스 추가")
@@ -329,4 +336,5 @@ class IndexPerformanceComparisonTest(
             log.info("=" .repeat(80))
         }
     }
-})
+    }
+}

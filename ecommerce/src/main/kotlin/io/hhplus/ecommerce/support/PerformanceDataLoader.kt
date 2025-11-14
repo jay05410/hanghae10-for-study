@@ -42,6 +42,7 @@ import kotlin.system.measureTimeMillis
  * 총 예상 시간: 1~2분
  */
 @Component
+@Profile("data-load")
 @DependsOn("entityManagerFactory")
 class PerformanceDataLoader(
     private val jdbcTemplate: JdbcTemplate

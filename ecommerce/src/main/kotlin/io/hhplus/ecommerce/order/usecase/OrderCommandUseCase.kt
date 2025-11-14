@@ -8,6 +8,12 @@ import io.hhplus.ecommerce.product.application.ProductService
 import io.hhplus.ecommerce.coupon.application.CouponService
 import io.hhplus.ecommerce.payment.application.PaymentService
 import io.hhplus.ecommerce.delivery.application.DeliveryService
+import io.hhplus.ecommerce.inventory.application.InventoryService
+import io.hhplus.ecommerce.order.domain.repository.OrderItemRepository
+import io.hhplus.ecommerce.point.application.PointService
+import io.hhplus.ecommerce.point.domain.vo.PointAmount
+import io.hhplus.ecommerce.common.exception.order.OrderException
+import io.hhplus.ecommerce.delivery.domain.constant.DeliveryStatus
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
@@ -29,7 +35,10 @@ class OrderCommandUseCase(
     private val productService: ProductService,
     private val couponService: CouponService,
     private val paymentService: PaymentService,
-    private val deliveryService: DeliveryService
+    private val deliveryService: DeliveryService,
+    private val inventoryService: InventoryService,
+    private val pointService: PointService,
+    private val orderItemRepository: OrderItemRepository
 ) {
 
     /**
@@ -68,7 +77,16 @@ class OrderCommandUseCase(
             couponService.validateCouponUsage(request.userId, couponId, totalAmount)
         } ?: 0L
 
-        // 3. 주문 생성
+        // 3. 재고 차감
+        orderItems.forEach { item ->
+            inventoryService.deductStock(
+                productId = item.packageTypeId,
+                quantity = item.quantity,
+                deductedBy = request.userId
+            )
+        }
+
+        // 4. 주문 생성
         val order = orderService.createOrder(
             userId = request.userId,
             items = orderItems,
@@ -78,19 +96,27 @@ class OrderCommandUseCase(
             createdBy = request.userId
         )
 
-        // 4. 결제 처리
+        // 5. 포인트 사용 (결제)
+        pointService.usePoint(
+            userId = request.userId,
+            amount = PointAmount.of(order.finalAmount),
+            usedBy = request.userId,
+            description = "주문 결제"
+        )
+
+        // 6. 결제 처리 (기록용)
         paymentService.processPayment(
             userId = request.userId,
             orderId = order.id,
             amount = order.finalAmount
         )
 
-        // 5. 쿠폰 사용 처리
+        // 7. 쿠폰 사용 처리
         request.usedCouponId?.let { couponId ->
             couponService.applyCoupon(request.userId, couponId, order.id, totalAmount)
         }
 
-        // 6. 배송 정보 생성
+        // 8. 배송 정보 생성
         deliveryService.createDelivery(
             orderId = order.id,
             deliveryAddress = request.deliveryAddress.toVo(),
@@ -113,7 +139,44 @@ class OrderCommandUseCase(
      */
     @Transactional
     fun cancelOrder(orderId: Long, cancelledBy: Long, reason: String?): Order {
-        return orderService.cancelOrder(orderId, cancelledBy, reason)
+        // 1. 배송 상태 확인 - 배송 준비 중 이후에는 취소 불가
+        val delivery = deliveryService.getDeliveryByOrderId(orderId)
+        delivery.let {
+            if (it.status in listOf(
+                DeliveryStatus.PREPARING,
+                DeliveryStatus.SHIPPED,
+                DeliveryStatus.DELIVERED
+            )) {
+                val order = orderService.getOrder(orderId)
+                    ?: throw IllegalArgumentException("주문을 찾을 수 없습니다")
+                throw OrderException.OrderCancellationNotAllowed(order.orderNumber, order.status)
+            }
+        }
+
+        // 2. 주문 취소 처리 (상태 검증 포함)
+        val cancelledOrder = orderService.cancelOrder(orderId, cancelledBy, reason)
+
+        // 3. 주문 아이템 조회
+        val orderItems = orderItemRepository.findByOrderId(orderId)
+
+        // 4. 재고 복구
+        orderItems.forEach { orderItem ->
+            inventoryService.restockInventory(
+                productId = orderItem.packageTypeId,
+                quantity = orderItem.quantity,
+                restockedBy = cancelledBy
+            )
+        }
+
+        // 5. 포인트 환불
+        pointService.earnPoint(
+            userId = cancelledOrder.userId,
+            amount = PointAmount.of(cancelledOrder.finalAmount),
+            earnedBy = cancelledBy,
+            description = "주문 취소 환불"
+        )
+
+        return cancelledOrder
     }
 
     /**

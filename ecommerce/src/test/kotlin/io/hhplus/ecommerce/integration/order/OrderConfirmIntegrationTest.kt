@@ -14,6 +14,7 @@ import io.hhplus.ecommerce.inventory.domain.entity.Inventory
 import io.hhplus.ecommerce.inventory.domain.repository.InventoryRepository
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldContain
 
 /**
  * 주문 확정 통합 테스트
@@ -166,13 +167,14 @@ class OrderConfirmIntegrationTest(
                 orderCommandUseCase.confirmOrder(createdOrder.id, userId)
 
                 // When & Then: 두 번째 확정 시도
-                val result = runCatching {
+                val exception = runCatching {
                     orderCommandUseCase.confirmOrder(createdOrder.id, userId)
-                }
+                }.exceptionOrNull()
 
-                // 멱등성 보장 또는 예외 발생
-                result.isSuccess shouldBe true // 멱등성 보장하면 성공
-                // 또는 예외 발생 검증 (프로젝트 정책에 따라)
+                // InvalidOrderStatus 예외 발생
+                exception shouldNotBe null
+                exception!!.message shouldContain "잘못된 주문 상태 변경입니다"
+                exception.message shouldContain "CONFIRMED"
             }
         }
 
@@ -241,7 +243,9 @@ class OrderConfirmIntegrationTest(
                 }.exceptionOrNull()
 
                 exception shouldNotBe null
-                exception!!.message shouldBe "취소된 주문은 확정할 수 없습니다"
+                exception!!.message shouldContain "잘못된 주문 상태 변경입니다"
+                exception.message shouldContain "CANCELLED"
+                exception.message shouldContain "CONFIRMED"
             }
         }
     }
