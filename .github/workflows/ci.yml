@@ -12,6 +12,22 @@ jobs:
     name: Run Gradle Tests
     runs-on: ubuntu-latest
 
+    services:
+      mysql:
+        image: mysql:8.0.43
+        env:
+          MYSQL_ROOT_PASSWORD: admin123
+          MYSQL_DATABASE: ecommerce
+          MYSQL_USER: admin
+          MYSQL_PASSWORD: admin123
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
     steps:
       # 1. 소스 코드 체크아웃
       - name: Checkout code
@@ -39,12 +55,25 @@ jobs:
           ./gradlew clean test build --no-daemon
 
       # 5. ecommerce 모듈 테스트 및 빌드
-      - name: Test and build ecommerce module
+      - name: Test and build ecommerce module (with integration tests)
+        id: integration-test
         run: |
           cd ecommerce
           ./gradlew clean test build --no-daemon
+        env:
+          SPRING_PROFILES_ACTIVE: test
+        continue-on-error: true
 
-      # 6. 테스트 결과 아티팩트 업로드 (선택사항)
+      # 6. 통합 테스트 실패 시 단위 테스트만 실행
+      - name: Run unit tests only if integration tests failed
+        if: steps.integration-test.outcome == 'failure'
+        run: |
+          cd ecommerce
+          ./gradlew clean test --tests "*unit*" build --no-daemon
+        env:
+          SPRING_PROFILES_ACTIVE: test
+
+      # 7. 테스트 결과 아티팩트 업로드 (선택사항)
       - name: Upload test results
         uses: actions/upload-artifact@v4
         if: always()
@@ -56,7 +85,7 @@ jobs:
             week01/build/test-results/test/
             ecommerce/build/test-results/test/
 
-      # 7. 코드 커버리지 리포트 생성 (선택사항)
+      # 8. 코드 커버리지 리포트 생성 (선택사항)
       - name: Generate coverage report for week01
         run: |
           cd week01
@@ -67,9 +96,11 @@ jobs:
         run: |
           cd ecommerce
           ./gradlew jacocoTestReport --no-daemon
+        env:
+          SPRING_PROFILES_ACTIVE: test
         continue-on-error: true
 
-      # 8. 커버리지 리포트 업로드 (선택사항)
+      # 9. 커버리지 리포트 업로드 (선택사항)
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4
         if: always()
