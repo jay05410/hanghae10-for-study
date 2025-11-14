@@ -7,6 +7,7 @@ import io.hhplus.ecommerce.user.domain.constant.LoginType
 import org.slf4j.LoggerFactory
 import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.ApplicationRunner
+import org.springframework.context.annotation.DependsOn
 import org.springframework.context.annotation.Profile
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Component
@@ -41,7 +42,7 @@ import kotlin.system.measureTimeMillis
  * 총 예상 시간: 1~2분
  */
 @Component
-@Profile("data-load")
+@DependsOn("entityManagerFactory")
 class PerformanceDataLoader(
     private val jdbcTemplate: JdbcTemplate
 ) : ApplicationRunner {
@@ -55,6 +56,12 @@ class PerformanceDataLoader(
     private val ORDER_COUNT = 100_000
     private val ORDER_ITEM_PER_ORDER = 3 // 평균 주문당 아이템 수
     private val POINT_HISTORY_COUNT = 200_000
+    private val COUPON_COUNT = 1_000
+    private val USER_COUPON_COUNT = 5_000 // 사용자별 쿠폰 발급
+    private val CART_COUNT = 3_000 // 장바구니 수 (일부 사용자만)
+    private val CART_ITEM_PER_CART = 2 // 평균 장바구니당 아이템 수
+    private val PAYMENT_COUNT = 80_000 // 주문의 80% 정도 결제
+    private val PAYMENT_HISTORY_PER_PAYMENT = 2 // 평균 결제당 히스토리
 
     private val BATCH_SIZE = 1000 // 배치 크기
 
@@ -65,20 +72,20 @@ class PerformanceDataLoader(
 
         val totalTime = measureTimeMillis {
             try {
-                // 기존 데이터 확인
-                if (hasExistingData()) {
-                    log.warn("⚠️  데이터가 이미 존재합니다. 스킵합니다.")
-                    log.warn("   새로 적재하려면 DB를 초기화하세요: DROP DATABASE ecommerce; CREATE DATABASE ecommerce;")
-                    return
-                }
-
-                loadUsers()
-                loadProducts()
-                loadInventory()
-                loadOrders()
-                loadOrderItems()
-                loadPointHistory()
-                loadUserPoints()
+                loadUsersIfNeeded()
+                loadProductsIfNeeded()
+                loadInventoryIfNeeded()
+                loadCouponsIfNeeded()
+                loadUserCouponsIfNeeded()
+                loadCartsIfNeeded()
+                loadCartItemsIfNeeded()
+                loadOrdersIfNeeded()
+                loadOrderItemsIfNeeded()
+                loadDeliveryIfNeeded()
+                loadPaymentsIfNeeded()
+                loadPaymentHistoryIfNeeded()
+                loadPointHistoryIfNeeded()
+                loadUserPointsIfNeeded()
 
                 log.info("========================================")
                 log.info("✅ 데이터 로드 완료!")
@@ -96,6 +103,175 @@ class PerformanceDataLoader(
     private fun hasExistingData(): Boolean {
         val userCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM users", Long::class.java) ?: 0
         return userCount > 0
+    }
+
+    private fun clearExistingData() {
+        log.info("🗑️  기존 데이터 클리어 중...")
+
+        // 참조 무결성 때문에 순서대로 삭제
+        val tables = listOf(
+            "order_item_tea", "order_item", "point_history", "user_point",
+            "stock_reservations", "delivery", "orders", "user_coupons",
+            "coupon_issue_history", "cart_item_tea", "cart_items", "carts",
+            "outbox_event", "product_statistics", "inventory", "items", "coupons", "users"
+        )
+
+        tables.forEach { table ->
+            try {
+                val count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM $table", Long::class.java) ?: 0
+                if (count > 0) {
+                    jdbcTemplate.execute("DELETE FROM $table")
+                    log.info("  $table: ${count}건 삭제")
+                }
+            } catch (e: Exception) {
+                log.warn("  $table 테이블 삭제 중 오류 (무시): ${e.message}")
+            }
+        }
+
+        // Auto increment 리셋
+        tables.forEach { table ->
+            try {
+                jdbcTemplate.execute("ALTER TABLE $table AUTO_INCREMENT = 1")
+            } catch (e: Exception) {
+                // 일부 테이블은 AUTO_INCREMENT가 없을 수 있음
+            }
+        }
+
+        log.info("✅ 기존 데이터 클리어 완료")
+    }
+
+    private fun loadUsersIfNeeded() {
+        val count = getTableCount("users")
+        if (count > 0) {
+            log.info("👤 사용자 데이터 이미 존재 (${count}건) - 건너뜀")
+            return
+        }
+        loadUsers()
+    }
+
+    private fun loadProductsIfNeeded() {
+        val count = getTableCount("items")
+        if (count > 0) {
+            log.info("📦 상품 데이터 이미 존재 (${count}건) - 건너뜀")
+            return
+        }
+        loadProducts()
+    }
+
+    private fun loadInventoryIfNeeded() {
+        val count = getTableCount("inventory")
+        if (count > 0) {
+            log.info("📊 재고 데이터 이미 존재 (${count}건) - 건너뜀")
+            return
+        }
+        loadInventory()
+    }
+
+    private fun loadOrdersIfNeeded() {
+        val count = getTableCount("orders")
+        if (count > 0) {
+            log.info("🛒 주문 데이터 이미 존재 (${count}건) - 건너뜀")
+            return
+        }
+        loadOrders()
+    }
+
+    private fun loadOrderItemsIfNeeded() {
+        val count = getTableCount("order_item")
+        if (count > 0) {
+            log.info("📋 주문 아이템 데이터 이미 존재 (${count}건) - 건너뜀")
+            return
+        }
+        loadOrderItems()
+    }
+
+    private fun loadPointHistoryIfNeeded() {
+        val count = getTableCount("point_history")
+        if (count > 0) {
+            log.info("💰 포인트 히스토리 데이터 이미 존재 (${count}건) - 건너뜀")
+            return
+        }
+        loadPointHistory()
+    }
+
+    private fun loadUserPointsIfNeeded() {
+        val count = getTableCount("user_point")
+        if (count > 0) {
+            log.info("💳 사용자 포인트 데이터 이미 존재 (${count}건) - 건너뜀")
+            return
+        }
+        loadUserPoints()
+    }
+
+    private fun loadCouponsIfNeeded() {
+        val count = getTableCount("coupons")
+        if (count > 0) {
+            log.info("🎫 쿠폰 데이터 이미 존재 (${count}건) - 건너뜀")
+            return
+        }
+        loadCoupons()
+    }
+
+    private fun loadUserCouponsIfNeeded() {
+        val count = getTableCount("user_coupons")
+        if (count > 0) {
+            log.info("🎟️ 사용자 쿠폰 데이터 이미 존재 (${count}건) - 건너뜀")
+            return
+        }
+        loadUserCoupons()
+    }
+
+    private fun loadCartsIfNeeded() {
+        val count = getTableCount("carts")
+        if (count > 0) {
+            log.info("🛒 장바구니 데이터 이미 존재 (${count}건) - 건너뜀")
+            return
+        }
+        loadCarts()
+    }
+
+    private fun loadCartItemsIfNeeded() {
+        val count = getTableCount("cart_items")
+        if (count > 0) {
+            log.info("📝 장바구니 아이템 데이터 이미 존재 (${count}건) - 건너뜀")
+            return
+        }
+        loadCartItems()
+    }
+
+    private fun loadDeliveryIfNeeded() {
+        val count = getTableCount("delivery")
+        if (count > 0) {
+            log.info("🚚 배송 데이터 이미 존재 (${count}건) - 건너뜀")
+            return
+        }
+        loadDelivery()
+    }
+
+    private fun loadPaymentsIfNeeded() {
+        val count = getTableCount("payments")
+        if (count > 0) {
+            log.info("💳 결제 데이터 이미 존재 (${count}건) - 건너뜀")
+            return
+        }
+        loadPayments()
+    }
+
+    private fun loadPaymentHistoryIfNeeded() {
+        val count = getTableCount("payment_history")
+        if (count > 0) {
+            log.info("📋 결제 히스토리 데이터 이미 존재 (${count}건) - 건너뜀")
+            return
+        }
+        loadPaymentHistory()
+    }
+
+    private fun getTableCount(tableName: String): Long {
+        return try {
+            jdbcTemplate.queryForObject("SELECT COUNT(*) FROM $tableName", Long::class.java) ?: 0
+        } catch (e: Exception) {
+            0 // 테이블이 없으면 0 반환
+        }
     }
 
     @Transactional
@@ -201,8 +377,8 @@ class PerformanceDataLoader(
 
         val time = measureTimeMillis {
             val sql = """
-                INSERT INTO inventory (product_id, quantity, reserved_quantity, is_active, created_at, updated_at, created_by, updated_by)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO inventory (product_id, quantity, reserved_quantity, version, is_active, created_at, updated_at, created_by, updated_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """.trimIndent()
 
             val batches = PRODUCT_COUNT / BATCH_SIZE
@@ -215,11 +391,12 @@ class PerformanceDataLoader(
                         ps.setLong(1, productId.toLong())
                         ps.setLong(2, Random.nextLong(100, 10000)) // 재고: 100~10,000
                         ps.setLong(3, 0)
-                        ps.setBoolean(4, true)
-                        ps.setString(5, now)
+                        ps.setInt(4, 0) // version
+                        ps.setBoolean(5, true)
                         ps.setString(6, now)
-                        ps.setLong(7, 0)
+                        ps.setString(7, now)
                         ps.setLong(8, 0)
+                        ps.setLong(9, 0)
                     }
 
                     override fun getBatchSize(): Int = BATCH_SIZE
@@ -287,8 +464,8 @@ class PerformanceDataLoader(
 
         val time = measureTimeMillis {
             val sql = """
-                INSERT INTO order_items (order_id, product_id, quantity, price_per_unit, subtotal, is_active, created_at, updated_at, created_by, updated_by)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO order_item (order_id, package_type_id, quantity, daily_serving, package_type_days, total_quantity, tea_price, container_price, gift_wrap_price, total_price, gift_wrap, package_type_name, gift_message, is_active, created_at, updated_at, created_by, updated_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """.trimIndent()
 
             val batches = totalItems / BATCH_SIZE
@@ -298,23 +475,36 @@ class PerformanceDataLoader(
                     override fun setValues(ps: java.sql.PreparedStatement, i: Int) {
                         val itemId = batch * BATCH_SIZE + i + 1
                         val orderId = (itemId / ORDER_ITEM_PER_ORDER) + 1
-                        val productId = (itemId % PRODUCT_COUNT) + 1
                         val now = LocalDateTime.now().format(dateFormatter)
 
-                        val quantity = Random.nextInt(1, 10)
-                        val pricePerUnit = Random.nextLong(5000, 30000)
-                        val subtotal = quantity * pricePerUnit
+                        val quantity = Random.nextInt(1, 5)
+                        val dailyServing = Random.nextInt(1, 4)
+                        val packageTypeDays = Random.nextInt(7, 31)
+                        val totalQuantity = quantity * dailyServing.toDouble()
+                        val teaPrice = Random.nextInt(10000, 50000)
+                        val containerPrice = Random.nextInt(5000, 15000)
+                        val giftWrapPrice = if (Random.nextBoolean()) Random.nextInt(2000, 5000) else 0
+                        val totalPrice = teaPrice + containerPrice + giftWrapPrice
+                        val giftWrap = giftWrapPrice > 0
 
-                        ps.setLong(1, orderId.toLong())
-                        ps.setLong(2, productId.toLong())
-                        ps.setInt(3, quantity)
-                        ps.setLong(4, pricePerUnit)
-                        ps.setLong(5, subtotal)
-                        ps.setBoolean(6, true)
-                        ps.setString(7, now)
-                        ps.setString(8, now)
-                        ps.setLong(9, 0)
-                        ps.setLong(10, 0)
+                        ps.setLong(1, orderId.toLong()) // order_id
+                        ps.setLong(2, Random.nextLong(1, 11)) // package_type_id (1~10)
+                        ps.setInt(3, quantity) // quantity
+                        ps.setInt(4, dailyServing) // daily_serving
+                        ps.setInt(5, packageTypeDays) // package_type_days
+                        ps.setDouble(6, totalQuantity) // total_quantity
+                        ps.setInt(7, teaPrice) // tea_price
+                        ps.setInt(8, containerPrice) // container_price
+                        ps.setInt(9, giftWrapPrice) // gift_wrap_price
+                        ps.setInt(10, totalPrice) // total_price
+                        ps.setBoolean(11, giftWrap) // gift_wrap
+                        ps.setString(12, "패키지타입$packageTypeDays") // package_type_name
+                        ps.setString(13, if (giftWrap) "성능테스트 선물메시지" else null) // gift_message
+                        ps.setBoolean(14, true) // is_active
+                        ps.setString(15, now) // created_at
+                        ps.setString(16, now) // updated_at
+                        ps.setLong(17, 0) // created_by
+                        ps.setLong(18, 0) // updated_by
                     }
 
                     override fun getBatchSize(): Int = BATCH_SIZE
@@ -335,7 +525,7 @@ class PerformanceDataLoader(
 
         val time = measureTimeMillis {
             val sql = """
-                INSERT INTO point_histories (user_id, amount, transaction_type, balance_before, balance_after, order_id, description, is_active, created_at, updated_at, created_by, updated_by)
+                INSERT INTO point_history (user_id, amount, transaction_type, balance_before, balance_after, order_id, description, is_active, created_at, updated_at, created_by, updated_by)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """.trimIndent()
 
@@ -391,8 +581,8 @@ class PerformanceDataLoader(
 
         val time = measureTimeMillis {
             val sql = """
-                INSERT INTO user_points (user_id, balance, is_active, created_at, updated_at, created_by, updated_by)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO user_point (user_id, balance, version, is_active, created_at, updated_at, created_by, updated_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """.trimIndent()
 
             val batches = USER_COUNT / BATCH_SIZE
@@ -404,11 +594,12 @@ class PerformanceDataLoader(
 
                         ps.setLong(1, userId.toLong())
                         ps.setLong(2, Random.nextLong(0, 100000))
-                        ps.setBoolean(3, true)
-                        ps.setString(4, now)
+                        ps.setInt(3, 0) // version
+                        ps.setBoolean(4, true)
                         ps.setString(5, now)
-                        ps.setLong(6, 0)
+                        ps.setString(6, now)
                         ps.setLong(7, 0)
+                        ps.setLong(8, 0)
                     }
 
                     override fun getBatchSize(): Int = BATCH_SIZE
@@ -419,15 +610,357 @@ class PerformanceDataLoader(
         log.info("✅ 사용자 포인트 ${USER_COUNT}건 적재 완료 (${time}ms)")
     }
 
+    @Transactional
+    fun loadCoupons() {
+        log.info("🎫 쿠폰 데이터 적재 시작 (목표: ${COUPON_COUNT}개)")
+
+        val time = measureTimeMillis {
+            val sql = """
+                INSERT INTO coupons (name, code, discount_type, discount_value, minimum_order_amount, total_quantity, issued_quantity, valid_from, valid_to, version, is_active, created_at, updated_at, created_by, updated_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """.trimIndent()
+
+            val discountTypes = listOf("FIXED", "PERCENTAGE")
+            val batches = COUPON_COUNT / BATCH_SIZE
+
+            for (batch in 0 until batches) {
+                jdbcTemplate.batchUpdate(sql, object : org.springframework.jdbc.core.BatchPreparedStatementSetter {
+                    override fun setValues(ps: java.sql.PreparedStatement, i: Int) {
+                        val couponId = batch * BATCH_SIZE + i + 1
+                        val now = LocalDateTime.now().format(dateFormatter)
+                        val validFrom = LocalDateTime.now().minusDays(30).format(dateFormatter)
+                        val validTo = LocalDateTime.now().plusDays(30).format(dateFormatter)
+
+                        val discountType = discountTypes[couponId % discountTypes.size]
+                        val discountValue = if (discountType == "FIXED") {
+                            Random.nextLong(1000, 10000) // 1,000 ~ 10,000원
+                        } else {
+                            Random.nextLong(5, 30) // 5% ~ 30%
+                        }
+                        val minimumOrderAmount = Random.nextLong(10000, 100000) // 10,000 ~ 100,000원
+                        val totalQuantity = Random.nextInt(100, 10000)
+                        val issuedQuantity = Random.nextInt(0, totalQuantity / 10)
+
+                        ps.setString(1, "성능테스트쿠폰${couponId}")
+                        ps.setString(2, "COUP${couponId.toString().padStart(6, '0')}")
+                        ps.setString(3, discountType)
+                        ps.setLong(4, discountValue)
+                        ps.setLong(5, minimumOrderAmount)
+                        ps.setInt(6, totalQuantity)
+                        ps.setInt(7, issuedQuantity)
+                        ps.setString(8, validFrom)
+                        ps.setString(9, validTo)
+                        ps.setInt(10, 0) // version
+                        ps.setBoolean(11, true)
+                        ps.setString(12, now)
+                        ps.setString(13, now)
+                        ps.setLong(14, 0)
+                        ps.setLong(15, 0)
+                    }
+
+                    override fun getBatchSize(): Int = BATCH_SIZE
+                })
+
+                if ((batch + 1) % 10 == 0) {
+                    log.info("  진행: ${(batch + 1) * BATCH_SIZE}/${COUPON_COUNT} (${(batch + 1) * 100 / batches}%)")
+                }
+            }
+        }
+
+        log.info("✅ 쿠폰 ${COUPON_COUNT}개 적재 완료 (${time}ms)")
+    }
+
+    @Transactional
+    fun loadUserCoupons() {
+        log.info("🎟️ 사용자 쿠폰 데이터 적재 시작 (목표: ${USER_COUPON_COUNT}건)")
+
+        val time = measureTimeMillis {
+            val sql = """
+                INSERT INTO user_coupons (user_id, coupon_id, status, issued_at, used_at, used_order_id, is_active, created_at, updated_at, created_by, updated_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """.trimIndent()
+
+            val statuses = listOf("ISSUED", "USED", "EXPIRED")
+            val batches = USER_COUPON_COUNT / BATCH_SIZE
+
+            for (batch in 0 until batches) {
+                jdbcTemplate.batchUpdate(sql, object : org.springframework.jdbc.core.BatchPreparedStatementSetter {
+                    override fun setValues(ps: java.sql.PreparedStatement, i: Int) {
+                        val userCouponId = batch * BATCH_SIZE + i + 1
+                        val userId = (userCouponId % USER_COUNT) + 1
+                        val couponId = (userCouponId % COUPON_COUNT) + 1
+                        val status = statuses[userCouponId % statuses.size]
+                        val issuedAt = LocalDateTime.now().minusDays(Random.nextLong(0, 60)).format(dateFormatter)
+                        val now = LocalDateTime.now().format(dateFormatter)
+
+                        ps.setLong(1, userId.toLong())
+                        ps.setLong(2, couponId.toLong())
+                        ps.setString(3, status)
+                        ps.setString(4, issuedAt)
+                        ps.setObject(5, if (status == "USED") LocalDateTime.now().minusDays(Random.nextLong(0, 30)).format(dateFormatter) else null)
+                        ps.setObject(6, if (status == "USED") (userCouponId % ORDER_COUNT) + 1 else null)
+                        ps.setBoolean(7, true)
+                        ps.setString(8, now)
+                        ps.setString(9, now)
+                        ps.setLong(10, 0)
+                        ps.setLong(11, 0)
+                    }
+
+                    override fun getBatchSize(): Int = BATCH_SIZE
+                })
+            }
+        }
+
+        log.info("✅ 사용자 쿠폰 ${USER_COUPON_COUNT}건 적재 완료 (${time}ms)")
+    }
+
+    @Transactional
+    fun loadCarts() {
+        log.info("🛒 장바구니 데이터 적재 시작 (목표: ${CART_COUNT}개)")
+
+        val time = measureTimeMillis {
+            val sql = """
+                INSERT INTO carts (user_id, is_active, created_at, updated_at, created_by, updated_by)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """.trimIndent()
+
+            val batches = CART_COUNT / BATCH_SIZE
+            for (batch in 0 until batches) {
+                jdbcTemplate.batchUpdate(sql, object : org.springframework.jdbc.core.BatchPreparedStatementSetter {
+                    override fun setValues(ps: java.sql.PreparedStatement, i: Int) {
+                        val cartId = batch * BATCH_SIZE + i + 1
+                        val userId = cartId // 사용자별로 1개씩
+                        val now = LocalDateTime.now().format(dateFormatter)
+
+                        ps.setLong(1, userId.toLong())
+                        ps.setBoolean(2, true)
+                        ps.setString(3, now)
+                        ps.setString(4, now)
+                        ps.setLong(5, userId.toLong())
+                        ps.setLong(6, userId.toLong())
+                    }
+
+                    override fun getBatchSize(): Int = BATCH_SIZE
+                })
+            }
+        }
+
+        log.info("✅ 장바구니 ${CART_COUNT}개 적재 완료 (${time}ms)")
+    }
+
+    @Transactional
+    fun loadCartItems() {
+        val totalItems = CART_COUNT * CART_ITEM_PER_CART
+        log.info("📝 장바구니 아이템 데이터 적재 시작 (목표: ${totalItems}건)")
+
+        val time = measureTimeMillis {
+            val sql = """
+                INSERT INTO cart_items (cart_id, package_type_id, daily_serving, gift_wrap, package_type_days, package_type_name, total_quantity, gift_message, is_active, created_at, updated_at, created_by, updated_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """.trimIndent()
+
+            val batches = totalItems / BATCH_SIZE
+
+            for (batch in 0 until batches) {
+                jdbcTemplate.batchUpdate(sql, object : org.springframework.jdbc.core.BatchPreparedStatementSetter {
+                    override fun setValues(ps: java.sql.PreparedStatement, i: Int) {
+                        val itemId = batch * BATCH_SIZE + i + 1
+                        val cartId = (itemId / CART_ITEM_PER_CART) + 1
+                        val now = LocalDateTime.now().format(dateFormatter)
+
+                        val dailyServing = Random.nextInt(1, 4)
+                        val packageTypeDays = Random.nextInt(7, 31)
+                        val totalQuantity = dailyServing * packageTypeDays.toDouble()
+                        val giftWrap = Random.nextBoolean()
+
+                        ps.setLong(1, cartId.toLong())
+                        ps.setLong(2, Random.nextLong(1, 11))
+                        ps.setInt(3, dailyServing)
+                        ps.setBoolean(4, giftWrap)
+                        ps.setInt(5, packageTypeDays)
+                        ps.setString(6, "패키지타입${packageTypeDays}")
+                        ps.setDouble(7, totalQuantity)
+                        ps.setString(8, if (giftWrap) "장바구니 선물 메시지" else null)
+                        ps.setBoolean(9, true)
+                        ps.setString(10, now)
+                        ps.setString(11, now)
+                        ps.setLong(12, 0)
+                        ps.setLong(13, 0)
+                    }
+
+                    override fun getBatchSize(): Int = BATCH_SIZE
+                })
+            }
+        }
+
+        log.info("✅ 장바구니 아이템 ${totalItems}건 적재 완료 (${time}ms)")
+    }
+
+    @Transactional
+    fun loadDelivery() {
+        log.info("🚚 배송 데이터 적재 시작 (목표: ${ORDER_COUNT}건)")
+
+        val time = measureTimeMillis {
+            val sql = """
+                INSERT INTO delivery (order_id, status, delivery_address, carrier, tracking_number, shipped_at, delivered_at, delivery_memo, is_active, created_at, updated_at, created_by, updated_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """.trimIndent()
+
+            val statuses = listOf("PENDING", "PREPARING", "SHIPPED", "DELIVERED", "FAILED")
+            val carriers = listOf("CJ대한통운", "한진택배", "롯데택배", "우체국택배", "로젠택배")
+            val batches = ORDER_COUNT / BATCH_SIZE
+
+            for (batch in 0 until batches) {
+                jdbcTemplate.batchUpdate(sql, object : org.springframework.jdbc.core.BatchPreparedStatementSetter {
+                    override fun setValues(ps: java.sql.PreparedStatement, i: Int) {
+                        val orderId = batch * BATCH_SIZE + i + 1
+                        val status = statuses[orderId % statuses.size]
+                        val carrier = carriers[orderId % carriers.size]
+                        val now = LocalDateTime.now().format(dateFormatter)
+                        val address = """{"zipCode":"${Random.nextInt(10000,99999)}","address":"서울시 강남구 테헤란로 ${Random.nextInt(1,500)}","detailAddress":"${Random.nextInt(1,20)}층"}"""
+
+                        ps.setLong(1, orderId.toLong())
+                        ps.setString(2, status)
+                        ps.setString(3, address)
+                        ps.setString(4, carrier)
+                        ps.setString(5, if (status in listOf("SHIPPED", "DELIVERED")) "${Random.nextLong(100000000000, 999999999999)}" else null)
+                        ps.setObject(6, if (status in listOf("SHIPPED", "DELIVERED")) LocalDateTime.now().minusDays(Random.nextLong(0, 7)).format(dateFormatter) else null)
+                        ps.setObject(7, if (status == "DELIVERED") LocalDateTime.now().minusDays(Random.nextLong(0, 3)).format(dateFormatter) else null)
+                        ps.setString(8, "문앞에 놓아주세요")
+                        ps.setBoolean(9, true)
+                        ps.setString(10, now)
+                        ps.setString(11, now)
+                        ps.setLong(12, 0)
+                        ps.setLong(13, 0)
+                    }
+
+                    override fun getBatchSize(): Int = BATCH_SIZE
+                })
+
+                if ((batch + 1) % 10 == 0) {
+                    log.info("  진행: ${(batch + 1) * BATCH_SIZE}/${ORDER_COUNT} (${(batch + 1) * 100 / batches}%)")
+                }
+            }
+        }
+
+        log.info("✅ 배송 ${ORDER_COUNT}건 적재 완료 (${time}ms)")
+    }
+
+    @Transactional
+    fun loadPayments() {
+        log.info("💳 결제 데이터 적재 시작 (목표: ${PAYMENT_COUNT}건)")
+
+        val time = measureTimeMillis {
+            val sql = """
+                INSERT INTO payments (user_id, order_id, payment_number, amount, payment_method, status, external_transaction_id, failure_reason, created_at, updated_at, created_by, updated_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """.trimIndent()
+
+            val paymentMethods = listOf("CARD", "BANK_TRANSFER", "BALANCE")
+            val statuses = listOf("PENDING", "PROCESSING", "COMPLETED", "FAILED", "CANCELLED")
+            val batches = PAYMENT_COUNT / BATCH_SIZE
+
+            for (batch in 0 until batches) {
+                jdbcTemplate.batchUpdate(sql, object : org.springframework.jdbc.core.BatchPreparedStatementSetter {
+                    override fun setValues(ps: java.sql.PreparedStatement, i: Int) {
+                        val paymentId = batch * BATCH_SIZE + i + 1
+                        val orderId = paymentId // 1:1 매핑
+                        val userId = (orderId % USER_COUNT) + 1
+                        val paymentMethod = paymentMethods[paymentId % paymentMethods.size]
+                        val status = statuses[paymentId % statuses.size]
+                        val amount = Random.nextLong(10000, 500000)
+                        val now = LocalDateTime.now().format(dateFormatter)
+
+                        ps.setLong(1, userId.toLong())
+                        ps.setLong(2, orderId.toLong())
+                        ps.setString(3, "PAY${paymentId.toString().padStart(10, '0')}")
+                        ps.setLong(4, amount)
+                        ps.setString(5, paymentMethod)
+                        ps.setString(6, status)
+                        ps.setString(7, if (status in listOf("COMPLETED", "FAILED")) "ext_${Random.nextLong(100000, 999999)}" else null)
+                        ps.setString(8, if (status == "FAILED") "카드 한도 초과" else null)
+                        ps.setString(9, now)
+                        ps.setString(10, now)
+                        ps.setLong(11, userId.toLong())
+                        ps.setLong(12, userId.toLong())
+                    }
+
+                    override fun getBatchSize(): Int = BATCH_SIZE
+                })
+
+                if ((batch + 1) % 10 == 0) {
+                    log.info("  진행: ${(batch + 1) * BATCH_SIZE}/${PAYMENT_COUNT} (${(batch + 1) * 100 / batches}%)")
+                }
+            }
+        }
+
+        log.info("✅ 결제 ${PAYMENT_COUNT}건 적재 완료 (${time}ms)")
+    }
+
+    @Transactional
+    fun loadPaymentHistory() {
+        val totalHistory = PAYMENT_COUNT * PAYMENT_HISTORY_PER_PAYMENT
+        log.info("📋 결제 히스토리 데이터 적재 시작 (목표: ${totalHistory}건)")
+
+        val time = measureTimeMillis {
+            val sql = """
+                INSERT INTO payment_history (payment_id, amount, status_before, status_after, reason, pg_response, created_at, updated_at, created_by, updated_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """.trimIndent()
+
+            val statusTransitions = listOf(
+                "PENDING" to "PROCESSING",
+                "PROCESSING" to "COMPLETED",
+                "PROCESSING" to "FAILED",
+                "COMPLETED" to "CANCELLED"
+            )
+            val batches = totalHistory / BATCH_SIZE
+
+            for (batch in 0 until batches) {
+                jdbcTemplate.batchUpdate(sql, object : org.springframework.jdbc.core.BatchPreparedStatementSetter {
+                    override fun setValues(ps: java.sql.PreparedStatement, i: Int) {
+                        val historyId = batch * BATCH_SIZE + i + 1
+                        val paymentId = (historyId / PAYMENT_HISTORY_PER_PAYMENT) + 1
+                        val transition = statusTransitions[historyId % statusTransitions.size]
+                        val amount = Random.nextLong(10000, 500000)
+                        val now = LocalDateTime.now().format(dateFormatter)
+
+                        ps.setLong(1, paymentId.toLong())
+                        ps.setLong(2, amount)
+                        ps.setString(3, transition.first)
+                        ps.setString(4, transition.second)
+                        ps.setString(5, "자동 상태 변경")
+                        ps.setString(6, """{"code":"${Random.nextInt(1000,9999)}","message":"처리완료"}""")
+                        ps.setString(7, now)
+                        ps.setString(8, now)
+                        ps.setLong(9, 0)
+                        ps.setLong(10, 0)
+                    }
+
+                    override fun getBatchSize(): Int = BATCH_SIZE
+                })
+            }
+        }
+
+        log.info("✅ 결제 히스토리 ${totalHistory}건 적재 완료 (${time}ms)")
+    }
+
     private fun printSummary() {
         val counts = mapOf(
             "users" to jdbcTemplate.queryForObject("SELECT COUNT(*) FROM users", Long::class.java),
             "items" to jdbcTemplate.queryForObject("SELECT COUNT(*) FROM items", Long::class.java),
             "inventory" to jdbcTemplate.queryForObject("SELECT COUNT(*) FROM inventory", Long::class.java),
+            "coupons" to jdbcTemplate.queryForObject("SELECT COUNT(*) FROM coupons", Long::class.java),
+            "user_coupons" to jdbcTemplate.queryForObject("SELECT COUNT(*) FROM user_coupons", Long::class.java),
+            "carts" to jdbcTemplate.queryForObject("SELECT COUNT(*) FROM carts", Long::class.java),
+            "cart_items" to jdbcTemplate.queryForObject("SELECT COUNT(*) FROM cart_items", Long::class.java),
             "orders" to jdbcTemplate.queryForObject("SELECT COUNT(*) FROM orders", Long::class.java),
-            "order_items" to jdbcTemplate.queryForObject("SELECT COUNT(*) FROM order_items", Long::class.java),
-            "point_histories" to jdbcTemplate.queryForObject("SELECT COUNT(*) FROM point_histories", Long::class.java),
-            "user_points" to jdbcTemplate.queryForObject("SELECT COUNT(*) FROM user_points", Long::class.java)
+            "order_item" to jdbcTemplate.queryForObject("SELECT COUNT(*) FROM order_item", Long::class.java),
+            "delivery" to jdbcTemplate.queryForObject("SELECT COUNT(*) FROM delivery", Long::class.java),
+            "payments" to jdbcTemplate.queryForObject("SELECT COUNT(*) FROM payments", Long::class.java),
+            "payment_history" to jdbcTemplate.queryForObject("SELECT COUNT(*) FROM payment_history", Long::class.java),
+            "point_history" to jdbcTemplate.queryForObject("SELECT COUNT(*) FROM point_history", Long::class.java),
+            "user_point" to jdbcTemplate.queryForObject("SELECT COUNT(*) FROM user_point", Long::class.java)
         )
 
         log.info("📊 데이터 적재 현황:")
@@ -435,7 +968,7 @@ class PerformanceDataLoader(
             log.info("   - $table: ${String.format("%,d", count)}건")
         }
 
-        val totalRecords = counts.values.sum()
+        val totalRecords = counts.values.filterNotNull().sum()
         log.info("📊 총 레코드 수: ${String.format("%,d", totalRecords)}건")
     }
 }

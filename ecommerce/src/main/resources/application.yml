@@ -18,7 +18,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
@@ -26,6 +26,8 @@ spring:
         show_sql: false
         format_sql: false
         use_sql_comments: false
+        # Hibernate Statistics 활성화
+        generate_statistics: true
         jdbc:
           time_zone: Asia/Seoul
           batch_size: 20
