@@ -114,7 +114,7 @@ class CouponServiceTest : DescribeSpec({
                 val mockUserCoupon = mockk<UserCoupon>()
 
                 every { mockCoupon.issue(userId) } just runs
-                every { mockCouponRepository.findById(couponId) } returns mockCoupon
+                every { mockCouponRepository.findByIdWithLock(couponId) } returns mockCoupon
                 every { mockUserCouponRepository.findByUserIdAndCouponId(userId, couponId) } returns null
                 every { mockCouponRepository.save(mockCoupon) } returns mockCoupon
                 every { mockUserCouponRepository.save(any()) } returns mockUserCoupon
@@ -127,7 +127,7 @@ class CouponServiceTest : DescribeSpec({
 
                 result shouldBe mockUserCoupon
                 verifyOrder {
-                    mockCouponRepository.findById(couponId)
+                    mockCouponRepository.findByIdWithLock(couponId)
                     mockCoupon.isAvailableForIssue()
                     mockUserCouponRepository.findByUserIdAndCouponId(userId, couponId)
                     mockCoupon.issue(userId)
@@ -144,13 +144,13 @@ class CouponServiceTest : DescribeSpec({
                 val userId = 1L
                 val couponId = 999L
 
-                every { mockCouponRepository.findById(couponId) } returns null
+                every { mockCouponRepository.findByIdWithLock(couponId) } returns null
 
                 shouldThrow<CouponException.CouponNotFound> {
                     sut.issueCoupon(userId, couponId)
                 }
 
-                verify(exactly = 1) { mockCouponRepository.findById(couponId) }
+                verify(exactly = 1) { mockCouponRepository.findByIdWithLock(couponId) }
                 verify(exactly = 0) { mockUserCouponRepository.save(any()) }
                 verify(exactly = 0) { mockCouponIssueHistoryService.recordIssue(any(), any(), any()) }
             }
@@ -166,13 +166,13 @@ class CouponServiceTest : DescribeSpec({
                     every { isAvailableForIssue() } returns false
                 }
 
-                every { mockCouponRepository.findById(couponId) } returns mockCoupon
+                every { mockCouponRepository.findByIdWithLock(couponId) } returns mockCoupon
 
                 shouldThrow<CouponException.CouponSoldOut> {
                     sut.issueCoupon(userId, couponId)
                 }
 
-                verify(exactly = 1) { mockCouponRepository.findById(couponId) }
+                verify(exactly = 1) { mockCouponRepository.findByIdWithLock(couponId) }
                 verify(exactly = 1) { mockCoupon.isAvailableForIssue() }
                 verify(exactly = 0) { mockUserCouponRepository.save(any()) }
             }
@@ -188,14 +188,14 @@ class CouponServiceTest : DescribeSpec({
                 }
                 val existingUserCoupon = mockk<UserCoupon>()
 
-                every { mockCouponRepository.findById(couponId) } returns mockCoupon
+                every { mockCouponRepository.findByIdWithLock(couponId) } returns mockCoupon
                 every { mockUserCouponRepository.findByUserIdAndCouponId(userId, couponId) } returns existingUserCoupon
 
                 shouldThrow<CouponException.AlreadyIssuedCoupon> {
                     sut.issueCoupon(userId, couponId)
                 }
 
-                verify(exactly = 1) { mockCouponRepository.findById(couponId) }
+                verify(exactly = 1) { mockCouponRepository.findByIdWithLock(couponId) }
                 verify(exactly = 1) { mockUserCouponRepository.findByUserIdAndCouponId(userId, couponId) }
                 verify(exactly = 0) { mockUserCouponRepository.save(any()) }
             }
