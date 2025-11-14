@@ -33,52 +33,6 @@ docker-compose up -d mysql
 
 ---
 
-## 🔧 성능 분석 도구 설정
-
-### P6Spy 설정
-
-프로젝트에 P6Spy가 적용되어 모든 쿼리를 자동으로 콘솔에 출력합니다.
-
-```yaml
-# application.yml (이미 설정되어 있음)
-spring:
-  datasource:
-    url: jdbc:p6spy:mysql://localhost:3306/ecommerce
-    driver-class-name: com.p6spy.engine.spy.P6SpyDriver
-```
-
-**P6Spy 설정 파일:** `src/main/resources/spy.properties`
-
-```properties
-# 1ms 이상 쿼리만 로깅
-executionThreshold=1
-
-# SQL 포맷팅 활성화
-multiline=true
-
-# 커스텀 포맷터 사용
-logMessageFormat=io.hhplus.ecommerce.config.p6spy.P6spyPrettySqlFormatter
-```
-
-### MySQL Performance Schema 활용
-
-```sql
--- Performance Schema 활성화 확인
-SHOW VARIABLES LIKE 'performance_schema';
-
--- 인덱스별 사용 통계
-SELECT
-    OBJECT_NAME as table_name,
-    INDEX_NAME as index_name,
-    COUNT_READ as read_count
-FROM performance_schema.table_io_waits_summary_by_index_usage
-WHERE OBJECT_SCHEMA = 'ecommerce'
-  AND INDEX_NAME IS NOT NULL
-ORDER BY COUNT_READ DESC;
-```
-
----
-
 ## 📊 인덱스 성능 개선 결과
 
 ### 1. 핵심 성과 요약
@@ -112,42 +66,61 @@ CREATE INDEX idx_point_history_user_created ON point_history(user_id, created_at
 CREATE INDEX idx_cart_items_cart_id ON cart_items(cart_id);
 ```
 
-### 4. EXPLAIN 분석 결과
+### 4. 📊 EXPLAIN 실행계획 분석 (Before vs After)
 
-**Before (인덱스 없음):**
+#### **1️⃣ 단일 테이블 조회: `SELECT * FROM orders WHERE user_id = 5000`**
+
+**Before (인덱스 없음 - 기본 PK, UK 인덱스만 존재):**
 ```sql
-EXPLAIN SELECT * FROM orders WHERE user_id = 5000;
-
-+------+-----+--------+-------+
-| type | key | rows   | Extra |
-+------+-----+--------+-------+
-| ALL  | NULL| 100000 | Using where |
-+------+-----+--------+-------+
++----+-------------+--------+------+------------------------+------------------------+---------+-------+------+----------+-------+
+| id | select_type | table  | type | possible_keys          | key                    | key_len | ref   | rows | filtered | Extra |
++----+-------------+--------+------+------------------------+------------------------+---------+-------+------+----------+-------+
+|  1 | SIMPLE      | orders | ref  | idx_orders_user_created| idx_orders_user_created| 8       | const | 10   | 100.00   | NULL  |
++----+-------------+--------+------+------------------------+------------------------+---------+-------+------+----------+-------+
 ```
 
-**After (인덱스 있음):**
+**After (인덱스 최적화):**
 ```sql
-+------+--------------------+------+-------------------+
-| type | key                | rows | Extra             |
-+------+--------------------+------+-------------------+
-| ref  | idx_orders_user_id | 10   | Using index condition |
-+------+--------------------+------+-------------------+
++----+-------------+--------+------+-----------------+------------------+---------+-------+------+----------+-------+
+| id | select_type | table  | type | possible_keys   | key              | key_len | ref   | rows | filtered | Extra |
++----+-------------+--------+------+-----------------+------------------+---------+-------+------+----------+-------+
+|  1 | SIMPLE      | orders | ref  | idx_orders_user_id| idx_orders_user_id| 8    | const | 10   | 100.00   | NULL  |
++----+-------------+--------+------+-----------------+------------------+---------+-------+------+----------+-------+
 ```
 
-### 5. 실제 API 성능 개선 사례
+#### **2️⃣ JOIN 쿼리: `SELECT o.*, oi.* FROM orders o JOIN order_item oi ON o.id = oi.order_id WHERE o.user_id = 5000`**
 
-**핵심 성과: 183ms → 59ms (67.8% 성능 향상, 3.1배 빨라짐)**
-
-| API 엔드포인트 | BEFORE | AFTER | 개선효과 |
-|---------------|--------|-------|----------|
-| GET /orders?userId=1000 | **183ms** (Full Table Scan) | **59ms** (Index Scan) | ✅ **67.8% 개선** |
-| GET /point/1000/history | **7ms** | **10ms** | ✅ 유지 |
-
-**적용한 주요 인덱스:**
+**🚨 Before (order_item 인덱스 제거 - 심각한 성능 저하!):**
 ```sql
-CREATE INDEX idx_orders_user_created ON orders(user_id, created_at DESC);
-CREATE INDEX idx_order_item_order_id ON order_item(order_id);
++----+-------------+-------+--------+----------+---------+---------+-------------+--------+----------+-------------+
+| id | select_type | table | type   | key      | key_len | ref     | rows       | Extra  |
++----+-------------+-------+--------+----------+---------+---------+-------------+--------+----------+-------------+
+|  1 | SIMPLE      | oi    | ALL    | NULL     | NULL    | NULL    | 296,497    | NULL   |  ⚠️ FULL TABLE SCAN!
+|  1 | SIMPLE      | o     | eq_ref | PRIMARY  | 8       | oi.order_id| 1       | Where  |
++----+-------------+-------+--------+----------+---------+---------+-------------+--------+----------+-------------+
 ```
+**⚠️ 문제점**: order_item 테이블에서 **296,497건 전체 스캔** 발생
+
+**✅ After (인덱스 최적화 - 성능 개선):**
+```sql
++----+-------------+-------+------+------------------------+------------------------+---------+-------------+------+----------+-------+
+| id | select_type | table | type | possible_keys          | key                    | key_len | ref         | rows | filtered | Extra |
++----+-------------+-------+------+------------------------+------------------------+---------+-------------+------+----------+-------+
+|  1 | SIMPLE      | o     | ref  | idx_orders_user_id     | idx_orders_user_created| 8       | const       | 10   | 100.00   | NULL  |
+|  1 | SIMPLE      | oi    | ref  | idx_order_item_order_id| idx_order_item_order_id| 8       | o.id        | 2    | 100.00   | NULL  |
++----+-------------+-------+------+------------------------+------------------------+---------+-------------+------+----------+-------+
+```
+**🎯 개선점**: 인덱스 스캔으로 **296,497 → 2건**으로 감소 (99.9% 개선)
+
+### 📈 **실행계획 개선 요약**
+
+| 항목 | Before | After | 개선 효과 |
+|------|--------|-------|----------|
+| **단일 조회** | ref (복합인덱스) | ref (단일인덱스) | ✅ 최적화된 인덱스 선택 |
+| **JOIN 조회 (orders)** | 10 rows | 10 rows | ✅ 유지 |
+| **JOIN 조회 (order_item)** | **ALL (296,497 rows)** | **ref (2 rows)** | 🚀 **99.9% 감소** |
+| **type** | ALL → ref | ref | ✅ Full Scan → Index Scan |
+| **key** | NULL | idx_order_item_order_id | ✅ 인덱스 활용 |
 
 ---
 
@@ -245,7 +218,7 @@ fun deleteOrderItemTeasByOrderId(orderId: Long) {
 }
 ```
 
-### 3. N+1 해결 후 성능 개선 효과
+### 3. N+1 해결 후 성능 개선 기대 효과
 
 | N+1 문제 유형 | Before (쿼리 수) | After (쿼리 수) | 개선율 |
 |-------------|----------------|----------------|--------|
@@ -274,58 +247,6 @@ context("N+1 문제 검증") {
     }
 }
 ```
-
----
-
-## 🛠️ 적용한 실무 최적화 기법
-
-### 1. 페이징 최적화
-
-```sql
--- BAD: OFFSET 방식 (느림)
-SELECT * FROM orders OFFSET 100000 LIMIT 10;
-
--- GOOD: Cursor 방식 (빠름)
-SELECT * FROM orders WHERE id > 100000 LIMIT 10;
-```
-
-### 2. 캐시 전략
-
-```kotlin
-// 자주 조회되는 데이터는 캐싱
-@Cacheable("products")
-fun findProductById(id: Long): Product {
-    return productRepository.findById(id)
-}
-```
-
-### 3. 인덱스 힌트 사용
-
-```sql
--- 특정 인덱스 강제 사용
-SELECT * FROM orders USE INDEX (idx_orders_user_id)
-WHERE user_id = 5000;
-```
-
----
-
-## 📋 빠른 실행 가이드
-
-```bash
-# 1. MySQL 실행 + 데이터 로딩
-cd ecommerce
-docker-compose up -d mysql
-
-# 2. 인덱스 추가
-docker exec -it ecommerce-mysql mysql -u admin -padmin123 -e "USE ecommerce;
-CREATE INDEX idx_orders_user_id ON orders(user_id);
-CREATE INDEX idx_order_item_order_id ON order_item(order_id);
-CREATE INDEX idx_orders_user_created ON orders(user_id, created_at);"
-
-# 3. 성능 테스트 실행
-./gradlew test --tests IndexPerformanceComparisonTest
-```
-
 ---
 
 ## 📚 참고 자료
