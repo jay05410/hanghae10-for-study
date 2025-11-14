@@ -30,16 +30,6 @@ import kotlin.system.measureTimeMillis
  * # 데이터 로드 프로파일로 실행
  * ./gradlew bootRun --args='--spring.profiles.active=data-load'
  * ```
- *
- * 적재 데이터:
- * - Users: 10,000명
- * - Products: 10,000개
- * - Orders: 100,000건
- * - OrderItems: 300,000건
- * - PointHistory: 200,000건
- * - Inventory: 10,000건
- *
- * 총 예상 시간: 1~2분
  */
 @Component
 @Profile("data-load")

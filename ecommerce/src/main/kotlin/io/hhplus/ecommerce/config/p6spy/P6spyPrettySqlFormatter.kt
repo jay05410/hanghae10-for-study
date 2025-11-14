@@ -2,6 +2,7 @@ package io.hhplus.ecommerce.config.p6spy
 
 import com.p6spy.engine.spy.appender.MessageFormattingStrategy
 import org.hibernate.engine.jdbc.internal.FormatStyle
+import org.springframework.stereotype.Component
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -9,7 +10,9 @@ import java.util.*
  * P6spy SQL 출력을 가독성 있게 포맷팅하는 클래스
  * 헤더 부분에 색상을 적용하고, 파라미터와 문자열만 특별 색상으로 강조합니다.
  */
+@Component
 class P6spyPrettySqlFormatter : MessageFormattingStrategy {
+
 
     // ANSI 색상 코드
     companion object {
@@ -51,6 +54,7 @@ class P6spyPrettySqlFormatter : MessageFormattingStrategy {
         if (sql.isNullOrBlank()) {
             return ""
         }
+
 
         // SQL 포맷팅 및 하이라이팅
         val formattedSql = formatAndHighlightSql(sql)

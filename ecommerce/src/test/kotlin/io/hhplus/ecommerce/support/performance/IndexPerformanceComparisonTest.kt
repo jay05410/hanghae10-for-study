@@ -73,7 +73,6 @@ class IndexPerformanceComparisonTest(
             }
 
             log.info("✅ 사용자별 주문 조회 (user_id=$userId): ${time}ms")
-            log.info("   쿼리: SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC")
         }
 
         it("user_id로 주문 조회 - 100명 반복 (평균 성능)") {
@@ -98,7 +97,6 @@ class IndexPerformanceComparisonTest(
             log.info("   평균: ${String.format("%.2f", avgTime)}ms")
             log.info("   최대: ${maxTime}ms")
             log.info("   최소: ${minTime}ms")
-            log.info("   권장 인덱스: CREATE INDEX idx_orders_user_id ON orders(user_id);")
         }
     }
 
@@ -119,7 +117,6 @@ class IndexPerformanceComparisonTest(
             }
 
             log.info("✅ 주문 상태별 조회 (status=PENDING): ${time}ms")
-            log.info("   권장 인덱스: CREATE INDEX idx_orders_status ON orders(status);")
         }
 
         it("복합 조건 조회 - user_id + status") {
@@ -133,7 +130,6 @@ class IndexPerformanceComparisonTest(
             }
 
             log.info("✅ 복합 조건 조회 (user_id + status): ${time}ms")
-            log.info("   권장 인덱스: CREATE INDEX idx_orders_user_status ON orders(user_id, status);")
         }
     }
 
@@ -156,7 +152,6 @@ class IndexPerformanceComparisonTest(
             }
 
             log.info("✅ 포인트 히스토리 조회 (user_id=$userId): ${time}ms")
-            log.info("   권장 인덱스: CREATE INDEX idx_point_history_user_id ON point_history(user_id);")
         }
 
         it("특정 기간 포인트 히스토리 조회") {
@@ -174,7 +169,6 @@ class IndexPerformanceComparisonTest(
             }
 
             log.info("✅ 특정 기간 포인트 히스토리 조회: ${time}ms")
-            log.info("   권장 인덱스: CREATE INDEX idx_point_history_user_created ON point_history(user_id, created_at);")
         }
     }
 
@@ -195,7 +189,6 @@ class IndexPerformanceComparisonTest(
             }
 
             log.info("✅ 카테고리별 상품 조회: ${time}ms")
-            log.info("   권장 인덱스: CREATE INDEX idx_items_category_active ON items(category_id, is_active);")
         }
 
         it("상품명 LIKE 검색") {
@@ -208,7 +201,6 @@ class IndexPerformanceComparisonTest(
             }
 
             log.info("✅ 상품명 LIKE 검색: ${time}ms")
-            log.info("   ⚠️ LIKE '%keyword%'는 인덱스를 사용할 수 없음 → Full Text Index 또는 ElasticSearch 고려")
         }
     }
 
@@ -240,9 +232,6 @@ class IndexPerformanceComparisonTest(
             }
 
             log.info("✅ 주문 상세 정보 조회 (3개 테이블 JOIN): ${time}ms")
-            log.info("   권장 인덱스:")
-            log.info("     - CREATE INDEX idx_order_item_order_id ON order_item(order_id);")
-            log.info("     - CREATE INDEX idx_order_item_package_type ON order_item(package_type_id);")
         }
 
         it("사용자 주문 통계 (GROUP BY, COUNT)") {
@@ -264,14 +253,181 @@ class IndexPerformanceComparisonTest(
             }
 
             log.info("✅ 사용자 주문 통계 (GROUP BY): ${time}ms")
-            log.info("   권장 인덱스: CREATE INDEX idx_orders_user_id ON orders(user_id);")
         }
     }
 
     /**
-     * 시나리오 6: 인덱스 효과 검증 (EXPLAIN ANALYZE)
+     * 시나리오 6: Payment (결제) 관련 쿼리 성능
+     *
+     * 비즈니스 상황: 주문별/사용자별 결제 내역 조회
+     * 예상 개선: 이미 인덱스 있음 - 성능 검증 목적
      */
-    describe("시나리오 6: 쿼리 실행 계획 분석") {
+    describe("시나리오 6: Payment 관련 쿼리 성능") {
+        it("주문별 결제 내역 조회") {
+            val orderId = 50000L
+
+            val time = measureTimeMillis {
+                jdbcTemplate.query(
+                    "SELECT * FROM payments WHERE order_id = ? ORDER BY created_at DESC",
+                    { rs, _ -> rs.getLong("id") },
+                    orderId
+                )
+            }
+
+            log.info("✅ 주문별 결제 내역 조회 (order_id=$orderId): ${time}ms")
+        }
+
+        it("사용자별 결제 내역 조회") {
+            val userId = 5000L
+
+            val time = measureTimeMillis {
+                jdbcTemplate.query(
+                    "SELECT * FROM payments WHERE user_id = ? ORDER BY created_at DESC LIMIT 20",
+                    { rs, _ -> rs.getLong("id") },
+                    userId
+                )
+            }
+
+            log.info("✅ 사용자별 결제 내역 조회 (user_id=$userId): ${time}ms")
+        }
+
+        it("결제 상태별 조회") {
+            val time = measureTimeMillis {
+                jdbcTemplate.query(
+                    "SELECT * FROM payments WHERE status = ? ORDER BY created_at DESC LIMIT 100",
+                    { rs, _ -> rs.getLong("id") },
+                    "COMPLETED"
+                )
+            }
+
+            log.info("✅ 결제 상태별 조회 (status=COMPLETED): ${time}ms")
+        }
+    }
+
+    /**
+     * 시나리오 7: Cart (장바구니) 관련 쿼리 성능
+     *
+     * 비즈니스 상황: 사용자별 장바구니 조회
+     * 예상 개선: 이미 unique 인덱스 있음
+     */
+    describe("시나리오 7: Cart 관련 쿼리 성능") {
+        it("사용자별 장바구니 조회") {
+            val userId = 5000L
+
+            val time = measureTimeMillis {
+                jdbcTemplate.query(
+                    "SELECT * FROM carts WHERE user_id = ? AND is_active = true",
+                    { rs, _ -> rs.getLong("id") },
+                    userId
+                )
+            }
+
+            log.info("✅ 사용자별 장바구니 조회 (user_id=$userId): ${time}ms")
+        }
+
+        it("장바구니 아이템 조회 (Cart + Item JOIN)") {
+            val userId = 5000L
+
+            val time = measureTimeMillis {
+                jdbcTemplate.query(
+                    """
+                    SELECT
+                        c.id as cart_id,
+                        ci.id as cart_item_id,
+                        ci.package_type_id,
+                        ci.total_quantity,
+                        ci.package_type_name
+                    FROM carts c
+                    INNER JOIN cart_items ci ON c.id = ci.cart_id
+                    WHERE c.user_id = ? AND c.is_active = true
+                    """.trimIndent(),
+                    { rs, _ -> rs.getLong("cart_id") },
+                    userId
+                )
+            }
+
+            log.info("✅ 장바구니 아이템 조회 (Cart + Item JOIN): ${time}ms")
+        }
+    }
+
+    /**
+     * 시나리오 8: Delivery (배송) 관련 쿼리 성능
+     *
+     * 비즈니스 상황: 주문별 배송 상태 조회
+     * 예상 개선: 이미 인덱스 있음
+     */
+    describe("시나리오 8: Delivery 관련 쿼리 성능") {
+        it("주문별 배송 상태 조회") {
+            val orderId = 50000L
+
+            val time = measureTimeMillis {
+                jdbcTemplate.query(
+                    "SELECT * FROM delivery WHERE order_id = ?",
+                    { rs, _ -> rs.getLong("id") },
+                    orderId
+                )
+            }
+
+            log.info("✅ 주문별 배송 상태 조회 (order_id=$orderId): ${time}ms")
+        }
+
+        it("배송 상태별 조회") {
+            val time = measureTimeMillis {
+                jdbcTemplate.query(
+                    "SELECT * FROM delivery WHERE status = ? ORDER BY created_at DESC LIMIT 100",
+                    { rs, _ -> rs.getLong("id") },
+                    "DELIVERED"
+                )
+            }
+
+            log.info("✅ 배송 상태별 조회 (status=DELIVERED): ${time}ms")
+        }
+    }
+
+    /**
+     * 시나리오 9: 복합 JOIN 쿼리 성능 (4-way JOIN)
+     *
+     * 비즈니스 상황: 사용자 주문 전체 정보 조회 (Order + Payment + Delivery + OrderItem)
+     * 예상 개선: order_item FK 인덱스 없어서 느림 예상
+     */
+    describe("시나리오 9: 복합 JOIN 쿼리 성능 (4-way)") {
+        it("사용자 주문 전체 정보 조회 (Order + Payment + Delivery + OrderItem)") {
+            val userId = 5000L
+
+            val time = measureTimeMillis {
+                jdbcTemplate.query(
+                    """
+                    SELECT
+                        o.id as order_id,
+                        o.order_number,
+                        o.total_amount,
+                        p.payment_number,
+                        p.status as payment_status,
+                        d.tracking_number,
+                        d.status as delivery_status,
+                        oi.quantity,
+                        oi.total_price
+                    FROM orders o
+                    LEFT JOIN payments p ON o.id = p.order_id
+                    LEFT JOIN delivery d ON o.id = d.order_id
+                    LEFT JOIN order_item oi ON o.id = oi.order_id
+                    WHERE o.user_id = ?
+                    ORDER BY o.created_at DESC
+                    LIMIT 50
+                    """.trimIndent(),
+                    { rs, _ -> rs.getLong("order_id") },
+                    userId
+                )
+            }
+
+            log.info("✅ 4-way JOIN 쿼리 (Order + Payment + Delivery + OrderItem): ${time}ms")
+        }
+    }
+
+    /**
+     * 시나리오 10: 인덱스 효과 검증 (EXPLAIN ANALYZE)
+     */
+    describe("시나리오 10: 쿼리 실행 계획 분석") {
         it("EXPLAIN으로 쿼리 실행 계획 확인") {
             val query = "SELECT * FROM orders WHERE user_id = 5000 ORDER BY created_at DESC"
 
@@ -304,35 +460,7 @@ class IndexPerformanceComparisonTest(
         it("전체 시나리오 종합 측정") {
             log.info("")
             log.info("=" .repeat(80))
-            log.info("📊 성능 측정 완료 - 인덱스 추가 전후 비교 가이드")
-            log.info("=" .repeat(80))
-            log.info("")
-            log.info("📌 권장 인덱스 목록:")
-            log.info("")
-            log.info("-- 사용자별 조회 최적화")
-            log.info("CREATE INDEX idx_orders_user_id ON orders(user_id);")
-            log.info("CREATE INDEX idx_point_history_user_id ON point_history(user_id);")
-            log.info("")
-            log.info("-- 주문 상태별 조회 최적화")
-            log.info("CREATE INDEX idx_orders_status ON orders(status);")
-            log.info("CREATE INDEX idx_orders_user_status ON orders(user_id, status);")
-            log.info("")
-            log.info("-- 포인트 히스토리 기간별 조회 최적화")
-            log.info("CREATE INDEX idx_point_history_user_created ON point_history(user_id, created_at);")
-            log.info("")
-            log.info("-- 상품 검색 최적화")
-            log.info("CREATE INDEX idx_items_category_active ON items(category_id, is_active);")
-            log.info("")
-            log.info("-- JOIN 성능 최적화 (FK)")
-            log.info("CREATE INDEX idx_order_item_order_id ON order_item(order_id);")
-            log.info("CREATE INDEX idx_order_item_package_type ON order_item(package_type_id);")
-            log.info("")
-            log.info("📝 다음 단계:")
-            log.info("1. 위 SQL을 MySQL에서 실행하여 인덱스 추가")
-            log.info("2. 이 테스트를 다시 실행하여 성능 비교")
-            log.info("3. 로그에서 'ms' 값을 Before/After로 비교")
-            log.info("4. 쿼리 보고서에 성능 개선율 기록")
-            log.info("")
+            log.info("📊 성능 측정 완료")
             log.info("=" .repeat(80))
         }
     }

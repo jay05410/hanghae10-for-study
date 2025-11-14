@@ -71,3 +71,4 @@ swagger:
   description: HH Plus E-Commerce Platform API Documentation
   version: 1.0.0
   auto-wrap-response: true  # false로 변경하면 ApiResponse 자동 래핑 비활성화
+

@@ -16,6 +16,8 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.MySQLDialect
+        # Hibernate Statistics 활성화 (N+1 문제 감지용)
+        generate_statistics: true
         id:
           new_generator_mappings: false
     defer-datasource-initialization: false
@@ -31,8 +33,10 @@ logging:
     com.github.gavlyukovskiy.cloud.sleuth: OFF
     io.hhplus.ecommerce: DEBUG
 
-# P6Spy 비활성화 (테스트 환경)
+# P6Spy 활성화 (성능 분석용)
 decorator:
   datasource:
     p6spy:
-      enable-logging: false
+      enable-logging: true
+      multiline: true
+      logging: slf4j
