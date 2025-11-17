@@ -2,6 +2,8 @@ package io.hhplus.ecommerce.common.baseentity
 
 import jakarta.persistence.MappedSuperclass
 import jakarta.persistence.Column
+import org.hibernate.annotations.FilterDef
+import org.hibernate.annotations.Filter
 import java.time.LocalDateTime
 
 const val DELETED_FILTER = "deletedFilter"
@@ -15,6 +17,11 @@ const val DELETED_FILTER = "deletedFilter"
  * 주의:
  * - 모든 JPA 엔티티의 최상위 베이스
  */
+@FilterDef(
+    name = DELETED_FILTER,
+    defaultCondition = "deleted_at is null",
+)
+@Filter(name = DELETED_FILTER)
 @MappedSuperclass
 abstract class SoftDeletableJpaEntity(
     @Column(name = "deleted_at")

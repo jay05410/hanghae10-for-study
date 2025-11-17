@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.user.infra.persistence.repository
 
+import io.hhplus.ecommerce.common.aop.SoftDeletedFilter
 import io.hhplus.ecommerce.user.infra.persistence.entity.UserJpaEntity
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
@@ -46,6 +47,6 @@ interface UserJpaRepository : JpaRepository<UserJpaEntity, Long> {
     /**
      * 활성 사용자 전체 조회 (deletedAt이 null인 경우만)
      */
-    @Query("SELECT u FROM UserJpaEntity u WHERE u.isActive = true AND u.deletedAt IS NULL")
+    @SoftDeletedFilter
     fun findActiveUsers(): List<UserJpaEntity>
 }
