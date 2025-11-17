@@ -94,7 +94,35 @@ erDiagram
 #### 상세 ERD
 ```mermaid
 erDiagram
-      USER {
+    USER ||--o{ CART : "has"
+    USER ||--o{ USER_ADDRESS : "has"
+    USER ||--o{ ORDER : "places"
+    USER ||--o{ USER_COUPON : "has"
+    USER ||--o| USER_POINT : "has"
+    USER ||--o{ POINT_HISTORY : "has"
+
+    CATEGORY ||--o{ PRODUCT : "classifies"
+
+    PRODUCT ||--o{ CART_ITEM_TEA : "selected_in"
+    PRODUCT ||--o{ ORDER_ITEM_TEA : "selected_in"
+    PRODUCT ||--o{ INVENTORY : "tracks"
+
+    PACKAGE_TYPE ||--o{ CART_ITEM : "selected"
+    PACKAGE_TYPE ||--o{ ORDER_ITEM : "selected"
+
+    CART ||--o{ CART_ITEM : "contains"
+    CART_ITEM ||--o{ CART_ITEM_TEA : "composed_of"
+
+    ORDER ||--o{ ORDER_ITEM : "contains"
+    ORDER_ITEM ||--o{ ORDER_ITEM_TEA : "composed_of"
+    ORDER ||--|| DELIVERY : "has"
+    ORDER ||--o| PAYMENT : "has"
+    PAYMENT ||--o{ PAYMENT_HISTORY : "tracks"
+    ORDER ||--o{ OUTBOX_EVENT : "generates"
+
+    COUPON ||--o{ USER_COUPON : "issued_to"
+
+    USER {
         bigint id PK "사용자 ID"
         string login_type "로그인타입(LOCAL/KAKAO/NAVER/GOOGLE)"
         string login_id UK "로그인ID(provider_type_id)"
