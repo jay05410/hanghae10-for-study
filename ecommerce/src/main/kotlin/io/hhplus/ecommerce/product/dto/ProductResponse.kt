@@ -21,9 +21,6 @@ data class ProductResponse(
     @Schema(description = "카테고리 ID", example = "1")
     val categoryId: Long,
 
-    @Schema(description = "활성화 상태", example = "true")
-    val isActive: Boolean,
-
     @Schema(description = "생성 일시", example = "2025-01-01T10:00:00")
     val createdAt: LocalDateTime?,
 
@@ -37,7 +34,6 @@ fun Product.toResponse(): ProductResponse = ProductResponse(
     description = this.description,
     price = this.price,
     categoryId = this.categoryId,
-    isActive = this.deletedAt == null,
     createdAt = this.createdAt,
     updatedAt = this.updatedAt
 )

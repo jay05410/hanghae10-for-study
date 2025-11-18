@@ -14,6 +14,7 @@ import io.hhplus.ecommerce.point.application.PointService
 import io.hhplus.ecommerce.point.domain.vo.PointAmount
 import io.hhplus.ecommerce.common.exception.order.OrderException
 import io.hhplus.ecommerce.delivery.domain.constant.DeliveryStatus
+import io.hhplus.ecommerce.cart.application.CartService
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
@@ -38,7 +39,8 @@ class OrderCommandUseCase(
     private val deliveryService: DeliveryService,
     private val inventoryService: InventoryService,
     private val pointService: PointService,
-    private val orderItemRepository: OrderItemRepository
+    private val orderItemRepository: OrderItemRepository,
+    private val cartService: CartService
 ) {
 
     /**
@@ -120,6 +122,10 @@ class OrderCommandUseCase(
             deliveryMemo = request.deliveryAddress.deliveryMessage,
             createdBy = request.userId
         )
+
+        // 9. 장바구니에서 주문된 상품 제거 (주문 완료 후 정리)
+        val orderedProductIds = orderItems.map { it.productId }
+        cartService.removeOrderedItems(request.userId, orderedProductIds)
 
         return order
     }

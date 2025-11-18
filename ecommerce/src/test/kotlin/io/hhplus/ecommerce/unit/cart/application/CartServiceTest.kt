@@ -359,4 +359,105 @@ class CartServiceTest : DescribeSpec({
             }
         }
     }
+
+    describe("removeOrderedItems") {
+        context("주문된 상품들이 장바구니에서 제거되는 경우") {
+            it("주문된 상품들만 제거하고 장바구니를 저장") {
+                val userId = 1L
+                val orderedProductIds = listOf(1L, 3L)
+                val mockCart = mockk<Cart>(relaxed = true)
+                val mockCartItem1 = mockk<CartItem> { every { id } returns 11L; every { productId } returns 1L }
+                val mockCartItem2 = mockk<CartItem> { every { id } returns 12L; every { productId } returns 2L }
+                val mockCartItem3 = mockk<CartItem> { every { id } returns 13L; every { productId } returns 3L }
+
+                every { mockCartRepository.findByUserId(userId) } returns mockCart
+                every { mockCart.items } returns listOf(mockCartItem1, mockCartItem2, mockCartItem3)
+                every { mockCart.removeItem(11L, userId) } just Runs
+                every { mockCart.removeItem(13L, userId) } just Runs
+                every { mockCart.isEmpty() } returns false
+                every { mockCartRepository.save(mockCart) } returns mockCart
+
+                sut.removeOrderedItems(userId, orderedProductIds)
+
+                verify(exactly = 1) { mockCartRepository.findByUserId(userId) }
+                verify(exactly = 1) { mockCart.removeItem(11L, userId) }
+                verify(exactly = 1) { mockCart.removeItem(13L, userId) }
+                verify(exactly = 0) { mockCart.removeItem(12L, userId) }
+                verify(exactly = 1) { mockCartRepository.save(mockCart) }
+                verify(exactly = 0) { mockCartRepository.delete(any()) }
+            }
+        }
+
+        context("주문 후 장바구니가 완전히 비워지는 경우") {
+            it("장바구니 자체를 물리 삭제") {
+                val userId = 1L
+                val orderedProductIds = listOf(1L, 2L)
+                val mockCart = mockk<Cart>(relaxed = true)
+                val mockCartItem1 = mockk<CartItem> { every { id } returns 11L; every { productId } returns 1L }
+                val mockCartItem2 = mockk<CartItem> { every { id } returns 12L; every { productId } returns 2L }
+
+                every { mockCartRepository.findByUserId(userId) } returns mockCart
+                every { mockCart.items } returns listOf(mockCartItem1, mockCartItem2)
+                every { mockCart.removeItem(11L, userId) } just Runs
+                every { mockCart.removeItem(12L, userId) } just Runs
+                every { mockCart.isEmpty() } returns true
+                every { mockCartRepository.delete(mockCart) } just Runs
+
+                sut.removeOrderedItems(userId, orderedProductIds)
+
+                verify(exactly = 1) { mockCartRepository.findByUserId(userId) }
+                verify(exactly = 1) { mockCart.removeItem(11L, userId) }
+                verify(exactly = 1) { mockCart.removeItem(12L, userId) }
+                verify(exactly = 1) { mockCartRepository.delete(mockCart) }
+                verify(exactly = 0) { mockCartRepository.save(any()) }
+            }
+        }
+
+        context("장바구니가 존재하지 않는 경우") {
+            it("아무 작업도 하지 않고 정상 종료") {
+                val userId = 999L
+                val orderedProductIds = listOf(1L, 2L)
+
+                every { mockCartRepository.findByUserId(userId) } returns null
+
+                sut.removeOrderedItems(userId, orderedProductIds)
+
+                verify(exactly = 1) { mockCartRepository.findByUserId(userId) }
+                verify(exactly = 0) { mockCartRepository.save(any()) }
+                verify(exactly = 0) { mockCartRepository.delete(any()) }
+            }
+        }
+    }
+
+    describe("deleteCart (완전 삭제)") {
+        context("장바구니 전체 삭제") {
+            it("장바구니를 물리 삭제") {
+                val userId = 1L
+                val mockCart = mockk<Cart>()
+
+                every { mockCartRepository.findByUserId(userId) } returns mockCart
+                every { mockCartRepository.delete(mockCart) } just Runs
+
+                sut.deleteCart(userId)
+
+                verify(exactly = 1) { mockCartRepository.findByUserId(userId) }
+                verify(exactly = 1) { mockCartRepository.delete(mockCart) }
+            }
+        }
+
+        context("장바구니가 존재하지 않는 경우") {
+            it("CartException.CartNotFound를 발생") {
+                val userId = 999L
+
+                every { mockCartRepository.findByUserId(userId) } returns null
+
+                shouldThrow<CartException.CartNotFound> {
+                    sut.deleteCart(userId)
+                }
+
+                verify(exactly = 1) { mockCartRepository.findByUserId(userId) }
+                verify(exactly = 0) { mockCartRepository.delete(any()) }
+            }
+        }
+    }
 })

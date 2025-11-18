@@ -84,4 +84,24 @@ class CartCommandUseCase(
     fun clearCart(userId: Long): Cart {
         return cartService.clearCart(userId)
     }
+
+    /**
+     * 주문된 상품들을 장바구니에서 제거한다
+     *
+     * @param userId 인증된 사용자 ID
+     * @param orderedProductIds 주문된 상품 ID 목록
+     */
+    fun removeOrderedItems(userId: Long, orderedProductIds: List<Long>) {
+        cartService.removeOrderedItems(userId, orderedProductIds)
+    }
+
+    /**
+     * 사용자의 장바구니를 완전히 삭제한다 (물리 삭제)
+     * 사용자 탈퇴 등 특별한 경우에만 사용
+     *
+     * @param userId 인증된 사용자 ID
+     */
+    fun deleteCartCompletely(userId: Long) {
+        cartService.deleteCart(userId)
+    }
 }

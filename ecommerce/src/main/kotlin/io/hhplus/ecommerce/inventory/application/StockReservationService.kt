@@ -139,4 +139,17 @@ class StockReservationService(
         return stockReservationRepository.findByUserIdAndStatus(userId, ReservationStatus.RESERVED)
             .filter { it.isReservationActive() }
     }
+
+    /**
+     * 완전히 처리된 예약 데이터를 물리 삭제
+     * 배치 작업에서 호출하여 오래된 예약 데이터를 정리
+     *
+     * @param daysOld 삭제할 예약 데이터의 최소 경과 일수 (기본 30일)
+     * @return 삭제된 예약 개수
+     */
+    @Transactional
+    fun cleanupOldReservations(daysOld: Long = 30): Int {
+        val cutoffDate = LocalDateTime.now().minusDays(daysOld)
+        return stockReservationRepository.deleteExpiredReservations(cutoffDate)
+    }
 }

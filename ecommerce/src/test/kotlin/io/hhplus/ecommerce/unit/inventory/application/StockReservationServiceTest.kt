@@ -445,4 +445,44 @@ class StockReservationServiceTest : DescribeSpec({
             }
         }
     }
+
+    describe("cleanupOldReservations") {
+        context("오래된 예약 데이터 정리") {
+            it("지정된 일수보다 오래된 예약들을 물리 삭제") {
+                val daysOld = 30L
+                val deletedCount = 5
+
+                every { mockStockReservationRepository.deleteExpiredReservations(any()) } returns deletedCount
+
+                val result = sut.cleanupOldReservations(daysOld)
+
+                result shouldBe deletedCount
+                verify(exactly = 1) { mockStockReservationRepository.deleteExpiredReservations(any()) }
+            }
+        }
+
+        context("기본값(30일)으로 정리") {
+            it("기본 30일 이전 데이터를 삭제") {
+                val deletedCount = 3
+
+                every { mockStockReservationRepository.deleteExpiredReservations(any()) } returns deletedCount
+
+                val result = sut.cleanupOldReservations()
+
+                result shouldBe deletedCount
+                verify(exactly = 1) { mockStockReservationRepository.deleteExpiredReservations(any()) }
+            }
+        }
+
+        context("삭제할 예약이 없는 경우") {
+            it("0을 반환") {
+                every { mockStockReservationRepository.deleteExpiredReservations(any()) } returns 0
+
+                val result = sut.cleanupOldReservations()
+
+                result shouldBe 0
+                verify(exactly = 1) { mockStockReservationRepository.deleteExpiredReservations(any()) }
+            }
+        }
+    }
 })

@@ -297,4 +297,81 @@ class CartAddIntegrationTest(
             }
         }
     }
+
+    describe("주문 완료 후 장바구니 정리") {
+        context("일부 상품만 주문한 경우") {
+            it("주문된 상품만 장바구니에서 제거된다") {
+                // Given
+                val userId = IntegrationTestFixtures.createTestUserId(9)
+
+                // 3개 상품 장바구니에 추가
+                val product3 = productCommandUseCase.createProduct(
+                    CreateProductRequest(
+                        name = "테스트 상품 3",
+                        description = "장바구니 테스트용 상품",
+                        price = 20000L,
+                        categoryId = 1L,
+                        createdBy = 0L
+                    )
+                )
+                inventoryCommandUseCase.createInventory(product3.id, 1000, 0L)
+
+                cartCommandUseCase.addToCart(userId, AddToCartRequest(productId = product1.id, quantity = 1, giftWrap = false, giftMessage = null))
+                cartCommandUseCase.addToCart(userId, AddToCartRequest(productId = product2.id, quantity = 2, giftWrap = false, giftMessage = null))
+                cartCommandUseCase.addToCart(userId, AddToCartRequest(productId = product3.id, quantity = 1, giftWrap = false, giftMessage = null))
+
+                // When - product1, product2만 주문됨
+                val orderedProductIds = listOf(product1.id, product2.id)
+                cartCommandUseCase.removeOrderedItems(userId, orderedProductIds)
+
+                // Then - product3만 남아있어야 함
+                val remainingCart = cartRepository.findByUserId(userId)
+                remainingCart shouldNotBe null
+                remainingCart!!.items.size shouldBe 1
+                remainingCart.items.first().productId shouldBe product3.id
+            }
+        }
+
+        context("전체 상품을 주문한 경우") {
+            it("장바구니 자체가 물리 삭제된다") {
+                // Given
+                val userId = IntegrationTestFixtures.createTestUserId(10)
+
+                cartCommandUseCase.addToCart(userId, AddToCartRequest(productId = product1.id, quantity = 1, giftWrap = false, giftMessage = null))
+                cartCommandUseCase.addToCart(userId, AddToCartRequest(productId = product2.id, quantity = 2, giftWrap = false, giftMessage = null))
+
+                // When - 모든 상품이 주문됨
+                val orderedProductIds = listOf(product1.id, product2.id)
+                cartCommandUseCase.removeOrderedItems(userId, orderedProductIds)
+
+                // Then - 장바구니가 완전히 삭제됨
+                val deletedCart = cartRepository.findByUserId(userId)
+                deletedCart shouldBe null
+            }
+        }
+    }
+
+    describe("장바구니 완전 삭제") {
+        context("사용자 탈퇴 등으로 장바구니 완전 삭제 시") {
+            it("장바구니와 모든 아이템이 물리 삭제된다") {
+                // Given
+                val userId = IntegrationTestFixtures.createTestUserId(11)
+
+                cartCommandUseCase.addToCart(userId, AddToCartRequest(productId = product1.id, quantity = 1, giftWrap = false, giftMessage = null))
+                cartCommandUseCase.addToCart(userId, AddToCartRequest(productId = product2.id, quantity = 2, giftWrap = false, giftMessage = null))
+
+                // 장바구니가 존재하는지 확인
+                val cartBeforeDelete = cartRepository.findByUserId(userId)
+                cartBeforeDelete shouldNotBe null
+                cartBeforeDelete!!.items.size shouldBe 2
+
+                // When - 장바구니 완전 삭제
+                cartCommandUseCase.deleteCartCompletely(userId)
+
+                // Then - 장바구니가 완전히 삭제됨
+                val cartAfterDelete = cartRepository.findByUserId(userId)
+                cartAfterDelete shouldBe null
+            }
+        }
+    }
 })
