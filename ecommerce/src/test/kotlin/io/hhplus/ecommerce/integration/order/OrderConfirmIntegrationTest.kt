@@ -60,18 +60,10 @@ class OrderConfirmIntegrationTest(
 
                 val orderItems = listOf(
                     CreateOrderItemRequest(
-                        packageTypeId = 1L,
-                        packageTypeName = "확정 테스트 패키지",
-                        packageTypeDays = 7,
-                        dailyServing = 1,
-                        totalQuantity = 1.0,
-                        giftWrap = false,
-                        giftMessage = null,
+                        productId = savedProduct.id,
                         quantity = 1,
-                        containerPrice = 10000,
-                        teaPrice = 10000,
-                        giftWrapPrice = 0,
-                        teaItems = emptyList()
+                        giftWrap = false,
+                        giftMessage = null
                     )
                 )
 
@@ -131,18 +123,10 @@ class OrderConfirmIntegrationTest(
 
                 val orderItems = listOf(
                     CreateOrderItemRequest(
-                        packageTypeId = savedProduct.id,
-                        packageTypeName = "테스트 패키지",
-                        packageTypeDays = 7,
-                        dailyServing = 1,
-                        totalQuantity = 1.0,
-                        giftWrap = false,
-                        giftMessage = null,
+                        productId = savedProduct.id,
                         quantity = 1,
-                        containerPrice = 10000,
-                        teaPrice = 10000,
-                        giftWrapPrice = 0,
-                        teaItems = emptyList()
+                        giftWrap = false,
+                        giftMessage = null
                     )
                 )
 
@@ -202,18 +186,10 @@ class OrderConfirmIntegrationTest(
 
                 val orderItems = listOf(
                     CreateOrderItemRequest(
-                        packageTypeId = savedProduct.id,
-                        packageTypeName = "테스트 패키지",
-                        packageTypeDays = 7,
-                        dailyServing = 1,
-                        totalQuantity = 1.0,
-                        giftWrap = false,
-                        giftMessage = null,
+                        productId = savedProduct.id,
                         quantity = 1,
-                        containerPrice = 10000,
-                        teaPrice = 10000,
-                        giftWrapPrice = 0,
-                        teaItems = emptyList()
+                        giftWrap = false,
+                        giftMessage = null
                     )
                 )
 

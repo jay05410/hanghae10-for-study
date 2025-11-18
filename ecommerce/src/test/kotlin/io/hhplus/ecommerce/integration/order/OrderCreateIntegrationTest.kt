@@ -8,7 +8,6 @@ import io.hhplus.ecommerce.order.domain.repository.OrderItemRepository
 import io.hhplus.ecommerce.order.dto.CreateOrderRequest
 import io.hhplus.ecommerce.order.dto.CreateOrderItemRequest
 import io.hhplus.ecommerce.delivery.dto.DeliveryAddressRequest
-import io.hhplus.ecommerce.cart.dto.TeaItemRequest
 import io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
 import io.hhplus.ecommerce.point.usecase.PointCommandUseCase
 import io.hhplus.ecommerce.product.dto.CreateProductRequest
@@ -23,9 +22,9 @@ import io.kotest.matchers.string.shouldStartWith
  * 주문 생성 통합 테스트
  *
  * TestContainers MySQL을 사용하여 주문 생성 전체 플로우를 검증합니다.
- * - 주문 생성 (Cart → Order 변환)
+ * - 주문 생성 (상품 + 수량 기반)
  * - 주문 번호 형식 검증 (ORD-YYYYMMDD-XXX)
- * - OrderItem 및 OrderItemTea 생성
+ * - OrderItem 생성
  * - 쿠폰 적용 주문
  */
 class OrderCreateIntegrationTest(
@@ -45,8 +44,8 @@ class OrderCreateIntegrationTest(
         // 모든 테스트 전에 상품과 재고 생성
         product1 = productCommandUseCase.createProduct(
             CreateProductRequest(
-                name = "주문 테스트 티 1",
-                description = "주문 테스트용 차",
+                name = "주문 테스트 상품 1",
+                description = "주문 테스트용 상품",
                 price = 20000L,
                 categoryId = 1L,
                 createdBy = 0L
@@ -54,8 +53,8 @@ class OrderCreateIntegrationTest(
         )
         product2 = productCommandUseCase.createProduct(
             CreateProductRequest(
-                name = "주문 테스트 티 2",
-                description = "주문 테스트용 차",
+                name = "주문 테스트 상품 2",
+                description = "주문 테스트용 상품",
                 price = 15000L,
                 categoryId = 1L,
                 createdBy = 0L
@@ -83,21 +82,13 @@ class OrderCreateIntegrationTest(
                 val userId = 1000L
                 val items = listOf(
                     CreateOrderItemRequest(
-                        packageTypeId = product1.id, // 실제 생성한 상품 ID 사용
-                        packageTypeName = "7일 패키지",
-                        packageTypeDays = 7,
-                        dailyServing = 1,
-                        totalQuantity = 7.0,
+                        productId = product1.id,
+                        quantity = 2,
                         giftWrap = false,
-                        giftMessage = null,
-                        quantity = 1,
-                        containerPrice = 10000,
-                        teaPrice = 20000,
-                        giftWrapPrice = 0,
-                        teaItems = emptyList()
+                        giftMessage = null
                     )
                 )
-                val totalAmount = 30000L
+                val totalAmount = 40000L
                 val discountAmount = 0L
 
                 // When
@@ -134,21 +125,13 @@ class OrderCreateIntegrationTest(
                 // 쿠폰 생성 및 발급은 일단 스킵하고 null로 설정
                 val items = listOf(
                     CreateOrderItemRequest(
-                        packageTypeId = product2.id,
-                        packageTypeName = "14일 패키지",
-                        packageTypeDays = 14,
-                        dailyServing = 1,
-                        totalQuantity = 14.0,
+                        productId = product2.id,
+                        quantity = 3,
                         giftWrap = false,
-                        giftMessage = null,
-                        quantity = 1,
-                        containerPrice = 15000,
-                        teaPrice = 35000,
-                        giftWrapPrice = 0,
-                        teaItems = emptyList()
+                        giftMessage = null
                     )
                 )
-                val totalAmount = 50000L
+                val totalAmount = 45000L
 
                 // When - 일단 쿠폰 없이 주문 생성
                 val createOrderRequest = CreateOrderRequest(
@@ -178,35 +161,19 @@ class OrderCreateIntegrationTest(
                 val userId = 3000L
                 val items = listOf(
                     CreateOrderItemRequest(
-                        packageTypeId = product1.id,
-                        packageTypeName = "7일 패키지",
-                        packageTypeDays = 7,
-                        dailyServing = 1,
-                        totalQuantity = 7.0,
-                        giftWrap = false,
-                        giftMessage = null,
+                        productId = product1.id,
                         quantity = 2,
-                        containerPrice = 10000,
-                        teaPrice = 20000,
-                        giftWrapPrice = 0,
-                        teaItems = emptyList()
+                        giftWrap = false,
+                        giftMessage = null
                     ),
                     CreateOrderItemRequest(
-                        packageTypeId = product2.id,
-                        packageTypeName = "14일 패키지",
-                        packageTypeDays = 14,
-                        dailyServing = 1,
-                        totalQuantity = 14.0,
-                        giftWrap = true,
-                        giftMessage = "생일 축하합니다",
+                        productId = product2.id,
                         quantity = 1,
-                        containerPrice = 15000,
-                        teaPrice = 35000,
-                        giftWrapPrice = 2000,
-                        teaItems = emptyList()
+                        giftWrap = true,
+                        giftMessage = "생일 축하합니다"
                     )
                 )
-                val totalAmount = 112000L // (10000+20000)*2 + 15000+35000+2000
+                val totalAmount = 55000L // (20000*2) + (15000*1)
 
                 // When
                 val createOrderRequest = CreateOrderRequest(
@@ -230,8 +197,8 @@ class OrderCreateIntegrationTest(
 
                 val savedOrderItems = orderItemRepository.findByOrderId(order.id)
                 savedOrderItems shouldHaveSize 2
-                savedOrderItems[0].packageTypeId shouldBe product1.id
-                savedOrderItems[1].packageTypeId shouldBe product2.id
+                savedOrderItems[0].productId shouldBe product1.id
+                savedOrderItems[1].productId shouldBe product2.id
             }
         }
 
@@ -242,18 +209,10 @@ class OrderCreateIntegrationTest(
                 val giftMessage = "사랑하는 사람에게"
                 val items = listOf(
                     CreateOrderItemRequest(
-                        packageTypeId = product1.id,
-                        packageTypeName = "30일 패키지",
-                        packageTypeDays = 30,
-                        dailyServing = 1,
-                        totalQuantity = 30.0,
-                        giftWrap = true,
-                        giftMessage = giftMessage,
+                        productId = product1.id,
                         quantity = 1,
-                        containerPrice = 20000,
-                        teaPrice = 80000,
-                        giftWrapPrice = 3000,
-                        teaItems = emptyList()
+                        giftWrap = true,
+                        giftMessage = giftMessage
                     )
                 )
 
@@ -278,7 +237,6 @@ class OrderCreateIntegrationTest(
                 savedOrderItems shouldHaveSize 1
                 savedOrderItems[0].giftWrap shouldBe true
                 savedOrderItems[0].giftMessage shouldBe giftMessage
-                savedOrderItems[0].giftWrapPrice shouldBe 3000L
             }
         }
 
@@ -286,32 +244,12 @@ class OrderCreateIntegrationTest(
             it("차 구성 정보가 함께 저장된다") {
                 // Given
                 val userId = 5000L
-                val teaItems = listOf(
-                    TeaItemRequest(
-                        productId = 101L,
-                        selectionOrder = 1,
-                        ratioPercent = 43 // 3*2 / 14 ≈ 43%
-                    ),
-                    TeaItemRequest(
-                        productId = 102L,
-                        selectionOrder = 2,
-                        ratioPercent = 57 // 4*2 / 14 ≈ 57%
-                    )
-                )
                 val items = listOf(
                     CreateOrderItemRequest(
-                        packageTypeId = product2.id,
-                        packageTypeName = "7일 패키지",
-                        packageTypeDays = 7,
-                        dailyServing = 1,
-                        totalQuantity = 14.0, // 3*2 + 4*2
-                        giftWrap = false,
-                        giftMessage = null,
+                        productId = product2.id,
                         quantity = 1,
-                        containerPrice = 10000,
-                        teaPrice = 20000,
-                        giftWrapPrice = 0,
-                        teaItems = teaItems
+                        giftWrap = false,
+                        giftMessage = null
                     )
                 )
 
@@ -346,18 +284,10 @@ class OrderCreateIntegrationTest(
                 val userId = 6000L
                 val items = listOf(
                     CreateOrderItemRequest(
-                        packageTypeId = product1.id,
-                        packageTypeName = "테스트 패키지",
-                        packageTypeDays = 7,
-                        dailyServing = 1,
-                        totalQuantity = 7.0,
-                        giftWrap = false,
-                        giftMessage = null,
+                        productId = product1.id,
                         quantity = 1,
-                        containerPrice = 10000,
-                        teaPrice = 10000,
-                        giftWrapPrice = 0,
-                        teaItems = emptyList()
+                        giftWrap = false,
+                        giftMessage = null
                     )
                 )
 
@@ -404,18 +334,10 @@ class OrderCreateIntegrationTest(
                 val userId = 7000L
                 val items = listOf(
                     CreateOrderItemRequest(
-                        packageTypeId = product2.id,
-                        packageTypeName = "조회 테스트 패키지",
-                        packageTypeDays = 7,
-                        dailyServing = 1,
-                        totalQuantity = 7.0,
-                        giftWrap = false,
-                        giftMessage = null,
+                        productId = product2.id,
                         quantity = 1,
-                        containerPrice = 10000,
-                        teaPrice = 10000,
-                        giftWrapPrice = 0,
-                        teaItems = emptyList()
+                        giftWrap = false,
+                        giftMessage = null
                     )
                 )
                 val order = orderCommandUseCase.createOrder(CreateOrderRequest(
@@ -451,18 +373,10 @@ class OrderCreateIntegrationTest(
                 val userId = 8000L
                 val items = listOf(
                     CreateOrderItemRequest(
-                        packageTypeId = product1.id,
-                        packageTypeName = "상태 테스트 패키지",
-                        packageTypeDays = 7,
-                        dailyServing = 1,
-                        totalQuantity = 7.0,
-                        giftWrap = false,
-                        giftMessage = null,
+                        productId = product1.id,
                         quantity = 1,
-                        containerPrice = 10000,
-                        teaPrice = 10000,
-                        giftWrapPrice = 0,
-                        teaItems = emptyList()
+                        giftWrap = false,
+                        giftMessage = null
                     )
                 )
 

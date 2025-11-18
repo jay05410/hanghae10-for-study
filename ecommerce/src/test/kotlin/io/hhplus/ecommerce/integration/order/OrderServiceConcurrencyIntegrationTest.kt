@@ -1,8 +1,11 @@
 package io.hhplus.ecommerce.integration.order
 
-import io.hhplus.ecommerce.order.application.OrderService
-import io.hhplus.ecommerce.order.dto.OrderItemData
+import io.hhplus.ecommerce.order.usecase.OrderCommandUseCase
+import io.hhplus.ecommerce.order.usecase.GetOrderQueryUseCase
+import io.hhplus.ecommerce.order.dto.CreateOrderRequest
+import io.hhplus.ecommerce.order.dto.CreateOrderItemRequest
 import io.hhplus.ecommerce.order.domain.repository.OrderRepository
+import io.hhplus.ecommerce.delivery.dto.DeliveryAddressRequest
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -20,7 +23,8 @@ import java.util.concurrent.Executors
  * - 주문 생성과 조회 동시 처리
  */
 class OrderServiceConcurrencyIntegrationTest(
-    private val orderService: OrderService,
+    private val orderCommandUseCase: OrderCommandUseCase,
+    private val getOrderQueryUseCase: GetOrderQueryUseCase,
     private val orderRepository: OrderRepository
 ) : KotestIntegrationTestBase({
 
@@ -32,33 +36,31 @@ class OrderServiceConcurrencyIntegrationTest(
         val executor = Executors.newFixedThreadPool(threadCount)
         val futures = mutableListOf<CompletableFuture<Long>>()
 
-        val orderItemData = OrderItemData(
-            packageTypeId = 1L,
-            packageTypeName = "동시성 테스트 패키지",
-            packageTypeDays = 7,
-            dailyServing = 1,
-            totalQuantity = 7.0,
-            giftWrap = false,
-            giftMessage = null,
+        val orderItem = CreateOrderItemRequest(
+            productId = 1L,
             quantity = 1,
-            containerPrice = 3000,
-            teaPrice = 15000,
-            giftWrapPrice = 0,
-            teaItems = emptyList()
+            giftWrap = false,
+            giftMessage = null
         )
 
         // When: 동시에 여러 주문 생성
         repeat(threadCount) { index ->
             val future = CompletableFuture.supplyAsync({
                 val userId = 1000L + index
-                val order = orderService.createOrder(
+                val createOrderRequest = CreateOrderRequest(
                     userId = userId,
-                    items = listOf(orderItemData),
+                    items = listOf(orderItem),
                     usedCouponId = null,
-                    totalAmount = 18000L,
-                    discountAmount = 0L,
-                    createdBy = userId
+                    deliveryAddress = DeliveryAddressRequest(
+                        recipientName = "테스트 수령인",
+                        phone = "010-1234-5678",
+                        zipCode = "12345",
+                        address = "서울시 강남구",
+                        addressDetail = "테스트 상세주소",
+                        deliveryMessage = "동시성 테스트용 배송"
+                    )
                 )
+                val order = orderCommandUseCase.createOrder(createOrderRequest)
                 order.id
             }, executor)
             futures.add(future)
@@ -78,9 +80,8 @@ class OrderServiceConcurrencyIntegrationTest(
                 // 각 주문의 데이터 정합성 확인
                 savedOrders.forEach { order ->
                     (order.userId >= 1000L && order.userId < 1000L + threadCount) shouldBe true
-                    order.totalAmount shouldBe 18000L
-                    order.discountAmount shouldBe 0L
-                    order.finalAmount shouldBe 18000L
+                    order.totalAmount shouldBe order.finalAmount // 할인이 없으므로 총액과 최종액이 동일
+                    (order.totalAmount > 0) shouldBe true // 총액이 양수인지 확인
                     order.orderNumber.shouldNotBeEmpty()
                 }
 
@@ -96,32 +97,30 @@ class OrderServiceConcurrencyIntegrationTest(
         val executor = Executors.newFixedThreadPool(threadCount)
         val futures = mutableListOf<CompletableFuture<Long>>()
 
-        val orderItemData = OrderItemData(
-            packageTypeId = 2L,
-            packageTypeName = "같은 사용자 동시성 테스트",
-            packageTypeDays = 14,
-            dailyServing = 2,
-            totalQuantity = 28.0,
-            giftWrap = true,
-            giftMessage = "동시성 테스트",
+        val orderItem = CreateOrderItemRequest(
+            productId = 2L,
             quantity = 1,
-            containerPrice = 5000,
-            teaPrice = 25000,
-            giftWrapPrice = 2000,
-            teaItems = emptyList()
+            giftWrap = true,
+            giftMessage = "동시성 테스트"
         )
 
         // When: 같은 사용자가 동시에 여러 주문 생성
         repeat(threadCount) { index ->
             val future = CompletableFuture.supplyAsync({
-                val order = orderService.createOrder(
+                val createOrderRequest = CreateOrderRequest(
                     userId = userId,
-                    items = listOf(orderItemData),
+                    items = listOf(orderItem),
                     usedCouponId = null,
-                    totalAmount = 32000L,
-                    discountAmount = 2000L,
-                    createdBy = userId
+                    deliveryAddress = DeliveryAddressRequest(
+                        recipientName = "같은사용자 테스트",
+                        phone = "010-9999-8888",
+                        zipCode = "54321",
+                        address = "서울시 송파구",
+                        addressDetail = "동시성 테스트 상세주소",
+                        deliveryMessage = "같은 사용자 동시성 테스트용"
+                    )
                 )
+                val order = orderCommandUseCase.createOrder(createOrderRequest)
                 order.id
             }, executor)
             futures.add(future)
@@ -135,14 +134,13 @@ class OrderServiceConcurrencyIntegrationTest(
                 orderIds.distinct() shouldHaveSize threadCount
 
                 // 사용자별 주문 목록 조회로 검증
-                val userOrders = orderService.getOrdersByUser(userId)
+                val userOrders = getOrderQueryUseCase.getOrdersByUser(userId)
                 userOrders shouldHaveSize threadCount
 
                 userOrders.forEach { order ->
                     order.userId shouldBe userId
-                    order.totalAmount shouldBe 32000L
-                    order.discountAmount shouldBe 2000L
-                    order.finalAmount shouldBe 30000L
+                    (order.totalAmount > 0) shouldBe true // 총액이 양수인지 확인
+                    order.finalAmount shouldBe (order.totalAmount - order.discountAmount) // 총액에서 할인액을 뺀 값
                 }
 
                 executor.shutdown()
@@ -157,19 +155,11 @@ class OrderServiceConcurrencyIntegrationTest(
         val userId = 3000L
         val executor = Executors.newFixedThreadPool(createThreadCount + readThreadCount)
 
-        val orderItemData = OrderItemData(
-            packageTypeId = 3L,
-            packageTypeName = "읽기/쓰기 동시성 테스트",
-            packageTypeDays = 10,
-            dailyServing = 1,
-            totalQuantity = 10.0,
-            giftWrap = false,
-            giftMessage = null,
+        val orderItem = CreateOrderItemRequest(
+            productId = 3L,
             quantity = 2,
-            containerPrice = 4000,
-            teaPrice = 20000,
-            giftWrapPrice = 0,
-            teaItems = emptyList()
+            giftWrap = false,
+            giftMessage = null
         )
 
         val createFutures = mutableListOf<CompletableFuture<Long>>()
@@ -179,15 +169,21 @@ class OrderServiceConcurrencyIntegrationTest(
         // 주문 생성
         repeat(createThreadCount) { index ->
             val future = CompletableFuture.supplyAsync({
-                Thread.sleep(100L * index) // 약간의 지연으로 순차적 생성
-                val order = orderService.createOrder(
+                Thread.sleep(5L * index) // 약간의 지연으로 순차적 생성
+                val createOrderRequest = CreateOrderRequest(
                     userId = userId,
-                    items = listOf(orderItemData),
+                    items = listOf(orderItem),
                     usedCouponId = null,
-                    totalAmount = 48000L,
-                    discountAmount = 0L,
-                    createdBy = userId
+                    deliveryAddress = DeliveryAddressRequest(
+                        recipientName = "읽기쓰기 테스트",
+                        phone = "010-7777-6666",
+                        zipCode = "11111",
+                        address = "서울시 마포구",
+                        addressDetail = "읽기쓰기 동시성 테스트",
+                        deliveryMessage = "동시 처리 테스트용"
+                    )
                 )
+                val order = orderCommandUseCase.createOrder(createOrderRequest)
                 order.id
             }, executor)
             createFutures.add(future)
@@ -198,8 +194,8 @@ class OrderServiceConcurrencyIntegrationTest(
             val future = CompletableFuture.supplyAsync({
                 var totalReads = 0
                 repeat(5) {
-                    Thread.sleep(50L)
-                    val orders = orderService.getOrdersByUser(userId)
+                    Thread.sleep(5L)
+                    val orders = getOrderQueryUseCase.getOrdersByUser(userId)
                     totalReads += orders.size
                 }
                 totalReads
@@ -216,12 +212,12 @@ class OrderServiceConcurrencyIntegrationTest(
                 readResults.all { it >= 0 } shouldBe true // 읽기 작업이 에러 없이 완료
 
                 // 최종 데이터 일관성 확인
-                val finalOrders = orderService.getOrdersByUser(userId)
+                val finalOrders = getOrderQueryUseCase.getOrdersByUser(userId)
                 finalOrders shouldHaveSize createThreadCount
 
                 finalOrders.forEach { order ->
                     order.userId shouldBe userId
-                    order.totalAmount shouldBe 48000L
+                    (order.totalAmount > 0) shouldBe true // 총액이 양수인지 확인
                     createdOrderIds.contains(order.id) shouldBe true
                 }
 

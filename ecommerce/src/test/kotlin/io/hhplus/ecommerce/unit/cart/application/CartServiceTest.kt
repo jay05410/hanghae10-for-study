@@ -1,12 +1,9 @@
 package io.hhplus.ecommerce.unit.cart.application
 
-import io.hhplus.ecommerce.cart.application.CartItemTeaService
 import io.hhplus.ecommerce.cart.application.CartService
 import io.hhplus.ecommerce.cart.domain.entity.Cart
 import io.hhplus.ecommerce.cart.domain.entity.CartItem
-import io.hhplus.ecommerce.cart.domain.entity.CartItemTea
 import io.hhplus.ecommerce.cart.domain.repository.CartRepository
-import io.hhplus.ecommerce.cart.dto.TeaItemRequest
 import io.hhplus.ecommerce.common.exception.cart.CartException
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
@@ -19,22 +16,19 @@ import java.time.LocalDateTime
  *
  * 책임: 장바구니 도메인 서비스의 핵심 비즈니스 로직 검증
  * - 장바구니 생성, 아이템 추가/수정/삭제, 장바구니 비우기 기능의 Repository 호출 검증
- * - CartItemTeaService와의 상호작용 검증
  * - 도메인 객체와의 상호작용 검증
  *
  * 검증 목표:
- * 1. 각 메서드가 적절한 Repository 및 의존 서비스 메서드를 호출하는가?
+ * 1. 각 메서드가 적절한 Repository 메서드를 호출하는가?
  * 2. 도메인 객체의 비즈니스 메서드가 올바르게 호출되는가?
  * 3. 예외 상황에서 적절한 예외가 발생하는가?
- * 4. 차 구성 관련 로직이 올바르게 처리되는가?
  */
 class CartServiceTest : DescribeSpec({
     val mockCartRepository = mockk<CartRepository>()
-    val mockCartItemTeaService = mockk<CartItemTeaService>()
-    val sut = CartService(mockCartRepository, mockCartItemTeaService)
+    val sut = CartService(mockCartRepository)
 
     beforeEach {
-        clearMocks(mockCartRepository, mockCartItemTeaService)
+        clearMocks(mockCartRepository)
     }
 
     describe("getOrCreateCart") {
@@ -74,214 +68,130 @@ class CartServiceTest : DescribeSpec({
 
     describe("addToCart") {
         context("새로운 상품 추가") {
-            it("차 구성을 검증하고 새 아이템을 추가한 후 차 구성을 저장") {
+            it("새 아이템을 추가하고 장바구니를 저장") {
                 val userId = 1L
-                val packageTypeId = 1L
-                val packageTypeName = "30일 패키지"
-                val packageTypeDays = 30
-                val dailyServing = 2
-                val totalQuantity = 300.0
+                val productId = 1L
+                val quantity = 2
                 val giftWrap = false
                 val giftMessage: String? = null
-                val teaItems = listOf(TeaItemRequest(productId = 2L, selectionOrder = 1, ratioPercent = 100))
                 val mockCart = mockk<Cart>(relaxed = true)
                 val mockSavedCart = mockk<Cart>(relaxed = true)
                 val realCartItem = CartItem(
                     id = 1L,
                     cartId = 1L,
-                    packageTypeId = packageTypeId,
-                    packageTypeName = packageTypeName,
-                    packageTypeDays = packageTypeDays,
-                    dailyServing = dailyServing,
-                    totalQuantity = totalQuantity,
+                    productId = productId,
+                    quantity = quantity,
                     giftWrap = giftWrap,
                     giftMessage = giftMessage
                 )
                 val mockNewCartItem = spyk(realCartItem)
 
                 every { mockCart.items } returns emptyList()
-                every { mockCartItemTeaService.validateTeaItems(teaItems) } just Runs
                 every { mockCartRepository.findByUserId(userId) } returns mockCart
                 every { mockCart.addItem(
-                    packageTypeId = packageTypeId,
-                    packageTypeName = packageTypeName,
-                    packageTypeDays = packageTypeDays,
-                    dailyServing = dailyServing,
-                    totalQuantity = totalQuantity,
+                    productId = productId,
+                    quantity = quantity,
                     giftWrap = giftWrap,
                     giftMessage = giftMessage,
                     addedBy = userId
                 ) } returns mockNewCartItem
                 every { mockCartRepository.save(mockCart) } returns mockSavedCart
-                every { mockSavedCart.items } returns listOf(mockNewCartItem)
-                every { mockCartItemTeaService.saveCartItemTeas(1L, teaItems) } returns emptyList()
 
-                val result = sut.addToCart(userId, packageTypeId, packageTypeName, packageTypeDays, dailyServing, totalQuantity, giftWrap, giftMessage, teaItems)
+                val result = sut.addToCart(userId, productId, quantity, giftWrap, giftMessage)
 
                 result shouldBe mockSavedCart
-                verify(exactly = 1) { mockCartItemTeaService.validateTeaItems(teaItems) }
                 verify(exactly = 1) { mockCart.addItem(
-                    packageTypeId = packageTypeId,
-                    packageTypeName = packageTypeName,
-                    packageTypeDays = packageTypeDays,
-                    dailyServing = dailyServing,
-                    totalQuantity = totalQuantity,
+                    productId = productId,
+                    quantity = quantity,
                     giftWrap = giftWrap,
                     giftMessage = giftMessage,
                     addedBy = userId
                 ) }
                 verify(exactly = 1) { mockCartRepository.save(mockCart) }
-                verify(exactly = 1) { mockCartItemTeaService.saveCartItemTeas(1L, teaItems) }
             }
         }
 
-        context("기존 동일 패키지가 있는 경우") {
-            it("기존 아이템을 제거하고 새 아이템을 추가한 후 차 구성을 저장") {
+        context("기존 동일 상품이 있는 경우") {
+            it("기존 아이템 수량을 업데이트") {
                 val userId = 1L
-                val packageTypeId = 1L
-                val packageTypeName = "30일 패키지"
-                val packageTypeDays = 30
-                val dailyServing = 2
-                val totalQuantity = 300.0
+                val productId = 1L
+                val quantity = 3
                 val giftWrap = false
                 val giftMessage: String? = null
-                val teaItems = listOf(TeaItemRequest(productId = 2L, selectionOrder = 1, ratioPercent = 100))
                 val mockCart = mockk<Cart>(relaxed = true)
                 val mockExistingItem = CartItem(
                     id = 1L,
                     cartId = 1L,
-                    packageTypeId = 1L,
-                    packageTypeName = "기존 패키지",
-                    packageTypeDays = 15,
-                    dailyServing = 1,
-                    totalQuantity = 150.0,
+                    productId = 1L,
+                    quantity = 1,
+                    giftWrap = false,
+                    giftMessage = null
+                )
+                val mockSavedCart = mockk<Cart>(relaxed = true)
+
+                every { mockCart.items } returns listOf(mockExistingItem)
+                every { mockCartRepository.findByUserId(userId) } returns mockCart
+                every { mockCart.updateItemQuantity(1L, quantity, userId) } just Runs
+                every { mockCartRepository.save(mockCart) } returns mockSavedCart
+
+                val result = sut.addToCart(userId, productId, quantity, giftWrap, giftMessage)
+
+                result shouldBe mockSavedCart
+                verify(exactly = 1) { mockCart.updateItemQuantity(1L, quantity, userId) }
+                verify(exactly = 1) { mockCartRepository.save(mockCart) }
+            }
+        }
+
+        context("다른 상품들이 장바구니에 있는 경우") {
+            it("다른 productId인 경우 새 아이템으로 추가") {
+                val userId = 1L
+                val productId = 2L
+                val quantity = 1
+                val giftWrap = false
+                val giftMessage: String? = null
+                val mockCart = mockk<Cart>(relaxed = true)
+                val mockSavedCart = mockk<Cart>(relaxed = true)
+                val mockExistingItem = CartItem(
+                    id = 1L,
+                    cartId = 1L,
+                    productId = 1L,
+                    quantity = 2,
                     giftWrap = false,
                     giftMessage = null
                 )
                 val realNewCartItem = CartItem(
                     id = 2L,
                     cartId = 1L,
-                    packageTypeId = packageTypeId,
-                    packageTypeName = packageTypeName,
-                    packageTypeDays = packageTypeDays,
-                    dailyServing = dailyServing,
-                    totalQuantity = totalQuantity,
-                    giftWrap = giftWrap,
-                    giftMessage = giftMessage
-                )
-                val mockNewCartItem = spyk(realNewCartItem)
-                val mockSavedCart = mockk<Cart>(relaxed = true)
-
-                every { mockCart.items } returns listOf(mockExistingItem)
-                every { mockCartItemTeaService.validateTeaItems(teaItems) } just Runs
-                every { mockCartRepository.findByUserId(userId) } returns mockCart
-                every { mockCart.removeItem(1L, userId) } just Runs
-                every { mockCart.addItem(
-                    packageTypeId = packageTypeId,
-                    packageTypeName = packageTypeName,
-                    packageTypeDays = packageTypeDays,
-                    dailyServing = dailyServing,
-                    totalQuantity = totalQuantity,
-                    giftWrap = giftWrap,
-                    giftMessage = giftMessage,
-                    addedBy = userId
-                ) } returns mockNewCartItem
-                every { mockCartRepository.save(mockCart) } returns mockSavedCart
-                every { mockSavedCart.items } returns listOf(mockNewCartItem)
-                every { mockCartItemTeaService.saveCartItemTeas(2L, teaItems) } returns emptyList()
-
-                val result = sut.addToCart(userId, packageTypeId, packageTypeName, packageTypeDays, dailyServing, totalQuantity, giftWrap, giftMessage, teaItems)
-
-                result shouldBe mockSavedCart
-                verify(exactly = 1) { mockCartItemTeaService.validateTeaItems(teaItems) }
-                verify(exactly = 1) { mockCart.removeItem(1L, userId) }
-                verify(exactly = 1) { mockCart.addItem(
-                    packageTypeId = packageTypeId,
-                    packageTypeName = packageTypeName,
-                    packageTypeDays = packageTypeDays,
-                    dailyServing = dailyServing,
-                    totalQuantity = totalQuantity,
-                    giftWrap = giftWrap,
-                    giftMessage = giftMessage,
-                    addedBy = userId
-                ) }
-                verify(exactly = 1) { mockCartRepository.save(mockCart) }
-                verify(exactly = 1) { mockCartItemTeaService.saveCartItemTeas(2L, teaItems) }
-            }
-        }
-
-        context("다른 패키지들이 장바구니에 있는 경우") {
-            it("다른 packageTypeId인 경우 새 아이템으로 추가") {
-                val userId = 1L
-                val packageTypeId = 2L
-                val packageTypeName = "15일 패키지"
-                val packageTypeDays = 15
-                val dailyServing = 1
-                val totalQuantity = 150.0
-                val giftWrap = false
-                val giftMessage: String? = null
-                val teaItems = listOf(TeaItemRequest(productId = 3L, selectionOrder = 1, ratioPercent = 50))
-                val mockCart = mockk<Cart>(relaxed = true)
-                val mockSavedCart = mockk<Cart>(relaxed = true)
-                val mockExistingItem = CartItem(
-                    id = 1L,
-                    cartId = 1L,
-                    packageTypeId = 1L,
-                    packageTypeName = "기존 패키지",
-                    packageTypeDays = 30,
-                    dailyServing = 2,
-                    totalQuantity = 300.0,
-                    giftWrap = false,
-                    giftMessage = null
-                )
-                val realNewCartItem = CartItem(
-                    id = 2L,
-                    cartId = 1L,
-                    packageTypeId = packageTypeId,
-                    packageTypeName = packageTypeName,
-                    packageTypeDays = packageTypeDays,
-                    dailyServing = dailyServing,
-                    totalQuantity = totalQuantity,
+                    productId = productId,
+                    quantity = quantity,
                     giftWrap = giftWrap,
                     giftMessage = giftMessage
                 )
                 val mockNewCartItem = spyk(realNewCartItem)
 
                 every { mockCart.items } returns listOf(mockExistingItem)
-                every { mockCartItemTeaService.validateTeaItems(teaItems) } just Runs
                 every { mockCartRepository.findByUserId(userId) } returns mockCart
                 every { mockCart.addItem(
-                    packageTypeId = packageTypeId,
-                    packageTypeName = packageTypeName,
-                    packageTypeDays = packageTypeDays,
-                    dailyServing = dailyServing,
-                    totalQuantity = totalQuantity,
+                    productId = productId,
+                    quantity = quantity,
                     giftWrap = giftWrap,
                     giftMessage = giftMessage,
                     addedBy = userId
                 ) } returns mockNewCartItem
                 every { mockCartRepository.save(mockCart) } returns mockSavedCart
-                every { mockSavedCart.items } returns listOf(mockExistingItem, mockNewCartItem)
-                every { mockCartItemTeaService.saveCartItemTeas(2L, teaItems) } returns emptyList()
 
-                val result = sut.addToCart(userId, packageTypeId, packageTypeName, packageTypeDays, dailyServing, totalQuantity, giftWrap, giftMessage, teaItems)
+                val result = sut.addToCart(userId, productId, quantity, giftWrap, giftMessage)
 
                 result shouldBe mockSavedCart
-                verify(exactly = 1) { mockCartItemTeaService.validateTeaItems(teaItems) }
                 verify(exactly = 1) { mockCart.addItem(
-                    packageTypeId = packageTypeId,
-                    packageTypeName = packageTypeName,
-                    packageTypeDays = packageTypeDays,
-                    dailyServing = dailyServing,
-                    totalQuantity = totalQuantity,
+                    productId = productId,
+                    quantity = quantity,
                     giftWrap = giftWrap,
                     giftMessage = giftMessage,
                     addedBy = userId
                 ) }
                 verify(exactly = 1) { mockCartRepository.save(mockCart) }
-                verify(exactly = 1) { mockCartItemTeaService.saveCartItemTeas(2L, teaItems) }
             }
-
         }
     }
 
@@ -290,19 +200,19 @@ class CartServiceTest : DescribeSpec({
             it("아이템 수량을 업데이트하고 장바구니를 저장") {
                 val userId = 1L
                 val cartItemId = 1L
-                val totalQuantity = 500.0
+                val quantity = 5
                 val updatedBy = 1L
                 val mockCart = mockk<Cart>(relaxed = true)
 
                 every { mockCartRepository.findByUserId(userId) } returns mockCart
-                every { mockCart.updateItemQuantity(cartItemId, totalQuantity, updatedBy) } just Runs
+                every { mockCart.updateItemQuantity(cartItemId, quantity, updatedBy) } just Runs
                 every { mockCartRepository.save(mockCart) } returns mockCart
 
-                val result = sut.updateCartItem(userId, cartItemId, totalQuantity, updatedBy)
+                val result = sut.updateCartItem(userId, cartItemId, quantity, updatedBy)
 
                 result shouldBe mockCart
                 verify(exactly = 1) { mockCartRepository.findByUserId(userId) }
-                verify(exactly = 1) { mockCart.updateItemQuantity(cartItemId, totalQuantity, updatedBy) }
+                verify(exactly = 1) { mockCart.updateItemQuantity(cartItemId, quantity, updatedBy) }
                 verify(exactly = 1) { mockCartRepository.save(mockCart) }
                 verify(exactly = 0) { mockCart.removeItem(any(), any()) }
             }
@@ -312,7 +222,7 @@ class CartServiceTest : DescribeSpec({
             it("아이템을 제거하고 장바구니를 저장") {
                 val userId = 1L
                 val cartItemId = 1L
-                val totalQuantity = 0.0
+                val quantity = 0
                 val updatedBy = 1L
                 val mockCart = mockk<Cart>(relaxed = true)
 
@@ -320,7 +230,7 @@ class CartServiceTest : DescribeSpec({
                 every { mockCart.removeItem(cartItemId, updatedBy) } just Runs
                 every { mockCartRepository.save(mockCart) } returns mockCart
 
-                val result = sut.updateCartItem(userId, cartItemId, totalQuantity, updatedBy)
+                val result = sut.updateCartItem(userId, cartItemId, quantity, updatedBy)
 
                 result shouldBe mockCart
                 verify(exactly = 1) { mockCartRepository.findByUserId(userId) }
@@ -334,13 +244,13 @@ class CartServiceTest : DescribeSpec({
             it("CartException.CartNotFound를 발생") {
                 val userId = 999L
                 val cartItemId = 1L
-                val totalQuantity = 500.0
+                val quantity = 5
                 val updatedBy = 1L
 
                 every { mockCartRepository.findByUserId(userId) } returns null
 
                 shouldThrow<CartException.CartNotFound> {
-                    sut.updateCartItem(userId, cartItemId, totalQuantity, updatedBy)
+                    sut.updateCartItem(userId, cartItemId, quantity, updatedBy)
                 }
 
                 verify(exactly = 1) { mockCartRepository.findByUserId(userId) }
@@ -351,25 +261,21 @@ class CartServiceTest : DescribeSpec({
 
     describe("removeCartItem") {
         context("정상적인 아이템 제거") {
-            it("차 구성을 먼저 삭제한 후 아이템을 제거하고 장바구니를 저장") {
+            it("아이템을 제거하고 장바구니를 저장") {
                 val userId = 1L
                 val cartItemId = 1L
                 val mockCart = mockk<Cart>(relaxed = true)
 
                 every { mockCartRepository.findByUserId(userId) } returns mockCart
-                every { mockCartItemTeaService.deleteCartItemTeas(cartItemId) } just Runs
                 every { mockCart.removeItem(cartItemId, userId) } just Runs
                 every { mockCartRepository.save(mockCart) } returns mockCart
 
                 val result = sut.removeCartItem(userId, cartItemId)
 
                 result shouldBe mockCart
-                verifyOrder {
-                    mockCartRepository.findByUserId(userId)
-                    mockCartItemTeaService.deleteCartItemTeas(cartItemId)
-                    mockCart.removeItem(cartItemId, userId)
-                    mockCartRepository.save(mockCart)
-                }
+                verify(exactly = 1) { mockCartRepository.findByUserId(userId) }
+                verify(exactly = 1) { mockCart.removeItem(cartItemId, userId) }
+                verify(exactly = 1) { mockCartRepository.save(mockCart) }
             }
         }
 
@@ -385,7 +291,6 @@ class CartServiceTest : DescribeSpec({
                 }
 
                 verify(exactly = 1) { mockCartRepository.findByUserId(userId) }
-                verify(exactly = 0) { mockCartItemTeaService.deleteCartItemTeas(any()) }
                 verify(exactly = 0) { mockCartRepository.save(any()) }
             }
         }
@@ -393,15 +298,11 @@ class CartServiceTest : DescribeSpec({
 
     describe("clearCart") {
         context("정상적인 장바구니 비우기") {
-            it("모든 차 구성을 삭제한 후 장바구니를 비우고 저장") {
+            it("장바구니를 비우고 저장") {
                 val userId = 1L
                 val mockCart = mockk<Cart>(relaxed = true)
-                val mockCartItem1 = mockk<CartItem> { every { id } returns 1L }
-                val mockCartItem2 = mockk<CartItem> { every { id } returns 2L }
 
                 every { mockCartRepository.findByUserId(userId) } returns mockCart
-                every { mockCart.items } returns listOf(mockCartItem1, mockCartItem2)
-                every { mockCartItemTeaService.deleteCartItemTeas(any()) } just Runs
                 every { mockCart.clear(userId) } just Runs
                 every { mockCartRepository.save(mockCart) } returns mockCart
 
@@ -409,8 +310,6 @@ class CartServiceTest : DescribeSpec({
 
                 result shouldBe mockCart
                 verify(exactly = 1) { mockCartRepository.findByUserId(userId) }
-                verify(exactly = 1) { mockCartItemTeaService.deleteCartItemTeas(1L) }
-                verify(exactly = 1) { mockCartItemTeaService.deleteCartItemTeas(2L) }
                 verify(exactly = 1) { mockCart.clear(userId) }
                 verify(exactly = 1) { mockCartRepository.save(mockCart) }
             }
@@ -427,24 +326,7 @@ class CartServiceTest : DescribeSpec({
                 }
 
                 verify(exactly = 1) { mockCartRepository.findByUserId(userId) }
-                verify(exactly = 0) { mockCartItemTeaService.deleteCartItemTeas(any()) }
                 verify(exactly = 0) { mockCartRepository.save(any()) }
-            }
-        }
-    }
-
-    describe("getCartItemTeas") {
-        context("장바구니 아이템 차 구성 조회") {
-            it("CartItemTeaService에 조회를 위임하고 결과를 반환") {
-                val cartItemId = 1L
-                val expectedTeas = listOf(mockk<CartItemTea>(), mockk<CartItemTea>())
-
-                every { mockCartItemTeaService.getCartItemTeas(cartItemId) } returns expectedTeas
-
-                val result = sut.getCartItemTeas(cartItemId)
-
-                result shouldBe expectedTeas
-                verify(exactly = 1) { mockCartItemTeaService.getCartItemTeas(cartItemId) }
             }
         }
     }

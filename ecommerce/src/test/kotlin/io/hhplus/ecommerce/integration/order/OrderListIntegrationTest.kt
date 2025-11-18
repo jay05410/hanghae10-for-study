@@ -11,7 +11,6 @@ import io.hhplus.ecommerce.product.domain.repository.ProductRepository
 import io.hhplus.ecommerce.product.domain.entity.Product
 import io.hhplus.ecommerce.inventory.domain.entity.Inventory
 import io.hhplus.ecommerce.inventory.domain.repository.InventoryRepository
-import io.hhplus.ecommerce.cart.dto.TeaItemRequest
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.collections.shouldBeSortedWith
@@ -67,24 +66,10 @@ class OrderListIntegrationTest(
                 // 주문 10개 생성
                 val orderItems = listOf(
                     CreateOrderItemRequest(
-                        packageTypeId = savedProduct.id,
-                        packageTypeName = "목록 테스트 패키지",
-                        packageTypeDays = 7,
-                        dailyServing = 1,
-                        totalQuantity = 1.0,
-                        giftWrap = false,
-                        giftMessage = null,
+                        productId = savedProduct.id,
                         quantity = 1,
-                        containerPrice = 10000,
-                        teaPrice = 10000,
-                        giftWrapPrice = 0,
-                        teaItems = listOf(
-                            TeaItemRequest(
-                                productId = savedProduct.id,
-                                selectionOrder = 1,
-                                ratioPercent = 100
-                            )
-                        )
+                        giftWrap = false,
+                        giftMessage = null
                     )
                 )
 
@@ -104,7 +89,7 @@ class OrderListIntegrationTest(
 
                 val createdOrderIds = (1..orderCount).map {
                     val order = orderCommandUseCase.createOrder(createOrderRequest)
-                    Thread.sleep(10) // 주문 시간 차이를 두기 위해
+                    Thread.sleep(1) // 주문 시간 차이를 두기 위해
                     order.id
                 }
 
@@ -164,24 +149,10 @@ class OrderListIntegrationTest(
 
                 val orderItems = listOf(
                     CreateOrderItemRequest(
-                        packageTypeId = savedProduct.id,
-                        packageTypeName = "대량 테스트 패키지",
-                        packageTypeDays = 7,
-                        dailyServing = 1,
-                        totalQuantity = 1.0,
-                        giftWrap = false,
-                        giftMessage = null,
+                        productId = savedProduct.id,
                         quantity = 1,
-                        containerPrice = 10000,
-                        teaPrice = 10000,
-                        giftWrapPrice = 0,
-                        teaItems = listOf(
-                            TeaItemRequest(
-                                productId = savedProduct.id,
-                                selectionOrder = 1,
-                                ratioPercent = 100
-                            )
-                        )
+                        giftWrap = false,
+                        giftMessage = null
                     )
                 )
 

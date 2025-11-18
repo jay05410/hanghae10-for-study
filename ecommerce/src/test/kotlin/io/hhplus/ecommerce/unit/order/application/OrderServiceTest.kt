@@ -1,10 +1,8 @@
 package io.hhplus.ecommerce.unit.order.application
 
-import io.hhplus.ecommerce.order.application.OrderItemTeaService
 import io.hhplus.ecommerce.order.application.OrderService
 import io.hhplus.ecommerce.order.domain.entity.Order
 import io.hhplus.ecommerce.order.domain.entity.OrderItem
-import io.hhplus.ecommerce.order.domain.entity.OrderItemTea
 import io.hhplus.ecommerce.order.domain.repository.OrderRepository
 import io.hhplus.ecommerce.order.domain.repository.OrderItemRepository
 import io.hhplus.ecommerce.order.domain.constant.OrderStatus
@@ -32,7 +30,6 @@ import java.time.LocalDateTime
 class OrderServiceTest : DescribeSpec({
     val mockOrderRepository = mockk<OrderRepository>()
     val mockOrderItemRepository = mockk<OrderItemRepository>()
-    val mockOrderItemTeaService = mockk<OrderItemTeaService>()
     val mockSnowflakeGenerator = mockk<SnowflakeGenerator>()
     val mockProductStatisticsService = mockk<ProductStatisticsService>()
     val mockOutboxEventService = mockk<OutboxEventService>()
@@ -41,7 +38,6 @@ class OrderServiceTest : DescribeSpec({
     val sut = OrderService(
         orderRepository = mockOrderRepository,
         orderItemRepository = mockOrderItemRepository,
-        orderItemTeaService = mockOrderItemTeaService,
         snowflakeGenerator = mockSnowflakeGenerator,
         productStatisticsService = mockProductStatisticsService,
         outboxEventService = mockOutboxEventService,
@@ -50,11 +46,11 @@ class OrderServiceTest : DescribeSpec({
 
     fun createMockOrderItem(
         id: Long = 1L,
-        packageTypeId: Long = 1L,
+        productId: Long = 1L,
         quantity: Int = 2
     ): OrderItem = mockk(relaxed = true) {
         every { this@mockk.id } returns id
-        every { this@mockk.packageTypeId } returns packageTypeId
+        every { this@mockk.productId } returns productId
         every { this@mockk.quantity } returns quantity
     }
 
@@ -88,7 +84,6 @@ class OrderServiceTest : DescribeSpec({
         clearMocks(
             mockOrderRepository,
             mockOrderItemRepository,
-            mockOrderItemTeaService,
             mockSnowflakeGenerator,
             mockProductStatisticsService,
             mockOutboxEventService,
@@ -103,18 +98,15 @@ class OrderServiceTest : DescribeSpec({
                 val userId = 1L
                 val items = listOf(
                     OrderItemData(
-                        packageTypeId = 1L,
-                        packageTypeName = "3일 패키지",
-                        packageTypeDays = 3,
-                        dailyServing = 1,
-                        totalQuantity = 3.0,
+                        productId = 1L,
+                        productName = "테스트 상품",
+                        categoryName = "전자기기",
+                        quantity = 2,
+                        unitPrice = 5000,
                         giftWrap = false,
                         giftMessage = null,
-                        quantity = 2,
-                        containerPrice = 1000,
-                        teaPrice = 4000,
                         giftWrapPrice = 0,
-                        teaItems = emptyList()
+                        totalPrice = 10000
                     )
                 )
                 val totalAmount = 10000L
@@ -124,10 +116,8 @@ class OrderServiceTest : DescribeSpec({
                 val orderNumber = "ORD-20241107-001"
 
                 every { mockSnowflakeGenerator.generateNumberWithPrefix(IdPrefix.ORDER) } returns orderNumber
-                every { mockOrderItemTeaService.validateTeaItemsForOrder(any()) } just Runs
                 every { mockOrderRepository.save(any()) } answers { firstArg() }
                 every { mockOrderItemRepository.save(any()) } answers { firstArg() }
-                every { mockOrderItemTeaService.saveOrderItemTeas(any(), any()) } returns emptyList()
                 every { mockOutboxEventService.publishEvent(any(), any(), any(), any(), any()) } returns mockk()
                 every { mockObjectMapper.writeValueAsString(any()) } returns "{\"orderId\":1}"
 
@@ -145,53 +135,6 @@ class OrderServiceTest : DescribeSpec({
                 verify { mockOutboxEventService.publishEvent(any(), any(), any(), any(), any()) }
             }
 
-            it("should create order with tea items validation") {
-                // Given
-                val userId = 1L
-                val teaItems = listOf(
-                    io.hhplus.ecommerce.cart.dto.TeaItemRequest(productId = 10L, selectionOrder = 1, ratioPercent = 100)
-                )
-                val items = listOf(
-                    OrderItemData(
-                        packageTypeId = 1L,
-                        packageTypeName = "3일 패키지",
-                        packageTypeDays = 3,
-                        dailyServing = 1,
-                        totalQuantity = 3.0,
-                        giftWrap = false,
-                        giftMessage = null,
-                        quantity = 1,
-                        containerPrice = 1000,
-                        teaPrice = 4000,
-                        giftWrapPrice = 0,
-                        teaItems = teaItems
-                    )
-                )
-                val totalAmount = 5000L
-                val discountAmount = 0L
-                val createdBy = 1L
-
-                val orderNumber = "ORD-20241107-002"
-
-                every { mockSnowflakeGenerator.generateNumberWithPrefix(IdPrefix.ORDER) } returns orderNumber
-                every { mockOrderItemTeaService.validateTeaItemsForOrder(teaItems) } just Runs
-                every { mockOrderRepository.save(any()) } answers { firstArg() }
-                every { mockOrderItemRepository.save(any()) } answers { firstArg() }
-                every { mockOrderItemTeaService.saveOrderItemTeas(any(), teaItems) } returns emptyList()
-                every { mockOutboxEventService.publishEvent(any(), any(), any(), any(), any()) } returns mockk()
-                every { mockObjectMapper.writeValueAsString(any()) } returns "{\"orderId\":1}"
-
-                // When
-                val result = sut.createOrder(userId, items, null, totalAmount, discountAmount, createdBy)
-
-                // Then
-                result.orderNumber shouldBe orderNumber
-                result.userId shouldBe userId
-                result.totalAmount shouldBe totalAmount
-                result.discountAmount shouldBe discountAmount
-                verify { mockOrderItemTeaService.validateTeaItemsForOrder(teaItems) }
-                verify { mockOrderItemTeaService.saveOrderItemTeas(any(), teaItems) }
-            }
         }
     }
 
@@ -279,8 +222,8 @@ class OrderServiceTest : DescribeSpec({
                 val confirmedBy = 1L
                 val mockOrder = createMockOrder(id = orderId, status = OrderStatus.PENDING)
                 val mockOrderItems = listOf(
-                    createMockOrderItem(id = 1L, packageTypeId = 1L, quantity = 2),
-                    createMockOrderItem(id = 2L, packageTypeId = 2L, quantity = 1)
+                    createMockOrderItem(id = 1L, productId = 1L, quantity = 2),
+                    createMockOrderItem(id = 2L, productId = 2L, quantity = 1)
                 )
 
                 every { mockOrderRepository.findById(orderId) } returns mockOrder
@@ -321,14 +264,8 @@ class OrderServiceTest : DescribeSpec({
                 val cancelledBy = 1L
                 val reason = "변심"
                 val mockOrder = createMockOrder(id = orderId, status = OrderStatus.PENDING)
-                val mockOrderItems = listOf(
-                    createMockOrderItem(id = 1L),
-                    createMockOrderItem(id = 2L)
-                )
 
                 every { mockOrderRepository.findById(orderId) } returns mockOrder
-                every { mockOrderItemRepository.findByOrderId(orderId) } returns mockOrderItems
-                every { mockOrderItemTeaService.deleteOrderItemTeas(any()) } returns mockk()
                 every { mockObjectMapper.writeValueAsString(any()) } returns "{\"orderId\":1}"
                 every { mockOutboxEventService.publishEvent(any(), any(), any(), any(), any()) } returns mockk()
                 every { mockOrderRepository.save(any()) } returns mockOrder
@@ -337,7 +274,6 @@ class OrderServiceTest : DescribeSpec({
 
                 result.status shouldBe OrderStatus.CANCELLED
                 verify(exactly = 1) { mockOrderRepository.findById(orderId) }
-                verify(exactly = 1) { mockOrderItemRepository.findByOrderId(orderId) }
                 verify(exactly = 1) { mockOrderRepository.save(any()) }
             }
         }
@@ -347,14 +283,8 @@ class OrderServiceTest : DescribeSpec({
                 val orderId = 1L
                 val cancelledBy = 1L
                 val mockOrder = createMockOrder(id = orderId, status = OrderStatus.PENDING)
-                val mockOrderItems = listOf(
-                    createMockOrderItem(id = 1L),
-                    createMockOrderItem(id = 2L)
-                )
 
                 every { mockOrderRepository.findById(orderId) } returns mockOrder
-                every { mockOrderItemRepository.findByOrderId(orderId) } returns mockOrderItems
-                every { mockOrderItemTeaService.deleteOrderItemTeas(any()) } returns mockk()
                 every { mockObjectMapper.writeValueAsString(any()) } returns "{\"orderId\":1}"
                 every { mockOutboxEventService.publishEvent(any(), any(), any(), any(), any()) } returns mockk()
                 every { mockOrderRepository.save(any()) } returns mockOrder
@@ -363,7 +293,6 @@ class OrderServiceTest : DescribeSpec({
 
                 result.status shouldBe OrderStatus.CANCELLED
                 verify(exactly = 1) { mockOrderRepository.findById(orderId) }
-                verify(exactly = 1) { mockOrderItemRepository.findByOrderId(orderId) }
                 verify(exactly = 1) { mockOrderRepository.save(any()) }
             }
         }
@@ -385,36 +314,4 @@ class OrderServiceTest : DescribeSpec({
         }
     }
 
-    describe("getOrderItemTeas") {
-        context("주문 아이템의 차 구성 조회") {
-            it("OrderItemTeaService를 호출하여 차 구성을 반환") {
-                val orderItemId = 1L
-                val mockOrderItemTeas = listOf(
-                    mockk<OrderItemTea>(relaxed = true),
-                    mockk<OrderItemTea>(relaxed = true)
-                )
-
-                every { mockOrderItemTeaService.getOrderItemTeas(orderItemId) } returns mockOrderItemTeas
-
-                val result = sut.getOrderItemTeas(orderItemId)
-
-                result shouldHaveSize 2
-                result shouldBe mockOrderItemTeas
-                verify(exactly = 1) { mockOrderItemTeaService.getOrderItemTeas(orderItemId) }
-            }
-        }
-
-        context("차 구성이 없는 주문 아이템") {
-            it("빈 목록을 반환") {
-                val orderItemId = 2L
-
-                every { mockOrderItemTeaService.getOrderItemTeas(orderItemId) } returns emptyList()
-
-                val result = sut.getOrderItemTeas(orderItemId)
-
-                result.shouldBeEmpty()
-                verify(exactly = 1) { mockOrderItemTeaService.getOrderItemTeas(orderItemId) }
-            }
-        }
-    }
 })

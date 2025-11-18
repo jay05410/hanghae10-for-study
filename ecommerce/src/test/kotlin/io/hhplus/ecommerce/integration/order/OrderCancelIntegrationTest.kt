@@ -75,18 +75,10 @@ class OrderCancelIntegrationTest(
                 // 주문 생성 (재고 차감 + 포인트 사용)
                 val orderItems = listOf(
                     CreateOrderItemRequest(
-                        packageTypeId = savedProduct.id,
-                        packageTypeName = "테스트 패키지",
-                        packageTypeDays = 7,
-                        dailyServing = 1,
-                        totalQuantity = orderQuantity.toDouble(),
-                        giftWrap = false,
-                        giftMessage = null,
+                        productId = savedProduct.id,
                         quantity = orderQuantity,
-                        containerPrice = 10000,
-                        teaPrice = 30000,
-                        giftWrapPrice = 0,
-                        teaItems = emptyList()
+                        giftWrap = false,
+                        giftMessage = null
                     )
                 )
 
@@ -112,7 +104,7 @@ class OrderCancelIntegrationTest(
 
                 // 주문 후 포인트 확인
                 val balanceAfterOrder = getPointQueryUseCase.getUserPoint(userId).balance.value
-                balanceAfterOrder shouldBe (initialBalance - 120000L)
+                balanceAfterOrder shouldBe (initialBalance - (savedProduct.price * orderQuantity))
 
                 // When: 주문 취소
                 val cancelledOrder = orderCommandUseCase.cancelOrder(
@@ -159,18 +151,10 @@ class OrderCancelIntegrationTest(
 
                 val orderItems = listOf(
                     CreateOrderItemRequest(
-                        packageTypeId = savedProduct.id,
-                        packageTypeName = "테스트 패키지",
-                        packageTypeDays = 7,
-                        dailyServing = 1,
-                        totalQuantity = 1.0,
-                        giftWrap = false,
-                        giftMessage = null,
+                        productId = savedProduct.id,
                         quantity = 1,
-                        containerPrice = 10000,
-                        teaPrice = 10000,
-                        giftWrapPrice = 0,
-                        teaItems = emptyList()
+                        giftWrap = false,
+                        giftMessage = null
                     )
                 )
 
