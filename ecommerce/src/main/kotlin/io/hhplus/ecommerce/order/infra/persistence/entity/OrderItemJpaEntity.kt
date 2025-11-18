@@ -23,34 +23,25 @@ class OrderItemJpaEntity(
     val orderId: Long,
 
     @Column(nullable = false)
-    val packageTypeId: Long,
+    val productId: Long,
 
     @Column(nullable = false, length = 100)
-    val packageTypeName: String,
+    val productName: String,
+
+    @Column(nullable = false, length = 50)
+    val categoryName: String,
 
     @Column(nullable = false)
-    val packageTypeDays: Int,
+    val quantity: Int,
 
     @Column(nullable = false)
-    val dailyServing: Int,
-
-    @Column(nullable = false)
-    val totalQuantity: Double,
+    val unitPrice: Int,
 
     @Column(nullable = false)
     val giftWrap: Boolean = false,
 
     @Column(length = 500)
     val giftMessage: String? = null,
-
-    @Column(nullable = false)
-    val quantity: Int,
-
-    @Column(nullable = false)
-    val containerPrice: Int,
-
-    @Column(nullable = false)
-    val teaPrice: Int,
 
     @Column(nullable = false)
     val giftWrapPrice: Int = 0,

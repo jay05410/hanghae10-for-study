@@ -33,13 +33,10 @@ class OrderItemRepositoryImpl(
         jpaRepository.findByOrderId(orderId).toDomain(mapper)
 
     override fun findByOrderIdAndProductId(orderId: Long, productId: Long): OrderItem? =
-        jpaRepository.findByOrderIdAndPackageTypeId(orderId, productId).toDomain(mapper)
-
-    override fun findByOrderIdAndProductIdAndBoxTypeId(orderId: Long, productId: Long, boxTypeId: Long): OrderItem? =
-        jpaRepository.findByOrderIdAndPackageTypeId(orderId, boxTypeId).toDomain(mapper)
+        jpaRepository.findByOrderIdAndProductId(orderId, productId).toDomain(mapper)
 
     override fun findByProductId(productId: Long): List<OrderItem> =
-        jpaRepository.findByPackageTypeId(productId).toDomain(mapper)
+        jpaRepository.findByProductId(productId).toDomain(mapper)
 
     override fun deleteById(id: Long) {
         jpaRepository.deleteById(id)

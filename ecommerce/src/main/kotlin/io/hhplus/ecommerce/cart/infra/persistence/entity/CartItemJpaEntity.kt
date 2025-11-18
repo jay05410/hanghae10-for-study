@@ -20,7 +20,7 @@ import jakarta.persistence.*
     name = "cart_items",
     indexes = [
         Index(name = "idx_cart_item_cart", columnList = "cart_id"),
-        Index(name = "idx_cart_item_package", columnList = "package_type_id"),
+        Index(name = "idx_cart_item_product", columnList = "product_id"),
         Index(name = "idx_cart_item_active", columnList = "is_active, created_at")
     ]
 )
@@ -32,20 +32,11 @@ class CartItemJpaEntity(
     @Column(nullable = false, name = "cart_id")
     val cartId: Long,
 
-    @Column(nullable = false, name = "package_type_id")
-    val packageTypeId: Long,
+    @Column(nullable = false, name = "product_id")
+    val productId: Long,
 
-    @Column(nullable = false, length = 100, name = "package_type_name")
-    val packageTypeName: String,
-
-    @Column(nullable = false, name = "package_type_days")
-    val packageTypeDays: Int,
-
-    @Column(nullable = false, name = "daily_serving")
-    val dailyServing: Int = 1,
-
-    @Column(nullable = false, name = "total_quantity")
-    val totalQuantity: Double,
+    @Column(nullable = false, name = "quantity")
+    val quantity: Int,
 
     @Column(nullable = false, name = "gift_wrap")
     val giftWrap: Boolean = false,

@@ -27,9 +27,9 @@ interface CartItemJpaRepository : JpaRepository<CartItemJpaEntity, Long> {
     fun findByCartId(cartId: Long): List<CartItemJpaEntity>
 
     /**
-     * 장바구니 ID와 제품 ID로 아이템 조회
+     * 장바구니 ID와 상품 ID로 아이템 조회
      */
-    fun findByCartIdAndPackageTypeId(cartId: Long, packageTypeId: Long): CartItemJpaEntity?
+    fun findByCartIdAndProductId(cartId: Long, productId: Long): CartItemJpaEntity?
 
     /**
      * 장바구니 ID로 모든 아이템 삭제

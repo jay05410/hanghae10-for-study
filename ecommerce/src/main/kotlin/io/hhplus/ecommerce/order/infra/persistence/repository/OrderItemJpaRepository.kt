@@ -12,7 +12,7 @@ import org.springframework.data.jpa.repository.JpaRepository
  */
 interface OrderItemJpaRepository : JpaRepository<OrderItemJpaEntity, Long> {
     fun findByOrderId(orderId: Long): List<OrderItemJpaEntity>
-    fun findByOrderIdAndPackageTypeId(orderId: Long, productId: Long): OrderItemJpaEntity?
-    fun findByPackageTypeId(productId: Long): List<OrderItemJpaEntity>
+    fun findByOrderIdAndProductId(orderId: Long, productId: Long): OrderItemJpaEntity?
+    fun findByProductId(productId: Long): List<OrderItemJpaEntity>
     fun deleteByOrderId(orderId: Long)
 }

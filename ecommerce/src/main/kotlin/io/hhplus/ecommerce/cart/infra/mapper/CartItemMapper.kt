@@ -27,11 +27,8 @@ class CartItemMapper {
         return CartItem(
             id = entity.id,
             cartId = entity.cartId,
-            packageTypeId = entity.packageTypeId,
-            packageTypeName = entity.packageTypeName,
-            packageTypeDays = entity.packageTypeDays,
-            dailyServing = entity.dailyServing,
-            totalQuantity = entity.totalQuantity,
+            productId = entity.productId,
+            quantity = entity.quantity,
             giftWrap = entity.giftWrap,
             giftMessage = entity.giftMessage,
             isActive = entity.isActive,
@@ -52,11 +49,8 @@ class CartItemMapper {
         return CartItemJpaEntity(
             id = domain.id,
             cartId = domain.cartId,
-            packageTypeId = domain.packageTypeId,
-            packageTypeName = domain.packageTypeName,
-            packageTypeDays = domain.packageTypeDays,
-            dailyServing = domain.dailyServing,
-            totalQuantity = domain.totalQuantity,
+            productId = domain.productId,
+            quantity = domain.quantity,
             giftWrap = domain.giftWrap,
             giftMessage = domain.giftMessage
         ).apply {

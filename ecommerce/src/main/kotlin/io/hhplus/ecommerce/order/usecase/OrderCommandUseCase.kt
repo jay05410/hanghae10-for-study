@@ -53,24 +53,21 @@ class OrderCommandUseCase(
     fun createOrder(request: CreateOrderRequest): Order {
         // 1. 상품 정보 검증 및 가격 계산
         val orderItems = request.items.map { item ->
-            val product = productService.getProduct(item.packageTypeId)
+            val product = productService.getProduct(item.productId)
             OrderItemData(
-                packageTypeId = item.packageTypeId,
-                packageTypeName = item.packageTypeName,
-                packageTypeDays = item.packageTypeDays,
-                dailyServing = item.dailyServing,
-                totalQuantity = item.totalQuantity,
+                productId = item.productId,
+                productName = product.name,
+                categoryName = product.category?.name ?: "",
+                quantity = item.quantity,
+                unitPrice = product.price.toInt(),
                 giftWrap = item.giftWrap,
                 giftMessage = item.giftMessage,
-                quantity = item.quantity,
-                containerPrice = item.containerPrice,
-                teaPrice = item.teaPrice,
-                giftWrapPrice = item.giftWrapPrice,
-                teaItems = item.teaItems
+                giftWrapPrice = if (item.giftWrap) 2000 else 0,
+                totalPrice = (product.price.toInt() * item.quantity) + if (item.giftWrap) 2000 else 0
             )
         }
 
-        val totalAmount = orderItems.sumOf { (it.containerPrice + it.teaPrice + it.giftWrapPrice) * it.quantity }.toLong()
+        val totalAmount = orderItems.sumOf { it.totalPrice }.toLong()
 
         // 2. 쿠폰 적용 (선택적)
         val discountAmount = request.usedCouponId?.let { couponId ->
@@ -80,7 +77,7 @@ class OrderCommandUseCase(
         // 3. 재고 차감
         orderItems.forEach { item ->
             inventoryService.deductStock(
-                productId = item.packageTypeId,
+                productId = item.productId,
                 quantity = item.quantity,
                 deductedBy = request.userId
             )
@@ -162,7 +159,7 @@ class OrderCommandUseCase(
         // 4. 재고 복구
         orderItems.forEach { orderItem ->
             inventoryService.restockInventory(
-                productId = orderItem.packageTypeId,
+                productId = orderItem.productId,
                 quantity = orderItem.quantity,
                 restockedBy = cancelledBy
             )

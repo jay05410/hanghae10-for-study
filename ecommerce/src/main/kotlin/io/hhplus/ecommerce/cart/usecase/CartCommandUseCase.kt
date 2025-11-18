@@ -33,19 +33,15 @@ class CartCommandUseCase(
      */
     fun addToCart(userId: Long, request: AddToCartRequest): Cart {
         // 1. 상품 존재 여부 검증
-        productService.getProduct(request.packageTypeId)
+        productService.getProduct(request.productId)
 
         // 2. 장바구니에 상품 추가
         return cartService.addToCart(
             userId = userId,
-            packageTypeId = request.packageTypeId,
-            packageTypeName = request.packageTypeName,
-            packageTypeDays = request.packageTypeDays,
-            dailyServing = request.dailyServing,
-            totalQuantity = request.totalQuantity,
+            productId = request.productId,
+            quantity = request.quantity,
             giftWrap = request.giftWrap,
-            giftMessage = request.giftMessage,
-            teaItems = request.teaItems
+            giftMessage = request.giftMessage
         )
     }
 
@@ -62,7 +58,7 @@ class CartCommandUseCase(
         return cartService.updateCartItem(
             userId = userId,
             cartItemId = cartItemId,
-            totalQuantity = quantity.toDouble(),
+            quantity = quantity,
             updatedBy = userId
         )
     }

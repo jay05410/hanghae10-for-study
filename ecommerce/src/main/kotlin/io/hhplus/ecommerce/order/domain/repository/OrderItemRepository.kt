@@ -7,7 +7,6 @@ interface OrderItemRepository {
     fun findById(id: Long): OrderItem?
     fun findByOrderId(orderId: Long): List<OrderItem>
     fun findByOrderIdAndProductId(orderId: Long, productId: Long): OrderItem?
-    fun findByOrderIdAndProductIdAndBoxTypeId(orderId: Long, productId: Long, boxTypeId: Long): OrderItem?
     fun findByProductId(productId: Long): List<OrderItem>
     fun deleteById(id: Long)
     fun deleteByOrderId(orderId: Long)

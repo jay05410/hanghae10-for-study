@@ -2,7 +2,6 @@ package io.hhplus.ecommerce.order.application
 
 import io.hhplus.ecommerce.order.domain.entity.Order
 import io.hhplus.ecommerce.order.domain.entity.OrderItem
-import io.hhplus.ecommerce.order.domain.entity.OrderItemTea
 import io.hhplus.ecommerce.order.domain.repository.OrderRepository
 import io.hhplus.ecommerce.order.domain.repository.OrderItemRepository
 import io.hhplus.ecommerce.order.dto.OrderItemData
@@ -24,14 +23,13 @@ import io.hhplus.ecommerce.common.util.IdPrefix
  *
  * 책임:
  * - 주문 생성, 수정, 조회, 확정, 취소 로직
- * - 주문 아이템 및 차 구성 관리
+ * - 주문 아이템 관리
  * - 주문 이벤트 발행 및 통계 연동
  */
 @Service
 class OrderService(
     private val orderRepository: OrderRepository,
     private val orderItemRepository: OrderItemRepository,
-    private val orderItemTeaService: OrderItemTeaService,
     private val snowflakeGenerator: SnowflakeGenerator,
     private val productStatisticsService: ProductStatisticsService,
     private val outboxEventService: OutboxEventService,
@@ -58,13 +56,6 @@ class OrderService(
         discountAmount: Long,
         createdBy: Long
     ): Order {
-        // 주문 아이템별 차 구성 검증
-        items.forEach { item ->
-            if (item.teaItems.isNotEmpty()) {
-                orderItemTeaService.validateTeaItemsForOrder(item.teaItems)
-            }
-        }
-
         val orderNumber = snowflakeGenerator.generateNumberWithPrefix(IdPrefix.ORDER)
 
         val order = Order.create(
@@ -78,30 +69,20 @@ class OrderService(
         val savedOrder = orderRepository.save(order)
 
         // 주문 아이템 생성 및 저장
-        val savedOrderItems = items.map { item ->
+        items.forEach { item ->
             val orderItem = OrderItem.create(
                 orderId = savedOrder.id,
-                packageTypeId = item.packageTypeId,
-                packageTypeName = item.packageTypeName,
-                packageTypeDays = item.packageTypeDays,
-                dailyServing = item.dailyServing,
-                totalQuantity = item.totalQuantity,
+                productId = item.productId,
+                productName = item.productName,
+                categoryName = item.categoryName,
+                quantity = item.quantity,
+                unitPrice = item.unitPrice,
                 giftWrap = item.giftWrap,
                 giftMessage = item.giftMessage,
-                quantity = item.quantity,
-                containerPrice = item.containerPrice,
-                teaPrice = item.teaPrice,
-                giftWrapPrice = item.giftWrapPrice
+                giftWrapPrice = item.giftWrapPrice,
+                totalPrice = item.totalPrice
             )
             orderItemRepository.save(orderItem)
-        }
-
-        // 주문 아이템별 차 구성 저장
-        items.forEachIndexed { index, item ->
-            val orderItem = savedOrderItems[index]
-            if (item.teaItems.isNotEmpty()) {
-                orderItemTeaService.saveOrderItemTeas(orderItem.id, item.teaItems)
-            }
         }
 
         // 주문 생성 이벤트 발행
@@ -174,7 +155,7 @@ class OrderService(
         val orderItems = orderItemRepository.findByOrderId(orderId)
         orderItems.forEach { orderItem ->
             productStatisticsService.incrementSalesCount(
-                productId = orderItem.packageTypeId,
+                productId = orderItem.productId,
                 quantity = orderItem.quantity,
                 userId = confirmedBy
             )
@@ -197,12 +178,6 @@ class OrderService(
         val order = orderRepository.findById(orderId)
             ?: throw IllegalArgumentException("주문을 찾을 수 없습니다")
 
-        // 주문 아이템별 차 구성 삭제
-        val orderItems = orderItemRepository.findByOrderId(orderId)
-        orderItems.forEach { orderItem ->
-            orderItemTeaService.deleteOrderItemTeas(orderItem.id)
-        }
-
         order.cancel(cancelledBy)
 
         // 주문 취소 이벤트 발행
@@ -224,15 +199,5 @@ class OrderService(
         )
 
         return orderRepository.save(order)
-    }
-
-    /**
-     * 주문 아이템의 차 구성을 조회한다
-     *
-     * @param orderItemId 조회할 주문 아이템의 ID
-     * @return 주문 아이템의 차 구성 목록
-     */
-    fun getOrderItemTeas(orderItemId: Long): List<OrderItemTea> {
-        return orderItemTeaService.getOrderItemTeas(orderItemId)
     }
 }

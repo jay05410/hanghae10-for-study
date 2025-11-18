@@ -33,10 +33,7 @@ class CartItemRepositoryImpl(
         jpaRepository.findByCartIdAndIsActive(cartId, true).toDomain(mapper)
 
     override fun findByCartIdAndProductId(cartId: Long, productId: Long): CartItem? =
-        jpaRepository.findByCartIdAndPackageTypeId(cartId, productId).toDomain(mapper)
-
-    override fun findByCartIdAndProductIdAndBoxTypeId(cartId: Long, productId: Long, boxTypeId: Long): CartItem? =
-        jpaRepository.findByCartIdAndPackageTypeId(cartId, boxTypeId).toDomain(mapper)
+        jpaRepository.findByCartIdAndProductId(cartId, productId).toDomain(mapper)
 
     override fun deleteById(id: Long) {
         jpaRepository.deleteById(id)
