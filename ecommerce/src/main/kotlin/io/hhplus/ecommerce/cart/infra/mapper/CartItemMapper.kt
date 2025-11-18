@@ -31,7 +31,7 @@ class CartItemMapper {
             quantity = entity.quantity,
             giftWrap = entity.giftWrap,
             giftMessage = entity.giftMessage,
-            isActive = entity.isActive,
+            isActive = !entity.isDeleted(),
             createdAt = entity.createdAt,
             updatedAt = entity.updatedAt,
             createdBy = entity.createdBy ?: 0,
@@ -54,7 +54,9 @@ class CartItemMapper {
             giftWrap = domain.giftWrap,
             giftMessage = domain.giftMessage
         ).apply {
-            isActive = domain.isActive
+            if (!domain.isActive) {
+                delete()
+            }
             createdAt = domain.createdAt
             updatedAt = domain.updatedAt
             createdBy = domain.createdBy

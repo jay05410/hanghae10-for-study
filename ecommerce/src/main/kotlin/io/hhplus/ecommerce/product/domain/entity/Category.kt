@@ -19,10 +19,10 @@ class Category(
     // @Column(nullable = false)
     val displayOrder: Int = 0
 ) : BaseJpaEntity() {
-    fun isAvailable(): Boolean = isActive
+    fun isAvailable(): Boolean = !isDeleted()
 
     fun deactivateCategory() {
-        this.deactivate()
+        this.delete()
     }
 
     companion object {

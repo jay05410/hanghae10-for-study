@@ -24,7 +24,7 @@ class UserPointMapper {
             userId = entity.userId,
             balance = Balance.of(entity.balance),
             version = entity.version,
-            isActive = entity.isActive,
+            isActive = !entity.isDeleted(),
             createdAt = entity.createdAt,
             updatedAt = entity.updatedAt,
             createdBy = entity.createdBy ?: 0,
@@ -43,7 +43,7 @@ class UserPointMapper {
             balance = domain.balance.value,
             version = domain.version
         ).apply {
-            isActive = domain.isActive
+            if (!domain.isActive) { delete() }
             createdAt = domain.createdAt
             updatedAt = domain.updatedAt
             createdBy = domain.createdBy

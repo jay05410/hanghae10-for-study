@@ -26,7 +26,7 @@ class UserCouponMapper {
             usedAt = entity.usedAt,
             usedOrderId = entity.usedOrderId,
             status = entity.status,
-            isActive = entity.isActive,
+            isActive = !entity.isDeleted(),
             createdAt = entity.createdAt,
             updatedAt = entity.updatedAt,
             createdBy = entity.createdBy ?: 0,
@@ -47,7 +47,7 @@ class UserCouponMapper {
             usedOrderId = domain.usedOrderId,
             status = domain.status
         ).apply {
-            isActive = domain.isActive
+            if (!domain.isActive) { delete() }
             createdAt = domain.createdAt
             updatedAt = domain.updatedAt
             createdBy = domain.createdBy

@@ -30,7 +30,7 @@ class CouponMapper {
             version = entity.version,
             validFrom = entity.validFrom,
             validTo = entity.validTo,
-            isActive = entity.isActive,
+            isActive = !entity.isDeleted(),
             createdAt = entity.createdAt,
             updatedAt = entity.updatedAt,
             createdBy = entity.createdBy ?: 0,
@@ -55,7 +55,7 @@ class CouponMapper {
             validFrom = domain.validFrom,
             validTo = domain.validTo
         ).apply {
-            isActive = domain.isActive
+            if (!domain.isActive) { delete() }
             createdAt = domain.createdAt
             updatedAt = domain.updatedAt
             createdBy = domain.createdBy

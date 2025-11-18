@@ -40,7 +40,7 @@ class DeliveryMapper(
             shippedAt = entity.shippedAt,
             deliveredAt = entity.deliveredAt,
             deliveryMemo = entity.deliveryMemo,
-            isActive = entity.isActive,
+            isActive = !entity.isDeleted(),
             createdAt = entity.createdAt,
             updatedAt = entity.updatedAt,
             createdBy = entity.createdBy ?: 0,
@@ -66,7 +66,7 @@ class DeliveryMapper(
             deliveredAt = domain.deliveredAt,
             deliveryMemo = domain.deliveryMemo
         ).apply {
-            isActive = domain.isActive
+            if (!domain.isActive) { delete() }
             createdAt = domain.createdAt
             updatedAt = domain.updatedAt
             createdBy = domain.createdBy

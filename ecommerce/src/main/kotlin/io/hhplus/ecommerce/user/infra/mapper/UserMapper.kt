@@ -33,7 +33,7 @@ class UserMapper {
             name = entity.name,
             phone = entity.phone,
             providerId = entity.providerId,
-            isActive = entity.isActive,
+            isActive = !entity.isDeleted(),
             createdAt = entity.createdAt,
             updatedAt = entity.updatedAt,
             createdBy = entity.createdBy ?: 0,
@@ -59,7 +59,7 @@ class UserMapper {
             phone = domain.phone,
             providerId = domain.providerId
         ).apply {
-            isActive = domain.isActive
+            if (!domain.isActive) { delete() }
             createdAt = domain.createdAt
             updatedAt = domain.updatedAt
             createdBy = domain.createdBy
