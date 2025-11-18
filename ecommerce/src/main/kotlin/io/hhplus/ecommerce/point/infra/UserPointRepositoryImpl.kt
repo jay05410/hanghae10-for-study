@@ -37,4 +37,12 @@ class UserPointRepositoryImpl(
     override fun delete(userPoint: UserPoint) {
         jpaRepository.deleteById(userPoint.id)
     }
+
+    override fun findUserPointWithHistoriesByUserId(userId: Long): UserPoint? {
+        return jpaRepository.findUserPointWithHistoriesByUserId(userId).toDomain(mapper)
+    }
+
+    override fun findUserPointWithHistoriesByUserIdWithLock(userId: Long): UserPoint? {
+        return jpaRepository.findUserPointWithHistoriesByUserIdWithLock(userId).toDomain(mapper)
+    }
 }

@@ -31,10 +31,13 @@ interface CartJpaRepository : JpaRepository<CartJpaEntity, Long> {
 
     /**
      * 사용자 ID로 장바구니와 아이템을 함께 조회 (Fetch Join)
-     *
-     * 주의: Cart와 CartItem이 별도 테이블이므로 별도 조회 필요
-     * 실제로는 CartItemRepository를 통해 items를 가져와야 함
      */
-    @Query("SELECT c FROM CartJpaEntity c WHERE c.userId = :userId AND c.deletedAt IS NULL")
+    @Query("SELECT c FROM CartJpaEntity c LEFT JOIN FETCH c.cartItems WHERE c.userId = :userId AND c.deletedAt IS NULL")
     fun findByUserIdWithItems(@Param("userId") userId: Long): CartJpaEntity?
+
+    /**
+     * 장바구니 ID로 장바구니와 아이템을 함께 조회
+     */
+    @Query("SELECT c FROM CartJpaEntity c LEFT JOIN FETCH c.cartItems WHERE c.id = :cartId")
+    fun findCartWithItemsById(@Param("cartId") cartId: Long): CartJpaEntity?
 }

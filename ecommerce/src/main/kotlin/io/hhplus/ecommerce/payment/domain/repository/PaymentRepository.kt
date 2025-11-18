@@ -11,4 +11,9 @@ interface PaymentRepository {
     fun findByUserId(userId: Long): List<Payment>
     fun findByStatus(status: PaymentStatus): List<Payment>
     fun findByExternalTransactionId(externalTransactionId: String): Payment?
+
+    // FETCH JOIN 메서드들
+    fun findPaymentWithHistoriesByPaymentNumber(paymentNumber: String): Payment?
+    fun findPaymentsWithHistoriesByOrderId(orderId: Long): List<Payment>
+    fun findPaymentWithHistoriesById(paymentId: Long): Payment?
 }

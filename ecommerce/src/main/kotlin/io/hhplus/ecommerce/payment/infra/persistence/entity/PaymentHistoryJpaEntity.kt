@@ -29,8 +29,9 @@ class PaymentHistoryJpaEntity(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
-    @Column(nullable = false, name = "payment_id")
-    val paymentId: Long,
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payment_id", nullable = false)
+    val payment: PaymentJpaEntity,
 
     @Column(length = 20, name = "status_before")
     val statusBefore: String? = null,
@@ -46,4 +47,6 @@ class PaymentHistoryJpaEntity(
 
     @Column(nullable = false)
     val amount: Long
-) : BaseJpaEntity()
+) : BaseJpaEntity() {
+    val paymentId: Long get() = payment.id
+}

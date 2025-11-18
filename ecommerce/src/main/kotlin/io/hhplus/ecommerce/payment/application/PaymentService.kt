@@ -77,7 +77,40 @@ class PaymentService(
         return paymentRepository.findById(paymentId)
     }
 
+    /**
+     * 결제와 이력을 함께 조회한다 (FETCH JOIN 활용)
+     *
+     * @param paymentId 조회할 결제 ID
+     * @return 결제 이력과 함께 조회된 Payment
+     */
+    @Transactional(readOnly = true)
+    fun getPaymentWithHistories(paymentId: Long): Payment? {
+        return paymentRepository.findPaymentWithHistoriesById(paymentId)
+    }
+
     fun getPaymentsByUser(userId: Long): List<Payment> {
         return paymentRepository.findByUserId(userId)
+    }
+
+    /**
+     * 결제번호로 결제와 이력을 함께 조회한다 (FETCH JOIN 활용)
+     *
+     * @param paymentNumber 조회할 결제번호
+     * @return 결제 이력과 함께 조회된 Payment
+     */
+    @Transactional(readOnly = true)
+    fun getPaymentWithHistoriesByNumber(paymentNumber: String): Payment? {
+        return paymentRepository.findPaymentWithHistoriesByPaymentNumber(paymentNumber)
+    }
+
+    /**
+     * 주문 ID로 결제와 이력을 함께 조회한다 (FETCH JOIN 활용)
+     *
+     * @param orderId 조회할 주문 ID
+     * @return 결제 이력과 함께 조회된 Payment 목록
+     */
+    @Transactional(readOnly = true)
+    fun getPaymentsWithHistoriesByOrderId(orderId: Long): List<Payment> {
+        return paymentRepository.findPaymentsWithHistoriesByOrderId(orderId)
     }
 }

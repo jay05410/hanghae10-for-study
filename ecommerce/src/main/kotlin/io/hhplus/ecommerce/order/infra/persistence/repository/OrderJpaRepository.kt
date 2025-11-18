@@ -25,4 +25,13 @@ interface OrderJpaRepository : JpaRepository<OrderJpaEntity, Long> {
     fun findByStatus(status: OrderStatus): List<OrderJpaEntity>
     fun findByCreatedAtBetween(startDate: LocalDateTime, endDate: LocalDateTime): List<OrderJpaEntity>
     fun countByUserIdAndStatus(userId: Long, status: OrderStatus): Long
+
+    @Query("SELECT o FROM OrderJpaEntity o LEFT JOIN FETCH o.orderItems WHERE o.userId = :userId ORDER BY o.createdAt DESC")
+    fun findOrdersWithItemsByUserId(@Param("userId") userId: Long): List<OrderJpaEntity>
+
+    @Query("SELECT o FROM OrderJpaEntity o LEFT JOIN FETCH o.orderItems WHERE o.orderNumber = :orderNumber")
+    fun findOrderWithItemsByOrderNumber(@Param("orderNumber") orderNumber: String): OrderJpaEntity?
+
+    @Query("SELECT o FROM OrderJpaEntity o LEFT JOIN FETCH o.orderItems WHERE o.id = :orderId")
+    fun findOrderWithItemsById(@Param("orderId") orderId: Long): OrderJpaEntity?
 }

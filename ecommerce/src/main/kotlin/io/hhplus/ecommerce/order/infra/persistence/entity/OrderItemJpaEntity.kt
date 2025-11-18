@@ -19,8 +19,9 @@ class OrderItemJpaEntity(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
-    @Column(nullable = false)
-    val orderId: Long,
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id", nullable = false)
+    val order: OrderJpaEntity,
 
     @Column(nullable = false)
     val productId: Long,
@@ -48,4 +49,6 @@ class OrderItemJpaEntity(
 
     @Column(nullable = false)
     val totalPrice: Int
-) : BaseJpaEntity()
+) : BaseJpaEntity() {
+    val orderId: Long get() = order.id
+}

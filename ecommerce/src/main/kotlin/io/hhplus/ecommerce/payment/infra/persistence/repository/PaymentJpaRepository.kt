@@ -4,6 +4,7 @@ import io.hhplus.ecommerce.payment.domain.constant.PaymentStatus
 import io.hhplus.ecommerce.payment.infra.persistence.entity.PaymentJpaEntity
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
 
 /**
  * Payment JPA Repository
@@ -54,4 +55,22 @@ interface PaymentJpaRepository : JpaRepository<PaymentJpaEntity, Long> {
      */
     @Query("SELECT p FROM PaymentJpaEntity p WHERE p.deletedAt IS NULL")
     fun findActivePayments(): List<PaymentJpaEntity>
+
+    /**
+     * 결제번호로 결제와 이력을 함께 조회
+     */
+    @Query("SELECT p FROM PaymentJpaEntity p LEFT JOIN FETCH p.paymentHistories WHERE p.paymentNumber = :paymentNumber")
+    fun findPaymentWithHistoriesByPaymentNumber(@Param("paymentNumber") paymentNumber: String): PaymentJpaEntity?
+
+    /**
+     * 주문 ID로 결제와 이력을 함께 조회
+     */
+    @Query("SELECT p FROM PaymentJpaEntity p LEFT JOIN FETCH p.paymentHistories WHERE p.orderId = :orderId")
+    fun findPaymentsWithHistoriesByOrderId(@Param("orderId") orderId: Long): List<PaymentJpaEntity>
+
+    /**
+     * 결제 ID로 결제와 이력을 함께 조회
+     */
+    @Query("SELECT p FROM PaymentJpaEntity p LEFT JOIN FETCH p.paymentHistories WHERE p.id = :paymentId")
+    fun findPaymentWithHistoriesById(@Param("paymentId") paymentId: Long): PaymentJpaEntity?
 }

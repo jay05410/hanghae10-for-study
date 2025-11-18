@@ -28,7 +28,10 @@
 
 4. **여러 테이블을 JOIN하는 복잡한 조회**
    - 주문 상세 조회 (Order + OrderItem + Product)
-   - 사용자 주문 목록 (N+1 문제 검증)
+   - 사용자 주문 목록 (N+1 문제 해결됨 - FETCH JOIN 적용)
+   - 장바구니와 아이템 조회 (N+1 문제 해결됨 - FETCH JOIN 적용)
+   - 포인트와 히스토리 조회 (N+1 문제 해결됨 - FETCH JOIN 적용)
+   - 결제와 결제이력 조회 (N+1 문제 해결됨 - FETCH JOIN 적용)
    - 이유: 성능 및 데이터 정합성 검증
 
 ### ❌ 테스트하지 않는 경우
@@ -200,3 +203,131 @@ class XxxIntegrationTest(
 - ✅ 상태 변경 (주문 상태, 재고 등)
 - ✅ 연관 데이터 (주문 생성 시 OrderItem도 함께)
 - ✅ 동시성 (Race Condition 방지)
+- ✅ N+1 문제 해결 (FETCH JOIN 적용)
+
+---
+
+## 🔧 N+1 문제 해결
+
+### 문제 식별 및 해결 현황
+
+**2025년 1월 업데이트**: 강하게 결합된 엔티티들에 직접 참조와 FETCH JOIN을 적용하여 N+1 문제를 해결했습니다.
+
+### ✅ 해결된 N+1 문제 영역
+
+#### 1. **Order-OrderItem 관계**
+```kotlin
+// 기존 문제 (N+1 발생)
+fun getOrdersByUser(userId: Long): List<Order> {
+    val orders = orderRepository.findByUserIdAndIsActive(userId, true)
+    orders.forEach { order ->
+        order.orderItems // 각 Order마다 별도 쿼리 실행
+    }
+}
+
+// 해결 후 (FETCH JOIN 적용)
+fun getOrdersByUser(userId: Long): List<Order> {
+    return orderRepository.findOrdersWithItemsByUserId(userId) // 한 번의 쿼리
+}
+```
+
+**적용된 최적화**:
+- `@OneToMany(mappedBy = "order", fetch = FetchType.LAZY)` 직접 참조 추가
+- `findOrdersWithItemsByUserId()` FETCH JOIN 쿼리 메서드 추가
+- `findOrderWithItemsById()` 주문 확정 시 FETCH JOIN 활용
+
+#### 2. **Cart-CartItem 관계**
+```kotlin
+// 기존 문제 (N+1 발생)
+fun getCartByUser(userId: Long): Cart? {
+    val cart = cartRepository.findByUserId(userId)
+    cart?.items // CartItem 별도 조회
+}
+
+// 해결 후 (FETCH JOIN 적용)
+fun getCartByUser(userId: Long): Cart? {
+    return cartRepository.findByUserIdWithItems(userId) // 한 번의 쿼리
+}
+```
+
+**적용된 최적화**:
+- `@OneToMany(mappedBy = "cart", fetch = FetchType.LAZY)` 직접 참조 추가
+- 모든 Cart 관련 메서드에서 `findByUserIdWithItems()` 활용
+
+#### 3. **UserPoint-PointHistory 관계**
+```kotlin
+// 새로 추가된 최적화 메서드
+fun getUserPointWithHistories(userId: Long): UserPoint? {
+    return userPointRepository.findUserPointWithHistoriesByUserId(userId)
+}
+```
+
+**적용된 최적화**:
+- `@OneToMany(mappedBy = "userPoint", fetch = FetchType.LAZY)` 직접 참조 추가
+- `findUserPointWithHistoriesByUserId()` FETCH JOIN 메서드 추가
+
+#### 4. **Payment-PaymentHistory 관계**
+```kotlin
+// 새로 추가된 최적화 메서드들
+fun getPaymentWithHistories(paymentId: Long): Payment? {
+    return paymentRepository.findPaymentWithHistoriesById(paymentId)
+}
+
+fun getPaymentsWithHistoriesByOrderId(orderId: Long): List<Payment> {
+    return paymentRepository.findPaymentsWithHistoriesByOrderId(orderId)
+}
+```
+
+**적용된 최적화**:
+- `@OneToMany(mappedBy = "payment", fetch = FetchType.LAZY)` 직접 참조 추가
+- 다양한 조회 패턴에 FETCH JOIN 메서드 추가
+
+### 🎯 성능 최적화 효과
+
+#### Before (N+1 문제)
+```sql
+-- 사용자 주문 목록 조회 시
+SELECT * FROM orders WHERE user_id = 1;           -- 1회
+SELECT * FROM order_item WHERE order_id = 101;    -- N회 (주문 수만큼)
+SELECT * FROM order_item WHERE order_id = 102;    -- N회
+SELECT * FROM order_item WHERE order_id = 103;    -- N회
+-- 총 1 + N개의 쿼리
+```
+
+#### After (FETCH JOIN 적용)
+```sql
+-- 한 번의 쿼리로 해결
+SELECT o.*, oi.*
+FROM orders o
+LEFT JOIN order_item oi ON o.id = oi.order_id
+WHERE o.user_id = 1
+ORDER BY o.created_at DESC;
+-- 총 1개의 쿼리
+```
+
+### 📏 도메인 경계 고려사항
+
+**✅ 직접 참조 적용 대상** (같은 마이크로서비스):
+- Order ↔ OrderItem (주문 서비스)
+- Cart ↔ CartItem (장바구니 서비스)
+- UserPoint ↔ PointHistory (포인트 서비스)
+- Payment ↔ PaymentHistory (결제 서비스)
+
+**❌ 간접 참조 유지 대상** (MSA 경계):
+- Order → User (Order 서비스 → User 서비스)
+- Order → Product (Order 서비스 → Product 서비스)
+- Payment → Order (Payment 서비스 → Order 서비스)
+
+### 🚀 사용 가이드
+
+**상황별 메서드 선택**:
+```kotlin
+// 연관 데이터가 필요 없는 경우
+orderRepository.findByUserId(userId)
+
+// 연관 데이터가 필요한 경우 (성능 최적화)
+orderRepository.findOrdersWithItemsByUserId(userId)
+
+// 특정 주문과 아이템을 함께 조회
+orderRepository.findOrderWithItemsById(orderId)
+```

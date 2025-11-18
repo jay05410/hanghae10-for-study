@@ -30,6 +30,17 @@ class PointService(
         return userPointRepository.findByUserId(userId)
     }
 
+    /**
+     * 사용자의 포인트와 이력을 함께 조회한다 (FETCH JOIN 활용)
+     *
+     * @param userId 조회할 사용자 ID
+     * @return 포인트 이력과 함께 조회된 UserPoint
+     */
+    @Transactional(readOnly = true)
+    fun getUserPointWithHistories(userId: Long): UserPoint? {
+        return userPointRepository.findUserPointWithHistoriesByUserId(userId)
+    }
+
     fun createUserPoint(userId: Long, createdBy: Long): UserPoint {
         val userPoint = UserPoint.create(userId, createdBy)
         return userPointRepository.save(userPoint)

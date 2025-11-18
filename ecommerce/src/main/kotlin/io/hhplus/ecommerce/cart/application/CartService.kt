@@ -31,7 +31,7 @@ class CartService(
      * @return 기존 장바구니 또는 새로 생성된 장바구니
      */
     fun getOrCreateCart(userId: Long): Cart {
-        return cartRepository.findByUserId(userId)
+        return cartRepository.findByUserIdWithItems(userId)
             ?: cartRepository.save(Cart.create(userId = userId, createdBy = userId))
     }
 
@@ -86,7 +86,7 @@ class CartService(
      * @throws CartException.CartNotFound 장바구니를 찾을 수 없는 경우
      */
     fun updateCartItem(userId: Long, cartItemId: Long, quantity: Int, updatedBy: Long): Cart {
-        val cart = cartRepository.findByUserId(userId)
+        val cart = cartRepository.findByUserIdWithItems(userId)
             ?: throw CartException.CartNotFound(userId)
 
         if (quantity <= 0) {
@@ -108,7 +108,7 @@ class CartService(
      */
     @Transactional
     fun removeCartItem(userId: Long, cartItemId: Long): Cart {
-        val cart = cartRepository.findByUserId(userId)
+        val cart = cartRepository.findByUserIdWithItems(userId)
             ?: throw CartException.CartNotFound(userId)
 
         cart.removeItem(cartItemId, userId)
@@ -124,7 +124,7 @@ class CartService(
      */
     @Transactional
     fun clearCart(userId: Long): Cart {
-        val cart = cartRepository.findByUserId(userId)
+        val cart = cartRepository.findByUserIdWithItems(userId)
             ?: throw CartException.CartNotFound(userId)
 
         cart.clear(userId)
@@ -138,7 +138,7 @@ class CartService(
      * @return 사용자의 장바구니 (존재하지 않을 경우 null)
      */
     fun getCartByUser(userId: Long): Cart? {
-        return cartRepository.findByUserId(userId)
+        return cartRepository.findByUserIdWithItems(userId)
     }
 
     /**
@@ -149,7 +149,7 @@ class CartService(
      */
     @Transactional
     fun removeOrderedItems(userId: Long, orderedProductIds: List<Long>) {
-        val cart = cartRepository.findByUserId(userId) ?: return
+        val cart = cartRepository.findByUserIdWithItems(userId) ?: return
 
         // 주문된 상품들만 장바구니에서 제거
         orderedProductIds.forEach { productId ->
@@ -173,7 +173,7 @@ class CartService(
      */
     @Transactional
     fun deleteCart(userId: Long) {
-        val cart = cartRepository.findByUserId(userId)
+        val cart = cartRepository.findByUserIdWithItems(userId)
             ?: throw CartException.CartNotFound(userId)
 
         // Cart는 임시성 데이터이므로 물리 삭제

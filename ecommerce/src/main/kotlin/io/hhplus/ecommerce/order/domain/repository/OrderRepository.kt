@@ -22,4 +22,9 @@ interface OrderRepository {
     fun findByStatus(status: OrderStatus): List<Order>
     fun findByCreatedAtBetween(startDate: LocalDateTime, endDate: LocalDateTime): List<Order>
     fun countByUserIdAndStatus(userId: Long, status: OrderStatus): Long
+
+    // FETCH JOIN 메서드들
+    fun findOrdersWithItemsByUserId(userId: Long): List<Order>
+    fun findOrderWithItemsByOrderNumber(orderNumber: String): Order?
+    fun findOrderWithItemsById(orderId: Long): Order?
 }

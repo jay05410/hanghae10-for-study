@@ -30,8 +30,9 @@ class PointHistoryJpaEntity(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
-    @Column(nullable = false, name = "user_id")
-    val userId: Long,
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    val userPoint: UserPointJpaEntity,
 
     @Column(nullable = false)
     val amount: Long,
@@ -51,4 +52,6 @@ class PointHistoryJpaEntity(
 
     @Column(length = 500)
     val description: String? = null
-) : BaseJpaEntity()
+) : BaseJpaEntity() {
+    val userId: Long get() = userPoint.userId
+}

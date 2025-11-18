@@ -35,5 +35,8 @@ class UserPointJpaEntity(
     var balance: Long,
 
     @Version
-    var version: Int = 0
+    var version: Int = 0,
+
+    @OneToMany(mappedBy = "userPoint", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    val pointHistories: List<PointHistoryJpaEntity> = mutableListOf()
 ) : BaseJpaEntity()

@@ -29,5 +29,8 @@ class CartJpaEntity(
     val id: Long = 0,
 
     @Column(nullable = false, unique = true, name = "user_id")
-    val userId: Long
+    val userId: Long,
+
+    @OneToMany(mappedBy = "cart", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    val cartItems: List<CartItemJpaEntity> = mutableListOf()
 ) : BaseJpaEntity()

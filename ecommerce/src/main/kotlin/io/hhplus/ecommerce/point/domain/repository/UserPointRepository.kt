@@ -8,4 +8,8 @@ interface UserPointRepository {
     fun findByUserId(userId: Long): UserPoint?
     fun findByUserIdWithLock(userId: Long): UserPoint?
     fun delete(userPoint: UserPoint)
+
+    // FETCH JOIN 메서드들
+    fun findUserPointWithHistoriesByUserId(userId: Long): UserPoint?
+    fun findUserPointWithHistoriesByUserIdWithLock(userId: Long): UserPoint?
 }

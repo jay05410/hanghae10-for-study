@@ -51,4 +51,16 @@ class OrderRepositoryImpl(
 
     override fun countByUserIdAndStatus(userId: Long, status: OrderStatus): Long =
         jpaRepository.countByUserIdAndStatus(userId, status)
+
+    override fun findOrdersWithItemsByUserId(userId: Long): List<Order> {
+        return jpaRepository.findOrdersWithItemsByUserId(userId).toDomain(mapper)
+    }
+
+    override fun findOrderWithItemsByOrderNumber(orderNumber: String): Order? {
+        return jpaRepository.findOrderWithItemsByOrderNumber(orderNumber).toDomain(mapper)
+    }
+
+    override fun findOrderWithItemsById(orderId: Long): Order? {
+        return jpaRepository.findOrderWithItemsById(orderId).toDomain(mapper)
+    }
 }

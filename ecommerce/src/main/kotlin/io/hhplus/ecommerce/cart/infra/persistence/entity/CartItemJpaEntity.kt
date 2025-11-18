@@ -29,8 +29,9 @@ class CartItemJpaEntity(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
-    @Column(nullable = false, name = "cart_id")
-    val cartId: Long,
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cart_id", nullable = false)
+    val cart: CartJpaEntity,
 
     @Column(nullable = false, name = "product_id")
     val productId: Long,
@@ -43,4 +44,6 @@ class CartItemJpaEntity(
 
     @Column(length = 500, name = "gift_message")
     val giftMessage: String? = null
-) : BaseJpaEntity()
+) : BaseJpaEntity() {
+    val cartId: Long get() = cart.id
+}

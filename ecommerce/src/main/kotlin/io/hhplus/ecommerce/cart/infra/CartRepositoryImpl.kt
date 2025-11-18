@@ -69,7 +69,10 @@ class CartRepositoryImpl(
 
     override fun findByUserIdWithItems(userId: Long): Cart? {
         val cartEntity = cartJpaRepository.findByUserIdWithItems(userId) ?: return null
-        val items = cartItemJpaRepository.findByCartIdAndIsActive(cartEntity.id, true).toDomain(cartItemMapper)
+
+        // FETCH JOIN으로 가져온 cartItems 직접 활용 (N+1 문제 해결)
+        val items = cartEntity.cartItems.toDomain(cartItemMapper)
+
         return cartMapper.toDomain(cartEntity, items)
     }
 
