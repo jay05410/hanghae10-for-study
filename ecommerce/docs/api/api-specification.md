@@ -2,15 +2,15 @@
 
 ## 도메인별 API 문서
 
-본 이커머스 서비스는 도메인별로 분리된 REST API를 제공합니다. 각 도메인별 상세한 API 명세는 아래 링크를 참고하세요.
+본 이커머스 서비스는 간단한 상품-수량 기반의 표준 전자상거래 모델을 지원하며, 도메인별로 분리된 REST API를 제공합니다. 각 도메인별 상세한 API 명세는 아래 링크를 참고하세요.
 
 ### 📋 도메인별 API 문서 목록
 
 | 도메인 | 설명 | API 문서 |
 |--------|------|----------|
-| **Order** | 주문 생성, 조회, 상태 변경 | [Order API](sequences/order/order-api.md) |
-| **Product** | 상품 조회, 생성, 수정, 인기상품 | [Product API](sequences/product/product-api.md) |
-| **Cart** | 장바구니 관리 (추가/수정/삭제) | [Cart API](sequences/cart/cart-api.md) |
+| **Order** | 주문 생성, 조회, 상태 변경 (상품ID + 수량 기반) | [Order API](sequences/order/order-api.md) |
+| **Product** | 상품 및 카테고리 조회, 생성, 수정, 인기상품 | [Product API](sequences/product/product-api.md) |
+| **Cart** | 장바구니 관리 (상품ID + 수량 기반) | [Cart API](sequences/cart/cart-api.md) |
 | **User** | 사용자 관리 및 계정 운영 | [User API](sequences/user/user-api.md) |
 | **Point** | 포인트 충전, 차감, 내역 조회 | [Point API](sequences/point/point-api.md) |
 | **Coupon** | 쿠폰 발급, 사용, 검증 | [Coupon API](sequences/coupon/coupon-api.md) |
@@ -19,8 +19,9 @@
 ### 🔄 시퀀스 다이어그램
 
 각 도메인의 핵심 유스케이스별 시퀀스 다이어그램이 포함되어 있습니다:
-- 주문 생성 및 취소 플로우
-- 장바구니 상품 추가 및 관리 플로우
+- 표준 상품 카탈로그 조회 플로우 (카테고리별 상품 목록)
+- 장바구니 상품 추가 및 관리 플로우 (상품ID + 수량)
+- 주문 생성 및 취소 플로우 (간단한 상품-수량 기반)
 - 선착순 쿠폰 발급 플로우
 - 인기 상품 조회 및 통계 플로우
 - 포인트 충전 및 결제 플로우

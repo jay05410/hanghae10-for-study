@@ -5,25 +5,19 @@
 ### 1. 장바구니 관리 정책
 
 #### 1.1 최대 장바구니 항목 제한
-- **정책**: 사용자당 최대 10개의 박스까지만 장바구니에 담기 가능
+- **정책**: 사용자당 최대 10개의 상품까지만 장바구니에 담기 가능
 - **규칙**:
   - 장바구니 항목 수 >= 10개 → `MaxCartItemsExceeded` 예외 발생
   - 장바구니 항목 수 < 10개 → 정상 처리
 - **예외 메시지**: "장바구니는 최대 10개까지 담을 수 있습니다. 현재 항목: {currentCount}"
 
-#### 1.2 동일 박스타입 중복 방지
-- **정책**: 동일한 박스타입의 커스텀 박스는 장바구니에 1개만 허용
+#### 1.2 상품 수량 집계
+- **정책**: 동일한 상품을 중복으로 추가할 경우 수량을 합산하여 관리
 - **규칙**:
-  - 동일 박스타입 존재 → `DuplicateBoxTypeInCart` 예외 발생
-  - 동일 박스타입 없음 → 정상 처리
-- **예외 메시지**: "동일한 박스타입이 이미 장바구니에 있습니다. 박스타입: {boxTypeName}"
-
-#### 1.3 커스텀 박스 구성 검증
-- **정책**: 박스타입의 일수와 선택한 차 개수가 일치해야 함
-- **규칙**:
-  - 박스 일수 != 선택한 차 개수 → `TeaCountMismatch` 예외 발생
-  - 박스 일수 = 선택한 차 개수 → 정상 처리
-- **예외 메시지**: "차 선택 개수가 올바르지 않습니다. 박스일수: {boxDays}, 선택개수: {selectedCount}"
+  - 동일 상품 재추가 시 기존 수량에 새 수량 합산
+  - 합산된 수량이 재고를 초과할 경우 → `InsufficientStock` 예외 발생
+  - 정상 범위 내 수량 → 정상 처리
+- **예외 메시지**: "재고가 부족합니다. 상품: {productName}, 가용재고: {availableStock}, 요청수량: {requestedQuantity}"
 
 ### 2. 재고 관리 정책
 
@@ -34,12 +28,13 @@
   - 요청 수량 <= 가용 재고 → 정상 처리
 - **예외 메시지**: "재고가 부족합니다. 아이템: {itemName}, 가용재고: {availableStock}, 요청수량: {requestedQuantity}"
 
-#### 2.2 일일 생산 한도 제한
-- **정책**: 박스타입별로 일일 생산 한도 설정
+#### 2.2 상품 재고 관리
+- **정책**: 상품별로 실시간 재고량을 관리하고 주문 시 차감
 - **규칙**:
-  - 일일 주문량 + 요청량 > 일일 한도 → `DailyProductionLimitExceeded` 예외 발생
-  - 일일 주문량 + 요청량 <= 일일 한도 → 정상 처리
-- **예외 메시지**: "일일 생산 한도를 초과했습니다. 박스타입: {boxTypeName}, 한도: {dailyLimit}, 오늘주문: {todayOrdered}"
+  - 주문 수량 > 현재 재고 → `InsufficientStock` 예외 발생
+  - 주문 수량 <= 현재 재고 → 재고 차감 후 정상 처리
+  - 재고 차감 후 음수가 되지 않도록 동시성 제어 적용
+- **예외 메시지**: "재고가 부족합니다. 상품: {productName}, 가용재고: {availableStock}, 요청수량: {requestedQuantity}"
 
 ### 3. 쿠폰 관리 정책
 
@@ -254,7 +249,7 @@
 ### 12. 외부 시스템 연동 정책
 
 #### 12.1 Outbox 패턴 적용
-- **정책**: 외부 제조사 API 연동 시 트랜잭션 보장
+- **정책**: 외부 시스템 API 연동 시 트랜잭션 보장
 - **규칙**:
   - 주문 생성과 동시에 outbox 이벤트 저장
   - 외부 API 호출 실패 시에도 주문은 성공 처리
@@ -276,18 +271,11 @@ sealed class ECommerceException(message: String) : RuntimeException(message) {
     class MaxCartItemsExceeded(currentCount: Int) :
         ECommerceException("장바구니는 최대 10개까지 담을 수 있습니다. 현재 항목: $currentCount")
 
-    class DuplicateBoxTypeInCart(boxTypeName: String) :
-        ECommerceException("동일한 박스타입이 이미 장바구니에 있습니다. 박스타입: $boxTypeName")
-
-    class TeaCountMismatch(boxDays: Int, selectedCount: Int) :
-        ECommerceException("차 선택 개수가 올바르지 않습니다. 박스일수: $boxDays, 선택개수: $selectedCount")
 
     // 재고 관련
     class InsufficientStock(itemName: String, availableStock: Int, requestedQuantity: Int) :
         ECommerceException("재고가 부족합니다. 아이템: $itemName, 가용재고: $availableStock, 요청수량: $requestedQuantity")
 
-    class DailyProductionLimitExceeded(boxTypeName: String, dailyLimit: Int, todayOrdered: Int) :
-        ECommerceException("일일 생산 한도를 초과했습니다. 박스타입: $boxTypeName, 한도: $dailyLimit, 오늘주문: $todayOrdered")
 
     // 쿠폰 관련
     class CouponSoldOut(couponName: String) :
@@ -364,13 +352,14 @@ sealed class ECommerceException(message: String) : RuntimeException(message) {
 ## 정책 검증 테스트 케이스
 
 ### 장바구니 정책 테스트
-- [ ] 10개 초과 장바구니 추가 시도 → MaxCartItemsExceeded 예외
-- [ ] 동일 박스타입 중복 추가 시도 → DuplicateBoxTypeInCart 예외
-- [ ] 박스 일수와 차 개수 불일치 → TeaCountMismatch 예외
+- [ ] 10개 초과 상품 추가 시도 → MaxCartItemsExceeded 예외
+- [ ] 동일 상품 중복 추가 시 수량 합산 확인
+- [ ] 수량 합산 후 재고 초과 시도 → InsufficientStock 예외
 
 ### 재고 정책 테스트
 - [ ] 재고 부족 상황에서 주문 시도 → InsufficientStock 예외
-- [ ] 일일 생산 한도 초과 시도 → DailyProductionLimitExceeded 예외
+- [ ] 실시간 재고 차감 및 복구 확인
+- [ ] 동시 주문 시 재고 정합성 보장 확인
 
 ### 쿠폰 정책 테스트
 - [ ] 소진된 쿠폰 발급 시도 → CouponSoldOut 예외
@@ -407,7 +396,7 @@ sealed class ECommerceException(message: String) : RuntimeException(message) {
 ### 인기 상품 정책 테스트
 - [ ] 최근 7일 판매량 집계 확인
 - [ ] 상위 10개 상품 선정 확인
-- [ ] 동일 사용자 24시간 내 재조회 시 조회수 미증가 확인
+- [ ] 동일 사용자 24시간 내 동일 상품 재조회 시 조회수 미증가 확인
 - [ ] Redis 조회수와 DB 동기화 확인
 
 ### 동시성 테스트

@@ -1,7 +1,7 @@
 # 주문 API 명세서
 
 ## 개요
-주문 생성, 조회, 상태 관리를 위한 REST API입니다. 복합 트랜잭션 기반의 주문 처리를 담당합니다.
+주문 생성, 조회, 상태 관리를 위한 REST API입니다. 간단한 상품-수량 기반의 주문 처리를 지원하며, 복합 트랜잭션 기반의 주문 처리를 담당합니다.
 
 ## 기본 정보
 - **Base URL**: `/api/v1/orders`
@@ -56,16 +56,16 @@ POST /api/v1/orders
     "userId": 1,
     "status": "PENDING",
     "totalAmount": 50000,
-    "discountAmount": 25000,
-    "finalAmount": 25000,
+    "discountAmount": 0,
+    "finalAmount": 50000,
     "items": [
       {
         "id": 1,
         "productId": 1,
-        "boxTypeId": 1,
+        "productName": "프리미엄 염그레이 티백",
         "quantity": 2,
-        "unitPrice": 15000,
-        "totalPrice": 30000
+        "unitPrice": 25000,
+        "totalPrice": 50000
       }
     ],
     "deliveryAddress": {
@@ -99,16 +99,16 @@ GET /api/v1/orders/{orderId}
     "userId": 1,
     "status": "CONFIRMED",
     "totalAmount": 50000,
-    "discountAmount": 25000,
-    "finalAmount": 25000,
+    "discountAmount": 0,
+    "finalAmount": 50000,
     "items": [
       {
         "id": 1,
         "productId": 1,
-        "boxTypeId": 1,
+        "productName": "프리미엄 염그레이 티백",
         "quantity": 2,
-        "unitPrice": 15000,
-        "totalPrice": 30000
+        "unitPrice": 25000,
+        "totalPrice": 50000
       }
     ],
     "deliveryAddress": {
@@ -141,14 +141,14 @@ GET /api/v1/orders?userId={userId}
       "id": 1,
       "orderNumber": "ORD202411070001",
       "status": "CONFIRMED",
-      "finalAmount": 25000,
+      "finalAmount": 50000,
       "createdAt": "2024-11-07T10:00:00Z"
     },
     {
       "id": 2,
       "orderNumber": "ORD202411060015",
       "status": "COMPLETED",
-      "finalAmount": 40000,
+      "finalAmount": 75000,
       "createdAt": "2024-11-06T15:30:00Z"
     }
   ]
@@ -252,7 +252,7 @@ POST /api/v1/orders/{orderId}/cancel
     "status": "CANCELLED",
     "cancelReason": "단순 변심",
     "cancelledAt": "2024-11-07T12:00:00Z",
-    "refundAmount": 25000,
+    "refundAmount": 50000,
     "updatedBy": 1,
     "updatedAt": "2024-11-07T12:00:00Z"
   }
@@ -487,8 +487,8 @@ val orderAmount = OrderAmount.of(
 ```
 
 ## 관련 도메인
-- **Cart**: 장바구니 데이터 기반 주문 생성
-- **Product**: 상품 정보 및 재고 관리
+- **Cart**: 장바구니 데이터 기반 주문 생성 (상품ID + 수량)
+- **Product**: 상품 정보, 가격 및 재고 관리
 - **Coupon**: 할인 쿠폰 적용
 - **Payment**: 결제 처리
 - **User**: 사용자 정보 및 배송지

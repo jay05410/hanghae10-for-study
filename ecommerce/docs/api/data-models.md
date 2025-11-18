@@ -71,18 +71,13 @@ erDiagram
 
     CATEGORY ||--o{ PRODUCT : "classifies"
 
-    PRODUCT ||--o{ CART_ITEM_TEA : "selected_in"
-    PRODUCT ||--o{ ORDER_ITEM_TEA : "selected_in"
+    PRODUCT ||--o{ CART_ITEM : "selected_in"
+    PRODUCT ||--o{ ORDER_ITEM : "selected_in"
     PRODUCT ||--o{ INVENTORY : "tracks"
 
-    PACKAGE_TYPE ||--o{ CART_ITEM : "selected"
-    PACKAGE_TYPE ||--o{ ORDER_ITEM : "selected"
-
     CART ||--o{ CART_ITEM : "contains"
-    CART_ITEM ||--o{ CART_ITEM_TEA : "composed_of"
 
     ORDER ||--o{ ORDER_ITEM : "contains"
-    ORDER_ITEM ||--o{ ORDER_ITEM_TEA : "composed_of"
     ORDER ||--|| DELIVERY : "has"
     ORDER ||--o| PAYMENT : "has"
     PAYMENT ||--o{ PAYMENT_HISTORY : "tracks"
@@ -103,18 +98,13 @@ erDiagram
 
     CATEGORY ||--o{ PRODUCT : "classifies"
 
-    PRODUCT ||--o{ CART_ITEM_TEA : "selected_in"
-    PRODUCT ||--o{ ORDER_ITEM_TEA : "selected_in"
+    PRODUCT ||--o{ CART_ITEM : "selected_in"
+    PRODUCT ||--o{ ORDER_ITEM : "selected_in"
     PRODUCT ||--o{ INVENTORY : "tracks"
 
-    PACKAGE_TYPE ||--o{ CART_ITEM : "selected"
-    PACKAGE_TYPE ||--o{ ORDER_ITEM : "selected"
-
     CART ||--o{ CART_ITEM : "contains"
-    CART_ITEM ||--o{ CART_ITEM_TEA : "composed_of"
 
     ORDER ||--o{ ORDER_ITEM : "contains"
-    ORDER_ITEM ||--o{ ORDER_ITEM_TEA : "composed_of"
     ORDER ||--|| DELIVERY : "has"
     ORDER ||--o| PAYMENT : "has"
     PAYMENT ||--o{ PAYMENT_HISTORY : "tracks"
@@ -230,18 +220,6 @@ erDiagram
         bigint updated_by "수정자"
     }
     
-    PACKAGE_TYPE {
-        bigint id PK "박스타입 ID"
-        string code UK "THREE_DAYS/SEVEN_DAYS/FOURTEEN_DAYS"
-        string name "박스명"
-        int days "일수"
-        string description "설명"
-        boolean is_active "활성화여부"
-        datetime created_at "생성일시"
-        bigint created_by "생성자"
-        datetime updated_at "수정일시"
-        bigint updated_by "수정자"
-    }
     
     CART {
         bigint id PK "장바구니 ID"
@@ -256,26 +234,10 @@ erDiagram
     CART_ITEM {
         bigint id PK "장바구니상품 ID"
         bigint cart_id "장바구니 ID"
-        bigint package_type_id "박스타입 ID"
-        string package_type_name "박스타입명"
-        int package_type_days "일수"
-        int daily_serving "하루섭취량(1/2/3)"
-        double total_quantity "총 그램수(g)"
+        bigint product_id "상품 ID"
+        int quantity "수량"
         boolean gift_wrap "선물포장여부"
         string gift_message "선물메시지"
-        boolean is_active "활성화 여부"
-        datetime created_at "생성일시"
-        bigint created_by "생성자"
-        datetime updated_at "수정일시"
-        bigint updated_by "수정자"
-    }
-    
-    CART_ITEM_TEA {
-        bigint id PK "장바구니차구성 ID"
-        bigint cart_item_id "장바구니상품 ID"
-        bigint product_id "차 ID"
-        int selection_order "선택순서"
-        int ratio_percent "배합비율"
         boolean is_active "활성화 여부"
         datetime created_at "생성일시"
         bigint created_by "생성자"
@@ -303,34 +265,15 @@ erDiagram
     ORDER_ITEM {
         bigint id PK "주문상품 ID"
         bigint order_id "주문 ID"
-        bigint package_type_id "박스타입 ID"
-        string package_type_name "박스타입명"
-        int package_type_days "일수"
-        int daily_serving "하루섭취량(1/2/3)"
-        double total_quantity "총 그램수(g)"
+        bigint product_id "상품 ID"
+        string product_name "상품명(스냅샷)"
+        string category_name "카테고리명(스냅샷)"
+        int quantity "주문수량"
+        int unit_price "단가(스냅샷)"
         boolean gift_wrap "선물포장"
         string gift_message "선물메시지"
-        int quantity "주문수량"
-        int container_price "용기가격(기본포장포함)"
-        int tea_price "차가격(그램기준)"
         int gift_wrap_price "선물포장가격(추가옵션)"
         int total_price "총가격"
-        boolean is_active "활성화 여부"
-        datetime created_at "생성일시"
-        bigint created_by "생성자"
-        datetime updated_at "수정일시"
-        bigint updated_by "수정자"
-    }
-    
-    ORDER_ITEM_TEA {
-        bigint id PK "주문차구성 ID"
-        bigint order_item_id "주문상품 ID"
-        bigint product_id "차 ID"
-        string product_name "차명"
-        string category_name "카테고리"
-        int selection_order "선택순서"
-        int ratio_percent "배합비율"
-        int unit_price "100g당가격"
         boolean is_active "활성화 여부"
         datetime created_at "생성일시"
         bigint created_by "생성자"
@@ -578,18 +521,6 @@ erDiagram
         bigint updated_by
     }
 
-    PACKAGE_TYPE {
-        bigint id PK
-        string code UK
-        string name
-        int days
-        string description
-        boolean is_active
-        datetime created_at
-        bigint created_by
-        datetime updated_at
-        bigint updated_by
-    }
 ```
 
 #### 1.2.3 장바구니 도메인
@@ -597,9 +528,7 @@ erDiagram
 erDiagram
     USER ||--o{ CART : "has"
     CART ||--o{ CART_ITEM : "contains"
-    CART_ITEM ||--o{ CART_ITEM_TEA : "composed_of"
-    PRODUCT ||--o{ CART_ITEM_TEA : "selected_in"
-    PACKAGE_TYPE ||--o{ CART_ITEM : "selected"
+    PRODUCT ||--o{ CART_ITEM : "selected_in"
 
     CART {
         bigint id PK
@@ -614,26 +543,10 @@ erDiagram
     CART_ITEM {
         bigint id PK
         bigint cart_id
-        bigint package_type_id
-        string package_type_name
-        int package_type_days
-        int daily_serving
-        double total_quantity
+        bigint product_id
+        int quantity
         boolean gift_wrap
         string gift_message
-        boolean is_active
-        datetime created_at
-        bigint created_by
-        datetime updated_at
-        bigint updated_by
-    }
-
-    CART_ITEM_TEA {
-        bigint id PK
-        bigint cart_item_id
-        bigint product_id
-        int selection_order
-        int ratio_percent
         boolean is_active
         datetime created_at
         bigint created_by
@@ -647,12 +560,10 @@ erDiagram
 erDiagram
     USER ||--o{ ORDER : "places"
     ORDER ||--o{ ORDER_ITEM : "contains"
-    ORDER_ITEM ||--o{ ORDER_ITEM_TEA : "composed_of"
     ORDER ||--|| DELIVERY : "has"
     ORDER ||--o| PAYMENT : "has"
     PAYMENT ||--o{ PAYMENT_HISTORY : "tracks"
-    PRODUCT ||--o{ ORDER_ITEM_TEA : "selected_in"
-    PACKAGE_TYPE ||--o{ ORDER_ITEM : "selected"
+    PRODUCT ||--o{ ORDER_ITEM : "selected_in"
 
     ORDER {
         bigint id PK
@@ -674,34 +585,15 @@ erDiagram
     ORDER_ITEM {
         bigint id PK
         bigint order_id
-        bigint package_type_id
-        string package_type_name
-        int package_type_days
-        int daily_serving
-        double total_quantity
-        boolean gift_wrap
-        string gift_message
-        int quantity
-        int container_price
-        int tea_price
-        int gift_wrap_price
-        int total_price
-        boolean is_active
-        datetime created_at
-        bigint created_by
-        datetime updated_at
-        bigint updated_by
-    }
-
-    ORDER_ITEM_TEA {
-        bigint id PK
-        bigint order_item_id
         bigint product_id
         string product_name
         string category_name
-        int selection_order
-        int ratio_percent
+        int quantity
         int unit_price
+        boolean gift_wrap
+        string gift_message
+        int gift_wrap_price
+        int total_price
         boolean is_active
         datetime created_at
         bigint created_by
@@ -1051,30 +943,6 @@ erDiagram
 
 ---
 
-#### PACKAGE_TYPE (패키지 타입)
-박스 타입을 정의하는 엔티티
-
-| 컬럼명 | 타입 | Null | 제약조건 | 설명 |
-|--------|------|------|---------|------|
-| id | BIGINT | NO | PK, AUTO_INCREMENT | 패키지 타입 ID |
-| code | VARCHAR(50) | NO | UNIQUE | 코드 (THREE_DAYS/SEVEN_DAYS/FOURTEEN_DAYS) |
-| name | VARCHAR(100) | NO | - | 패키지명 |
-| days | INT | NO | - | 일수 |
-| description | VARCHAR(500) | YES | - | 설명 |
-| is_active | BOOLEAN | NO | DEFAULT TRUE | 활성화 여부 |
-| created_at | TIMESTAMP | NO | DEFAULT CURRENT_TIMESTAMP | 생성 일시 |
-| created_by | BIGINT | NO | - | 생성자 ID |
-| updated_at | TIMESTAMP | NO | DEFAULT CURRENT_TIMESTAMP | 수정 일시 |
-| updated_by | BIGINT | NO | - | 수정자 ID |
-
-**비즈니스 규칙**
-- 코드는 고유해야 함
-- 일수에 따라 필요한 차 그램 수 계산
-
-**인덱스**
-- `uk_package_type_code` (code UNIQUE)
-
----
 
 ### 2.3 장바구니 관련
 
@@ -1107,11 +975,8 @@ erDiagram
 |--------|------|------|---------|------|
 | id | BIGINT | NO | PK, AUTO_INCREMENT | 장바구니 상품 ID |
 | cart_id | BIGINT | NO | - | 장바구니 ID |
-| package_type_id | BIGINT | NO | - | 패키지 타입 ID |
-| package_type_name | VARCHAR(100) | NO | - | 패키지 타입명 (스냅샷) |
-| package_type_days | INT | NO | - | 일수 (스냅샷) |
-| daily_serving | INT | NO | DEFAULT 1 | 하루 섭취량 (1/2/3) |
-| total_quantity | DOUBLE | NO | - | 총 그램 수 (g) |
+| product_id | BIGINT | NO | - | 상품 ID |
+| quantity | INT | NO | CHECK (quantity > 0) | 수량 |
 | gift_wrap | BOOLEAN | NO | DEFAULT FALSE | 선물 포장 여부 |
 | gift_message | VARCHAR(500) | YES | - | 선물 메시지 |
 | is_active | BOOLEAN | NO | DEFAULT TRUE | 활성화 여부 |
@@ -1121,40 +986,16 @@ erDiagram
 | updated_by | BIGINT | NO | - | 수정자 ID |
 
 **비즈니스 규칙**
-- 패키지 타입 정보는 스냅샷으로 저장 (나중에 패키지 타입이 변경되어도 영향 없음)
-- 총 그램 수 = 패키지 일수 × 하루 섭취량 × 티백당 용량
+- 수량은 양수여야 함
 - 선물 포장 시 gift_message 입력 가능
+- 같은 상품을 중복 추가할 경우 수량만 증가
 
 **인덱스**
 - `idx_cart_item_cart` (cart_id, is_active)
+- `idx_cart_item_product` (cart_id, product_id)
 
 ---
 
-#### CART_ITEM_TEA (장바구니 차 구성)
-장바구니 아이템의 차 구성을 관리하는 엔티티
-
-| 컬럼명 | 타입 | Null | 제약조건 | 설명 |
-|--------|------|------|---------|------|
-| id | BIGINT | NO | PK, AUTO_INCREMENT | 구성 ID |
-| cart_item_id | BIGINT | NO | - | 장바구니 상품 ID |
-| product_id | BIGINT | NO | - | 차 상품 ID |
-| selection_order | INT | NO | - | 선택 순서 |
-| ratio_percent | INT | NO | CHECK (ratio_percent > 0 AND ratio_percent <= 100) | 배합 비율 (%) |
-| is_active | BOOLEAN | NO | DEFAULT TRUE | 활성화 여부 |
-| created_at | TIMESTAMP | NO | DEFAULT CURRENT_TIMESTAMP | 생성 일시 |
-| created_by | BIGINT | NO | - | 생성자 ID |
-| updated_at | TIMESTAMP | NO | DEFAULT CURRENT_TIMESTAMP | 수정 일시 |
-| updated_by | BIGINT | NO | - | 수정자 ID |
-
-**비즈니스 규칙**
-- 하나의 장바구니 아이템은 최대 3개의 차로 구성
-- 배합 비율의 합은 100%여야 함
-- 선택 순서대로 차 정보 표시
-
-**인덱스**
-- `idx_cart_item_tea_item` (cart_item_id, selection_order)
-
----
 
 ### 2.4 주문 관련
 
@@ -1197,17 +1038,14 @@ erDiagram
 |--------|------|------|---------|------|
 | id | BIGINT | NO | PK, AUTO_INCREMENT | 주문 상품 ID |
 | order_id | BIGINT | NO | - | 주문 ID |
-| package_type_id | BIGINT | NO | - | 패키지 타입 ID |
-| package_type_name | VARCHAR(100) | NO | - | 패키지 타입명 (스냅샷) |
-| package_type_days | INT | NO | - | 일수 (스냅샷) |
-| daily_serving | INT | NO | - | 하루 섭취량 (스냅샷) |
-| total_quantity | DOUBLE | NO | - | 총 그램 수 (스냅샷) |
+| product_id | BIGINT | NO | - | 상품 ID |
+| quantity | INT | NO | CHECK (quantity > 0) | 주문 수량 |
+| unit_price | INT | NO | - | 단가 (스냅샷) |
+| product_name | VARCHAR(100) | NO | - | 상품명 (스냅샷) |
+| category_name | VARCHAR(50) | NO | - | 카테고리명 (스냅샷) |
 | gift_wrap | BOOLEAN | NO | DEFAULT FALSE | 선물 포장 여부 |
 | gift_message | VARCHAR(500) | YES | - | 선물 메시지 |
-| quantity | INT | NO | DEFAULT 1 | 주문 수량 |
-| container_price | INT | NO | - | 용기 가격 (기본 포장 포함) |
-| tea_price | INT | NO | - | 차 가격 (그램 기준) |
-| gift_wrap_price | INT | NO | DEFAULT 0 | 선물 포장 가격 (추가 옵션) |
+| gift_wrap_price | INT | NO | DEFAULT 0 | 선물 포장 가격 |
 | total_price | INT | NO | - | 총 가격 |
 | is_active | BOOLEAN | NO | DEFAULT TRUE | 활성화 여부 |
 | created_at | TIMESTAMP | NO | DEFAULT CURRENT_TIMESTAMP | 생성 일시 |
@@ -1216,42 +1054,16 @@ erDiagram
 | updated_by | BIGINT | NO | - | 수정자 ID |
 
 **비즈니스 규칙**
-- 총 가격 = (용기 가격 + 차 가격 + 선물 포장 가격) × 수량
-- 주문 시점의 가격 정보를 스냅샷으로 저장
+- 총 가격 = (단가 + 선물 포장 가격) × 수량
+- 주문 시점의 상품 정보와 가격을 스냅샷으로 저장
+- 수량은 양수여야 함
 
 **인덱스**
 - `idx_order_item_order` (order_id)
+- `idx_order_item_product` (product_id)
 
 ---
 
-#### ORDER_ITEM_TEA (주문 차 구성)
-주문 아이템의 차 구성을 관리하는 엔티티
-
-| 컬럼명 | 타입 | Null | 제약조건 | 설명 |
-|--------|------|------|---------|------|
-| id | BIGINT | NO | PK, AUTO_INCREMENT | 구성 ID |
-| order_item_id | BIGINT | NO | - | 주문 상품 ID |
-| product_id | BIGINT | NO | - | 차 상품 ID |
-| product_name | VARCHAR(100) | NO | - | 차명 (스냅샷) |
-| category_name | VARCHAR(50) | NO | - | 카테고리명 (스냅샷) |
-| selection_order | INT | NO | - | 선택 순서 |
-| ratio_percent | INT | NO | - | 배합 비율 (%) |
-| unit_price | INT | NO | - | 100g당 가격 (스냅샷) |
-| is_active | BOOLEAN | NO | DEFAULT TRUE | 활성화 여부 |
-| created_at | TIMESTAMP | NO | DEFAULT CURRENT_TIMESTAMP | 생성 일시 |
-| created_by | BIGINT | NO | - | 생성자 ID |
-| updated_at | TIMESTAMP | NO | DEFAULT CURRENT_TIMESTAMP | 수정 일시 |
-| updated_by | BIGINT | NO | - | 수정자 ID |
-
-**비즈니스 규칙**
-- 주문 시점의 상품 정보를 스냅샷으로 저장
-- 나중에 상품이 변경되어도 주문 정보는 유지
-
-**인덱스**
-- `idx_order_item_tea_item` (order_item_id, selection_order)
-- `idx_order_item_tea_product` (product_id)
-
----
 
 #### DELIVERY (배송)
 배송 정보를 관리하는 엔티티
@@ -2036,11 +1848,7 @@ CREATE INDEX idx_cart_user_active ON cart (user_id, is_active);
 
 -- cart_item 테이블
 CREATE INDEX idx_cart_item_cart ON cart_item (cart_id, is_active);
-CREATE INDEX idx_cart_item_package ON cart_item (package_type_id);
-
--- cart_item_tea 테이블
-CREATE INDEX idx_cart_item_tea_item_order ON cart_item_tea (cart_item_id, selection_order);
-CREATE INDEX idx_cart_item_tea_product ON cart_item_tea (product_id);
+CREATE INDEX idx_cart_item_product ON cart_item (cart_id, product_id);
 ```
 
 ---
@@ -2056,11 +1864,7 @@ CREATE INDEX idx_order_ordered_at ON `order` (ordered_at DESC);
 
 -- order_item 테이블
 CREATE INDEX idx_order_item_order ON order_item (order_id);
-CREATE INDEX idx_order_item_package ON order_item (package_type_id);
-
--- order_item_tea 테이블 (인기 상품 집계용)
-CREATE INDEX idx_order_item_tea_item_order ON order_item_tea (order_item_id, selection_order);
-CREATE INDEX idx_order_item_tea_product_created ON order_item_tea (product_id, created_at DESC);
+CREATE INDEX idx_order_item_product ON order_item (product_id);
 
 -- delivery 테이블
 CREATE UNIQUE INDEX uk_delivery_order ON delivery (order_id);
@@ -2182,27 +1986,24 @@ LIMIT 20;
 #### 인기 상품 집계 (최근 3일)
 
 ```sql
--- 최근 3일간 가장 많이 주문된 차 TOP 5
+-- 최근 3일간 가장 많이 주문된 상품 TOP 5
 SELECT
-    oit.product_id,
-    p.name,
-    COUNT(*) AS order_count,
-    SUM(oit.ratio_percent) AS total_ratio
-FROM order_item_tea oit
-INNER JOIN `order` o ON oit.order_item_id IN (
-    SELECT id FROM order_item WHERE order_id = o.id
-)
-INNER JOIN product p ON oit.product_id = p.id
+    oi.product_id,
+    oi.product_name,
+    SUM(oi.quantity) AS total_quantity,
+    COUNT(DISTINCT oi.order_id) AS order_count
+FROM order_item oi
+INNER JOIN `order` o ON oi.order_id = o.id
 WHERE o.created_at >= DATE_SUB(NOW(), INTERVAL 3 DAY)
   AND o.status NOT IN ('CANCELLED')
   AND o.is_active = TRUE
-GROUP BY oit.product_id, p.name
-ORDER BY order_count DESC
+GROUP BY oi.product_id, oi.product_name
+ORDER BY total_quantity DESC
 LIMIT 5;
 
 -- 활용 인덱스:
 -- 1. idx_order_status_created (status, created_at DESC)
--- 2. idx_order_item_tea_product_created (product_id, created_at DESC)
+-- 2. idx_order_item_product (product_id)
 ```
 
 **최적화 방안**
@@ -2402,7 +2203,7 @@ orderItems.forEach { item ->
 @Modifying
 @Query("""
     INSERT INTO order_item
-    (order_id, package_type_id, quantity, total_price, created_by)
+    (order_id, product_id, quantity, unit_price, total_price, created_by)
     VALUES (:#{#items})
 """)
 fun batchInsert(@Param("items") items: List<OrderItem>)

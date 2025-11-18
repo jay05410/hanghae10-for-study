@@ -2,13 +2,13 @@
 
 ## 📋 프로젝트 개요
 
-본 프로젝트는 **도메인 중심 실용적 아키텍처(Domain-Centric Pragmatic Architecture)**를 기반으로 설계된 이커머스 서비스입니다. 사용자가 원하는 차를 커스텀 배합하여 박스 형태로 주문할 수 있는 서비스를 제공합니다.
+본 프로젝트는 **도메인 중심 실용적 아키텍처(Domain-Centric Pragmatic Architecture)**를 기반으로 설계된 이커머스 서비스입니다. 사용자가 다양한 상품을 선택하여 주문할 수 있는 표준 전자상거래 플랫폼을 제공합니다.
 
 ### 핵심 기능
-- 🍵 **커스텀 차 박스 구성**: 사용자 취향에 맞는 차 배합
-- 🛒 **장바구니 관리**: 배합 비율 검증 및 재고 확인
+- 🛍️ **상품 카탈로그**: 카테고리별 상품 조회 및 검색
+- 🛒 **장바구니 관리**: 상품 추가/수정/삭제 및 수량 관리
 - 📦 **주문 처리**: 복합 트랜잭션 기반 주문 생성
-- 💰 **포인트 결제**: 포인트와 PG 혼합 결제
+- 💰 **포인트 결제**: 포인트 기반 결제 시스템
 - 🎫 **선착순 쿠폰**: Redis 기반 동시성 제어
 - 📊 **재고 관리**: 실시간 재고 추적 및 복구
 
@@ -89,9 +89,9 @@ src/main/kotlin/io/hhplus/ecommerce/
 │   ├── dto/                         # ProductDto.kt
 │   ├── usecase/                     # 5개 UseCase (Create, Get, GetPopular, Update, IncrementView)
 │   ├── application/                 # ProductService.kt
-│   ├── domain/                      # Product.kt, Category.kt, BoxType.kt
+│   ├── domain/                      # Product.kt, Category.kt
 │   │   ├── entity/                  # 엔티티 클래스들
-│   │   ├── repository/              # Repository 인터페이스 (Product, Category, BoxType, ProductStatistics)
+│   │   ├── repository/              # Repository 인터페이스 (Product, Category, ProductStatistics)
 │   │   ├── constant/                # 상수 및 Enum
 │   │   └── vo/                      # ProductPrice.kt
 │   └── infra/                       # JpaProductRepository.kt
@@ -371,13 +371,13 @@ HTTP Request → Controller → UseCase → Domain Service → Repository Interf
 class Cart(
     // ...
 ) {
-    fun addItem(productId: Long, boxTypeId: Long, quantity: Int, addedBy: Long): CartItem {
+    fun addItem(productId: Long, quantity: Int, addedBy: Long): CartItem {
         require(_items.size < MAX_CART_ITEMS) { "장바구니 최대 아이템 수($MAX_CART_ITEMS)를 초과할 수 없습니다" }
-        require(_items.none { it.boxTypeId == boxTypeId }) { "이미 동일한 박스 타입이 장바구니에 있습니다" }
+        require(_items.none { it.productId == productId }) { "이미 동일한 상품이 장바구니에 있습니다" }
         require(quantity > 0) { "수량은 0보다 커야 합니다" }
 
         // 비즈니스 로직 실행
-        val cartItem = CartItem.create(cart = this, productId, boxTypeId, quantity, addedBy)
+        val cartItem = CartItem.create(cart = this, productId, quantity, addedBy)
         _items.add(cartItem)
         return cartItem
     }

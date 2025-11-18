@@ -1,7 +1,7 @@
 # 장바구니 API 명세서
 
 ## 개요
-사용자의 장바구니 관리를 위한 REST API입니다. 상품 추가, 수량 변경, 삭제 등의 기능을 제공합니다.
+사용자의 장바구니 관리를 위한 REST API입니다. 간단한 상품ID + 수량 기반의 상품 추가, 수량 변경, 삭제 등의 기능을 제공합니다.
 
 ## 기본 정보
 - **Base URL**: `/api/v1/cart`
@@ -34,8 +34,10 @@ GET /api/v1/cart?userId={userId}
       {
         "id": 1,
         "productId": 1,
-        "boxTypeId": 1,
+        "productName": "프리미엄 얼그레이 티백",
+        "unitPrice": 25000,
         "quantity": 2,
+        "totalPrice": 50000,
         "createdAt": "2024-11-07T10:00:00Z",
         "updatedAt": "2024-11-07T10:00:00Z"
       }
@@ -61,7 +63,6 @@ POST /api/v1/cart/items?userId={userId}
 ```json
 {
   "productId": 1,
-  "boxTypeId": 1,
   "quantity": 2,
   "addedBy": 1
 }
@@ -69,7 +70,6 @@ POST /api/v1/cart/items?userId={userId}
 
 **Request Fields**:
 - `productId` (Long, required): 상품 ID
-- `boxTypeId` (Long, required): 박스 타입 ID
 - `quantity` (Int, required): 수량 (1-999)
 - `addedBy` (Long, required): 추가한 사용자 ID
 
@@ -84,8 +84,10 @@ POST /api/v1/cart/items?userId={userId}
       {
         "id": 1,
         "productId": 1,
-        "boxTypeId": 1,
+        "productName": "프리미엄 염그레이 티백",
+        "unitPrice": 25000,
         "quantity": 2,
+        "totalPrice": 50000,
         "createdAt": "2024-11-07T10:00:00Z",
         "updatedAt": "2024-11-07T10:00:00Z"
       }
@@ -119,8 +121,10 @@ PUT /api/v1/cart/items/{cartItemId}?userId={userId}&quantity={quantity}
       {
         "id": 1,
         "productId": 1,
-        "boxTypeId": 1,
+        "productName": "프리미엄 염그레이 티백",
+        "unitPrice": 25000,
         "quantity": 5,
+        "totalPrice": 125000,
         "updatedAt": "2024-11-07T10:30:00Z"
       }
     ]
@@ -185,7 +189,7 @@ DELETE /api/v1/cart?userId={userId}
 | CART002 | 403 | 장바구니 접근 권한이 없습니다 | 다른 사용자의 장바구니 |
 | CART003 | 400 | 유효하지 않은 수량입니다 | 0 이하 또는 999 초과 |
 | CART004 | 409 | 장바구니 최대 개수 초과 | 50개 제한 초과 |
-| CART005 | 409 | 동일한 박스타입 중복 | 이미 존재하는 박스타입 |
+| CART005 | 409 | 동일한 상품 중복 | 이미 장바구니에 있는 상품 |
 
 ## 시퀀스 다이어그램
 
@@ -208,7 +212,7 @@ sequenceDiagram
     AddToCartUseCase->>InventoryService: checkStock(productId, quantity)
     InventoryService-->>AddToCartUseCase: stock available
 
-    AddToCartUseCase->>CartService: addToCart(userId, productId, boxTypeId, quantity)
+    AddToCartUseCase->>CartService: addToCart(userId, productId, quantity)
     CartService-->>AddToCartUseCase: updated cart
 
     AddToCartUseCase-->>CartController: cart
@@ -242,10 +246,10 @@ sequenceDiagram
 - **검증 시점**: 장바구니 추가 요청 시
 - **예외**: `CART004` - "장바구니 최대 개수 초과 (50개 제한)"
 
-#### 1.2 동일 박스타입 중복 방지
-- **정책**: 동일한 박스타입의 커스텀 박스는 장바구니에 1개만 허용
+#### 1.2 동일 상품 중복 방지
+- **정책**: 동일한 상품은 장바구니에 1개만 허용 (수량 변경으로 처리)
 - **검증 시점**: 장바구니 추가 요청 시
-- **예외**: `CART005` - "동일한 박스타입 중복"
+- **예외**: `CART005` - "동일한 상품이 이미 장바구니에 있습니다. 수량을 변경해주세요."
 
 #### 1.3 수량 제한
 - **정책**: 아이템별 최대 수량 999개, 최소 1개
@@ -278,6 +282,6 @@ sequenceDiagram
 - 타입 안전성과 비즈니스 규칙 내장
 
 ## 관련 도메인
-- **Product**: 상품 정보 참조
+- **Product**: 상품 정보 및 가격 정보 참조
 - **User**: 사용자 정보 참조
-- **Order**: 주문 생성 시 장바구니 사용
+- **Order**: 주문 생성 시 장바구니 데이터 사용 (상품ID + 수량)

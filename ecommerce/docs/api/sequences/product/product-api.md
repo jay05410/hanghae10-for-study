@@ -1,7 +1,7 @@
 # 상품 API 명세서
 
 ## 개요
-상품 조회, 생성, 수정 및 인기 상품 통계를 위한 REST API입니다. 재고 관리와 조회수 추적을 포함합니다.
+상품 조회, 생성, 수정 및 인기 상품 통계를 위한 REST API입니다. 간단한 상품-수량 기반 전자상거래 모델을 지원하며, 재고 관리와 조회수 추적을 포함합니다.
 
 ## 기본 정보
 - **Base URL**: `/api/v1/products`
@@ -10,7 +10,41 @@
 
 ## API 엔드포인트
 
-### 1. 상품 조회 (단일)
+### 1. 카테고리 목록 조회
+**UseCase**: `GetCategoriesQueryUseCase.getCategories()`
+
+```http
+GET /api/v1/categories
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "홍차",
+      "description": "진한 맛의 홍차류",
+      "productCount": 15
+    },
+    {
+      "id": 2,
+      "name": "녹차",
+      "description": "상쾌한 맛의 녹차류",
+      "productCount": 12
+    },
+    {
+      "id": 3,
+      "name": "허브차",
+      "description": "향긋한 허브차류",
+      "productCount": 8
+    }
+  ]
+}
+```
+
+### 2. 상품 조회 (단일)
 **UseCase**: `GetProductQueryUseCase.getProduct()`
 
 ```http
@@ -26,29 +60,19 @@ GET /api/v1/products/{productId}
   "success": true,
   "data": {
     "id": 1,
-    "name": "프리미엄 얼그레이 박스",
-    "description": "영국 전통 얼그레이의 깊은 향",
+    "name": "프리미엄 얼그레이 티백",
+    "description": "영국 전통 얼그레이의 깊은 향이 나는 프리미엄 티백",
     "category": {
       "id": 1,
       "name": "홍차",
       "description": "진한 맛의 홍차류"
     },
-    "price": 35000,
+    "price": 25000,
     "stockQuantity": 150,
-    "boxTypes": [
-      {
-        "id": 1,
-        "name": "3일 박스",
-        "days": 3,
-        "description": "맛보기용 소용량"
-      },
-      {
-        "id": 2,
-        "name": "7일 박스",
-        "days": 7,
-        "description": "일주일 분량"
-      }
-    ],
+    "unit": "박스",
+    "weight": "100g",
+    "ingredients": "홍차, 베르가못 오일",
+    "origin": "영국",
     "status": "ACTIVE",
     "viewCount": 1250,
     "createdAt": "2024-11-01T10:00:00Z",
@@ -57,7 +81,7 @@ GET /api/v1/products/{productId}
 }
 ```
 
-### 2. 상품 목록 조회
+### 3. 상품 목록 조회
 **UseCase**: `GetProductQueryUseCase.getProducts()`
 
 ```http
@@ -82,10 +106,10 @@ GET /api/v1/products?categoryId={categoryId}&status={status}&page=0&size=20
     "content": [
       {
         "id": 1,
-        "name": "프리미엄 얼그레이 박스",
-        "description": "영국 전통 얼그레이의 깊은 향",
+        "name": "프리미엄 얼그레이 티백",
+        "description": "영국 전통 얼그레이의 깊은 향이 나는 프리미엄 티백",
         "categoryName": "홍차",
-        "price": 35000,
+        "price": 25000,
         "stockQuantity": 150,
         "status": "ACTIVE",
         "viewCount": 1250
@@ -103,7 +127,7 @@ GET /api/v1/products?categoryId={categoryId}&status={status}&page=0&size=20
 }
 ```
 
-### 3. 인기 상품 조회
+### 4. 인기 상품 조회
 **UseCase**: `GetPopularProductsUseCase`
 
 ```http
@@ -129,9 +153,9 @@ GET /api/v1/products/popular?days={days}&limit={limit}
         "rank": 1,
         "product": {
           "id": 1,
-          "name": "프리미엄 얼그레이 박스",
+          "name": "프리미엄 얼그레이 티백",
           "categoryName": "홍차",
-          "price": 35000,
+          "price": 25000,
           "viewCount": 1250
         },
         "statistics": {
@@ -146,7 +170,7 @@ GET /api/v1/products/popular?days={days}&limit={limit}
 }
 ```
 
-### 4. 상품 생성
+### 5. 상품 생성
 **UseCase**: `CreateProductUseCase`
 
 ```http
@@ -156,13 +180,14 @@ POST /api/v1/products
 **Request Body**:
 ```json
 {
-  "name": "유기농 카모마일 박스",
-  "description": "독일산 유기농 카모마일로 제작",
-  "categoryId": 2,
-  "price": 28000,
+  "name": "유기농 카모마일 티백",
+  "description": "독일산 유기농 카모마일로 제작된 프리미엄 허브차",
+  "categoryId": 3,
+  "price": 22000,
   "stockQuantity": 200,
-  "boxTypeIds": [1, 2, 3],
-  "ingredients": "카모마일, 레몬밤",
+  "unit": "박스",
+  "weight": "80g",
+  "ingredients": "유기농 카모마일, 레몬밤",
   "origin": "독일",
   "createdBy": 1
 }
@@ -174,7 +199,8 @@ POST /api/v1/products
 - `categoryId` (Long, required): 카테고리 ID
 - `price` (Long, required): 가격 (최소 1,000원)
 - `stockQuantity` (Int, required): 초기 재고 (0-99,999)
-- `boxTypeIds` (List<Long>, required): 지원하는 박스 타입 ID 목록
+- `unit` (String, required): 판매 단위 (예: "박스", "개", "팩")
+- `weight` (String, optional): 중량 정보 (예: "100g", "50개입")
 - `ingredients` (String, optional): 원재료 정보
 - `origin` (String, optional): 원산지
 - `createdBy` (Long, required): 생성자 ID
@@ -185,10 +211,10 @@ POST /api/v1/products
   "success": true,
   "data": {
     "id": 2,
-    "name": "유기농 카모마일 박스",
-    "description": "독일산 유기농 카모마일로 제작",
-    "categoryId": 2,
-    "price": 28000,
+    "name": "유기농 카모마일 티백",
+    "description": "독일산 유기농 카모마일로 제작된 프리미엄 허브차",
+    "categoryId": 3,
+    "price": 22000,
     "stockQuantity": 200,
     "status": "ACTIVE",
     "createdAt": "2024-11-07T12:00:00Z"
@@ -196,7 +222,7 @@ POST /api/v1/products
 }
 ```
 
-### 5. 상품 정보 수정
+### 6. 상품 정보 수정
 **UseCase**: `UpdateProductUseCase`
 
 ```http
@@ -209,9 +235,9 @@ PUT /api/v1/products/{productId}
 **Request Body**:
 ```json
 {
-  "name": "프리미엄 유기농 카모마일 박스",
-  "description": "독일산 유기농 카모마일로 제작된 프리미엄 제품",
-  "price": 32000,
+  "name": "프리미엄 유기농 카모마일 티백",
+  "description": "독일산 유기농 카모마일로 제작된 최고급 허브차",
+  "price": 28000,
   "status": "ACTIVE",
   "updatedBy": 1
 }
@@ -223,16 +249,16 @@ PUT /api/v1/products/{productId}
   "success": true,
   "data": {
     "id": 2,
-    "name": "프리미엄 유기농 카모마일 박스",
-    "description": "독일산 유기농 카모마일로 제작된 프리미엄 제품",
-    "price": 32000,
+    "name": "프리미엄 유기농 카모마일 티백",
+    "description": "독일산 유기농 카모마일로 제작된 최고급 허브차",
+    "price": 28000,
     "status": "ACTIVE",
     "updatedAt": "2024-11-07T13:00:00Z"
   }
 }
 ```
 
-### 6. 상품 조회수 증가
+### 7. 상품 조회수 증가
 **UseCase**: `IncrementProductViewUseCase`
 
 ```http
@@ -382,9 +408,10 @@ fun reserveStock(productId: Long, quantity: Int): Boolean {
 - **다대일**: 한 상품은 하나의 카테고리에만 속함
 - **계층 구조**: 카테고리는 트리 구조 가능 (향후 확장)
 
-### 박스 타입 연동
-- **다대다**: 한 상품이 여러 박스 타입 지원 가능
-- **제약**: 최소 1개 이상의 박스 타입 연동 필요
+### 상품 기본 정보
+- **단위**: 판매 단위 (박스, 개, 팩 등) 명시 필수
+- **중량**: 상품의 중량 또는 용량 정보
+- **원재료**: 상품의 구성 성분 정보
 
 ## 검색 및 필터링
 
@@ -424,7 +451,27 @@ sequenceDiagram
     ProductController-->>Client: 200 OK
 ```
 
-### 2. 인기 상품 조회 플로우
+### 2. 카테고리별 상품 조회 플로우
+```mermaid
+sequenceDiagram
+    participant Client
+    participant ProductController
+    participant GetProductQueryUseCase
+    participant ProductService
+    participant CategoryService
+
+    Client->>ProductController: GET /api/v1/products?categoryId=1
+    ProductController->>GetProductQueryUseCase: getProductsByCategory(categoryId)
+    GetProductQueryUseCase->>CategoryService: validateCategory(categoryId)
+    CategoryService-->>GetProductQueryUseCase: category exists
+
+    GetProductQueryUseCase->>ProductService: findProductsByCategory(categoryId)
+    ProductService-->>GetProductQueryUseCase: products
+    GetProductQueryUseCase-->>ProductController: products
+    ProductController-->>Client: 200 OK
+```
+
+### 3. 인기 상품 조회 플로우
 ```mermaid
 sequenceDiagram
     participant Client
@@ -448,7 +495,7 @@ sequenceDiagram
 ```
 
 ## 관련 도메인
-- **Cart**: 장바구니에 상품 추가
-- **Order**: 주문에 상품 포함
+- **Cart**: 장바구니에 상품 추가 (상품ID + 수량)
+- **Order**: 주문에 상품 포함 (상품ID + 수량 + 단가)
 - **Inventory**: 재고 관리 연동
 - **Category**: 상품 분류 관리
