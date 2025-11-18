@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.point.domain.entity
 
-import io.hhplus.ecommerce.common.exception.point.PointException
+import io.hhplus.ecommerce.point.exception.PointException
 import io.hhplus.ecommerce.point.domain.vo.Balance
 import io.hhplus.ecommerce.point.domain.vo.PointAmount
 import java.time.LocalDateTime

@@ -3,7 +3,7 @@ package io.hhplus.ecommerce.user.usecase
 import io.hhplus.ecommerce.user.domain.entity.User
 import io.hhplus.ecommerce.user.domain.repository.UserRepository
 import io.hhplus.ecommerce.user.domain.constant.LoginType
-import io.hhplus.ecommerce.common.exception.user.UserException
+import io.hhplus.ecommerce.user.exception.UserException
 import org.springframework.stereotype.Component
 
 /**

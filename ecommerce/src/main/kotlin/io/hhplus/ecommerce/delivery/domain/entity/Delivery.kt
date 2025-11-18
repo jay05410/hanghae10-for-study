@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.delivery.domain.entity
 
-import io.hhplus.ecommerce.common.exception.delivery.DeliveryException
+import io.hhplus.ecommerce.delivery.exception.DeliveryException
 import io.hhplus.ecommerce.delivery.domain.constant.DeliveryStatus
 import io.hhplus.ecommerce.delivery.domain.vo.DeliveryAddress
 import java.time.LocalDateTime

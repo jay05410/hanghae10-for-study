@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.point.domain.vo
 
-import io.hhplus.ecommerce.common.exception.point.PointException
+import io.hhplus.ecommerce.point.exception.PointException
 
 /**
  * 포인트 잔액 Value Object

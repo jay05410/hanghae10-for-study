@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.inventory.domain.entity
 
-import io.hhplus.ecommerce.common.exception.inventory.InventoryException
+import io.hhplus.ecommerce.inventory.exception.InventoryException
 import java.time.LocalDateTime
 
 /**

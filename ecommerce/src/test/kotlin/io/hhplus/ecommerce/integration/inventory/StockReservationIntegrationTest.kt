@@ -2,7 +2,7 @@ package io.hhplus.ecommerce.integration.inventory
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 
-import io.hhplus.ecommerce.common.exception.inventory.InventoryException
+import io.hhplus.ecommerce.inventory.exception.InventoryException
 import io.hhplus.ecommerce.inventory.application.StockReservationService
 import io.hhplus.ecommerce.inventory.domain.repository.StockReservationRepository
 import io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
@@ -10,7 +10,6 @@ import io.hhplus.ecommerce.support.config.IntegrationTestFixtures
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import java.time.LocalDateTime
 
 /**
  * 재고 예약 통합 테스트

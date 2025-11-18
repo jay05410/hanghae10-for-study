@@ -1,7 +1,7 @@
 package io.hhplus.ecommerce.integration.coupon
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
-import io.hhplus.ecommerce.common.exception.coupon.CouponException
+import io.hhplus.ecommerce.coupon.exception.CouponException
 import io.hhplus.ecommerce.coupon.usecase.CouponCommandUseCase
 import io.hhplus.ecommerce.coupon.usecase.GetCouponQueryUseCase
 import io.hhplus.ecommerce.coupon.usecase.ValidateCouponUseCase

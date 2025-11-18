@@ -2,7 +2,7 @@ package io.hhplus.ecommerce.integration.inventory
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 
-import io.hhplus.ecommerce.common.exception.inventory.InventoryException
+import io.hhplus.ecommerce.inventory.exception.InventoryException
 import io.hhplus.ecommerce.support.config.IntegrationTestFixtures
 import io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
 import io.hhplus.ecommerce.inventory.usecase.InventoryReservationUseCase

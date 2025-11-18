@@ -4,7 +4,7 @@ import io.hhplus.ecommerce.coupon.application.CouponIssueHistoryService
 import io.hhplus.ecommerce.coupon.application.CouponService
 import io.hhplus.ecommerce.coupon.domain.repository.CouponRepository
 import io.hhplus.ecommerce.coupon.domain.repository.UserCouponRepository
-import io.hhplus.ecommerce.common.exception.coupon.CouponException
+import io.hhplus.ecommerce.coupon.exception.CouponException
 import io.hhplus.ecommerce.coupon.domain.constant.UserCouponStatus
 import io.hhplus.ecommerce.coupon.domain.entity.Coupon
 import io.hhplus.ecommerce.coupon.domain.entity.UserCoupon

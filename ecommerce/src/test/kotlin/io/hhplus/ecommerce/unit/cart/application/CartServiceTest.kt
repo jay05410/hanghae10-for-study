@@ -4,12 +4,11 @@ import io.hhplus.ecommerce.cart.application.CartService
 import io.hhplus.ecommerce.cart.domain.entity.Cart
 import io.hhplus.ecommerce.cart.domain.entity.CartItem
 import io.hhplus.ecommerce.cart.domain.repository.CartRepository
-import io.hhplus.ecommerce.common.exception.cart.CartException
+import io.hhplus.ecommerce.cart.exception.CartException
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.*
-import java.time.LocalDateTime
 
 /**
  * CartService 단위 테스트

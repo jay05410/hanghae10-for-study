@@ -1,9 +1,8 @@
 package io.hhplus.ecommerce.payment.application
 
-import io.hhplus.ecommerce.payment.domain.*
 import io.hhplus.ecommerce.payment.domain.constant.PaymentMethod
 import io.hhplus.ecommerce.common.util.IdPrefix
-import io.hhplus.ecommerce.common.exception.payment.PaymentException
+import io.hhplus.ecommerce.payment.exception.PaymentException
 import io.hhplus.ecommerce.common.util.SnowflakeGenerator
 import io.hhplus.ecommerce.payment.domain.entity.Payment
 import io.hhplus.ecommerce.payment.domain.repository.PaymentRepository

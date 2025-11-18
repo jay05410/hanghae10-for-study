@@ -2,14 +2,13 @@ package io.hhplus.ecommerce.coupon.application
 
 import io.hhplus.ecommerce.coupon.domain.repository.CouponRepository
 import io.hhplus.ecommerce.coupon.domain.repository.UserCouponRepository
-import io.hhplus.ecommerce.common.exception.coupon.CouponException
+import io.hhplus.ecommerce.coupon.exception.CouponException
 import io.hhplus.ecommerce.coupon.domain.constant.UserCouponStatus
 import io.hhplus.ecommerce.coupon.domain.entity.Coupon
 import io.hhplus.ecommerce.coupon.domain.entity.UserCoupon
 import io.hhplus.ecommerce.coupon.domain.entity.CouponIssueHistory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.time.LocalDateTime
 
 /**
  * 쿠폰 도메인 서비스 - 애플리케이션 계층

@@ -2,7 +2,7 @@ package io.hhplus.ecommerce.delivery.usecase
 
 import io.hhplus.ecommerce.delivery.domain.repository.DeliveryRepository
 import io.hhplus.ecommerce.delivery.domain.constant.DeliveryStatus
-import io.hhplus.ecommerce.common.exception.delivery.DeliveryException
+import io.hhplus.ecommerce.delivery.exception.DeliveryException
 import org.springframework.transaction.annotation.Transactional
 import io.hhplus.ecommerce.delivery.domain.entity.Delivery
 import org.springframework.stereotype.Component
@@ -29,7 +29,7 @@ class GetDeliveryQueryUseCase(
      *
      * @param deliveryId 조회할 배송 ID
      * @return 배송 엔티티
-     * @throws io.hhplus.ecommerce.common.exception.delivery.DeliveryException.DeliveryNotFound 배송을 찾을 수 없을 때
+     * @throws DeliveryException.DeliveryNotFound 배송을 찾을 수 없을 때
      */
     @Transactional(readOnly = true)
     fun getDelivery(deliveryId: Long): Delivery {
@@ -42,7 +42,7 @@ class GetDeliveryQueryUseCase(
      *
      * @param orderId 조회할 주문 ID
      * @return 배송 엔티티
-     * @throws io.hhplus.ecommerce.common.exception.delivery.DeliveryException.DeliveryNotFoundByOrder 배송을 찾을 수 없을 때
+     * @throws DeliveryException.DeliveryNotFoundByOrder 배송을 찾을 수 없을 때
      */
     @Transactional(readOnly = true)
     fun getDeliveryByOrderId(orderId: Long): Delivery {
@@ -55,7 +55,7 @@ class GetDeliveryQueryUseCase(
      *
      * @param trackingNumber 운송장 번호
      * @return 배송 엔티티
-     * @throws io.hhplus.ecommerce.common.exception.delivery.DeliveryException.DeliveryNotFound 배송을 찾을 수 없을 때
+     * @throws DeliveryException.DeliveryNotFound 배송을 찾을 수 없을 때
      */
     @Transactional(readOnly = true)
     fun getDeliveryByTrackingNumber(trackingNumber: String): Delivery {

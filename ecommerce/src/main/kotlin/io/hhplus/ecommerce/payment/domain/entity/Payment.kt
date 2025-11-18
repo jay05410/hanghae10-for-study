@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.payment.domain.entity
 
-import io.hhplus.ecommerce.common.exception.payment.PaymentException
+import io.hhplus.ecommerce.payment.exception.PaymentException
 import io.hhplus.ecommerce.payment.domain.constant.PaymentMethod
 import io.hhplus.ecommerce.payment.domain.constant.PaymentStatus
 import java.time.LocalDateTime

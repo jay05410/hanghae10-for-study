@@ -3,7 +3,7 @@ package io.hhplus.ecommerce.unit.user.application
 import io.hhplus.ecommerce.user.domain.entity.User
 import io.hhplus.ecommerce.user.domain.repository.UserRepository
 import io.hhplus.ecommerce.user.domain.constant.LoginType
-import io.hhplus.ecommerce.common.exception.user.UserException
+import io.hhplus.ecommerce.user.exception.UserException
 import io.hhplus.ecommerce.user.application.UserService
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe

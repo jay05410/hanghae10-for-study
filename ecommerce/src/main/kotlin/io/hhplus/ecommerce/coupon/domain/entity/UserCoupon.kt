@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.coupon.domain.entity
 
-import io.hhplus.ecommerce.common.exception.coupon.CouponException
+import io.hhplus.ecommerce.coupon.exception.CouponException
 import io.hhplus.ecommerce.coupon.domain.constant.UserCouponStatus
 import java.time.LocalDateTime
 

@@ -1,7 +1,7 @@
 package io.hhplus.ecommerce.integration.delivery
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
-import io.hhplus.ecommerce.common.exception.delivery.DeliveryException
+import io.hhplus.ecommerce.delivery.exception.DeliveryException
 import io.hhplus.ecommerce.delivery.usecase.DeliveryCommandUseCase
 import io.hhplus.ecommerce.delivery.usecase.GetDeliveryQueryUseCase
 import io.hhplus.ecommerce.delivery.domain.constant.DeliveryStatus

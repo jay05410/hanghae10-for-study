@@ -3,7 +3,7 @@ package io.hhplus.ecommerce.unit.inventory.application
 import io.hhplus.ecommerce.inventory.application.InventoryService
 import io.hhplus.ecommerce.inventory.domain.entity.Inventory
 import io.hhplus.ecommerce.inventory.domain.repository.InventoryRepository
-import io.hhplus.ecommerce.common.exception.inventory.InventoryException
+import io.hhplus.ecommerce.inventory.exception.InventoryException
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe

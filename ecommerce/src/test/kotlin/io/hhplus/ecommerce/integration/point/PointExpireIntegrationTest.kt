@@ -2,12 +2,11 @@ package io.hhplus.ecommerce.integration.point
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 
-import io.hhplus.ecommerce.common.exception.point.PointException
+import io.hhplus.ecommerce.point.exception.PointException
 import io.hhplus.ecommerce.support.config.IntegrationTestFixtures
 import io.hhplus.ecommerce.point.usecase.PointCommandUseCase
 import io.hhplus.ecommerce.point.usecase.GetPointQueryUseCase
 import io.hhplus.ecommerce.point.usecase.PointHistoryUseCase
-import io.hhplus.ecommerce.point.domain.constant.PointTransactionType
 import io.hhplus.ecommerce.point.domain.vo.PointAmount
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe

@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.cart.domain.entity
 
-import io.hhplus.ecommerce.common.exception.cart.CartException
+import io.hhplus.ecommerce.cart.exception.CartException
 import java.time.LocalDateTime
 
 /**

@@ -3,7 +3,7 @@ package io.hhplus.ecommerce.delivery.usecase
 import io.hhplus.ecommerce.delivery.domain.entity.Delivery
 import io.hhplus.ecommerce.delivery.domain.repository.DeliveryRepository
 import io.hhplus.ecommerce.delivery.domain.vo.DeliveryAddress
-import io.hhplus.ecommerce.common.exception.delivery.DeliveryException
+import io.hhplus.ecommerce.delivery.exception.DeliveryException
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 

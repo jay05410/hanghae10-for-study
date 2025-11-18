@@ -5,7 +5,7 @@ import io.hhplus.ecommerce.point.domain.entity.UserPoint
 import io.hhplus.ecommerce.point.domain.repository.UserPointRepository
 import io.hhplus.ecommerce.point.domain.vo.PointAmount
 import io.hhplus.ecommerce.point.domain.vo.Balance
-import io.hhplus.ecommerce.common.exception.point.PointException
+import io.hhplus.ecommerce.point.exception.PointException
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe

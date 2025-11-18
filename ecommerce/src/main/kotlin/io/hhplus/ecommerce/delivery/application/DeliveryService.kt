@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.delivery.application
 
-import io.hhplus.ecommerce.common.exception.delivery.DeliveryException
+import io.hhplus.ecommerce.delivery.exception.DeliveryException
 import io.hhplus.ecommerce.delivery.domain.constant.DeliveryStatus
 import io.hhplus.ecommerce.delivery.domain.entity.Delivery
 import io.hhplus.ecommerce.delivery.domain.repository.DeliveryRepository

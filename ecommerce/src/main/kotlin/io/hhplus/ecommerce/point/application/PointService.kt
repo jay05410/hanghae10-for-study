@@ -1,7 +1,6 @@
 package io.hhplus.ecommerce.point.application
 
-import io.hhplus.ecommerce.common.exception.point.PointException
-import io.hhplus.ecommerce.point.domain.entity.PointHistory
+import io.hhplus.ecommerce.point.exception.PointException
 import io.hhplus.ecommerce.point.domain.entity.UserPoint
 import io.hhplus.ecommerce.point.domain.repository.UserPointRepository
 import io.hhplus.ecommerce.point.domain.vo.PointAmount

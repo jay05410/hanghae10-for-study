@@ -3,7 +3,7 @@ package io.hhplus.ecommerce.unit.product.application
 import io.hhplus.ecommerce.product.application.ProductService
 import io.hhplus.ecommerce.product.domain.entity.Product
 import io.hhplus.ecommerce.product.domain.repository.ProductRepository
-import io.hhplus.ecommerce.common.exception.product.ProductException
+import io.hhplus.ecommerce.product.exception.ProductException
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.assertions.throwables.shouldThrow

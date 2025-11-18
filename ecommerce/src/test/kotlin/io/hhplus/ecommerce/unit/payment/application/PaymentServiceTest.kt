@@ -6,7 +6,7 @@ import io.hhplus.ecommerce.payment.domain.repository.PaymentRepository
 import io.hhplus.ecommerce.payment.domain.constant.PaymentMethod
 import io.hhplus.ecommerce.payment.domain.constant.PaymentStatus
 import io.hhplus.ecommerce.common.util.SnowflakeGenerator
-import io.hhplus.ecommerce.common.exception.payment.PaymentException
+import io.hhplus.ecommerce.payment.exception.PaymentException
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.collections.shouldHaveSize
