@@ -28,8 +28,8 @@ data class CartResponse(
     @Schema(description = "총 아이템 개수", example = "3")
     val totalItemCount: Int,
 
-    @Schema(description = "총 수량", example = "5.0")
-    val totalQuantity: Double,
+    @Schema(description = "총 수량", example = "5")
+    val totalQuantity: Int,
 
     @Schema(description = "총 가격", example = "50000")
     val totalPrice: Long,
@@ -50,20 +50,12 @@ data class CartItemResponse(
     @Schema(description = "아이템 ID", example = "1")
     val id: Long,
 
-    @Schema(description = "패키지 타입 ID", example = "10")
-    val packageTypeId: Long,
+    @Schema(description = "상품 ID", example = "10")
+    val productId: Long,
 
-    @Schema(description = "패키지 타입 이름", example = "30일 정기배송")
-    val packageTypeName: String,
+    @Schema(description = "수량", example = "2")
+    val quantity: Int,
 
-    @Schema(description = "패키지 일수", example = "30")
-    val packageTypeDays: Int,
-
-    @Schema(description = "일일 제공량", example = "2")
-    val dailyServing: Int,
-
-    @Schema(description = "총 수량", example = "2.0")
-    val totalQuantity: Double,
 
     @Schema(description = "선물 포장 여부", example = "true")
     val giftWrap: Boolean,
@@ -91,11 +83,8 @@ fun Cart.toResponse(): CartResponse = CartResponse(
 
 fun CartItem.toResponse(): CartItemResponse = CartItemResponse(
     id = this.id,
-    packageTypeId = this.packageTypeId,
-    packageTypeName = this.packageTypeName,
-    packageTypeDays = this.packageTypeDays,
-    dailyServing = this.dailyServing,
-    totalQuantity = this.totalQuantity,
+    productId = this.productId,
+    quantity = this.quantity,
     giftWrap = this.giftWrap,
     giftMessage = this.giftMessage,
     createdAt = this.createdAt,

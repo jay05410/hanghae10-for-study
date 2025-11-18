@@ -79,8 +79,7 @@ class OrderService(
                 unitPrice = item.unitPrice,
                 giftWrap = item.giftWrap,
                 giftMessage = item.giftMessage,
-                giftWrapPrice = item.giftWrapPrice,
-                totalPrice = item.totalPrice
+                giftWrapPrice = item.giftWrapPrice
             )
             orderItemRepository.save(orderItem)
         }

@@ -35,28 +35,22 @@ data class Cart(
      * 장바구니에 새 아이템 추가
      *
      * @return 추가된 CartItem
-     * @throws IllegalArgumentException 최대 아이템 수 초과 또는 중복 패키지 타입
+     * @throws IllegalArgumentException 최대 아이템 수 초과 또는 중복 상품
      */
     fun addItem(
-        packageTypeId: Long,
-        packageTypeName: String,
-        packageTypeDays: Int,
-        dailyServing: Int,
-        totalQuantity: Double,
+        productId: Long,
+        quantity: Int,
         giftWrap: Boolean = false,
         giftMessage: String? = null,
         addedBy: Long
     ): CartItem {
         require(_items.size < MAX_CART_ITEMS) { "장바구니 최대 아이템 수($MAX_CART_ITEMS)를 초과할 수 없습니다" }
-        require(_items.none { it.packageTypeId == packageTypeId }) { "이미 동일한 박스 타입이 장바구니에 있습니다" }
+        require(_items.none { it.productId == productId }) { "이미 동일한 상품이 장바구니에 있습니다" }
 
         val cartItem = CartItem.create(
             cartId = this.id,
-            packageTypeId = packageTypeId,
-            packageTypeName = packageTypeName,
-            packageTypeDays = packageTypeDays,
-            dailyServing = dailyServing,
-            totalQuantity = totalQuantity,
+            productId = productId,
+            quantity = quantity,
             giftWrap = giftWrap,
             giftMessage = giftMessage
         )
@@ -73,9 +67,9 @@ data class Cart(
      *
      * @throws CartException.CartItemNotFound 아이템을 찾을 수 없는 경우
      */
-    fun updateItemQuantity(cartItemId: Long, newTotalQuantity: Double, updatedBy: Long) {
+    fun updateItemQuantity(cartItemId: Long, newQuantity: Int, updatedBy: Long) {
         val item = findItem(cartItemId)
-        item.updateQuantity(newTotalQuantity)
+        item.updateQuantity(newQuantity)
         this.updatedBy = updatedBy
         this.updatedAt = LocalDateTime.now()
     }
@@ -105,7 +99,7 @@ data class Cart(
 
     fun getTotalItemCount(): Int = items.size
 
-    fun getTotalQuantity(): Double = items.sumOf { it.totalQuantity }
+    fun getTotalQuantity(): Int = items.sumOf { it.quantity }
 
     fun getTotalPrice(): Long {
         // TODO: ProductService를 통해 실제 상품 가격을 가져와서 계산해야 함

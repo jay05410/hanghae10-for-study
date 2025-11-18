@@ -57,7 +57,7 @@ class OrderCommandUseCase(
             OrderItemData(
                 productId = item.productId,
                 productName = product.name,
-                categoryName = product.category?.name ?: "",
+                categoryName = "기본카테고리", // TODO: 카테고리 서비스 연동 후 수정
                 quantity = item.quantity,
                 unitPrice = product.price.toInt(),
                 giftWrap = item.giftWrap,
