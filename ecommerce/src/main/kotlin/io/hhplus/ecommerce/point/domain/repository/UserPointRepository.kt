@@ -11,5 +11,4 @@ interface UserPointRepository {
 
     // FETCH JOIN 메서드들
     fun findUserPointWithHistoriesByUserId(userId: Long): UserPoint?
-    fun findUserPointWithHistoriesByUserIdWithLock(userId: Long): UserPoint?
 }

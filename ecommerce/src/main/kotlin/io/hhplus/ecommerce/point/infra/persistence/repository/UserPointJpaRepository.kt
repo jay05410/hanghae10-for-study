@@ -27,8 +27,4 @@ interface UserPointJpaRepository : JpaRepository<UserPointJpaEntity, Long> {
 
     @Query("SELECT up FROM UserPointJpaEntity up LEFT JOIN FETCH up.pointHistories WHERE up.userId = :userId ORDER BY up.pointHistories.createdAt DESC")
     fun findUserPointWithHistoriesByUserId(@Param("userId") userId: Long): UserPointJpaEntity?
-
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT up FROM UserPointJpaEntity up LEFT JOIN FETCH up.pointHistories WHERE up.userId = :userId")
-    fun findUserPointWithHistoriesByUserIdWithLock(@Param("userId") userId: Long): UserPointJpaEntity?
 }

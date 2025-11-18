@@ -33,16 +33,17 @@ class CartRepositoryImpl(
         // 1. Cart 엔티티 저장
         val savedCartEntity = cartJpaRepository.save(cart.toEntity(cartMapper))
 
-        // 2. 기존 CartItem들 조회
-        val existingItems = if (cart.id > 0) {
-            cartItemJpaRepository.findByCartIdAndIsActive(cart.id, true)
+        // 2. 기존 CartItem들 조회 - FETCH JOIN 활용하여 N+1 문제 방지
+        val existingItemsEntity = if (cart.id > 0) {
+            // FETCH JOIN으로 기존 Cart와 Items를 함께 조회
+            cartJpaRepository.findByUserIdWithItems(cart.userId)?.cartItems ?: emptyList()
         } else {
             emptyList()
         }
 
         // 3. 삭제된 아이템들 제거 (기존에는 있었지만 cart.items에는 없는 것들)
         val currentItemIds = cart.items.map { it.id }.toSet()
-        val itemsToDelete = existingItems.filter { it.id !in currentItemIds }
+        val itemsToDelete = existingItemsEntity.filter { it.id !in currentItemIds }
         itemsToDelete.forEach { cartItemJpaRepository.deleteById(it.id) }
 
         // 4. CartItem 엔티티들 저장
@@ -56,15 +57,17 @@ class CartRepositoryImpl(
     }
 
     override fun findById(id: Long): Cart? {
-        val cartEntity = cartJpaRepository.findById(id).orElse(null) ?: return null
-        val items = cartItemJpaRepository.findByCartIdAndIsActive(id, true).toDomain(cartItemMapper)
+        // FETCH JOIN으로 Cart와 CartItem을 함께 조회하여 N+1 문제 방지
+        val cartEntity = cartJpaRepository.findCartWithItemsById(id) ?: return null
+
+        // FETCH JOIN으로 가져온 cartItems 직접 활용
+        val items = cartEntity.cartItems.toDomain(cartItemMapper)
         return cartMapper.toDomain(cartEntity, items)
     }
 
     override fun findByUserId(userId: Long): Cart? {
-        val cartEntity = cartJpaRepository.findByUserIdAndIsActive(userId, true) ?: return null
-        val items = cartItemJpaRepository.findByCartIdAndIsActive(cartEntity.id, true).toDomain(cartItemMapper)
-        return cartMapper.toDomain(cartEntity, items)
+        // FETCH JOIN이 있는 findByUserIdWithItems를 활용하여 N+1 문제 방지
+        return findByUserIdWithItems(userId)
     }
 
     override fun findByUserIdWithItems(userId: Long): Cart? {

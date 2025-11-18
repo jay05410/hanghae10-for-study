@@ -41,8 +41,4 @@ class UserPointRepositoryImpl(
     override fun findUserPointWithHistoriesByUserId(userId: Long): UserPoint? {
         return jpaRepository.findUserPointWithHistoriesByUserId(userId).toDomain(mapper)
     }
-
-    override fun findUserPointWithHistoriesByUserIdWithLock(userId: Long): UserPoint? {
-        return jpaRepository.findUserPointWithHistoriesByUserIdWithLock(userId).toDomain(mapper)
-    }
 }

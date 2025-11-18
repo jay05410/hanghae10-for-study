@@ -37,8 +37,6 @@ class OrderRepositoryImpl(
     override fun findByUserId(userId: Long): List<Order> =
         jpaRepository.findByUserId(userId).toDomain(mapper)
 
-    override fun findByUserIdAndIsActive(userId: Long, isActive: Boolean): List<Order> =
-        jpaRepository.findByUserIdAndIsActiveOrderByCreatedAtDesc(userId, isActive).toDomain(mapper)
 
     override fun findByUserIdAndStatus(userId: Long, status: OrderStatus): List<Order> =
         jpaRepository.findByUserIdAndStatus(userId, status).toDomain(mapper)
@@ -54,10 +52,6 @@ class OrderRepositoryImpl(
 
     override fun findOrdersWithItemsByUserId(userId: Long): List<Order> {
         return jpaRepository.findOrdersWithItemsByUserId(userId).toDomain(mapper)
-    }
-
-    override fun findOrderWithItemsByOrderNumber(orderNumber: String): Order? {
-        return jpaRepository.findOrderWithItemsByOrderNumber(orderNumber).toDomain(mapper)
     }
 
     override fun findOrderWithItemsById(orderId: Long): Order? {

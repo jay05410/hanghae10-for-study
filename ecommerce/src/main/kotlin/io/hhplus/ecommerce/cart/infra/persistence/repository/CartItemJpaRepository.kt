@@ -22,7 +22,7 @@ interface CartItemJpaRepository : JpaRepository<CartItemJpaEntity, Long> {
      * 장바구니 ID로 모든 활성 아이템 조회
      */
     @Query("SELECT ci FROM CartItemJpaEntity ci WHERE ci.cartId = :cartId AND ci.deletedAt IS NULL")
-    fun findByCartIdAndIsActive(@Param("cartId") cartId: Long, @Param("isActive") isActive: Boolean = true): List<CartItemJpaEntity>
+    fun findByCartIdAndIsActive(@Param("cartId") cartId: Long): List<CartItemJpaEntity>
 
     /**
      * 장바구니 ID로 모든 아이템 조회 (활성 여부 무관)

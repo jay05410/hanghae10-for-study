@@ -49,10 +49,6 @@ class PaymentRepositoryImpl(
         return jpaRepository.findPaymentWithHistoriesByPaymentNumber(paymentNumber).toDomain(mapper)
     }
 
-    override fun findPaymentsWithHistoriesByOrderId(orderId: Long): List<Payment> {
-        return jpaRepository.findPaymentsWithHistoriesByOrderId(orderId).toDomain(mapper)
-    }
-
     override fun findPaymentWithHistoriesById(paymentId: Long): Payment? {
         return jpaRepository.findPaymentWithHistoriesById(paymentId).toDomain(mapper)
     }

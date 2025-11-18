@@ -18,11 +18,6 @@ import org.springframework.data.repository.query.Param
  */
 interface CartJpaRepository : JpaRepository<CartJpaEntity, Long> {
 
-    /**
-     * 사용자 ID로 활성 상태의 장바구니 조회
-     */
-    @Query("SELECT c FROM CartJpaEntity c WHERE c.userId = :userId AND c.deletedAt IS NULL")
-    fun findByUserIdAndIsActive(@Param("userId") userId: Long, @Param("isActive") isActive: Boolean = true): CartJpaEntity?
 
     /**
      * 사용자 ID로 장바구니 조회 (활성 여부 무관)

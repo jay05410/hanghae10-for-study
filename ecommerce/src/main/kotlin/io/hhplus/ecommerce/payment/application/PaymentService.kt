@@ -103,14 +103,4 @@ class PaymentService(
         return paymentRepository.findPaymentWithHistoriesByPaymentNumber(paymentNumber)
     }
 
-    /**
-     * 주문 ID로 결제와 이력을 함께 조회한다 (FETCH JOIN 활용)
-     *
-     * @param orderId 조회할 주문 ID
-     * @return 결제 이력과 함께 조회된 Payment 목록
-     */
-    @Transactional(readOnly = true)
-    fun getPaymentsWithHistoriesByOrderId(orderId: Long): List<Payment> {
-        return paymentRepository.findPaymentsWithHistoriesByOrderId(orderId)
-    }
 }

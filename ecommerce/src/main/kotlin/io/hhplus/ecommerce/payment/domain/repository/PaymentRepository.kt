@@ -14,6 +14,5 @@ interface PaymentRepository {
 
     // FETCH JOIN 메서드들
     fun findPaymentWithHistoriesByPaymentNumber(paymentNumber: String): Payment?
-    fun findPaymentsWithHistoriesByOrderId(orderId: Long): List<Payment>
     fun findPaymentWithHistoriesById(paymentId: Long): Payment?
 }

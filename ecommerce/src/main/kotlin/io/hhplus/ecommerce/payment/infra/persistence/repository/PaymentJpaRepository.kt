@@ -63,12 +63,6 @@ interface PaymentJpaRepository : JpaRepository<PaymentJpaEntity, Long> {
     fun findPaymentWithHistoriesByPaymentNumber(@Param("paymentNumber") paymentNumber: String): PaymentJpaEntity?
 
     /**
-     * 주문 ID로 결제와 이력을 함께 조회
-     */
-    @Query("SELECT p FROM PaymentJpaEntity p LEFT JOIN FETCH p.paymentHistories WHERE p.orderId = :orderId")
-    fun findPaymentsWithHistoriesByOrderId(@Param("orderId") orderId: Long): List<PaymentJpaEntity>
-
-    /**
      * 결제 ID로 결제와 이력을 함께 조회
      */
     @Query("SELECT p FROM PaymentJpaEntity p LEFT JOIN FETCH p.paymentHistories WHERE p.id = :paymentId")

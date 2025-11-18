@@ -18,8 +18,6 @@ interface OrderJpaRepository : JpaRepository<OrderJpaEntity, Long> {
     fun findByOrderNumber(orderNumber: String): OrderJpaEntity?
     fun findByUserId(userId: Long): List<OrderJpaEntity>
 
-    @Query("SELECT o FROM OrderJpaEntity o WHERE o.userId = :userId AND o.deletedAt IS NULL ORDER BY o.createdAt DESC")
-    fun findByUserIdAndIsActiveOrderByCreatedAtDesc(@Param("userId") userId: Long, @Param("isActive") isActive: Boolean): List<OrderJpaEntity>
 
     fun findByUserIdAndStatus(userId: Long, status: OrderStatus): List<OrderJpaEntity>
     fun findByStatus(status: OrderStatus): List<OrderJpaEntity>
@@ -28,9 +26,6 @@ interface OrderJpaRepository : JpaRepository<OrderJpaEntity, Long> {
 
     @Query("SELECT o FROM OrderJpaEntity o LEFT JOIN FETCH o.orderItems WHERE o.userId = :userId ORDER BY o.createdAt DESC")
     fun findOrdersWithItemsByUserId(@Param("userId") userId: Long): List<OrderJpaEntity>
-
-    @Query("SELECT o FROM OrderJpaEntity o LEFT JOIN FETCH o.orderItems WHERE o.orderNumber = :orderNumber")
-    fun findOrderWithItemsByOrderNumber(@Param("orderNumber") orderNumber: String): OrderJpaEntity?
 
     @Query("SELECT o FROM OrderJpaEntity o LEFT JOIN FETCH o.orderItems WHERE o.id = :orderId")
     fun findOrderWithItemsById(@Param("orderId") orderId: Long): OrderJpaEntity?
