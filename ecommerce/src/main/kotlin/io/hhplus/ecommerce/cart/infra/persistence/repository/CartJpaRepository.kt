@@ -3,6 +3,7 @@ package io.hhplus.ecommerce.cart.infra.persistence.repository
 import io.hhplus.ecommerce.cart.infra.persistence.entity.CartJpaEntity
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
 
 /**
  * Cart JPA Repository
@@ -20,7 +21,8 @@ interface CartJpaRepository : JpaRepository<CartJpaEntity, Long> {
     /**
      * 사용자 ID로 활성 상태의 장바구니 조회
      */
-    fun findByUserIdAndIsActive(userId: Long, isActive: Boolean = true): CartJpaEntity?
+    @Query("SELECT c FROM CartJpaEntity c WHERE c.userId = :userId AND c.deletedAt IS NULL")
+    fun findByUserIdAndIsActive(@Param("userId") userId: Long, @Param("isActive") isActive: Boolean = true): CartJpaEntity?
 
     /**
      * 사용자 ID로 장바구니 조회 (활성 여부 무관)
@@ -33,6 +35,6 @@ interface CartJpaRepository : JpaRepository<CartJpaEntity, Long> {
      * 주의: Cart와 CartItem이 별도 테이블이므로 별도 조회 필요
      * 실제로는 CartItemRepository를 통해 items를 가져와야 함
      */
-    @Query("SELECT c FROM CartJpaEntity c WHERE c.userId = :userId AND c.isActive = true")
-    fun findByUserIdWithItems(userId: Long): CartJpaEntity?
+    @Query("SELECT c FROM CartJpaEntity c WHERE c.userId = :userId AND c.deletedAt IS NULL")
+    fun findByUserIdWithItems(@Param("userId") userId: Long): CartJpaEntity?
 }

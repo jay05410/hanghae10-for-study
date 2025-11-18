@@ -3,6 +3,8 @@ package io.hhplus.ecommerce.order.infra.persistence.repository
 import io.hhplus.ecommerce.order.domain.constant.OrderStatus
 import io.hhplus.ecommerce.order.infra.persistence.entity.OrderJpaEntity
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
 import java.time.LocalDateTime
 
 /**
@@ -15,7 +17,10 @@ import java.time.LocalDateTime
 interface OrderJpaRepository : JpaRepository<OrderJpaEntity, Long> {
     fun findByOrderNumber(orderNumber: String): OrderJpaEntity?
     fun findByUserId(userId: Long): List<OrderJpaEntity>
-    fun findByUserIdAndIsActiveOrderByCreatedAtDesc(userId: Long, isActive: Boolean): List<OrderJpaEntity>
+
+    @Query("SELECT o FROM OrderJpaEntity o WHERE o.userId = :userId AND o.deletedAt IS NULL ORDER BY o.createdAt DESC")
+    fun findByUserIdAndIsActiveOrderByCreatedAtDesc(@Param("userId") userId: Long, @Param("isActive") isActive: Boolean): List<OrderJpaEntity>
+
     fun findByUserIdAndStatus(userId: Long, status: OrderStatus): List<OrderJpaEntity>
     fun findByStatus(status: OrderStatus): List<OrderJpaEntity>
     fun findByCreatedAtBetween(startDate: LocalDateTime, endDate: LocalDateTime): List<OrderJpaEntity>

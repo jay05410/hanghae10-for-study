@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.coupon.domain.entity
 
-import io.hhplus.ecommerce.common.baseentity.ActiveJpaEntity
+import io.hhplus.ecommerce.common.baseentity.BaseJpaEntity
 import io.hhplus.ecommerce.coupon.domain.constant.UserCouponStatus
 import jakarta.persistence.*
 import java.time.LocalDateTime
@@ -33,7 +33,7 @@ class CouponIssueHistory(
 
     @Column(nullable = true, columnDefinition = "TEXT")
     val description: String? = null
-) : ActiveJpaEntity() {
+) : BaseJpaEntity() {
 
     fun isUsed(): Boolean = status == UserCouponStatus.USED
 

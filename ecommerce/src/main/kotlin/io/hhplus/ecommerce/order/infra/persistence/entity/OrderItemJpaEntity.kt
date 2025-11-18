@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.order.infra.persistence.entity
 
-import io.hhplus.ecommerce.common.baseentity.ActiveJpaEntity
+import io.hhplus.ecommerce.common.baseentity.BaseJpaEntity
 import jakarta.persistence.*
 
 /**
@@ -10,7 +10,7 @@ import jakarta.persistence.*
  * - JPA를 통한 OrderItem 데이터 영속화
  * - 데이터베이스 테이블 매핑
  *
- * 주의: createdAt, updatedAt, createdBy, updatedBy, isActive, deletedAt는 ActiveJpaEntity에서 상속받습니다.
+ * 주의: createdAt, updatedAt, createdBy, updatedBy, deletedAt는 BaseJpaEntity에서 상속받습니다.
  */
 @Entity
 @Table(name = "order_item")
@@ -48,4 +48,4 @@ class OrderItemJpaEntity(
 
     @Column(nullable = false)
     val totalPrice: Int
-) : ActiveJpaEntity()
+) : BaseJpaEntity()

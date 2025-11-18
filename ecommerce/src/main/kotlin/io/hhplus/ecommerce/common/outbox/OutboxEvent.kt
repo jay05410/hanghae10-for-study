@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.common.outbox
 
-import io.hhplus.ecommerce.common.baseentity.ActiveJpaEntity
+import io.hhplus.ecommerce.common.baseentity.BaseJpaEntity
 import jakarta.persistence.*
 import java.time.LocalDateTime
 
@@ -34,7 +34,7 @@ class OutboxEvent(
 
     @Column(nullable = false)
     var retryCount: Int = 0
-) : ActiveJpaEntity() {
+) : BaseJpaEntity() {
 
     fun markAsProcessed(processedAt: LocalDateTime = LocalDateTime.now()) {
         require(!processed) { "이미 처리된 이벤트입니다" }

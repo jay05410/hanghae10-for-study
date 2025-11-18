@@ -4,6 +4,7 @@ import io.hhplus.ecommerce.product.domain.constant.ProductStatus
 import io.hhplus.ecommerce.product.infra.persistence.entity.ProductJpaEntity
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
 
 /**
  * Product JPA Repository
@@ -22,12 +23,14 @@ interface ProductJpaRepository : JpaRepository<ProductJpaEntity, Long> {
     /**
      * ID와 활성 상태로 상품 조회
      */
-    fun findByIdAndIsActive(id: Long, isActive: Boolean): ProductJpaEntity?
+    @Query("SELECT p FROM ProductJpaEntity p WHERE p.id = :id AND p.deletedAt IS NULL")
+    fun findByIdAndIsActive(@Param("id") id: Long, @Param("isActive") isActive: Boolean): ProductJpaEntity?
 
     /**
      * 활성 상태로 상품 목록 조회
      */
-    fun findAllByIsActive(isActive: Boolean): List<ProductJpaEntity>
+    @Query("SELECT p FROM ProductJpaEntity p WHERE p.deletedAt IS NULL")
+    fun findAllByIsActive(@Param("isActive") isActive: Boolean): List<ProductJpaEntity>
 
     /**
      * 상품 상태로 상품 목록 조회
@@ -37,7 +40,8 @@ interface ProductJpaRepository : JpaRepository<ProductJpaEntity, Long> {
     /**
      * 카테고리 ID와 활성 상태로 상품 목록 조회
      */
-    fun findByCategoryIdAndIsActive(categoryId: Long, isActive: Boolean): List<ProductJpaEntity>
+    @Query("SELECT p FROM ProductJpaEntity p WHERE p.categoryId = :categoryId AND p.deletedAt IS NULL")
+    fun findByCategoryIdAndIsActive(@Param("categoryId") categoryId: Long, @Param("isActive") isActive: Boolean): List<ProductJpaEntity>
 
     /**
      * 상품명 검색 (부분 일치)
@@ -47,6 +51,6 @@ interface ProductJpaRepository : JpaRepository<ProductJpaEntity, Long> {
     /**
      * 활성 상품 전체 조회 (deletedAt이 null인 경우만)
      */
-    @Query("SELECT p FROM ProductJpaEntity p WHERE p.isActive = true AND p.deletedAt IS NULL")
+    @Query("SELECT p FROM ProductJpaEntity p WHERE p.deletedAt IS NULL")
     fun findActiveProducts(): List<ProductJpaEntity>
 }

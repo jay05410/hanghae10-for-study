@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.product.domain.entity
 
-import io.hhplus.ecommerce.common.baseentity.ActiveJpaEntity
+import io.hhplus.ecommerce.common.baseentity.BaseJpaEntity
 // import jakarta.persistence.*
 
 // @Entity
@@ -18,7 +18,7 @@ class Category(
 
     // @Column(nullable = false)
     val displayOrder: Int = 0
-) : ActiveJpaEntity() {
+) : BaseJpaEntity() {
     fun isAvailable(): Boolean = isActive
 
     fun deactivateCategory() {

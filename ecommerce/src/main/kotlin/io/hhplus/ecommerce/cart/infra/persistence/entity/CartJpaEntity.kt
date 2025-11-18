@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.cart.infra.persistence.entity
 
-import io.hhplus.ecommerce.common.baseentity.ActiveJpaEntity
+import io.hhplus.ecommerce.common.baseentity.BaseJpaEntity
 import jakarta.persistence.*
 
 /**
@@ -30,4 +30,4 @@ class CartJpaEntity(
 
     @Column(nullable = false, unique = true, name = "user_id")
     val userId: Long
-) : ActiveJpaEntity()
+) : BaseJpaEntity()

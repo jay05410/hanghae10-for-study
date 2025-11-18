@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.cart.infra.persistence.entity
 
-import io.hhplus.ecommerce.common.baseentity.ActiveJpaEntity
+import io.hhplus.ecommerce.common.baseentity.BaseJpaEntity
 import jakarta.persistence.*
 
 /**
@@ -13,7 +13,7 @@ import jakarta.persistence.*
  *
  * 주의: 이 클래스는 영속성 전용이며 비즈니스 로직을 포함하지 않습니다.
  *       비즈니스 로직은 domain/entity/CartItem에 있습니다.
- *       createdAt, updatedAt, createdBy, updatedBy, isActive는 ActiveJpaEntity에서 상속받습니다.
+ *       createdAt, updatedAt, createdBy, updatedBy는 BaseJpaEntity에서 상속받습니다.
  */
 @Entity
 @Table(
@@ -43,4 +43,4 @@ class CartItemJpaEntity(
 
     @Column(length = 500, name = "gift_message")
     val giftMessage: String? = null
-) : ActiveJpaEntity()
+) : BaseJpaEntity()

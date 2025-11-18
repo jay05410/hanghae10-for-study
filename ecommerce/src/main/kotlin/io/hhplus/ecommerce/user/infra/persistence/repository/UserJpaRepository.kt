@@ -40,13 +40,8 @@ interface UserJpaRepository : JpaRepository<UserJpaEntity, Long> {
     fun existsByEmail(email: String): Boolean
 
     /**
-     * 활성 사용자 전체 조회
-     */
-    fun findByIsActiveTrue(): List<UserJpaEntity>
-
-    /**
      * 활성 사용자 전체 조회 (deletedAt이 null인 경우만)
      */
-    @SoftDeletedFilter
+    @Query("SELECT u FROM UserJpaEntity u WHERE u.deletedAt IS NULL")
     fun findActiveUsers(): List<UserJpaEntity>
 }

@@ -2,6 +2,8 @@ package io.hhplus.ecommerce.cart.infra.persistence.repository
 
 import io.hhplus.ecommerce.cart.infra.persistence.entity.CartItemJpaEntity
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
 
 /**
  * CartItem JPA Repository
@@ -19,7 +21,8 @@ interface CartItemJpaRepository : JpaRepository<CartItemJpaEntity, Long> {
     /**
      * 장바구니 ID로 모든 활성 아이템 조회
      */
-    fun findByCartIdAndIsActive(cartId: Long, isActive: Boolean = true): List<CartItemJpaEntity>
+    @Query("SELECT ci FROM CartItemJpaEntity ci WHERE ci.cartId = :cartId AND ci.deletedAt IS NULL")
+    fun findByCartIdAndIsActive(@Param("cartId") cartId: Long, @Param("isActive") isActive: Boolean = true): List<CartItemJpaEntity>
 
     /**
      * 장바구니 ID로 모든 아이템 조회 (활성 여부 무관)

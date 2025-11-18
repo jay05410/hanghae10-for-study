@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.inventory.domain.entity
 
-import io.hhplus.ecommerce.common.baseentity.ActiveJpaEntity
+import io.hhplus.ecommerce.common.baseentity.BaseJpaEntity
 import io.hhplus.ecommerce.inventory.domain.constant.ReservationStatus
 import jakarta.persistence.*
 import java.time.LocalDateTime
@@ -33,7 +33,7 @@ class StockReservation(
 
     @Version
     var version: Int = 0
-) : ActiveJpaEntity() {
+) : BaseJpaEntity() {
 
     fun isExpired(): Boolean = LocalDateTime.now().isAfter(expiresAt)
 

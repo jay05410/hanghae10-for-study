@@ -45,5 +45,5 @@ class UserRepositoryImpl(
         jpaRepository.findActiveUsers().toDomain(mapper)
 
     override fun findByIsActiveTrue(): List<User> =
-        jpaRepository.findByIsActiveTrue().toDomain(mapper)
+        jpaRepository.findActiveUsers().toDomain(mapper)
 }

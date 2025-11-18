@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.user.infra.persistence.entity
 
-import io.hhplus.ecommerce.common.baseentity.ActiveJpaEntity
+import io.hhplus.ecommerce.common.baseentity.BaseJpaEntity
 import io.hhplus.ecommerce.user.domain.constant.LoginType
 import jakarta.persistence.*
 
@@ -14,7 +14,7 @@ import jakarta.persistence.*
  *
  * 주의: 이 클래스는 영속성 전용이며 비즈니스 로직을 포함하지 않습니다.
  *       비즈니스 로직은 domain/entity/User에 있습니다.
- *       createdAt, updatedAt, createdBy, updatedBy, isActive, deletedAt는 ActiveJpaEntity에서 상속받습니다.
+ *       createdAt, updatedAt, createdBy, updatedBy, isActive, deletedAt는 BaseJpaEntity에서 상속받습니다.
  */
 @Entity
 @Table(
@@ -52,4 +52,4 @@ class UserJpaEntity(
 
     @Column(length = 100, name = "provider_id")
     val providerId: String?
-) : ActiveJpaEntity()
+) : BaseJpaEntity()

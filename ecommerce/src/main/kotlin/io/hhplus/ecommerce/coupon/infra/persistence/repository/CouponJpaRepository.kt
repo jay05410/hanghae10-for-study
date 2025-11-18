@@ -27,6 +27,7 @@ interface CouponJpaRepository : JpaRepository<CouponJpaEntity, Long> {
 
     fun findByCode(code: String): CouponJpaEntity?
 
+    @Query("SELECT c FROM CouponJpaEntity c WHERE c.deletedAt IS NULL")
     fun findByIsActiveTrue(): List<CouponJpaEntity>
 
     @Query("SELECT c FROM CouponJpaEntity c WHERE c.validFrom >= :startDate AND c.validTo <= :endDate")

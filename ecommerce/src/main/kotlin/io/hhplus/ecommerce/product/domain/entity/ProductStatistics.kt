@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.product.domain.entity
 
-import io.hhplus.ecommerce.common.baseentity.ActiveJpaEntity
+import io.hhplus.ecommerce.common.baseentity.BaseJpaEntity
 import jakarta.persistence.*
 
 @Entity
@@ -21,7 +21,7 @@ class ProductStatistics(
 
     @Version
     var version: Int = 0
-) : ActiveJpaEntity() {
+) : BaseJpaEntity() {
 
     fun incrementViewCount(incrementedBy: Long): Long {
         val oldViewCount = this.viewCount
