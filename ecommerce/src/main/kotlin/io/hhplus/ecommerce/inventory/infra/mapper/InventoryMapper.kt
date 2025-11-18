@@ -30,7 +30,6 @@ class InventoryMapper {
             quantity = entity.quantity,
             reservedQuantity = entity.reservedQuantity,
             version = entity.version,
-            isActive = !entity.isDeleted(),
             createdAt = entity.createdAt,
             updatedAt = entity.updatedAt,
             createdBy = entity.createdBy ?: 0,
@@ -52,9 +51,6 @@ class InventoryMapper {
             reservedQuantity = domain.reservedQuantity,
             version = domain.version
         ).apply {
-            if (!domain.isActive) { delete() }
-            createdAt = domain.createdAt
-            updatedAt = domain.updatedAt
             createdBy = domain.createdBy
             updatedBy = domain.updatedBy
         }

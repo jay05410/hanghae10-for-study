@@ -30,7 +30,6 @@ class OrderItemMapper {
             giftMessage = entity.giftMessage,
             giftWrapPrice = entity.giftWrapPrice,
             totalPrice = entity.totalPrice,
-            isActive = !entity.isDeleted(),
             createdAt = entity.createdAt,
             updatedAt = entity.updatedAt,
             createdBy = entity.createdBy,
@@ -56,9 +55,6 @@ class OrderItemMapper {
             giftWrapPrice = domain.giftWrapPrice,
             totalPrice = domain.totalPrice
         ).apply {
-            if (!domain.isActive) { delete() }
-            createdAt = domain.createdAt
-            updatedAt = domain.updatedAt
             createdBy = domain.createdBy
             updatedBy = domain.updatedBy
             deletedAt = domain.deletedAt

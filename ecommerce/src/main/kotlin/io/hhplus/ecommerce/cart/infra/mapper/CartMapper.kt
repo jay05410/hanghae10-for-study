@@ -32,7 +32,6 @@ class CartMapper {
             id = entity.id,
             userId = entity.userId,
             _items = items.toMutableList(),
-            isActive = !entity.isDeleted(),
             createdAt = entity.createdAt,
             updatedAt = entity.updatedAt,
             createdBy = entity.createdBy ?: 0,
@@ -51,9 +50,6 @@ class CartMapper {
             id = domain.id,
             userId = domain.userId
         ).apply {
-            if (!domain.isActive) { delete() }
-            createdAt = domain.createdAt
-            updatedAt = domain.updatedAt
             createdBy = domain.createdBy
             updatedBy = domain.updatedBy
         }

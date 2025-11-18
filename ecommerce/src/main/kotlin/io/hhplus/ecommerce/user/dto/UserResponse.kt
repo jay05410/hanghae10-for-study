@@ -36,7 +36,7 @@ data class UserResponse(
     @Schema(description = "OAuth Provider ID (선택)", example = "kakao_123456")
     val providerId: String?,
 
-    @Schema(description = "활성화 상태", example = "true")
+    @Schema(description = "활성화 상태 (삭제되지 않음)", example = "true")
     val isActive: Boolean,
 
     @Schema(description = "생성 일시", example = "2025-01-01T10:00:00")
@@ -54,7 +54,7 @@ fun User.toResponse(): UserResponse = UserResponse(
     name = this.name,
     phone = this.phone,
     providerId = this.providerId,
-    isActive = this.isActive,
+    isActive = this.deletedAt == null,
     createdAt = this.createdAt,
     updatedAt = this.updatedAt
 )

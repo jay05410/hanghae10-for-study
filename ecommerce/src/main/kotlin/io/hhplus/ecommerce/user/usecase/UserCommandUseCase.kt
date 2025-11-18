@@ -111,7 +111,7 @@ class UserCommandUseCase(
         val user = userRepository.findById(userId)
             ?: throw UserException.UserNotFound(userId)
 
-        user.deactivate(deactivatedBy)
+        user.delete(deactivatedBy)
         return userRepository.save(user)
     }
 
@@ -127,7 +127,9 @@ class UserCommandUseCase(
         val user = userRepository.findById(userId)
             ?: throw UserException.UserNotFound(userId)
 
-        user.activate(activatedBy)
+        user.deletedAt = null
+        user.updatedBy = activatedBy
+        user.updatedAt = java.time.LocalDateTime.now()
         return userRepository.save(user)
     }
 }

@@ -25,7 +25,6 @@ data class Inventory(
     var quantity: Int = 0,
     var reservedQuantity: Int = 0,
     var version: Int = 0,
-    var isActive: Boolean = true,
     val createdAt: LocalDateTime = LocalDateTime.now(),
     var updatedAt: LocalDateTime = LocalDateTime.now(),
     val createdBy: Long = 0,

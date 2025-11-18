@@ -140,4 +140,43 @@ class CartService(
     fun getCartByUser(userId: Long): Cart? {
         return cartRepository.findByUserId(userId)
     }
+
+    /**
+     * 주문된 상품들을 장바구니에서 제거한다 (물리 삭제)
+     *
+     * @param userId 사용자 ID
+     * @param orderedProductIds 주문된 상품 ID 목록
+     */
+    @Transactional
+    fun removeOrderedItems(userId: Long, orderedProductIds: List<Long>) {
+        val cart = cartRepository.findByUserId(userId) ?: return
+
+        // 주문된 상품들만 장바구니에서 제거
+        orderedProductIds.forEach { productId ->
+            val itemToRemove = cart.items.find { it.productId == productId }
+            itemToRemove?.let { cart.removeItem(it.id, userId) }
+        }
+
+        // 장바구니에 아이템이 남아있으면 저장, 비어있으면 전체 삭제
+        if (cart.isEmpty()) {
+            cartRepository.delete(cart)
+        } else {
+            cartRepository.save(cart)
+        }
+    }
+
+    /**
+     * 사용자의 장바구니를 완전히 삭제한다 (물리 삭제)
+     * 사용자 탈퇴 등 특별한 경우에만 사용
+     *
+     * @param userId 사용자 ID
+     */
+    @Transactional
+    fun deleteCart(userId: Long) {
+        val cart = cartRepository.findByUserId(userId)
+            ?: throw CartException.CartNotFound(userId)
+
+        // Cart는 임시성 데이터이므로 물리 삭제
+        cartRepository.delete(cart)
+    }
 }

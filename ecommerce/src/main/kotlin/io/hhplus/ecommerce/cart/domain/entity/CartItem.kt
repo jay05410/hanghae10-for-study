@@ -23,7 +23,6 @@ data class CartItem(
     var quantity: Int,
     val giftWrap: Boolean = false,
     val giftMessage: String? = null,
-    val isActive: Boolean = true,
     val createdAt: LocalDateTime = LocalDateTime.now(),
     var updatedAt: LocalDateTime = LocalDateTime.now(),
     val createdBy: Long = 0,

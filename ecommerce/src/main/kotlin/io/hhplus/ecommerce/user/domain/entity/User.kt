@@ -28,7 +28,6 @@ data class User(
     var name: String,
     val phone: String,
     val providerId: String?,
-    var isActive: Boolean = true,
     val createdAt: LocalDateTime = LocalDateTime.now(),
     var updatedAt: LocalDateTime = LocalDateTime.now(),
     val createdBy: Long = 0,
@@ -66,27 +65,6 @@ data class User(
         }
     }
 
-    /**
-     * 사용자 비활성화
-     *
-     * @param deactivatedBy 비활성화 처리자 ID
-     */
-    fun deactivate(deactivatedBy: Long) {
-        this.isActive = false
-        this.updatedBy = deactivatedBy
-        this.updatedAt = LocalDateTime.now()
-    }
-
-    /**
-     * 사용자 활성화
-     *
-     * @param activatedBy 활성화 처리자 ID
-     */
-    fun activate(activatedBy: Long) {
-        this.isActive = true
-        this.updatedBy = activatedBy
-        this.updatedAt = LocalDateTime.now()
-    }
 
     /**
      * 소프트 삭제
@@ -99,10 +77,6 @@ data class User(
         this.updatedAt = LocalDateTime.now()
     }
 
-    /**
-     * 삭제 여부 확인
-     */
-    fun isDeleted(): Boolean = deletedAt != null
 
     companion object {
         /**

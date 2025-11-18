@@ -37,7 +37,7 @@ fun Product.toResponse(): ProductResponse = ProductResponse(
     description = this.description,
     price = this.price,
     categoryId = this.categoryId,
-    isActive = this.isActive,
+    isActive = this.deletedAt == null,
     createdAt = this.createdAt,
     updatedAt = this.updatedAt
 )

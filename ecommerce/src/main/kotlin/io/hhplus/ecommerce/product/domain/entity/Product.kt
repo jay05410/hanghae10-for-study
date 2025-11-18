@@ -34,7 +34,6 @@ data class Product(
     val ingredients: String,
     val origin: String,
     var status: ProductStatus = ProductStatus.ACTIVE,
-    var isActive: Boolean = true,
     val createdAt: LocalDateTime = LocalDateTime.now(),
     var updatedAt: LocalDateTime = LocalDateTime.now(),
     val createdBy: Long = 0,
@@ -46,7 +45,7 @@ data class Product(
     /**
      * 상품 사용 가능 여부 확인
      */
-    fun isAvailable(): Boolean = status == ProductStatus.ACTIVE && isActive
+    fun isAvailable(): Boolean = status == ProductStatus.ACTIVE
 
     /**
      * 품절 상태로 변경
@@ -117,27 +116,6 @@ data class Product(
         this.updatedAt = LocalDateTime.now()
     }
 
-    /**
-     * 상품 비활성화
-     *
-     * @param deactivatedBy 비활성화 처리자 ID
-     */
-    fun deactivate(deactivatedBy: Long) {
-        this.isActive = false
-        this.updatedBy = deactivatedBy
-        this.updatedAt = LocalDateTime.now()
-    }
-
-    /**
-     * 상품 활성화
-     *
-     * @param activatedBy 활성화 처리자 ID
-     */
-    fun activate(activatedBy: Long) {
-        this.isActive = true
-        this.updatedBy = activatedBy
-        this.updatedAt = LocalDateTime.now()
-    }
 
     companion object {
         /**

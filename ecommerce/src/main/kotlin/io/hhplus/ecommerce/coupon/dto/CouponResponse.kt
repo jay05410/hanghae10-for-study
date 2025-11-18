@@ -71,7 +71,7 @@ fun Coupon.toResponse(): CouponResponse = CouponResponse(
     remainingQuantity = this.getRemainingQuantity(),
     validFrom = this.validFrom,
     validTo = this.validTo,
-    isActive = this.isActive,
+    isActive = true, // 쿠폰은 validFrom/validTo 날짜로 활성화 상태 관리
     createdAt = this.createdAt,
     updatedAt = this.updatedAt
 )
@@ -120,7 +120,7 @@ fun io.hhplus.ecommerce.coupon.domain.entity.UserCoupon.toResponse(): UserCoupon
     usedAt = this.usedAt,
     usedOrderId = this.usedOrderId,
     status = this.status,
-    isActive = this.isActive,
+    isActive = true, // 쿠폰은 validFrom/validTo 날짜로 활성화 상태 관리
     createdAt = this.createdAt,
     updatedAt = this.updatedAt
 )

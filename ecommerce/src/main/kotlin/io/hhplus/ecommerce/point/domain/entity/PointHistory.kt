@@ -23,7 +23,6 @@ data class PointHistory(
     val balanceAfter: Long,
     val orderId: Long? = null,
     val description: String? = null,
-    val isActive: Boolean = true,
     val createdAt: LocalDateTime = LocalDateTime.now(),
     val updatedAt: LocalDateTime = LocalDateTime.now(),
     val createdBy: Long? = null,
@@ -32,7 +31,6 @@ data class PointHistory(
 ) {
 
     fun isDeleted(): Boolean = deletedAt != null
-    fun isDeactivated(): Boolean = !isActive
 
     companion object {
         fun createEarnHistory(

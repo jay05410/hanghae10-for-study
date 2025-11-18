@@ -27,7 +27,6 @@ class OrderMapper {
             finalAmount = entity.finalAmount,
             usedCouponId = entity.usedCouponId,
             status = entity.status,
-            isActive = !entity.isDeleted(),
             createdAt = entity.createdAt,
             updatedAt = entity.updatedAt,
             createdBy = entity.createdBy ?: 0,
@@ -50,9 +49,6 @@ class OrderMapper {
             usedCouponId = domain.usedCouponId,
             status = domain.status
         ).apply {
-            if (!domain.isActive) { delete() }
-            createdAt = domain.createdAt
-            updatedAt = domain.updatedAt
             createdBy = domain.createdBy
             updatedBy = domain.updatedBy
             deletedAt = domain.deletedAt

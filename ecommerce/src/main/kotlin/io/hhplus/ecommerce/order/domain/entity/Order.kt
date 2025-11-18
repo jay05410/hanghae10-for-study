@@ -21,7 +21,6 @@ data class Order(
     val finalAmount: Long,
     val usedCouponId: Long? = null,
     var status: OrderStatus = OrderStatus.PENDING,
-    val isActive: Boolean = true,
     val createdAt: LocalDateTime = LocalDateTime.now(),
     var updatedAt: LocalDateTime = LocalDateTime.now(),
     val createdBy: Long? = null,

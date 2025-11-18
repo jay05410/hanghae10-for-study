@@ -32,7 +32,6 @@ data class Coupon(
     var version: Int = 0,
     val validFrom: LocalDateTime,
     val validTo: LocalDateTime,
-    var isActive: Boolean = true,
     val createdAt: LocalDateTime = LocalDateTime.now(),
     var updatedAt: LocalDateTime = LocalDateTime.now(),
     val createdBy: Long = 0,
@@ -41,10 +40,10 @@ data class Coupon(
     fun getRemainingQuantity(): Int = totalQuantity - issuedQuantity
 
     fun isAvailableForIssue(): Boolean =
-        isActive && getRemainingQuantity() > 0 && isWithinValidPeriod()
+        getRemainingQuantity() > 0 && isWithinValidPeriod()
 
     fun isValidForUse(orderAmount: Long): Boolean =
-        isActive && isWithinValidPeriod() && orderAmount >= minimumOrderAmount
+        isWithinValidPeriod() && orderAmount >= minimumOrderAmount
 
     fun isWithinValidPeriod(): Boolean {
         val now = LocalDateTime.now()

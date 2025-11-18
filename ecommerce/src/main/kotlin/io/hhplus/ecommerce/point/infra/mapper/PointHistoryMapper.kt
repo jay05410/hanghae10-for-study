@@ -27,7 +27,6 @@ class PointHistoryMapper {
             balanceAfter = entity.balanceAfter,
             orderId = entity.orderId,
             description = entity.description,
-            isActive = !entity.isDeleted(),
             createdAt = entity.createdAt,
             updatedAt = entity.updatedAt,
             createdBy = entity.createdBy ?: 0,
@@ -50,9 +49,6 @@ class PointHistoryMapper {
             orderId = domain.orderId,
             description = domain.description
         ).apply {
-            if (!domain.isActive) { delete() }
-            createdAt = domain.createdAt
-            updatedAt = domain.updatedAt
             createdBy = domain.createdBy
             updatedBy = domain.updatedBy
             deletedAt = domain.deletedAt

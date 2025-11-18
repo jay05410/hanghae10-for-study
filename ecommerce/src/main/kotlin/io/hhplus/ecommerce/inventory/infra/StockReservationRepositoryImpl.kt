@@ -31,6 +31,14 @@ class StockReservationRepositoryImpl(
         jpaRepository.findByUserIdAndStatus(userId, status)
 
     override fun delete(stockReservation: StockReservation) {
+        // StockReservation은 임시 예약 데이터이므로 물리 삭제
         jpaRepository.delete(stockReservation)
+    }
+
+    override fun deleteExpiredReservations(expiredBefore: LocalDateTime): Int {
+        // 만료된 예약들을 물리 삭제
+        val expiredReservations = jpaRepository.findExpiredReservations(expiredBefore)
+        jpaRepository.deleteAll(expiredReservations)
+        return expiredReservations.size
     }
 }

@@ -32,7 +32,6 @@ data class Delivery(
     var shippedAt: LocalDateTime? = null,
     var deliveredAt: LocalDateTime? = null,
     val deliveryMemo: String? = null,
-    val isActive: Boolean = true,
     val createdAt: LocalDateTime = LocalDateTime.now(),
     var updatedAt: LocalDateTime = LocalDateTime.now(),
     val createdBy: Long = 0,

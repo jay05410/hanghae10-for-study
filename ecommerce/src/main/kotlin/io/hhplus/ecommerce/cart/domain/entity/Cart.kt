@@ -23,7 +23,6 @@ data class Cart(
     val id: Long = 0,
     val userId: Long,
     private val _items: MutableList<CartItem> = mutableListOf(),
-    val isActive: Boolean = true,
     val createdAt: LocalDateTime = LocalDateTime.now(),
     var updatedAt: LocalDateTime = LocalDateTime.now(),
     val createdBy: Long = 0,

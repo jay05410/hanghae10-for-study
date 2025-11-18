@@ -88,8 +88,8 @@ class UserService(
         val user = userRepository.findById(userId)
             ?: throw UserException.UserNotFound(userId)
 
-        // 가변 모델: deactivate 메서드 호출 후 저장
-        user.deactivate(deactivatedBy)
+        // 가변 모델: delete 메서드 호출 후 저장 (soft delete)
+        user.delete(deactivatedBy)
         return userRepository.save(user)
     }
 
@@ -97,8 +97,10 @@ class UserService(
         val user = userRepository.findById(userId)
             ?: throw UserException.UserNotFound(userId)
 
-        // 가변 모델: activate 메서드 호출 후 저장
-        user.activate(activatedBy)
+        // 가변 모델: deletedAt을 null로 설정하여 복원
+        user.deletedAt = null
+        user.updatedBy = activatedBy
+        user.updatedAt = java.time.LocalDateTime.now()
         return userRepository.save(user)
     }
 

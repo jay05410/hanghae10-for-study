@@ -38,7 +38,6 @@ class ProductMapper {
             ingredients = entity.ingredients,
             origin = entity.origin,
             status = entity.status,
-            isActive = !entity.isDeleted(),
             createdAt = entity.createdAt,
             updatedAt = entity.updatedAt,
             createdBy = entity.createdBy ?: 0,
@@ -69,9 +68,6 @@ class ProductMapper {
             origin = domain.origin,
             status = domain.status
         ).apply {
-            if (!domain.isActive) { delete() }
-            createdAt = domain.createdAt
-            updatedAt = domain.updatedAt
             createdBy = domain.createdBy
             updatedBy = domain.updatedBy
             deletedAt = domain.deletedAt

@@ -11,4 +11,5 @@ interface StockReservationRepository {
     fun findExpiredReservations(expiredBefore: LocalDateTime): List<StockReservation>
     fun findByUserIdAndStatus(userId: Long, status: ReservationStatus): List<StockReservation>
     fun delete(stockReservation: StockReservation)
+    fun deleteExpiredReservations(expiredBefore: LocalDateTime): Int
 }

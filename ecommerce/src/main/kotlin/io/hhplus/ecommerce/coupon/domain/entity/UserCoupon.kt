@@ -28,13 +28,12 @@ data class UserCoupon(
     var usedAt: LocalDateTime? = null,
     var usedOrderId: Long? = null,
     var status: UserCouponStatus = UserCouponStatus.ISSUED,
-    var isActive: Boolean = true,
     val createdAt: LocalDateTime = LocalDateTime.now(),
     var updatedAt: LocalDateTime = LocalDateTime.now(),
     val createdBy: Long = 0,
     var updatedBy: Long = 0
 ) {
-    fun isUsable(): Boolean = status == UserCouponStatus.ISSUED && isActive
+    fun isUsable(): Boolean = status == UserCouponStatus.ISSUED
 
     /**
      * 쿠폰을 사용하고 사용 정보 업데이트

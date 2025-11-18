@@ -75,17 +75,19 @@ class CartRepositoryImpl(
 
     @Transactional
     override fun delete(cart: Cart) {
-        // 1. 관련 CartItem들 먼저 삭제
+        // Cart는 임시성 데이터이므로 물리 삭제
+        // 1. 관련 CartItem들 먼저 물리 삭제
         cartItemJpaRepository.deleteByCartId(cart.id)
-        // 2. Cart 삭제
+        // 2. Cart 물리 삭제
         cartJpaRepository.deleteById(cart.id)
     }
 
     @Transactional
     override fun deleteById(id: Long) {
-        // 1. 관련 CartItem들 먼저 삭제
+        // Cart는 임시성 데이터이므로 물리 삭제
+        // 1. 관련 CartItem들 먼저 물리 삭제
         cartItemJpaRepository.deleteByCartId(id)
-        // 2. Cart 삭제
+        // 2. Cart 물리 삭제
         cartJpaRepository.deleteById(id)
     }
 }

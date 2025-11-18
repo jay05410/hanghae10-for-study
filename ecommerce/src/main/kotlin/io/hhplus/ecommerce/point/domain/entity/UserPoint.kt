@@ -25,7 +25,6 @@ data class UserPoint(
     val userId: Long,
     var balance: Balance = Balance.zero(),
     var version: Int = 0,
-    var isActive: Boolean = true,
     val createdAt: LocalDateTime = LocalDateTime.now(),
     var updatedAt: LocalDateTime = LocalDateTime.now(),
     val createdBy: Long? = null,
@@ -95,21 +94,6 @@ data class UserPoint(
         return oldBalance
     }
 
-    /**
-     * 활성화
-     */
-    fun activate() {
-        this.isActive = true
-        this.updatedAt = LocalDateTime.now()
-    }
-
-    /**
-     * 비활성화
-     */
-    fun deactivate() {
-        this.isActive = false
-        this.updatedAt = LocalDateTime.now()
-    }
 
     /**
      * 소프트 삭제
@@ -125,8 +109,6 @@ data class UserPoint(
         this.deletedAt = null
     }
 
-    fun isDeleted(): Boolean = deletedAt != null
-    fun isDeactivated(): Boolean = !isActive
 
     companion object {
         fun create(userId: Long, createdBy: Long): UserPoint {

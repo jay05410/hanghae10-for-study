@@ -21,7 +21,6 @@ data class OrderItem(
     val giftMessage: String? = null,
     val giftWrapPrice: Int = 0,
     val totalPrice: Int,
-    val isActive: Boolean = true,
     val createdAt: LocalDateTime = LocalDateTime.now(),
     val updatedAt: LocalDateTime = LocalDateTime.now(),
     val createdBy: Long? = null,
