@@ -74,6 +74,33 @@ data class Cart(
     }
 
     /**
+     * 장바구니 아이템 전체 정보 업데이트 (수량, 선물 옵션 포함)
+     * 기존 아이템을 제거하고 새 아이템으로 교체
+     *
+     * @throws CartException.CartItemNotFound 아이템을 찾을 수 없는 경우
+     */
+    fun updateItem(cartItemId: Long, quantity: Int, giftWrap: Boolean, giftMessage: String?, updatedBy: Long) {
+        val existingItem = findItem(cartItemId)
+        val productId = existingItem.productId
+
+        // 기존 아이템 제거
+        _items.remove(existingItem)
+
+        // 새 아이템 추가
+        val newCartItem = CartItem.create(
+            cartId = this.id,
+            productId = productId,
+            quantity = quantity,
+            giftWrap = giftWrap,
+            giftMessage = giftMessage
+        )
+
+        _items.add(newCartItem)
+        this.updatedBy = updatedBy
+        this.updatedAt = LocalDateTime.now()
+    }
+
+    /**
      * 장바구니에서 아이템 제거
      *
      * @throws CartException.CartItemNotFound 아이템을 찾을 수 없는 경우

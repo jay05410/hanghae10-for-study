@@ -14,4 +14,7 @@ interface StockReservationJpaRepository : JpaRepository<StockReservation, Long> 
     fun findExpiredReservations(expiredBefore: LocalDateTime): List<StockReservation>
 
     fun findByUserIdAndStatus(userId: Long, status: ReservationStatus): List<StockReservation>
+
+    @Query("SELECT s FROM StockReservation s WHERE s.updatedAt < :cutoffDate AND s.status IN ('CONFIRMED', 'EXPIRED', 'CANCELLED')")
+    fun findOldCompletedReservations(cutoffDate: LocalDateTime): List<StockReservation>
 }

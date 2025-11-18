@@ -44,14 +44,14 @@ class ProductControllerTest : DescribeSpec({
         description: String = "Test Description",
         price: Long = 1000L,
         categoryId: Long = 1L,
-        isActive: Boolean = true
+        isDeleted: Boolean = false
     ): Product = mockk(relaxed = true) {
         every { this@mockk.id } returns id
         every { this@mockk.name } returns name
         every { this@mockk.description } returns description
         every { this@mockk.price } returns price
         every { this@mockk.categoryId } returns categoryId
-        every { this@mockk.isActive } returns isActive
+        every { this@mockk.isDeleted() } returns isDeleted
         every { createdAt } returns LocalDateTime.now()
         every { updatedAt } returns LocalDateTime.now()
     }

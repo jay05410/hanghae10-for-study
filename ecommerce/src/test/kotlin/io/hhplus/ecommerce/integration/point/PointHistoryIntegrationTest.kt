@@ -33,17 +33,13 @@ class PointHistoryIntegrationTest(
                 // Given: 다양한 포인트 거래 생성
                 val userId = 4000L
 
-                // 충전 3회 (시간 순서 보장)
+                // 충전 3회
                 pointCommandUseCase.chargePoint(userId, 10000)
-                Thread.sleep(2)
                 pointCommandUseCase.chargePoint(userId, 20000)
-                Thread.sleep(2)
                 pointCommandUseCase.chargePoint(userId, 30000)
-                Thread.sleep(2)
 
                 // 사용 2회
                 pointCommandUseCase.usePoint(userId, 5000)
-                Thread.sleep(2)
                 pointCommandUseCase.usePoint(userId, 10000)
 
                 // When: 히스토리 조회

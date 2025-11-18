@@ -36,9 +36,9 @@ class StockReservationRepositoryImpl(
     }
 
     override fun deleteExpiredReservations(expiredBefore: LocalDateTime): Int {
-        // 만료된 예약들을 물리 삭제
-        val expiredReservations = jpaRepository.findExpiredReservations(expiredBefore)
-        jpaRepository.deleteAll(expiredReservations)
-        return expiredReservations.size
+        // 완료된 예약들을 물리 삭제 (확정, 만료, 취소된 예약)
+        val completedReservations = jpaRepository.findOldCompletedReservations(expiredBefore)
+        jpaRepository.deleteAll(completedReservations)
+        return completedReservations.size
     }
 }

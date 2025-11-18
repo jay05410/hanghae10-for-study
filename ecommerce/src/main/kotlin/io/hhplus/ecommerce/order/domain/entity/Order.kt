@@ -27,6 +27,14 @@ data class Order(
     var updatedBy: Long? = null,
     val deletedAt: LocalDateTime? = null
 ) {
+
+    /**
+     * 삭제 상태 확인
+     *
+     * @return 삭제 여부
+     */
+    fun isDeleted(): Boolean = deletedAt != null
+
     /**
      * 주문 확정
      */

@@ -7,8 +7,14 @@ import io.hhplus.ecommerce.order.dto.CreateOrderItemRequest
 import io.hhplus.ecommerce.order.domain.repository.OrderRepository
 import io.hhplus.ecommerce.delivery.dto.DeliveryAddressRequest
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
+import io.hhplus.ecommerce.product.usecase.ProductCommandUseCase
+import io.hhplus.ecommerce.product.dto.CreateProductRequest
+import io.hhplus.ecommerce.product.domain.entity.Product
+import io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
+import io.hhplus.ecommerce.user.usecase.UserCommandUseCase
+import io.hhplus.ecommerce.user.domain.constant.LoginType
+import io.hhplus.ecommerce.point.usecase.PointCommandUseCase
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.string.shouldNotBeEmpty
 import java.util.concurrent.CompletableFuture
@@ -25,8 +31,81 @@ import java.util.concurrent.Executors
 class OrderServiceConcurrencyIntegrationTest(
     private val orderCommandUseCase: OrderCommandUseCase,
     private val getOrderQueryUseCase: GetOrderQueryUseCase,
-    private val orderRepository: OrderRepository
+    private val orderRepository: OrderRepository,
+    private val productCommandUseCase: ProductCommandUseCase,
+    private val inventoryCommandUseCase: InventoryCommandUseCase,
+    private val userCommandUseCase: UserCommandUseCase,
+    private val pointCommandUseCase: PointCommandUseCase
 ) : KotestIntegrationTestBase({
+
+    // 테스트용 데이터
+    lateinit var testProduct: Product
+
+    beforeEach {
+        // 테스트용 상품 생성
+        testProduct = productCommandUseCase.createProduct(
+            CreateProductRequest(
+                name = "동시성 테스트 상품",
+                description = "동시성 테스트용 상품",
+                price = 10000L,
+                categoryId = 1L,
+                createdBy = 0L
+            )
+        )
+
+        // 재고 생성 (충분한 수량)
+        inventoryCommandUseCase.createInventory(testProduct.id, 10000, 0L)
+
+        // 테스트용 사용자들 생성 및 포인트 충전
+        repeat(20) { index ->
+            val userId = 1000L + index
+            try {
+                userCommandUseCase.createUser(
+                    loginType = LoginType.LOCAL,
+                    loginId = "test$userId@example.com",
+                    password = "password",
+                    email = "test$userId@example.com",
+                    name = "테스트사용자$userId",
+                    phone = "010-0000-${String.format("%04d", index)}",
+                    providerId = null,
+                    createdBy = 0L
+                )
+                // 포인트 충전 (주문에 필요한 포인트)
+                pointCommandUseCase.chargePoint(userId, 100000)
+            } catch (e: Exception) {
+                // 사용자가 이미 존재할 경우 무시하지만 포인트는 충전
+                try {
+                    pointCommandUseCase.chargePoint(userId, 100000)
+                } catch (pointE: Exception) {
+                    // 포인트 충전도 실패하면 무시
+                }
+            }
+        }
+
+        // 추가 테스트 사용자들 생성 (2000L, 3000L)
+        listOf(2000L, 3000L).forEach { userId ->
+            try {
+                userCommandUseCase.createUser(
+                    loginType = LoginType.LOCAL,
+                    loginId = "test$userId@example.com",
+                    password = "password",
+                    email = "test$userId@example.com",
+                    name = "테스트사용자$userId",
+                    phone = "010-0000-${userId.toString().takeLast(4)}",
+                    providerId = null,
+                    createdBy = 0L
+                )
+                pointCommandUseCase.chargePoint(userId, 100000)
+            } catch (e: Exception) {
+                // 사용자가 이미 존재할 경우 무시하지만 포인트는 충전
+                try {
+                    pointCommandUseCase.chargePoint(userId, 100000)
+                } catch (pointE: Exception) {
+                    // 포인트 충전도 실패하면 무시
+                }
+            }
+        }
+    }
 
     describe("동시성 주문 서비스") {
         context("동시에 여러 주문을 생성할 때") {
@@ -37,7 +116,7 @@ class OrderServiceConcurrencyIntegrationTest(
         val futures = mutableListOf<CompletableFuture<Long>>()
 
         val orderItem = CreateOrderItemRequest(
-            productId = 1L,
+            productId = testProduct.id,
             quantity = 1,
             giftWrap = false,
             giftMessage = null
@@ -98,7 +177,7 @@ class OrderServiceConcurrencyIntegrationTest(
         val futures = mutableListOf<CompletableFuture<Long>>()
 
         val orderItem = CreateOrderItemRequest(
-            productId = 2L,
+            productId = testProduct.id,
             quantity = 1,
             giftWrap = true,
             giftMessage = "동시성 테스트"
@@ -156,7 +235,7 @@ class OrderServiceConcurrencyIntegrationTest(
         val executor = Executors.newFixedThreadPool(createThreadCount + readThreadCount)
 
         val orderItem = CreateOrderItemRequest(
-            productId = 3L,
+            productId = testProduct.id,
             quantity = 2,
             giftWrap = false,
             giftMessage = null

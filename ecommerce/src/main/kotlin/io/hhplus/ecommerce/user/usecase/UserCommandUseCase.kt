@@ -100,36 +100,35 @@ class UserCommandUseCase(
     }
 
     /**
-     * 사용자를 비활성화합니다.
+     * 사용자를 삭제합니다.
      *
      * @param userId 사용자 ID
-     * @param deactivatedBy 비활성화 요청자 ID
-     * @return 비활성화된 사용자 정보
+     * @param deletedBy 삭제 요청자 ID
+     * @return 삭제된 사용자 정보
      * @throws UserException.UserNotFound 사용자를 찾을 수 없는 경우
      */
-    fun deactivateUser(userId: Long, deactivatedBy: Long = 1L): User {
+    fun deleteUser(userId: Long, deletedBy: Long = 1L): User {
         val user = userRepository.findById(userId)
             ?: throw UserException.UserNotFound(userId)
 
-        user.delete(deactivatedBy)
+        user.delete(deletedBy)
         return userRepository.save(user)
     }
 
     /**
-     * 사용자를 활성화합니다.
+     * 사용자를 복구합니다.
      *
      * @param userId 사용자 ID
-     * @param activatedBy 활성화 요청자 ID
-     * @return 활성화된 사용자 정보
+     * @param restoredBy 복구 요청자 ID
+     * @return 복구된 사용자 정보
      * @throws UserException.UserNotFound 사용자를 찾을 수 없는 경우
      */
-    fun activateUser(userId: Long, activatedBy: Long = 1L): User {
+    fun restoreUser(userId: Long, restoredBy: Long = 1L): User {
         val user = userRepository.findById(userId)
             ?: throw UserException.UserNotFound(userId)
 
-        user.deletedAt = null
-        user.updatedBy = activatedBy
-        user.updatedAt = java.time.LocalDateTime.now()
+        user.restore()
+        user.updatedBy = restoredBy
         return userRepository.save(user)
     }
 }

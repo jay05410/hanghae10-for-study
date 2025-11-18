@@ -89,7 +89,7 @@ class UserController(
         @Parameter(description = "비활성화할 사용자 ID", required = true)
         @PathVariable userId: Long
     ): ApiResponse<UserResponse> {
-        val user = userService.deactivateUser(userId, userId)
+        val user = userService.deleteUser(userId, userId)
         return ApiResponse.success(user.toResponse())
     }
 
@@ -99,7 +99,7 @@ class UserController(
         @Parameter(description = "활성화할 사용자 ID", required = true)
         @PathVariable userId: Long
     ): ApiResponse<UserResponse> {
-        val user = userService.activateUser(userId, userId)
+        val user = userService.restoreUser(userId, userId)
         return ApiResponse.success(user.toResponse())
     }
 }

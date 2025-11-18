@@ -6,8 +6,10 @@ import io.hhplus.ecommerce.cart.usecase.CartCommandUseCase
 import io.hhplus.ecommerce.cart.usecase.GetCartUseCase
 import io.hhplus.ecommerce.cart.domain.repository.CartRepository
 import io.hhplus.ecommerce.cart.dto.AddToCartRequest
+import io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
 import io.hhplus.ecommerce.product.dto.CreateProductRequest
 import io.hhplus.ecommerce.product.domain.entity.Product
+import io.hhplus.ecommerce.product.usecase.ProductCommandUseCase
 import io.hhplus.ecommerce.support.config.IntegrationTestFixtures
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -24,8 +26,8 @@ import io.kotest.matchers.shouldNotBe
 class CartAddIntegrationTest(
     private val cartCommandUseCase: CartCommandUseCase,
     private val cartRepository: CartRepository,
-    private val productCommandUseCase: io.hhplus.ecommerce.product.usecase.ProductCommandUseCase,
-    private val inventoryCommandUseCase: io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
+    private val productCommandUseCase: ProductCommandUseCase,
+    private val inventoryCommandUseCase: InventoryCommandUseCase
 ) : KotestIntegrationTestBase({
 
     // 테스트용 상품 ID를 저장할 변수

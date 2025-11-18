@@ -84,27 +84,26 @@ class UserService(
         return userRepository.save(user)
     }
 
-    fun deactivateUser(userId: Long, deactivatedBy: Long): User {
+    fun deleteUser(userId: Long, deletedBy: Long): User {
         val user = userRepository.findById(userId)
             ?: throw UserException.UserNotFound(userId)
 
         // 가변 모델: delete 메서드 호출 후 저장 (soft delete)
-        user.delete(deactivatedBy)
+        user.delete(deletedBy)
         return userRepository.save(user)
     }
 
-    fun activateUser(userId: Long, activatedBy: Long): User {
+    fun restoreUser(userId: Long, restoredBy: Long): User {
         val user = userRepository.findById(userId)
             ?: throw UserException.UserNotFound(userId)
 
-        // 가변 모델: deletedAt을 null로 설정하여 복원
-        user.deletedAt = null
-        user.updatedBy = activatedBy
-        user.updatedAt = java.time.LocalDateTime.now()
+        // 가변 모델: restore 메서드 호출 후 저장
+        user.restore()
+        user.updatedBy = restoredBy
         return userRepository.save(user)
     }
 
     fun getAllUsers(): List<User> {
-        return userRepository.findByIsActiveTrue()
+        return userRepository.findActiveUsers()
     }
 }

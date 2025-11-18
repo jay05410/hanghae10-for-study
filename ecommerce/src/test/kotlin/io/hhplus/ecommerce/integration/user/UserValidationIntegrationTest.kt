@@ -52,7 +52,7 @@ class UserValidationIntegrationTest(
                 user.email shouldBe email
                 user.name shouldBe name
                 user.phone shouldBe phone
-                user.isActive shouldBe true
+                user.isDeleted() shouldBe false
             }
         }
 
@@ -282,9 +282,9 @@ class UserValidationIntegrationTest(
         }
     }
 
-    describe("사용자 활성화/비활성화") {
-        context("사용자를 비활성화할 때") {
-            it("isActive가 false로 변경된다") {
+    describe("사용자 삭제/복구") {
+        context("사용자를 삭제할 때") {
+            it("삭제 상태로 변경된다") {
                 // Given
                 val user = userCommandUseCase.createUser(
                     loginType = LoginType.LOCAL,
@@ -298,15 +298,15 @@ class UserValidationIntegrationTest(
                 )
 
                 // When
-                val deactivatedUser = userCommandUseCase.deactivateUser(user.id, 1L)
+                val deactivatedUser = userCommandUseCase.deleteUser(user.id, 1L)
 
                 // Then
-                deactivatedUser.isActive shouldBe false
+                deactivatedUser.isDeleted() shouldBe true
             }
         }
 
-        context("비활성화된 사용자를 다시 활성화할 때") {
-            it("isActive가 true로 변경된다") {
+        context("삭제된 사용자를 다시 복구할 때") {
+            it("복구 상태로 변경된다") {
                 // Given
                 val user = userCommandUseCase.createUser(
                     loginType = LoginType.LOCAL,
@@ -318,13 +318,13 @@ class UserValidationIntegrationTest(
                     providerId = null,
                     createdBy = 1L
                 )
-                userCommandUseCase.deactivateUser(user.id, 1L)
+                userCommandUseCase.deleteUser(user.id, 1L)
 
                 // When
-                val activatedUser = userCommandUseCase.activateUser(user.id, 1L)
+                val activatedUser = userCommandUseCase.restoreUser(user.id, 1L)
 
                 // Then
-                activatedUser.isActive shouldBe true
+                activatedUser.isDeleted() shouldBe false
             }
         }
     }

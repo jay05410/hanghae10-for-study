@@ -71,7 +71,6 @@ class OrderServiceTest : DescribeSpec({
             finalAmount = totalAmount - discountAmount,
             usedCouponId = null,
             status = status,
-            isActive = true,
             createdAt = LocalDateTime.now(),
             updatedAt = LocalDateTime.now(),
             createdBy = userId,

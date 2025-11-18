@@ -33,6 +33,13 @@ data class UserPoint(
 ) {
 
     /**
+     * 삭제 상태 확인
+     *
+     * @return 삭제 여부
+     */
+    fun isDeleted(): Boolean = deletedAt != null
+
+    /**
      * 포인트 적립 (구매 시 자동 적립)
      *
      * @param amount 적립 금액

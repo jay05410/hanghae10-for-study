@@ -77,6 +77,21 @@ data class User(
         this.updatedAt = LocalDateTime.now()
     }
 
+    /**
+     * 삭제 상태 확인
+     *
+     * @return 삭제 여부
+     */
+    fun isDeleted(): Boolean = deletedAt != null
+
+    /**
+     * 소프트 삭제 복구
+     */
+    fun restore() {
+        this.deletedAt = null
+        this.updatedAt = LocalDateTime.now()
+    }
+
 
     companion object {
         /**

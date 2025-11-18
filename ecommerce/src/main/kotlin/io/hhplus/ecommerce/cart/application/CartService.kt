@@ -59,8 +59,8 @@ class CartService(
         val existingItem = cart.items.find { it.productId == productId }
 
         if (existingItem != null) {
-            // 기존 아이템이 있으면 수량 업데이트
-            cart.updateItemQuantity(existingItem.id, quantity, userId)
+            // 기존 아이템이 있으면 수량 및 선물 옵션 업데이트
+            cart.updateItem(existingItem.id, quantity, giftWrap, giftMessage, userId)
         } else {
             // 새 아이템 추가
             cart.addItem(

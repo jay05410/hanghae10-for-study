@@ -28,8 +28,16 @@ data class Inventory(
     val createdAt: LocalDateTime = LocalDateTime.now(),
     var updatedAt: LocalDateTime = LocalDateTime.now(),
     val createdBy: Long = 0,
-    var updatedBy: Long = 0
+    var updatedBy: Long = 0,
+    var deletedAt: LocalDateTime? = null
 ) {
+    /**
+     * 삭제 상태 확인
+     *
+     * @return 삭제 여부
+     */
+    fun isDeleted(): Boolean = deletedAt != null
+
     /**
      * 가용 재고 수량 조회
      *

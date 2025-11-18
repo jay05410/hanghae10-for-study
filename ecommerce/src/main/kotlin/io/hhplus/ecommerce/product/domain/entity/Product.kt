@@ -48,6 +48,13 @@ data class Product(
     fun isAvailable(): Boolean = status == ProductStatus.ACTIVE
 
     /**
+     * 삭제 상태 확인
+     *
+     * @return 삭제 여부
+     */
+    fun isDeleted(): Boolean = deletedAt != null
+
+    /**
      * 품절 상태로 변경
      *
      * @param updatedBy 변경자 ID

@@ -32,7 +32,7 @@ class InventoryServiceTest : DescribeSpec({
         every { mockInventory.productId } returns productId
         every { mockInventory.quantity } returns quantity
         every { mockInventory.reservedQuantity } returns reservedQuantity
-        every { mockInventory.isActive } returns true
+        every { mockInventory.isDeleted() } returns false
         every { mockInventory.createdAt } returns LocalDateTime.now()
         every { mockInventory.updatedAt } returns LocalDateTime.now()
         every { mockInventory.deduct(any(), any()) } just runs

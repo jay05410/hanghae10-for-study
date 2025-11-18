@@ -31,7 +31,7 @@ class PointServiceTest : DescribeSpec({
         every { this@mockk.id } returns id
         every { this@mockk.userId } returns userId
         every { balance } returns Balance.of(pointAmount)
-        every { isActive } returns true
+        every { isDeleted() } returns false
         every { createdAt } returns LocalDateTime.now()
         every { updatedAt } returns LocalDateTime.now()
         every { earn(any(), any()) } returns Balance.of(pointAmount)

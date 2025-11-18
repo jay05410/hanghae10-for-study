@@ -381,23 +381,23 @@ class UserServiceTest : DescribeSpec({
         }
     }
 
-    describe("deactivateUser") {
-        context("존재하는 사용자 비활성화") {
-            it("사용자를 비활성화하고 저장") {
+    describe("deleteUser") {
+        context("존재하는 사용자 삭제") {
+            it("사용자를 삭제하고 저장") {
                 val userId = 1L
                 val deactivatedBy = 1L
                 val mockUser = mockk<User> {
-                    every { deactivate(any()) } just runs
+                    every { delete(any()) } just runs
                 }
 
                 every { mockUserRepository.findById(userId) } returns mockUser
                 every { mockUserRepository.save(mockUser) } returns mockUser
 
-                val result = sut.deactivateUser(userId, deactivatedBy)
+                val result = sut.deleteUser(userId, deactivatedBy)
 
                 result shouldBe mockUser
                 verify(exactly = 1) { mockUserRepository.findById(userId) }
-                verify(exactly = 1) { mockUser.deactivate(deactivatedBy) }
+                verify(exactly = 1) { mockUser.delete(any()) }
                 verify(exactly = 1) { mockUserRepository.save(any()) }
             }
         }
@@ -409,7 +409,7 @@ class UserServiceTest : DescribeSpec({
                 every { mockUserRepository.findById(userId) } returns null
 
                 shouldThrow<UserException.UserNotFound> {
-                    sut.deactivateUser(userId, 1L)
+                    sut.deleteUser(userId, 1L)
                 }
 
                 verify(exactly = 1) { mockUserRepository.findById(userId) }
@@ -418,23 +418,24 @@ class UserServiceTest : DescribeSpec({
         }
     }
 
-    describe("activateUser") {
-        context("존재하는 사용자 활성화") {
-            it("사용자를 활성화하고 저장") {
+    describe("restoreUser") {
+        context("존재하는 사용자 복구") {
+            it("사용자를 복구하고 저장") {
                 val userId = 1L
                 val activatedBy = 1L
                 val mockUser = mockk<User> {
-                    every { activate(any()) } just runs
+                    every { restore() } just runs
+                    every { updatedBy = any() } just runs
                 }
 
                 every { mockUserRepository.findById(userId) } returns mockUser
                 every { mockUserRepository.save(mockUser) } returns mockUser
 
-                val result = sut.activateUser(userId, activatedBy)
+                val result = sut.restoreUser(userId, activatedBy)
 
                 result shouldBe mockUser
                 verify(exactly = 1) { mockUserRepository.findById(userId) }
-                verify(exactly = 1) { mockUser.activate(activatedBy) }
+                verify(exactly = 1) { mockUser.restore() }
                 verify(exactly = 1) { mockUserRepository.save(any()) }
             }
         }
@@ -446,7 +447,7 @@ class UserServiceTest : DescribeSpec({
                 every { mockUserRepository.findById(userId) } returns null
 
                 shouldThrow<UserException.UserNotFound> {
-                    sut.activateUser(userId, 1L)
+                    sut.restoreUser(userId, 1L)
                 }
 
                 verify(exactly = 1) { mockUserRepository.findById(userId) }
@@ -460,23 +461,23 @@ class UserServiceTest : DescribeSpec({
             it("UserRepository에서 활성 사용자 목록을 조회하고 반환") {
                 val mockUsers = listOf(mockk<User>(), mockk<User>(), mockk<User>())
 
-                every { mockUserRepository.findByIsActiveTrue() } returns mockUsers
+                every { mockUserRepository.findActiveUsers() } returns mockUsers
 
                 val result = sut.getAllUsers()
 
                 result shouldBe mockUsers
-                verify(exactly = 1) { mockUserRepository.findByIsActiveTrue() }
+                verify(exactly = 1) { mockUserRepository.findActiveUsers() }
             }
         }
 
         context("활성 사용자가 없는 경우") {
             it("빈 리스트를 반환") {
-                every { mockUserRepository.findByIsActiveTrue() } returns emptyList()
+                every { mockUserRepository.findActiveUsers() } returns emptyList()
 
                 val result = sut.getAllUsers()
 
                 result shouldBe emptyList()
-                verify(exactly = 1) { mockUserRepository.findByIsActiveTrue() }
+                verify(exactly = 1) { mockUserRepository.findActiveUsers() }
             }
         }
     }

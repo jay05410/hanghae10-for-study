@@ -130,13 +130,13 @@ class CartServiceTest : DescribeSpec({
 
                 every { mockCart.items } returns listOf(mockExistingItem)
                 every { mockCartRepository.findByUserId(userId) } returns mockCart
-                every { mockCart.updateItemQuantity(1L, quantity, userId) } just Runs
+                every { mockCart.updateItem(1L, quantity, giftWrap, giftMessage, userId) } just Runs
                 every { mockCartRepository.save(mockCart) } returns mockSavedCart
 
                 val result = sut.addToCart(userId, productId, quantity, giftWrap, giftMessage)
 
                 result shouldBe mockSavedCart
-                verify(exactly = 1) { mockCart.updateItemQuantity(1L, quantity, userId) }
+                verify(exactly = 1) { mockCart.updateItem(1L, quantity, giftWrap, giftMessage, userId) }
                 verify(exactly = 1) { mockCartRepository.save(mockCart) }
             }
         }
