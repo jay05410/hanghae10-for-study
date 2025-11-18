@@ -1,4 +1,4 @@
-package io.hhplus.ecommerce.config
+package io.hhplus.ecommerce.config.swagger
 
 import org.springdoc.core.customizers.OpenApiCustomizer
 import org.springframework.context.annotation.Bean

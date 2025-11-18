@@ -1,6 +1,5 @@
-package io.hhplus.ecommerce.common.exception.cart
+package io.hhplus.ecommerce.cart.exception
 
-import io.hhplus.ecommerce.common.exception.cart.CartErrorCode
 import io.hhplus.ecommerce.common.exception.BusinessException
 import org.slf4j.event.Level
 

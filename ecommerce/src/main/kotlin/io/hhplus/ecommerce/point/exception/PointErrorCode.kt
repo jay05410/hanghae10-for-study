@@ -1,4 +1,4 @@
-package io.hhplus.ecommerce.common.exception.point
+package io.hhplus.ecommerce.point.exception
 
 import io.hhplus.ecommerce.common.exception.ErrorCode
 

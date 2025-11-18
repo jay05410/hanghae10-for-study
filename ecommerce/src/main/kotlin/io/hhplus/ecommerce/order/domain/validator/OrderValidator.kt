@@ -1,8 +1,8 @@
 package io.hhplus.ecommerce.order.domain.validator
 
 import io.hhplus.ecommerce.cart.domain.entity.CartItem
-import io.hhplus.ecommerce.common.exception.cart.CartException
-import io.hhplus.ecommerce.common.exception.order.OrderException
+import io.hhplus.ecommerce.cart.exception.CartException
+import io.hhplus.ecommerce.order.exception.OrderException
 import io.hhplus.ecommerce.order.domain.constant.OrderStatus
 import io.hhplus.ecommerce.order.domain.entity.Order
 
@@ -17,7 +17,7 @@ object OrderValidator {
      * 빈 장바구니 검증
      *
      * @param cartItems 장바구니 아이템들
-     * @throws io.hhplus.ecommerce.common.exception.cart.CartException.EmptyCart 장바구니가 비어있을 시
+     * @throws CartException.EmptyCart 장바구니가 비어있을 시
      */
     fun validateCartNotEmpty(cartItems: List<CartItem>) {
         if (cartItems.isEmpty()) {
@@ -29,7 +29,7 @@ object OrderValidator {
      * 주문 취소 가능 여부 검증
      *
      * @param order 주문
-     * @throws io.hhplus.ecommerce.common.exception.order.OrderException.OrderCancellationNotAllowed 취소 불가능한 상태일 시
+     * @throws OrderException.OrderCancellationNotAllowed 취소 불가능한 상태일 시
      */
     fun validateOrderCancellable(order: Order) {
         if (!order.canBeCancelled()) {

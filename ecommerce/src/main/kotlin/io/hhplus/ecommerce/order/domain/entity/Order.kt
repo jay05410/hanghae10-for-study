@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.order.domain.entity
 
-import io.hhplus.ecommerce.common.exception.order.OrderException
+import io.hhplus.ecommerce.order.exception.OrderException
 import io.hhplus.ecommerce.order.domain.constant.OrderStatus
 import java.time.LocalDateTime
 

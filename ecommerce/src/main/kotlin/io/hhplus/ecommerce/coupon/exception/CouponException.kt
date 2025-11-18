@@ -1,6 +1,5 @@
-package io.hhplus.ecommerce.common.exception.coupon
+package io.hhplus.ecommerce.coupon.exception
 
-import io.hhplus.ecommerce.common.exception.coupon.CouponErrorCode
 import io.hhplus.ecommerce.common.exception.BusinessException
 import org.slf4j.event.Level
 

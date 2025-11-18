@@ -12,7 +12,7 @@ import io.hhplus.ecommerce.inventory.application.InventoryService
 import io.hhplus.ecommerce.order.domain.repository.OrderItemRepository
 import io.hhplus.ecommerce.point.application.PointService
 import io.hhplus.ecommerce.point.domain.vo.PointAmount
-import io.hhplus.ecommerce.common.exception.order.OrderException
+import io.hhplus.ecommerce.order.exception.OrderException
 import io.hhplus.ecommerce.delivery.domain.constant.DeliveryStatus
 import io.hhplus.ecommerce.cart.application.CartService
 import org.springframework.stereotype.Component

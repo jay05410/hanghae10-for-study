@@ -1,6 +1,5 @@
-package io.hhplus.ecommerce.common.exception.product
+package io.hhplus.ecommerce.product.exception
 
-import io.hhplus.ecommerce.common.exception.product.ProductErrorCode
 import io.hhplus.ecommerce.common.exception.BusinessException
 import org.slf4j.event.Level
 

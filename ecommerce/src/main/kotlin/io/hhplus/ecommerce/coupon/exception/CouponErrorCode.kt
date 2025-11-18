@@ -1,4 +1,4 @@
-package io.hhplus.ecommerce.common.exception.coupon
+package io.hhplus.ecommerce.coupon.exception
 
 import io.hhplus.ecommerce.common.exception.ErrorCode
 

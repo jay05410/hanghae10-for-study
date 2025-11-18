@@ -1,4 +1,4 @@
-package io.hhplus.ecommerce.config
+package io.hhplus.ecommerce.config.swagger
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn

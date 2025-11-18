@@ -1,4 +1,4 @@
-package io.hhplus.ecommerce.config
+package io.hhplus.ecommerce.config.swagger
 
 import io.hhplus.ecommerce.common.response.ApiResponse
 import io.swagger.v3.core.converter.ModelConverters

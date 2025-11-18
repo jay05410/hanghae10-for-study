@@ -1,6 +1,5 @@
-package io.hhplus.ecommerce.common.exception.payment
+package io.hhplus.ecommerce.payment.exception
 
-import io.hhplus.ecommerce.common.exception.payment.PaymentErrorCode
 import io.hhplus.ecommerce.common.exception.BusinessException
 import io.hhplus.ecommerce.payment.domain.constant.PaymentStatus
 import org.slf4j.event.Level
