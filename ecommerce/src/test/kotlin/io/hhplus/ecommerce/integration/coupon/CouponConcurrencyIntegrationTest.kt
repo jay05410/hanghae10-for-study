@@ -39,7 +39,6 @@ class CouponConcurrencyIntegrationTest(
                     totalQuantity = 10,
                     validFrom = LocalDateTime.now(),
                     validTo = LocalDateTime.now().plusDays(30),
-                    createdBy = 1L
                 )
                 val savedCoupon = couponRepository.save(coupon)
                 val threadCount = 20 // 20명이 동시에 발급 시도

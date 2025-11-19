@@ -39,17 +39,15 @@ class InventoryConcurrencyIntegrationTest(
                         description = "테스트용",
                         price = 10000L,
                         categoryId = 1L,
-                        createdBy = 1L
                     )
                 )
                 val productId = product.id
                 val initialQuantity = 100
                 val deductQuantity = 10
                 val threadCount = 10 // 정확히 재고만큼 차감
-                val createdBy = 1L
 
                 // 재고 생성
-                inventoryCommandUseCase.createInventory(productId, initialQuantity, createdBy)
+                inventoryCommandUseCase.createInventory(productId, initialQuantity)
 
                 // When - 10개 스레드가 동시에 10개씩 차감
                 val executor = Executors.newFixedThreadPool(threadCount)
@@ -60,7 +58,7 @@ class InventoryConcurrencyIntegrationTest(
                 repeat(threadCount) {
                     executor.submit {
                         try {
-                            inventoryCommandUseCase.deductStock(productId, deductQuantity, createdBy)
+                            inventoryCommandUseCase.deductStock(productId, deductQuantity)
                             successCount.incrementAndGet()
                         } catch (e: Exception) {
                             failCount.incrementAndGet()
@@ -93,17 +91,15 @@ class InventoryConcurrencyIntegrationTest(
                         description = "테스트용",
                         price = 10000L,
                         categoryId = 1L,
-                        createdBy = 1L
                     )
                 )
                 val productId = product.id
                 val initialQuantity = 50
                 val deductQuantity = 10
                 val threadCount = 10 // 50개인데 10개 스레드가 10개씩 차감 시도
-                val createdBy = 1L
 
                 // 재고 생성
-                inventoryCommandUseCase.createInventory(productId, initialQuantity, createdBy)
+                inventoryCommandUseCase.createInventory(productId, initialQuantity)
 
                 // When - 10개 스레드가 동시에 10개씩 차감
                 val executor = Executors.newFixedThreadPool(threadCount)
@@ -114,7 +110,7 @@ class InventoryConcurrencyIntegrationTest(
                 repeat(threadCount) {
                     executor.submit {
                         try {
-                            inventoryCommandUseCase.deductStock(productId, deductQuantity, createdBy)
+                            inventoryCommandUseCase.deductStock(productId, deductQuantity)
                             successCount.incrementAndGet()
                         } catch (e: Exception) {
                             failCount.incrementAndGet()
@@ -147,17 +143,15 @@ class InventoryConcurrencyIntegrationTest(
                         description = "테스트용",
                         price = 10000L,
                         categoryId = 1L,
-                        createdBy = 1L
                     )
                 )
                 val productId = product.id
                 val initialQuantity = 100
                 val reserveQuantity = 5
                 val threadCount = 20 // 100개를 20명이 5개씩 예약
-                val createdBy = 1L
 
                 // 재고 생성
-                inventoryCommandUseCase.createInventory(productId, initialQuantity, createdBy)
+                inventoryCommandUseCase.createInventory(productId, initialQuantity)
 
                 // When - 20개 스레드가 동시에 5개씩 예약
                 val executor = Executors.newFixedThreadPool(threadCount)
@@ -168,7 +162,7 @@ class InventoryConcurrencyIntegrationTest(
                 repeat(threadCount) {
                     executor.submit {
                         try {
-                            inventoryReservationUseCase.reserveStock(productId, createdBy, reserveQuantity)
+                            inventoryReservationUseCase.reserveStock(productId, reserveQuantity)
                             successCount.incrementAndGet()
                         } catch (e: Exception) {
                             failCount.incrementAndGet()
@@ -209,7 +203,6 @@ class InventoryConcurrencyIntegrationTest(
                         description = "테스트용",
                         price = 10000L,
                         categoryId = 1L,
-                        createdBy = 1L
                     )
                 )
                 val productId = product.id
@@ -217,10 +210,9 @@ class InventoryConcurrencyIntegrationTest(
                 val reserveQuantity = 5
                 val deductQuantity = 5
                 val threadCount = 20 // 10번 예약, 10번 차감
-                val createdBy = 1L
 
                 // 재고 생성
-                inventoryCommandUseCase.createInventory(productId, initialQuantity, createdBy)
+                inventoryCommandUseCase.createInventory(productId, initialQuantity)
 
                 // When - 10개는 예약, 10개는 차감
                 val executor = Executors.newFixedThreadPool(threadCount)
@@ -233,11 +225,11 @@ class InventoryConcurrencyIntegrationTest(
                         try {
                             if (index % 2 == 0) {
                                 // 짝수: 예약
-                                inventoryReservationUseCase.reserveStock(productId, createdBy, reserveQuantity)
+                                inventoryReservationUseCase.reserveStock(productId, reserveQuantity)
                                 reserveSuccessCount.incrementAndGet()
                             } else {
                                 // 홀수: 차감
-                                inventoryCommandUseCase.deductStock(productId, deductQuantity, createdBy)
+                                inventoryCommandUseCase.deductStock(productId, deductQuantity)
                                 deductSuccessCount.incrementAndGet()
                             }
                         } catch (e: Exception) {
@@ -272,17 +264,15 @@ class InventoryConcurrencyIntegrationTest(
                         description = "테스트용",
                         price = 10000L,
                         categoryId = 1L,
-                        createdBy = 1L
                     )
                 )
                 val productId = product.id
                 val initialQuantity = 1000
                 val deductQuantity = 1
                 val threadCount = 100
-                val createdBy = 1L
 
                 // 재고 생성
-                inventoryCommandUseCase.createInventory(productId, initialQuantity, createdBy)
+                inventoryCommandUseCase.createInventory(productId, initialQuantity)
 
                 // When - 100개 스레드가 동시에 1개씩 차감
                 val executor = Executors.newFixedThreadPool(threadCount)
@@ -292,7 +282,7 @@ class InventoryConcurrencyIntegrationTest(
                 repeat(threadCount) {
                     executor.submit {
                         try {
-                            inventoryCommandUseCase.deductStock(productId, deductQuantity, createdBy)
+                            inventoryCommandUseCase.deductStock(productId, deductQuantity)
                             successCount.incrementAndGet()
                         } catch (e: Exception) {
                             // 동시성 제어 실패
@@ -324,7 +314,6 @@ class InventoryConcurrencyIntegrationTest(
                         description = "테스트용",
                         price = 10000L,
                         categoryId = 1L,
-                        createdBy = 1L
                     )
                 )
                 val productId = product.id
@@ -332,10 +321,9 @@ class InventoryConcurrencyIntegrationTest(
                 val reserveQuantity = 10
                 val confirmQuantity = 10
                 val threadCount = 10
-                val createdBy = 1L
 
                 // 재고 생성
-                inventoryCommandUseCase.createInventory(productId, initialQuantity, createdBy)
+                inventoryCommandUseCase.createInventory(productId, initialQuantity)
 
                 // When - 10개 스레드가 동시에 예약과 확정을 시도 (각 10개씩)
                 val executor = Executors.newFixedThreadPool(threadCount)
@@ -347,8 +335,8 @@ class InventoryConcurrencyIntegrationTest(
                     executor.submit {
                         try {
                             // 각 스레드가 예약을 시도한 후 바로 확정
-                            val reservation = inventoryReservationUseCase.reserveStock(productId, createdBy, reserveQuantity)
-                            inventoryReservationUseCase.confirmReservation(reservation.id, createdBy)
+                            val reservation = inventoryReservationUseCase.reserveStock(productId, reserveQuantity)
+                            inventoryReservationUseCase.confirmReservation(reservation.id)
                             successCount.incrementAndGet()
                         } catch (e: Exception) {
                             failCount.incrementAndGet()

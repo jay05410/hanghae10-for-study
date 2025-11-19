@@ -39,22 +39,19 @@ class StockReservation(
 
     fun isReservationActive(): Boolean = status == ReservationStatus.RESERVED && !isExpired()
 
-    fun confirm(confirmedBy: Long) {
+    fun confirm() {
         require(isReservationActive()) { "예약이 활성 상태가 아닙니다" }
         this.status = ReservationStatus.CONFIRMED
-        updateAuditInfo(confirmedBy)
     }
 
-    fun cancel(cancelledBy: Long) {
+    fun cancel() {
         require(status == ReservationStatus.RESERVED) { "예약 상태에서만 취소할 수 있습니다" }
         this.status = ReservationStatus.CANCELLED
-        updateAuditInfo(cancelledBy)
     }
 
-    fun expire(expiredBy: Long) {
+    fun expire() {
         require(status == ReservationStatus.RESERVED) { "예약 상태에서만 만료할 수 있습니다" }
         this.status = ReservationStatus.EXPIRED
-        updateAuditInfo(expiredBy)
     }
 
     companion object {
@@ -62,8 +59,7 @@ class StockReservation(
             productId: Long,
             userId: Long,
             quantity: Int,
-            reservationMinutes: Int = 20,
-            createdBy: Long
+            reservationMinutes: Int = 20
         ): StockReservation {
             require(productId > 0) { "상품 ID는 유효해야 합니다" }
             require(userId > 0) { "사용자 ID는 유효해야 합니다" }

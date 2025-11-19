@@ -47,9 +47,7 @@ class PaymentServiceTest : DescribeSpec({
         paymentMethod = PaymentMethod.BALANCE,
         status = status,
         createdAt = LocalDateTime.now(),
-        updatedAt = LocalDateTime.now(),
-        createdBy = userId,
-        updatedBy = userId
+        updatedAt = LocalDateTime.now()
     )
 
     beforeEach {
@@ -71,7 +69,7 @@ class PaymentServiceTest : DescribeSpec({
                 }
 
                 mockkObject(Payment.Companion)
-                every { Payment.create(any(), any(), any(), any(), any(), any(), any()) } returns pendingPayment
+                every { Payment.create(any(), any(), any(), any(), any()) } returns pendingPayment
 
                 every { mockSnowflakeGenerator.generateNumberWithPrefix(any()) } returnsMany listOf(paymentNumber, txId)
                 every { mockPaymentRepository.save(any()) } returns pendingPayment

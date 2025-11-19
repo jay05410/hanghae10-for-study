@@ -48,15 +48,13 @@ class OrderListIntegrationTest(
                     name = "주문 목록 테스트 티",
                     description = "테스트용",
                     price = 10000L,
-                    categoryId = 1L,
-                    createdBy = 0L
+                    categoryId = 1L
                 )
                 val savedProduct = productRepository.save(product)
 
                 val inventory = Inventory.create(
                     productId = savedProduct.id,
-                    initialQuantity = 1000,
-                    createdBy = 0L
+                    initialQuantity = 1000
                 )
                 inventoryRepository.save(inventory)
 
@@ -133,15 +131,13 @@ class OrderListIntegrationTest(
                     name = "대량 주문 테스트 티",
                     description = "테스트용",
                     price = 10000L,
-                    categoryId = 1L,
-                    createdBy = 0L
+                    categoryId = 1L
                 )
                 val savedProduct = productRepository.save(product)
 
                 val inventory = Inventory.create(
                     productId = savedProduct.id,
-                    initialQuantity = 5000,
-                    createdBy = 0L
+                    initialQuantity = 5000
                 )
                 inventoryRepository.save(inventory)
 

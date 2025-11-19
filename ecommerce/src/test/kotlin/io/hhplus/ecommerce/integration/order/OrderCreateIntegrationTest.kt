@@ -47,8 +47,7 @@ class OrderCreateIntegrationTest(
                 name = "주문 테스트 상품 1",
                 description = "주문 테스트용 상품",
                 price = 20000L,
-                categoryId = 1L,
-                createdBy = 0L
+                categoryId = 1L
             )
         )
         product2 = productCommandUseCase.createProduct(
@@ -56,13 +55,12 @@ class OrderCreateIntegrationTest(
                 name = "주문 테스트 상품 2",
                 description = "주문 테스트용 상품",
                 price = 15000L,
-                categoryId = 1L,
-                createdBy = 0L
+                categoryId = 1L
             )
         )
 
-        inventoryCommandUseCase.createInventory(product1.id, 1000, 0L)
-        inventoryCommandUseCase.createInventory(product2.id, 1000, 0L)
+        inventoryCommandUseCase.createInventory(product1.id, 1000)
+        inventoryCommandUseCase.createInventory(product2.id, 1000)
 
         // 포인트 충전 (주문에 필요)
         pointCommandUseCase.chargePoint(1000L, 500000, "주문 테스트용 충전")

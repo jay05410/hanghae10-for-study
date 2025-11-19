@@ -73,8 +73,6 @@ class OrderServiceTest : DescribeSpec({
             status = status,
             createdAt = LocalDateTime.now(),
             updatedAt = LocalDateTime.now(),
-            createdBy = userId,
-            updatedBy = userId,
             deletedAt = null
         )
     }
@@ -110,8 +108,6 @@ class OrderServiceTest : DescribeSpec({
                 )
                 val totalAmount = 10000L
                 val discountAmount = 1000L
-                val createdBy = 1L
-
                 val orderNumber = "ORD-20241107-001"
 
                 every { mockSnowflakeGenerator.generateNumberWithPrefix(IdPrefix.ORDER) } returns orderNumber
@@ -121,7 +117,7 @@ class OrderServiceTest : DescribeSpec({
                 every { mockObjectMapper.writeValueAsString(any()) } returns "{\"orderId\":1}"
 
                 // When
-                val result = sut.createOrder(userId, items, null, totalAmount, discountAmount, createdBy)
+                val result = sut.createOrder(userId, items, null, totalAmount, discountAmount)
 
                 // Then
                 result.orderNumber shouldBe orderNumber
@@ -218,7 +214,6 @@ class OrderServiceTest : DescribeSpec({
         context("정상적인 주문 확정") {
             it("주문을 확정하고 저장") {
                 val orderId = 1L
-                val confirmedBy = 1L
                 val mockOrder = createMockOrder(id = orderId, status = OrderStatus.PENDING)
                 val mockOrderItems = listOf(
                     createMockOrderItem(id = 1L, productId = 1L, quantity = 2),
@@ -230,7 +225,7 @@ class OrderServiceTest : DescribeSpec({
                 every { mockProductStatisticsService.incrementSalesCount(any(), any(), any()) } returns mockk()
                 every { mockOrderRepository.save(any()) } returns mockOrder
 
-                val result = sut.confirmOrder(orderId, confirmedBy)
+                val result = sut.confirmOrder(orderId)
 
                 result.status shouldBe OrderStatus.CONFIRMED
                 verify(exactly = 1) { mockOrderRepository.findById(orderId) }
@@ -242,12 +237,10 @@ class OrderServiceTest : DescribeSpec({
         context("존재하지 않는 주문 확정") {
             it("IllegalArgumentException을 발생") {
                 val orderId = 999L
-                val confirmedBy = 1L
-
                 every { mockOrderRepository.findById(orderId) } returns null
 
                 shouldThrow<IllegalArgumentException> {
-                    sut.confirmOrder(orderId, confirmedBy)
+                    sut.confirmOrder(orderId)
                 }
 
                 verify(exactly = 1) { mockOrderRepository.findById(orderId) }
@@ -260,7 +253,6 @@ class OrderServiceTest : DescribeSpec({
         context("정상적인 주문 취소 - 사유 제공") {
             it("주문을 취소하고 저장") {
                 val orderId = 1L
-                val cancelledBy = 1L
                 val reason = "변심"
                 val mockOrder = createMockOrder(id = orderId, status = OrderStatus.PENDING)
 
@@ -269,7 +261,7 @@ class OrderServiceTest : DescribeSpec({
                 every { mockOutboxEventService.publishEvent(any(), any(), any(), any(), any()) } returns mockk()
                 every { mockOrderRepository.save(any()) } returns mockOrder
 
-                val result = sut.cancelOrder(orderId, cancelledBy, reason)
+                val result = sut.cancelOrder(orderId, reason)
 
                 result.status shouldBe OrderStatus.CANCELLED
                 verify(exactly = 1) { mockOrderRepository.findById(orderId) }
@@ -280,7 +272,6 @@ class OrderServiceTest : DescribeSpec({
         context("정상적인 주문 취소 - 사유 없음") {
             it("reason이 null일 때 기본 사유로 주문을 취소하고 저장") {
                 val orderId = 1L
-                val cancelledBy = 1L
                 val mockOrder = createMockOrder(id = orderId, status = OrderStatus.PENDING)
 
                 every { mockOrderRepository.findById(orderId) } returns mockOrder
@@ -288,7 +279,7 @@ class OrderServiceTest : DescribeSpec({
                 every { mockOutboxEventService.publishEvent(any(), any(), any(), any(), any()) } returns mockk()
                 every { mockOrderRepository.save(any()) } returns mockOrder
 
-                val result = sut.cancelOrder(orderId, cancelledBy, null)
+                val result = sut.cancelOrder(orderId, null)
 
                 result.status shouldBe OrderStatus.CANCELLED
                 verify(exactly = 1) { mockOrderRepository.findById(orderId) }
@@ -299,12 +290,10 @@ class OrderServiceTest : DescribeSpec({
         context("존재하지 않는 주문 취소") {
             it("IllegalArgumentException을 발생") {
                 val orderId = 999L
-                val cancelledBy = 1L
-
                 every { mockOrderRepository.findById(orderId) } returns null
 
                 shouldThrow<IllegalArgumentException> {
-                    sut.cancelOrder(orderId, cancelledBy, null)
+                    sut.cancelOrder(orderId, null)
                 }
 
                 verify(exactly = 1) { mockOrderRepository.findById(orderId) }

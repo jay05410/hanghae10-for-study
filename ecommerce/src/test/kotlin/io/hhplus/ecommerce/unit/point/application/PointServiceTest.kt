@@ -34,8 +34,8 @@ class PointServiceTest : DescribeSpec({
         every { isDeleted() } returns false
         every { createdAt } returns LocalDateTime.now()
         every { updatedAt } returns LocalDateTime.now()
-        every { earn(any(), any()) } returns Balance.of(pointAmount)
-        every { use(any(), any()) } returns Balance.of(pointAmount)
+        every { earn(any()) } returns Balance.of(pointAmount)
+        every { use(any()) } returns Balance.of(pointAmount)
     }
 
     beforeEach {
@@ -75,12 +75,11 @@ class PointServiceTest : DescribeSpec({
         context("새로운 사용자 포인트 생성") {
             it("포인트를 생성하고 저장하여 반환") {
                 val userId = 1L
-                val createdBy = 1L
                 val mockUserPoint = createMockUserPoint(userId = userId)
 
                 every { mockUserPointRepository.save(any()) } returns mockUserPoint
 
-                val result = sut.createUserPoint(userId, createdBy)
+                val result = sut.createUserPoint(userId)
 
                 result shouldBe mockUserPoint
                 verify(exactly = 1) { mockUserPointRepository.save(any()) }
@@ -93,17 +92,16 @@ class PointServiceTest : DescribeSpec({
             it("락을 걸고 포인트를 적립하여 저장") {
                 val userId = 1L
                 val amount = PointAmount(5000L)
-                val chargedBy = 1L
                 val mockUserPoint = createMockUserPoint(userId = userId)
 
                 every { mockUserPointRepository.findByUserIdWithLock(userId) } returns mockUserPoint
                 every { mockUserPointRepository.save(mockUserPoint) } returns mockUserPoint
 
-                val result = sut.earnPoint(userId, amount, chargedBy)
+                val result = sut.earnPoint(userId, amount)
 
                 result shouldBe mockUserPoint
                 verify(exactly = 1) { mockUserPointRepository.findByUserIdWithLock(userId) }
-                verify(exactly = 1) { mockUserPoint.earn(amount, chargedBy) }
+                verify(exactly = 1) { mockUserPoint.earn(amount) }
                 verify(exactly = 1) { mockUserPointRepository.save(mockUserPoint) }
             }
         }
@@ -112,12 +110,11 @@ class PointServiceTest : DescribeSpec({
             it("PointException.PointNotFound를 발생") {
                 val userId = 999L
                 val amount = PointAmount(5000L)
-                val chargedBy = 1L
 
                 every { mockUserPointRepository.findByUserIdWithLock(userId) } returns null
 
                 shouldThrow<PointException.PointNotFound> {
-                    sut.earnPoint(userId, amount, chargedBy)
+                    sut.earnPoint(userId, amount)
                 }
 
                 verify(exactly = 1) { mockUserPointRepository.findByUserIdWithLock(userId) }
@@ -131,17 +128,16 @@ class PointServiceTest : DescribeSpec({
             it("락을 걸고 포인트를 사용하여 저장") {
                 val userId = 1L
                 val amount = PointAmount(3000L)
-                val deductedBy = 1L
                 val mockUserPoint = createMockUserPoint(userId = userId)
 
                 every { mockUserPointRepository.findByUserIdWithLock(userId) } returns mockUserPoint
                 every { mockUserPointRepository.save(mockUserPoint) } returns mockUserPoint
 
-                val result = sut.usePoint(userId, amount, deductedBy)
+                val result = sut.usePoint(userId, amount)
 
                 result shouldBe mockUserPoint
                 verify(exactly = 1) { mockUserPointRepository.findByUserIdWithLock(userId) }
-                verify(exactly = 1) { mockUserPoint.use(amount, deductedBy) }
+                verify(exactly = 1) { mockUserPoint.use(amount) }
                 verify(exactly = 1) { mockUserPointRepository.save(mockUserPoint) }
             }
         }
@@ -150,12 +146,11 @@ class PointServiceTest : DescribeSpec({
             it("PointException.PointNotFound를 발생") {
                 val userId = 999L
                 val amount = PointAmount(3000L)
-                val deductedBy = 1L
 
                 every { mockUserPointRepository.findByUserIdWithLock(userId) } returns null
 
                 shouldThrow<PointException.PointNotFound> {
-                    sut.usePoint(userId, amount, deductedBy)
+                    sut.usePoint(userId, amount)
                 }
 
                 verify(exactly = 1) { mockUserPointRepository.findByUserIdWithLock(userId) }

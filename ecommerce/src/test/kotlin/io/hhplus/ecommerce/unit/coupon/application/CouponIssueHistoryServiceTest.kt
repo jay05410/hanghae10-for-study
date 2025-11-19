@@ -45,8 +45,7 @@ class CouponIssueHistoryServiceTest : DescribeSpec({
                         couponId = couponId,
                         userId = userId,
                         issuedAt = any(),
-                        description = "쿠폰 발급: $couponName",
-                        createdBy = userId
+                        description = "쿠폰 발급: $couponName"
                     )
                 } returns mockHistory
                 every { mockCouponIssueHistoryRepository.save(mockHistory) } returns mockHistory
@@ -59,8 +58,7 @@ class CouponIssueHistoryServiceTest : DescribeSpec({
                         couponId = couponId,
                         userId = userId,
                         issuedAt = any(),
-                        description = "쿠폰 발급: $couponName",
-                        createdBy = userId
+                        description = "쿠폰 발급: $couponName"
                     )
                 }
                 verify(exactly = 1) { mockCouponIssueHistoryRepository.save(mockHistory) }
@@ -85,8 +83,7 @@ class CouponIssueHistoryServiceTest : DescribeSpec({
                         userId = userId,
                         issuedAt = issuedAt,
                         usedAt = any(),
-                        description = "쿠폰 사용: $couponName, 주문 ID: $orderId",
-                        createdBy = userId
+                        description = "쿠폰 사용: $couponName, 주문 ID: $orderId"
                     )
                 } returns mockHistory
                 every { mockCouponIssueHistoryRepository.save(mockHistory) } returns mockHistory
@@ -100,8 +97,7 @@ class CouponIssueHistoryServiceTest : DescribeSpec({
                         userId = userId,
                         issuedAt = issuedAt,
                         usedAt = any(),
-                        description = "쿠폰 사용: $couponName, 주문 ID: $orderId",
-                        createdBy = userId
+                        description = "쿠폰 사용: $couponName, 주문 ID: $orderId"
                     )
                 }
                 verify(exactly = 1) { mockCouponIssueHistoryRepository.save(mockHistory) }
@@ -125,8 +121,7 @@ class CouponIssueHistoryServiceTest : DescribeSpec({
                         userId = userId,
                         issuedAt = issuedAt,
                         expiredAt = any(),
-                        description = "쿠폰 만료: $couponName",
-                        createdBy = userId
+                        description = "쿠폰 만료: $couponName"
                     )
                 } returns mockHistory
                 every { mockCouponIssueHistoryRepository.save(mockHistory) } returns mockHistory
@@ -140,8 +135,7 @@ class CouponIssueHistoryServiceTest : DescribeSpec({
                         userId = userId,
                         issuedAt = issuedAt,
                         expiredAt = any(),
-                        description = "쿠폰 만료: $couponName",
-                        createdBy = userId
+                        description = "쿠폰 만료: $couponName"
                     )
                 }
                 verify(exactly = 1) { mockCouponIssueHistoryRepository.save(mockHistory) }

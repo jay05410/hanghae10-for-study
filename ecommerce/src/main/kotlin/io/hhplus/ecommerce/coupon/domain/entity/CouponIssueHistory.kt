@@ -46,8 +46,7 @@ class CouponIssueHistory(
             couponId: Long,
             userId: Long,
             issuedAt: LocalDateTime,
-            description: String? = null,
-            createdBy: Long
+            description: String? = null
         ): CouponIssueHistory {
             return CouponIssueHistory(
                 couponId = couponId,
@@ -63,8 +62,7 @@ class CouponIssueHistory(
             userId: Long,
             issuedAt: LocalDateTime,
             usedAt: LocalDateTime,
-            description: String? = null,
-            createdBy: Long
+            description: String? = null
         ): CouponIssueHistory {
             return CouponIssueHistory(
                 couponId = couponId,
@@ -81,8 +79,7 @@ class CouponIssueHistory(
             userId: Long,
             issuedAt: LocalDateTime,
             expiredAt: LocalDateTime,
-            description: String? = null,
-            createdBy: Long
+            description: String? = null
         ): CouponIssueHistory {
             return CouponIssueHistory(
                 couponId = couponId,

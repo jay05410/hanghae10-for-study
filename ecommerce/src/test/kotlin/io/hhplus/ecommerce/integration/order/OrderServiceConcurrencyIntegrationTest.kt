@@ -48,13 +48,12 @@ class OrderServiceConcurrencyIntegrationTest(
                 name = "동시성 테스트 상품",
                 description = "동시성 테스트용 상품",
                 price = 10000L,
-                categoryId = 1L,
-                createdBy = 0L
+                categoryId = 1L
             )
         )
 
         // 재고 생성 (충분한 수량)
-        inventoryCommandUseCase.createInventory(testProduct.id, 10000, 0L)
+        inventoryCommandUseCase.createInventory(testProduct.id, 10000)
 
         // 테스트용 사용자들 생성 및 포인트 충전
         repeat(20) { index ->
@@ -67,8 +66,7 @@ class OrderServiceConcurrencyIntegrationTest(
                     email = "test$userId@example.com",
                     name = "테스트사용자$userId",
                     phone = "010-0000-${String.format("%04d", index)}",
-                    providerId = null,
-                    createdBy = 0L
+                    providerId = null
                 )
                 // 포인트 충전 (주문에 필요한 포인트)
                 pointCommandUseCase.chargePoint(userId, 100000)
@@ -92,8 +90,7 @@ class OrderServiceConcurrencyIntegrationTest(
                     email = "test$userId@example.com",
                     name = "테스트사용자$userId",
                     phone = "010-0000-${userId.toString().takeLast(4)}",
-                    providerId = null,
-                    createdBy = 0L
+                    providerId = null
                 )
                 pointCommandUseCase.chargePoint(userId, 100000)
             } catch (e: Exception) {

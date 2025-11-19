@@ -65,8 +65,7 @@ class OutboxEvent(
             eventType: String,
             aggregateType: String,
             aggregateId: String,
-            payload: String,
-            createdBy: Long
+            payload: String
         ): OutboxEvent {
             require(eventType.isNotBlank()) { "이벤트 타입은 필수입니다" }
             require(aggregateType.isNotBlank()) { "애그리게이트 타입은 필수입니다" }
@@ -78,9 +77,7 @@ class OutboxEvent(
                 aggregateType = aggregateType,
                 aggregateId = aggregateId,
                 payload = payload
-            ).apply {
-                this.createdBy = createdBy
-            }
+            )
         }
     }
 }

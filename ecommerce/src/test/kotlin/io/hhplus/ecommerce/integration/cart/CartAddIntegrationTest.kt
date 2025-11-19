@@ -42,7 +42,6 @@ class CartAddIntegrationTest(
                 description = "장바구니 테스트용 상품",
                 price = 10000L,
                 categoryId = 1L,
-                createdBy = 0L
             )
         )
         product2 = productCommandUseCase.createProduct(
@@ -51,12 +50,11 @@ class CartAddIntegrationTest(
                 description = "장바구니 테스트용 상품",
                 price = 15000L,
                 categoryId = 1L,
-                createdBy = 0L
             )
         )
 
-        inventoryCommandUseCase.createInventory(product1.id, 1000, 0L)
-        inventoryCommandUseCase.createInventory(product2.id, 1000, 0L)
+        inventoryCommandUseCase.createInventory(product1.id, 1000)
+        inventoryCommandUseCase.createInventory(product2.id, 1000)
     }
 
     describe("장바구니 아이템 추가") {
@@ -313,10 +311,9 @@ class CartAddIntegrationTest(
                         description = "장바구니 테스트용 상품",
                         price = 20000L,
                         categoryId = 1L,
-                        createdBy = 0L
-                    )
+                            )
                 )
-                inventoryCommandUseCase.createInventory(product3.id, 1000, 0L)
+                inventoryCommandUseCase.createInventory(product3.id, 1000)
 
                 cartCommandUseCase.addToCart(userId, AddToCartRequest(productId = product1.id, quantity = 1, giftWrap = false, giftMessage = null))
                 cartCommandUseCase.addToCart(userId, AddToCartRequest(productId = product2.id, quantity = 2, giftWrap = false, giftMessage = null))

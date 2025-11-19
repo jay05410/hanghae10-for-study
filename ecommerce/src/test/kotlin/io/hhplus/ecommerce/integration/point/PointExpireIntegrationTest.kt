@@ -34,10 +34,9 @@ class PointExpireIntegrationTest(
                 val userId = IntegrationTestFixtures.createTestUserId(1)
                 val initialAmount = PointAmount(10_000)
                 val expireAmount = PointAmount(3_000)
-                val createdBy = userId
 
                 // 사용자 포인트 생성 및 초기 적립
-                pointCommandUseCase.createUserPoint(userId, createdBy)
+                pointCommandUseCase.createUserPoint(userId)
                 pointCommandUseCase.chargePoint(userId, initialAmount.value, "초기 적립")
 
                 // When
@@ -76,10 +75,9 @@ class PointExpireIntegrationTest(
                 val userId = IntegrationTestFixtures.createTestUserId(2)
                 val initialAmount = PointAmount(5_000)
                 val expireAmount = PointAmount(6_000) // 잔액보다 많은 금액
-                val createdBy = userId
 
                 // 사용자 포인트 생성 및 초기 적립
-                pointCommandUseCase.createUserPoint(userId, createdBy)
+                pointCommandUseCase.createUserPoint(userId)
                 pointCommandUseCase.chargePoint(userId, initialAmount.value, "초기 적립")
 
                 // When & Then
@@ -98,10 +96,9 @@ class PointExpireIntegrationTest(
                 // Given
                 val userId = IntegrationTestFixtures.createTestUserId(3)
                 val initialAmount = PointAmount(8_000)
-                val createdBy = userId
 
                 // 사용자 포인트 생성 및 초기 적립
-                pointCommandUseCase.createUserPoint(userId, createdBy)
+                pointCommandUseCase.createUserPoint(userId)
                 pointCommandUseCase.chargePoint(userId, initialAmount.value, "초기 적립")
 
                 // When - 전액 소멸
@@ -123,10 +120,9 @@ class PointExpireIntegrationTest(
                 val initialAmount = PointAmount(10_000)
                 val firstExpire = PointAmount(3_000)
                 val secondExpire = PointAmount(2_000)
-                val createdBy = userId
 
                 // 사용자 포인트 생성 및 초기 적립
-                pointCommandUseCase.createUserPoint(userId, createdBy)
+                pointCommandUseCase.createUserPoint(userId)
                 pointCommandUseCase.chargePoint(userId, initialAmount.value, "초기 적립")
 
                 // When - 첫 번째 소멸
@@ -154,10 +150,9 @@ class PointExpireIntegrationTest(
                 // Given
                 val userId = IntegrationTestFixtures.createTestUserId(5)
                 val initialAmount = PointAmount(10_000)
-                val createdBy = userId
 
                 // 사용자 포인트 생성 및 초기 적립
-                pointCommandUseCase.createUserPoint(userId, createdBy)
+                pointCommandUseCase.createUserPoint(userId)
                 pointCommandUseCase.chargePoint(userId, initialAmount.value, "초기 적립")
 
                 // When & Then - 0원 소멸 시도
@@ -178,10 +173,9 @@ class PointExpireIntegrationTest(
                 val userId = IntegrationTestFixtures.createTestUserId(6)
                 val earnAmount = PointAmount(15_000)
                 val expireAmount = PointAmount(5_000)
-                val createdBy = userId
 
                 // 사용자 포인트 생성
-                pointCommandUseCase.createUserPoint(userId, createdBy)
+                pointCommandUseCase.createUserPoint(userId)
 
                 // When - 적립 후 소멸
                 pointCommandUseCase.chargePoint(userId, earnAmount.value, "초기 적립")
@@ -212,10 +206,9 @@ class PointExpireIntegrationTest(
                 val secondEarn = PointAmount(3_000)
                 val thirdEarn = PointAmount(2_000)
                 val expireAmount = PointAmount(6_000) // 첫 번째(5,000) + 두 번째 일부(1,000)
-                val createdBy = userId
 
                 // 사용자 포인트 생성 및 여러 번 적립
-                pointCommandUseCase.createUserPoint(userId, createdBy)
+                pointCommandUseCase.createUserPoint(userId)
                 pointCommandUseCase.chargePoint(userId, firstEarn.value, "첫 번째 적립")
                 pointCommandUseCase.chargePoint(userId, secondEarn.value, "두 번째 적립")
                 pointCommandUseCase.chargePoint(userId, thirdEarn.value, "세 번째 적립")

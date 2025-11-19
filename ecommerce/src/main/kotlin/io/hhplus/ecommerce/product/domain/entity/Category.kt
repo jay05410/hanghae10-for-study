@@ -29,8 +29,7 @@ class Category(
         fun create(
             name: String,
             description: String,
-            displayOrder: Int = 0,
-            createdBy: Long
+            displayOrder: Int = 0
         ): Category {
             require(name.isNotBlank()) { "카테고리명은 필수입니다" }
             require(description.isNotBlank()) { "카테고리 설명은 필수입니다" }

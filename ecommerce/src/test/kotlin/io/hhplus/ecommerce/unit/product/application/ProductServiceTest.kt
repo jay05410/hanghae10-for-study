@@ -144,12 +144,11 @@ class ProductServiceTest : DescribeSpec({
                 val description = "테스트상품설명"
                 val price = 10000L
                 val categoryId = 1L
-                val createdBy = 1L
                 val mockProduct = mockk<Product>()
 
                 every { mockProductRepository.save(any()) } returns mockProduct
 
-                val result = sut.createProduct(name, description, price, categoryId, createdBy)
+                val result = sut.createProduct(name, description, price, categoryId)
 
                 result shouldBe mockProduct
                 verify(exactly = 1) { mockProductRepository.save(any()) }
@@ -158,18 +157,18 @@ class ProductServiceTest : DescribeSpec({
 
         context("다양한 상품 정보로 생성") {
             it("각 정보가 Product.create에 올바르게 전달") {
-                data class TestCase(val name: String, val description: String, val price: Long, val categoryId: Long, val createdBy: Long)
+                data class TestCase(val name: String, val description: String, val price: Long, val categoryId: Long)
                 val testCases = listOf(
-                    TestCase("상품1", "설명1", 5000L, 1L, 1L),
-                    TestCase("상품2", "설명2", 15000L, 2L, 2L),
-                    TestCase("상품3", "설명3", 25000L, 3L, 3L)
+                    TestCase("상품1", "설명1", 5000L, 1L),
+                    TestCase("상품2", "설명2", 15000L, 2L),
+                    TestCase("상품3", "설명3", 25000L, 3L)
                 )
 
                 testCases.forEach { testCase ->
                     val mockProduct = mockk<Product>()
                     every { mockProductRepository.save(any()) } returns mockProduct
 
-                    val result = sut.createProduct(testCase.name, testCase.description, testCase.price, testCase.categoryId, testCase.createdBy)
+                    val result = sut.createProduct(testCase.name, testCase.description, testCase.price, testCase.categoryId)
 
                     result shouldBe mockProduct
                     verify(exactly = 1) { mockProductRepository.save(any()) }
@@ -180,17 +179,17 @@ class ProductServiceTest : DescribeSpec({
 
         context("경계값으로 상품 생성") {
             it("최소값과 최대값으로 상품을 생성") {
-                data class TestCase(val name: String, val description: String, val price: Long, val categoryId: Long, val createdBy: Long)
+                data class TestCase(val name: String, val description: String, val price: Long, val categoryId: Long)
                 val testCases = listOf(
-                    TestCase("A", "최소 설명", 1L, 1L, 1L),
-                    TestCase("매우긴상품명".repeat(10), "매우긴설명".repeat(50), 999999999L, Long.MAX_VALUE, Long.MAX_VALUE)
+                    TestCase("A", "최소 설명", 1L, 1L),
+                    TestCase("매우긴상품명".repeat(10), "매우긴설명".repeat(50), 999999999L, Long.MAX_VALUE)
                 )
 
                 testCases.forEach { testCase ->
                     val mockProduct = mockk<Product>()
                     every { mockProductRepository.save(any()) } returns mockProduct
 
-                    val result = sut.createProduct(testCase.name, testCase.description, testCase.price, testCase.categoryId, testCase.createdBy)
+                    val result = sut.createProduct(testCase.name, testCase.description, testCase.price, testCase.categoryId)
 
                     result shouldBe mockProduct
                     verify(exactly = 1) { mockProductRepository.save(any()) }
@@ -302,7 +301,7 @@ class ProductServiceTest : DescribeSpec({
 
                 // createProduct 테스트
                 every { mockProductRepository.save(any()) } returns mockProduct
-                sut.createProduct("테스트", "설명", 1000L, 1L, 1L)
+                sut.createProduct("테스트", "설명", 1000L, 1L)
                 verify(exactly = 1) { mockProductRepository.save(any()) }
                 verify(exactly = 0) { mockProductRepository.findByIdAndIsActive(any()) }
                 verify(exactly = 0) { mockProductRepository.findAllByIsActive() }

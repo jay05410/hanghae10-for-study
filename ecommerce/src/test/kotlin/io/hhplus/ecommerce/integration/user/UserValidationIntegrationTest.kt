@@ -33,7 +33,6 @@ class UserValidationIntegrationTest(
                 val email = "testuser@example.com"
                 val name = "테스트 사용자"
                 val phone = "010-1234-5678"
-                val createdBy = 1L
 
                 // When
                 val user = userCommandUseCase.createUser(
@@ -44,7 +43,6 @@ class UserValidationIntegrationTest(
                     name = name,
                     phone = phone,
                     providerId = null,
-                    createdBy = createdBy
                 )
 
                 // Then
@@ -70,7 +68,6 @@ class UserValidationIntegrationTest(
                     name = "첫 번째 사용자",
                     phone = "010-1111-1111",
                     providerId = null,
-                    createdBy = 1L
                 )
 
                 // When & Then - 동일 이메일로 두 번째 사용자 생성 시도
@@ -83,8 +80,7 @@ class UserValidationIntegrationTest(
                         name = "두 번째 사용자",
                         phone = "010-2222-2222",
                         providerId = null,
-                        createdBy = 1L
-                    )
+                        )
                 }
             }
         }
@@ -108,8 +104,7 @@ class UserValidationIntegrationTest(
                         name = "사용자 $index",
                         phone = phone,
                         providerId = null,
-                        createdBy = 1L
-                    )
+                        )
 
                     user.phone shouldBe phone
                     user.validatePhoneFormat() // 검증 통과
@@ -140,8 +135,7 @@ class UserValidationIntegrationTest(
                             name = "잘못된 전화번호 $index",
                             phone = phone,
                             providerId = null,
-                            createdBy = 1L
-                        )
+                                )
                     }
                 }
             }
@@ -160,7 +154,6 @@ class UserValidationIntegrationTest(
                     name = "조회 테스트",
                     phone = "010-5555-6666",
                     providerId = null,
-                    createdBy = 1L
                 )
 
                 // When
@@ -195,7 +188,6 @@ class UserValidationIntegrationTest(
                     name = "이메일 검색",
                     phone = "010-7777-8888",
                     providerId = null,
-                    createdBy = 1L
                 )
 
                 // When
@@ -221,7 +213,6 @@ class UserValidationIntegrationTest(
                     name = "원래 이름",
                     phone = "010-1111-2222",
                     providerId = null,
-                    createdBy = 1L
                 )
 
                 // When
@@ -231,7 +222,6 @@ class UserValidationIntegrationTest(
                     userId = user.id,
                     name = updatedName,
                     email = updatedEmail,
-                    updatedBy = 1L
                 )
 
                 // Then
@@ -254,7 +244,6 @@ class UserValidationIntegrationTest(
                     name = "기존 사용자",
                     phone = "010-3333-4444",
                     providerId = null,
-                    createdBy = 1L
                 )
 
                 // 두 번째 사용자
@@ -266,7 +255,6 @@ class UserValidationIntegrationTest(
                     name = "두 번째 사용자",
                     phone = "010-5555-6666",
                     providerId = null,
-                    createdBy = 1L
                 )
 
                 // When & Then - 두 번째 사용자의 이메일을 첫 번째 사용자 이메일로 변경 시도
@@ -275,8 +263,7 @@ class UserValidationIntegrationTest(
                         userId = secondUser.id,
                         name = secondUser.name,
                         email = existingEmail,
-                        updatedBy = 1L
-                    )
+                        )
                 }
             }
         }
@@ -294,11 +281,10 @@ class UserValidationIntegrationTest(
                     name = "비활성화 테스트",
                     phone = "010-9999-0000",
                     providerId = null,
-                    createdBy = 1L
                 )
 
                 // When
-                val deactivatedUser = userCommandUseCase.deleteUser(user.id, 1L)
+                val deactivatedUser = userCommandUseCase.deleteUser(user.id)
 
                 // Then
                 deactivatedUser.isDeleted() shouldBe true
@@ -316,12 +302,11 @@ class UserValidationIntegrationTest(
                     name = "재활성화 테스트",
                     phone = "010-8888-7777",
                     providerId = null,
-                    createdBy = 1L
                 )
-                userCommandUseCase.deleteUser(user.id, 1L)
+                userCommandUseCase.deleteUser(user.id)
 
                 // When
-                val activatedUser = userCommandUseCase.restoreUser(user.id, 1L)
+                val activatedUser = userCommandUseCase.restoreUser(user.id)
 
                 // Then
                 activatedUser.isDeleted() shouldBe false

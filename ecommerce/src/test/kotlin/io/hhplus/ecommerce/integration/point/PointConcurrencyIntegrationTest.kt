@@ -34,11 +34,10 @@ class PointConcurrencyIntegrationTest(
                 val initialAmount = PointAmount(10_000)
                 val useAmount = PointAmount(1_000)
                 val threadCount = 10
-                val createdBy = userId
 
                 // 사용자 포인트 생성 및 초기 적립
-                pointCommandUseCase.createUserPoint(userId, createdBy)
-                pointCommandUseCase.earnPoint(userId, initialAmount, createdBy)
+                pointCommandUseCase.createUserPoint(userId)
+                pointCommandUseCase.earnPoint(userId, initialAmount)
 
                 // When - 10개 스레드가 동시에 1,000원씩 사용
                 val executor = Executors.newFixedThreadPool(threadCount)
@@ -49,7 +48,7 @@ class PointConcurrencyIntegrationTest(
                 repeat(threadCount) {
                     executor.submit {
                         try {
-                            pointCommandUseCase.deductPoint(userId, useAmount, createdBy)
+                            pointCommandUseCase.deductPoint(userId, useAmount)
                             successCount.incrementAndGet()
                         } catch (e: Exception) {
                             failCount.incrementAndGet()
@@ -80,11 +79,10 @@ class PointConcurrencyIntegrationTest(
                 val initialAmount = PointAmount(5_000)
                 val useAmount = PointAmount(1_000)
                 val threadCount = 10 // 5,000원인데 10개 스레드가 1,000원씩 사용 시도
-                val createdBy = userId
 
                 // 사용자 포인트 생성 및 초기 적립
-                pointCommandUseCase.createUserPoint(userId, createdBy)
-                pointCommandUseCase.earnPoint(userId, initialAmount, createdBy)
+                pointCommandUseCase.createUserPoint(userId)
+                pointCommandUseCase.earnPoint(userId, initialAmount)
 
                 // When - 10개 스레드가 동시에 1,000원씩 사용
                 val executor = Executors.newFixedThreadPool(threadCount)
@@ -95,7 +93,7 @@ class PointConcurrencyIntegrationTest(
                 repeat(threadCount) {
                     executor.submit {
                         try {
-                            pointCommandUseCase.deductPoint(userId, useAmount, createdBy)
+                            pointCommandUseCase.deductPoint(userId, useAmount)
                             successCount.incrementAndGet()
                         } catch (e: Exception) {
                             failCount.incrementAndGet()
@@ -125,10 +123,9 @@ class PointConcurrencyIntegrationTest(
                 val userId = IntegrationTestFixtures.createTestUserId(3)
                 val earnAmount = PointAmount(1_000)
                 val threadCount = 20
-                val createdBy = userId
 
                 // 사용자 포인트 생성
-                pointCommandUseCase.createUserPoint(userId, createdBy)
+                pointCommandUseCase.createUserPoint(userId)
 
                 // When - 20개 스레드가 동시에 1,000원씩 적립
                 val executor = Executors.newFixedThreadPool(threadCount)
@@ -138,7 +135,7 @@ class PointConcurrencyIntegrationTest(
                 repeat(threadCount) {
                     executor.submit {
                         try {
-                            pointCommandUseCase.earnPoint(userId, earnAmount, createdBy)
+                            pointCommandUseCase.earnPoint(userId, earnAmount)
                             successCount.incrementAndGet()
                         } finally {
                             latch.countDown()
@@ -167,11 +164,10 @@ class PointConcurrencyIntegrationTest(
                 val earnAmount = PointAmount(1_000)
                 val useAmount = PointAmount(500)
                 val threadCount = 20 // 10번 적립, 10번 사용
-                val createdBy = userId
 
                 // 사용자 포인트 생성 및 초기 적립
-                pointCommandUseCase.createUserPoint(userId, createdBy)
-                pointCommandUseCase.earnPoint(userId, initialAmount, createdBy)
+                pointCommandUseCase.createUserPoint(userId)
+                pointCommandUseCase.earnPoint(userId, initialAmount)
 
                 // When - 10개 스레드는 적립, 10개 스레드는 사용
                 val executor = Executors.newFixedThreadPool(threadCount)
@@ -184,11 +180,11 @@ class PointConcurrencyIntegrationTest(
                         try {
                             if (index % 2 == 0) {
                                 // 짝수 인덱스: 적립
-                                pointCommandUseCase.earnPoint(userId, earnAmount, createdBy)
+                                pointCommandUseCase.earnPoint(userId, earnAmount)
                                 earnSuccessCount.incrementAndGet()
                             } else {
                                 // 홀수 인덱스: 사용
-                                pointCommandUseCase.deductPoint(userId, useAmount, createdBy)
+                                pointCommandUseCase.deductPoint(userId, useAmount)
                                 useSuccessCount.incrementAndGet()
                             }
                         } catch (e: Exception) {
@@ -223,11 +219,10 @@ class PointConcurrencyIntegrationTest(
                 val initialAmount = PointAmount(100_000)
                 val useAmount = PointAmount(100)
                 val threadCount = 100
-                val createdBy = userId
 
                 // 사용자 포인트 생성 및 초기 적립
-                pointCommandUseCase.createUserPoint(userId, createdBy)
-                pointCommandUseCase.earnPoint(userId, initialAmount, createdBy)
+                pointCommandUseCase.createUserPoint(userId)
+                pointCommandUseCase.earnPoint(userId, initialAmount)
 
                 // When - 100개 스레드가 동시에 100원씩 사용
                 val executor = Executors.newFixedThreadPool(threadCount)
@@ -237,7 +232,7 @@ class PointConcurrencyIntegrationTest(
                 repeat(threadCount) {
                     executor.submit {
                         try {
-                            pointCommandUseCase.deductPoint(userId, useAmount, createdBy)
+                            pointCommandUseCase.deductPoint(userId, useAmount)
                             successCount.incrementAndGet()
                         } catch (e: Exception) {
                             // 동시성 제어 실패 또는 잔액 부족

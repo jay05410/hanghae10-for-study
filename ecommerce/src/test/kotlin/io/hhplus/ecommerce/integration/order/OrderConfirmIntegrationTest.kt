@@ -44,15 +44,13 @@ class OrderConfirmIntegrationTest(
                     name = "확정 테스트 티",
                     description = "확정 테스트용",
                     price = 10000L,
-                    categoryId = 1L,
-                    createdBy = 0L
+                    categoryId = 1L
                 )
                 val savedProduct = productRepository.save(product)
 
                 val inventory = Inventory.create(
                     productId = savedProduct.id,
-                    initialQuantity = 100,
-                    createdBy = 0L
+                    initialQuantity = 100
                 )
                 inventoryRepository.save(inventory)
 
@@ -88,13 +86,11 @@ class OrderConfirmIntegrationTest(
 
                 // When: 주문 확정
                 val confirmedOrder = orderCommandUseCase.confirmOrder(
-                    orderId = createdOrder.id,
-                    confirmedBy = userId
+                    orderId = createdOrder.id
                 )
 
                 // Then: 상태 변경 확인
                 confirmedOrder.status shouldBe OrderStatus.CONFIRMED
-                confirmedOrder.updatedBy shouldBe userId
             }
         }
 
@@ -107,15 +103,13 @@ class OrderConfirmIntegrationTest(
                     name = "중복 확정 테스트 티",
                     description = "테스트용",
                     price = 10000L,
-                    categoryId = 1L,
-                    createdBy = 0L
+                    categoryId = 1L
                 )
                 val savedProduct = productRepository.save(product)
 
                 val inventory = Inventory.create(
                     productId = savedProduct.id,
-                    initialQuantity = 100,
-                    createdBy = 0L
+                    initialQuantity = 100
                 )
                 inventoryRepository.save(inventory)
 
@@ -147,11 +141,11 @@ class OrderConfirmIntegrationTest(
                 val createdOrder = orderCommandUseCase.createOrder(createOrderRequest)
 
                 // 첫 번째 확정
-                orderCommandUseCase.confirmOrder(createdOrder.id, userId)
+                orderCommandUseCase.confirmOrder(createdOrder.id)
 
                 // When & Then: 두 번째 확정 시도
                 val exception = runCatching {
-                    orderCommandUseCase.confirmOrder(createdOrder.id, userId)
+                    orderCommandUseCase.confirmOrder(createdOrder.id)
                 }.exceptionOrNull()
 
                 // InvalidOrderStatus 예외 발생
@@ -170,15 +164,13 @@ class OrderConfirmIntegrationTest(
                     name = "취소 후 확정 테스트 티",
                     description = "테스트용",
                     price = 10000L,
-                    categoryId = 1L,
-                    createdBy = 0L
+                    categoryId = 1L
                 )
                 val savedProduct = productRepository.save(product)
 
                 val inventory = Inventory.create(
                     productId = savedProduct.id,
-                    initialQuantity = 100,
-                    createdBy = 0L
+                    initialQuantity = 100
                 )
                 inventoryRepository.save(inventory)
 
@@ -210,11 +202,11 @@ class OrderConfirmIntegrationTest(
                 val createdOrder = orderCommandUseCase.createOrder(createOrderRequest)
 
                 // 주문 취소
-                orderCommandUseCase.cancelOrder(createdOrder.id, userId, "테스트 취소")
+                orderCommandUseCase.cancelOrder(createdOrder.id, "테스트 취소")
 
                 // When & Then: 취소된 주문 확정 시도
                 val exception = runCatching {
-                    orderCommandUseCase.confirmOrder(createdOrder.id, userId)
+                    orderCommandUseCase.confirmOrder(createdOrder.id)
                 }.exceptionOrNull()
 
                 exception shouldNotBe null

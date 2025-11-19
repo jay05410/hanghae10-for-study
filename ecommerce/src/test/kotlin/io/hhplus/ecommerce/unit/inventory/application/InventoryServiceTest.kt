@@ -35,11 +35,11 @@ class InventoryServiceTest : DescribeSpec({
         every { mockInventory.isDeleted() } returns false
         every { mockInventory.createdAt } returns LocalDateTime.now()
         every { mockInventory.updatedAt } returns LocalDateTime.now()
-        every { mockInventory.deduct(any(), any()) } just runs
-        every { mockInventory.restock(any(), any()) } just runs
-        every { mockInventory.reserve(any(), any()) } just runs
-        every { mockInventory.releaseReservation(any(), any()) } just runs
-        every { mockInventory.confirmReservation(any(), any()) } just runs
+        every { mockInventory.deduct(any()) } just runs
+        every { mockInventory.restock(any()) } just runs
+        every { mockInventory.reserve(any()) } just runs
+        every { mockInventory.releaseReservation(any()) } just runs
+        every { mockInventory.confirmReservation(any()) } just runs
         every { mockInventory.isStockAvailable(any()) } returns true
         every { mockInventory.getAvailableQuantity() } returns (quantity - reservedQuantity)
         return mockInventory
@@ -83,20 +83,19 @@ class InventoryServiceTest : DescribeSpec({
             it("재고를 생성하고 저장하여 반환") {
                 val productId = 1L
                 val initialQuantity = 100
-                val createdBy = 1L
                 val mockInventory = createMockInventory(productId = productId, quantity = initialQuantity)
 
                 every { mockInventoryRepository.findByProductId(productId) } returns null
                 every { mockInventoryRepository.save(any()) } returns mockInventory
 
                 mockkObject(Inventory.Companion)
-                every { Inventory.create(productId, initialQuantity, createdBy) } returns mockInventory
+                every { Inventory.create(productId, initialQuantity) } returns mockInventory
 
-                val result = sut.createInventory(productId, initialQuantity, createdBy)
+                val result = sut.createInventory(productId, initialQuantity)
 
                 result shouldBe mockInventory
                 verify(exactly = 1) { mockInventoryRepository.findByProductId(productId) }
-                verify(exactly = 1) { Inventory.create(productId, initialQuantity, createdBy) }
+                verify(exactly = 1) { Inventory.create(productId, initialQuantity) }
                 verify(exactly = 1) { mockInventoryRepository.save(any()) }
             }
         }
@@ -105,13 +104,12 @@ class InventoryServiceTest : DescribeSpec({
             it("InventoryAlreadyExists 예외를 발생") {
                 val productId = 1L
                 val initialQuantity = 100
-                val createdBy = 1L
                 val existingInventory = createMockInventory(productId = productId)
 
                 every { mockInventoryRepository.findByProductId(productId) } returns existingInventory
 
                 shouldThrow<InventoryException.InventoryAlreadyExists> {
-                    sut.createInventory(productId, initialQuantity, createdBy)
+                    sut.createInventory(productId, initialQuantity)
                 }
 
                 verify(exactly = 1) { mockInventoryRepository.findByProductId(productId) }
@@ -125,17 +123,16 @@ class InventoryServiceTest : DescribeSpec({
             it("락을 걸고 재고를 차감하여 저장") {
                 val productId = 1L
                 val quantity = 10
-                val deductedBy = 1L
                 val mockInventory = createMockInventory(productId = productId)
 
                 every { mockInventoryRepository.findByProductIdWithLock(productId) } returns mockInventory
                 every { mockInventoryRepository.save(mockInventory) } returns mockInventory
 
-                val result = sut.deductStock(productId, quantity, deductedBy)
+                val result = sut.deductStock(productId, quantity)
 
                 result shouldBe mockInventory
                 verify(exactly = 1) { mockInventoryRepository.findByProductIdWithLock(productId) }
-                verify(exactly = 1) { mockInventory.deduct(quantity, deductedBy) }
+                verify(exactly = 1) { mockInventory.deduct(quantity) }
                 verify(exactly = 1) { mockInventoryRepository.save(mockInventory) }
             }
         }
@@ -144,12 +141,11 @@ class InventoryServiceTest : DescribeSpec({
             it("InventoryNotFound 예외를 발생") {
                 val productId = 999L
                 val quantity = 10
-                val deductedBy = 1L
 
                 every { mockInventoryRepository.findByProductIdWithLock(productId) } returns null
 
                 shouldThrow<InventoryException.InventoryNotFound> {
-                    sut.deductStock(productId, quantity, deductedBy)
+                    sut.deductStock(productId, quantity)
                 }
 
                 verify(exactly = 1) { mockInventoryRepository.findByProductIdWithLock(productId) }
@@ -163,17 +159,16 @@ class InventoryServiceTest : DescribeSpec({
             it("락을 걸고 재고를 충당하여 저장") {
                 val productId = 1L
                 val quantity = 50
-                val restockedBy = 1L
                 val mockInventory = createMockInventory(productId = productId)
 
                 every { mockInventoryRepository.findByProductIdWithLock(productId) } returns mockInventory
                 every { mockInventoryRepository.save(mockInventory) } returns mockInventory
 
-                val result = sut.restockInventory(productId, quantity, restockedBy)
+                val result = sut.restockInventory(productId, quantity)
 
                 result shouldBe mockInventory
                 verify(exactly = 1) { mockInventoryRepository.findByProductIdWithLock(productId) }
-                verify(exactly = 1) { mockInventory.restock(quantity, restockedBy) }
+                verify(exactly = 1) { mockInventory.restock(quantity) }
                 verify(exactly = 1) { mockInventoryRepository.save(mockInventory) }
             }
         }
@@ -182,12 +177,11 @@ class InventoryServiceTest : DescribeSpec({
             it("InventoryNotFound 예외를 발생") {
                 val productId = 999L
                 val quantity = 50
-                val restockedBy = 1L
 
                 every { mockInventoryRepository.findByProductIdWithLock(productId) } returns null
 
                 shouldThrow<InventoryException.InventoryNotFound> {
-                    sut.restockInventory(productId, quantity, restockedBy)
+                    sut.restockInventory(productId, quantity)
                 }
 
                 verify(exactly = 1) { mockInventoryRepository.findByProductIdWithLock(productId) }
@@ -201,17 +195,16 @@ class InventoryServiceTest : DescribeSpec({
             it("락을 걸고 재고를 예약하여 저장") {
                 val productId = 1L
                 val quantity = 5
-                val reservedBy = 1L
                 val mockInventory = createMockInventory(productId = productId)
 
                 every { mockInventoryRepository.findByProductIdWithLock(productId) } returns mockInventory
                 every { mockInventoryRepository.save(mockInventory) } returns mockInventory
 
-                val result = sut.reserveStock(productId, quantity, reservedBy)
+                val result = sut.reserveStock(productId, quantity)
 
                 result shouldBe mockInventory
                 verify(exactly = 1) { mockInventoryRepository.findByProductIdWithLock(productId) }
-                verify(exactly = 1) { mockInventory.reserve(quantity, reservedBy) }
+                verify(exactly = 1) { mockInventory.reserve(quantity) }
                 verify(exactly = 1) { mockInventoryRepository.save(mockInventory) }
             }
         }
@@ -220,12 +213,11 @@ class InventoryServiceTest : DescribeSpec({
             it("InventoryNotFound 예외를 발생") {
                 val productId = 999L
                 val quantity = 5
-                val reservedBy = 1L
 
                 every { mockInventoryRepository.findByProductIdWithLock(productId) } returns null
 
                 shouldThrow<InventoryException.InventoryNotFound> {
-                    sut.reserveStock(productId, quantity, reservedBy)
+                    sut.reserveStock(productId, quantity)
                 }
 
                 verify(exactly = 1) { mockInventoryRepository.findByProductIdWithLock(productId) }
@@ -239,17 +231,16 @@ class InventoryServiceTest : DescribeSpec({
             it("락을 걸고 예약을 해제하여 저장") {
                 val productId = 1L
                 val quantity = 5
-                val releasedBy = 1L
                 val mockInventory = createMockInventory(productId = productId, reservedQuantity = 5)
 
                 every { mockInventoryRepository.findByProductIdWithLock(productId) } returns mockInventory
                 every { mockInventoryRepository.save(mockInventory) } returns mockInventory
 
-                val result = sut.releaseReservation(productId, quantity, releasedBy)
+                val result = sut.releaseReservation(productId, quantity)
 
                 result shouldBe mockInventory
                 verify(exactly = 1) { mockInventoryRepository.findByProductIdWithLock(productId) }
-                verify(exactly = 1) { mockInventory.releaseReservation(quantity, releasedBy) }
+                verify(exactly = 1) { mockInventory.releaseReservation(quantity) }
                 verify(exactly = 1) { mockInventoryRepository.save(mockInventory) }
             }
         }
@@ -258,12 +249,11 @@ class InventoryServiceTest : DescribeSpec({
             it("InventoryNotFound 예외를 발생") {
                 val productId = 999L
                 val quantity = 5
-                val releasedBy = 1L
 
                 every { mockInventoryRepository.findByProductIdWithLock(productId) } returns null
 
                 shouldThrow<InventoryException.InventoryNotFound> {
-                    sut.releaseReservation(productId, quantity, releasedBy)
+                    sut.releaseReservation(productId, quantity)
                 }
 
                 verify(exactly = 1) { mockInventoryRepository.findByProductIdWithLock(productId) }
@@ -277,17 +267,16 @@ class InventoryServiceTest : DescribeSpec({
             it("락을 걸고 예약을 확정하여 저장") {
                 val productId = 1L
                 val quantity = 5
-                val confirmedBy = 1L
                 val mockInventory = createMockInventory(productId = productId, reservedQuantity = 5)
 
                 every { mockInventoryRepository.findByProductIdWithLock(productId) } returns mockInventory
                 every { mockInventoryRepository.save(mockInventory) } returns mockInventory
 
-                val result = sut.confirmReservation(productId, quantity, confirmedBy)
+                val result = sut.confirmReservation(productId, quantity)
 
                 result shouldBe mockInventory
                 verify(exactly = 1) { mockInventoryRepository.findByProductIdWithLock(productId) }
-                verify(exactly = 1) { mockInventory.confirmReservation(quantity, confirmedBy) }
+                verify(exactly = 1) { mockInventory.confirmReservation(quantity) }
                 verify(exactly = 1) { mockInventoryRepository.save(mockInventory) }
             }
         }
@@ -296,12 +285,11 @@ class InventoryServiceTest : DescribeSpec({
             it("InventoryNotFound 예외를 발생") {
                 val productId = 999L
                 val quantity = 5
-                val confirmedBy = 1L
 
                 every { mockInventoryRepository.findByProductIdWithLock(productId) } returns null
 
                 shouldThrow<InventoryException.InventoryNotFound> {
-                    sut.confirmReservation(productId, quantity, confirmedBy)
+                    sut.confirmReservation(productId, quantity)
                 }
 
                 verify(exactly = 1) { mockInventoryRepository.findByProductIdWithLock(productId) }

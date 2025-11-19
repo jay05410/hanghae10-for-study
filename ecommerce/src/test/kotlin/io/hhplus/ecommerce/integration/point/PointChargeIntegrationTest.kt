@@ -30,10 +30,9 @@ class PointChargeIntegrationTest(
                 // Given
                 val userId = IntegrationTestFixtures.createTestUserId(1)
                 val earnAmount = PointAmount(5000)
-                val createdBy = userId
 
                 // 사용자 포인트 생성
-                pointCommandUseCase.createUserPoint(userId, createdBy)
+                pointCommandUseCase.createUserPoint(userId)
 
                 // When
                 val updatedUserPoint = pointCommandUseCase.chargePoint(
@@ -67,10 +66,9 @@ class PointChargeIntegrationTest(
                 val userId = IntegrationTestFixtures.createTestUserId(2)
                 val firstEarn = PointAmount(3000)
                 val secondEarn = PointAmount(2000)
-                val createdBy = userId
 
                 // 사용자 포인트 생성
-                pointCommandUseCase.createUserPoint(userId, createdBy)
+                pointCommandUseCase.createUserPoint(userId)
 
                 // When - 첫 번째 적립
                 pointCommandUseCase.chargePoint(userId, firstEarn.value, "첫 번째 적립")
@@ -95,10 +93,9 @@ class PointChargeIntegrationTest(
             it("예외가 발생한다") {
                 // Given
                 val userId = IntegrationTestFixtures.createTestUserId(3)
-                val createdBy = userId
 
                 // 사용자 포인트 생성
-                pointCommandUseCase.createUserPoint(userId, createdBy)
+                pointCommandUseCase.createUserPoint(userId)
 
                 // 9,900,000원 적립
                 pointCommandUseCase.chargePoint(userId, 9_900_000L, "초기 적립")
@@ -118,10 +115,9 @@ class PointChargeIntegrationTest(
             it("최대 잔액(10,000,000원)까지 적립할 수 있다") {
                 // Given
                 val userId = IntegrationTestFixtures.createTestUserId(4)
-                val createdBy = userId
 
                 // 사용자 포인트 생성
-                pointCommandUseCase.createUserPoint(userId, createdBy)
+                pointCommandUseCase.createUserPoint(userId)
 
                 // When - 10,000,000원 적립
                 pointCommandUseCase.chargePoint(userId, 10_000_000L, "최대 한도 적립")
@@ -141,10 +137,9 @@ class PointChargeIntegrationTest(
                 val purchaseAmount = 100_000L
                 val earnRate = 0.05
                 val earnAmount = PointAmount((purchaseAmount * earnRate).toLong()) // 5,000원
-                val createdBy = userId
 
                 // 사용자 포인트 생성
-                pointCommandUseCase.createUserPoint(userId, createdBy)
+                pointCommandUseCase.createUserPoint(userId)
 
                 // When - 구매 적립
                 pointCommandUseCase.chargePoint(

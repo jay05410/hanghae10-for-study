@@ -23,17 +23,15 @@ class ProductStatistics(
     var version: Int = 0
 ) : BaseJpaEntity() {
 
-    fun incrementViewCount(incrementedBy: Long): Long {
+    fun incrementViewCount(): Long {
         val oldViewCount = this.viewCount
         this.viewCount += 1
-        updateAuditInfo(incrementedBy)
         return oldViewCount
     }
 
-    fun incrementSalesCount(quantity: Int, incrementedBy: Long): Long {
+    fun incrementSalesCount(quantity: Int): Long {
         val oldSalesCount = this.salesCount
         this.salesCount += quantity
-        updateAuditInfo(incrementedBy)
         return oldSalesCount
     }
 
@@ -41,8 +39,7 @@ class ProductStatistics(
 
     companion object {
         fun create(
-            productId: Long,
-            createdBy: Long
+            productId: Long
         ): ProductStatistics {
             require(productId > 0) { "상품 ID는 유효해야 합니다" }
 

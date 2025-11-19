@@ -49,7 +49,6 @@ class CouponIssueIntegrationTest(
                     totalQuantity = 100,
                     validFrom = LocalDateTime.now(),
                     validTo = LocalDateTime.now().plusDays(30),
-                    createdBy = 1L
                 )
                 val savedCoupon = couponRepository.save(coupon)
                 val userId = 1000L
@@ -81,7 +80,6 @@ class CouponIssueIntegrationTest(
                     totalQuantity = 50,
                     validFrom = LocalDateTime.now(),
                     validTo = LocalDateTime.now().plusDays(30),
-                    createdBy = 1L
                 )
                 val savedCoupon = couponRepository.save(coupon)
                 val userId = 2000L
@@ -108,7 +106,6 @@ class CouponIssueIntegrationTest(
                     totalQuantity = 1,
                     validFrom = LocalDateTime.now(),
                     validTo = LocalDateTime.now().plusDays(30),
-                    createdBy = 1L
                 )
                 val savedCoupon = couponRepository.save(coupon)
 
@@ -148,7 +145,6 @@ class CouponIssueIntegrationTest(
                     totalQuantity = 10,
                     validFrom = now,
                     validTo = now.plusDays(30),
-                    createdBy = 1L
                 )
                 couponRepository.save(normalCoupon)
 
@@ -162,7 +158,6 @@ class CouponIssueIntegrationTest(
                     totalQuantity = 1,
                     validFrom = now,
                     validTo = now.plusDays(30),
-                    createdBy = 1L
                 )
                 val saved = couponRepository.save(soldOutCoupon)
                 couponCommandUseCase.issueCoupon(5000L, IssueCouponRequest(saved.id)) // 품절 처리
@@ -190,8 +185,7 @@ class CouponIssueIntegrationTest(
                         totalQuantity = 100,
                         validFrom = LocalDateTime.now(),
                         validTo = LocalDateTime.now().plusDays(30),
-                        createdBy = 1L
-                    )
+                        )
                 )
                 val coupon2 = couponRepository.save(
                     Coupon.create(
@@ -203,8 +197,7 @@ class CouponIssueIntegrationTest(
                         totalQuantity = 100,
                         validFrom = LocalDateTime.now(),
                         validTo = LocalDateTime.now().plusDays(30),
-                        createdBy = 1L
-                    )
+                        )
                 )
 
                 couponCommandUseCase.issueCoupon(userId, IssueCouponRequest(coupon1.id))
@@ -232,8 +225,7 @@ class CouponIssueIntegrationTest(
                         totalQuantity = 100,
                         validFrom = LocalDateTime.now(),
                         validTo = LocalDateTime.now().plusDays(30),
-                        createdBy = 1L
-                    )
+                        )
                 )
                 couponCommandUseCase.issueCoupon(userId, IssueCouponRequest(coupon.id))
 
@@ -263,8 +255,7 @@ class CouponIssueIntegrationTest(
                         totalQuantity = 100,
                         validFrom = LocalDateTime.now(),
                         validTo = LocalDateTime.now().plusDays(30),
-                        createdBy = 1L
-                    )
+                        )
                 )
                 val userCoupon = couponCommandUseCase.issueCoupon(userId, IssueCouponRequest(coupon.id))
 
@@ -300,8 +291,7 @@ class CouponIssueIntegrationTest(
                         totalQuantity = 100,
                         validFrom = LocalDateTime.now(),
                         validTo = LocalDateTime.now().plusDays(30),
-                        createdBy = 1L
-                    )
+                        )
                 )
                 val userCoupon = couponCommandUseCase.issueCoupon(userId, IssueCouponRequest(coupon.id))
 
@@ -332,8 +322,7 @@ class CouponIssueIntegrationTest(
                         totalQuantity = 100,
                         validFrom = LocalDateTime.now(),
                         validTo = LocalDateTime.now().plusDays(30),
-                        createdBy = 1L
-                    )
+                        )
                 )
                 val userCoupon = couponCommandUseCase.issueCoupon(userId, IssueCouponRequest(coupon.id))
 
@@ -363,8 +352,7 @@ class CouponIssueIntegrationTest(
                         totalQuantity = 100,
                         validFrom = LocalDateTime.now(),
                         validTo = LocalDateTime.now().plusDays(30),
-                        createdBy = 1L
-                    )
+                        )
                 )
                 val userCoupon = couponCommandUseCase.issueCoupon(userId, IssueCouponRequest(coupon.id))
 
@@ -395,8 +383,7 @@ class CouponIssueIntegrationTest(
                         totalQuantity = 100,
                         validFrom = LocalDateTime.now(),
                         validTo = LocalDateTime.now().plusDays(30),
-                        createdBy = 1L
-                    )
+                        )
                 )
                 val userCoupon = couponCommandUseCase.issueCoupon(userId, IssueCouponRequest(coupon.id))
 

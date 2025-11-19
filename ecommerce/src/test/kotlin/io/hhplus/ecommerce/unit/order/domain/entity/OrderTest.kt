@@ -78,11 +78,10 @@ class OrderTest : DescribeSpec({
                 )
 
                 // When
-                order.confirm(1L)
+                order.confirm()
 
                 // Then
                 order.status shouldBe OrderStatus.CONFIRMED
-                order.updatedBy shouldBe 1L
             }
 
             it("should cancel order successfully (mutates in place)") {
@@ -96,11 +95,10 @@ class OrderTest : DescribeSpec({
                 )
 
                 // When
-                order.cancel(1L)
+                order.cancel()
 
                 // Then
                 order.status shouldBe OrderStatus.CANCELLED
-                order.updatedBy shouldBe 1L
             }
 
             it("should complete order successfully (mutates in place)") {
@@ -112,14 +110,13 @@ class OrderTest : DescribeSpec({
                     discountAmount = 0L,
                     usedCouponId = null
                 )
-                order.confirm(1L)
+                order.confirm()
 
                 // When
-                order.complete(1L)
+                order.complete()
 
                 // Then
                 order.status shouldBe OrderStatus.COMPLETED
-                order.updatedBy shouldBe 1L
             }
         }
 

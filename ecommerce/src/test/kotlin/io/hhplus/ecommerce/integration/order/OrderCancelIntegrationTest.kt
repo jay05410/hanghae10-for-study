@@ -54,16 +54,14 @@ class OrderCancelIntegrationTest(
                     name = "테스트 티",
                     description = "취소 테스트용 상품",
                     price = 10000L,
-                    categoryId = 1L,
-                    createdBy = 0L
+                    categoryId = 1L
                 )
                 val savedProduct = productRepository.save(product)
 
                 // 재고 생성
                 val inventory = Inventory.create(
                     productId = savedProduct.id,
-                    initialQuantity = 100,
-                    createdBy = 0L
+                    initialQuantity = 100
                 )
                 val savedInventory = inventoryRepository.save(inventory)
                 val initialStock = savedInventory.quantity
@@ -109,7 +107,6 @@ class OrderCancelIntegrationTest(
                 // When: 주문 취소
                 val cancelledOrder = orderCommandUseCase.cancelOrder(
                     orderId = createdOrder.id,
-                    cancelledBy = userId,
                     reason = "단순 변심"
                 )
 
@@ -135,15 +132,13 @@ class OrderCancelIntegrationTest(
                     name = "배송 테스트 티",
                     description = "배송 테스트용",
                     price = 10000L,
-                    categoryId = 1L,
-                    createdBy = 0L
+                    categoryId = 1L
                 )
                 val savedProduct = productRepository.save(product)
 
                 val inventory = Inventory.create(
                     productId = savedProduct.id,
-                    initialQuantity = 100,
-                    createdBy = 0L
+                    initialQuantity = 100
                 )
                 inventoryRepository.save(inventory)
 
@@ -175,15 +170,15 @@ class OrderCancelIntegrationTest(
                 val createdOrder = orderCommandUseCase.createOrder(createOrderRequest)
 
                 // 주문 확정 (배송 시작)
-                orderCommandUseCase.confirmOrder(createdOrder.id, userId)
+                orderCommandUseCase.confirmOrder(createdOrder.id)
 
                 // 배송 준비 시작 (이제 취소 불가)
                 val delivery = deliveryService.getDeliveryByOrderId(createdOrder.id)
-                delivery.let { deliveryService.startPreparing(it.id, userId) }
+                delivery.let { deliveryService.startPreparing(it.id) }
 
                 // When & Then: 배송 준비 중인 주문은 취소 불가
                 val exception = runCatching {
-                    orderCommandUseCase.cancelOrder(createdOrder.id, userId, "취소 시도")
+                    orderCommandUseCase.cancelOrder(createdOrder.id, "취소 시도")
                 }.exceptionOrNull()
 
                 exception shouldNotBe null
@@ -200,7 +195,7 @@ class OrderCancelIntegrationTest(
 
                 // When & Then
                 val exception = runCatching {
-                    orderCommandUseCase.cancelOrder(nonExistentOrderId, 1L, "취소")
+                    orderCommandUseCase.cancelOrder(nonExistentOrderId, "취소")
                 }.exceptionOrNull()
 
                 exception shouldNotBe null
