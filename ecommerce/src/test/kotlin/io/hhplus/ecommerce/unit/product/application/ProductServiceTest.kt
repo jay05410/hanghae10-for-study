@@ -38,12 +38,12 @@ class ProductServiceTest : DescribeSpec({
                 val page = 1
                 val mockProducts = listOf(mockk<Product>(), mockk<Product>(), mockk<Product>())
 
-                every { mockProductRepository.findAllByIsActive(true) } returns mockProducts
+                every { mockProductRepository.findAllByIsActive() } returns mockProducts
 
                 val result = sut.getProducts(page)
 
                 result shouldBe mockProducts
-                verify(exactly = 1) { mockProductRepository.findAllByIsActive(true) }
+                verify(exactly = 1) { mockProductRepository.findAllByIsActive() }
             }
         }
 
@@ -53,12 +53,12 @@ class ProductServiceTest : DescribeSpec({
                 val mockProducts = listOf(mockk<Product>(), mockk<Product>())
 
                 pages.forEach { page ->
-                    every { mockProductRepository.findAllByIsActive(true) } returns mockProducts
+                    every { mockProductRepository.findAllByIsActive() } returns mockProducts
 
                     val result = sut.getProducts(page)
 
                     result shouldBe mockProducts
-                    verify(exactly = 1) { mockProductRepository.findAllByIsActive(true) }
+                    verify(exactly = 1) { mockProductRepository.findAllByIsActive() }
                     clearMocks(mockProductRepository)
                 }
             }
@@ -66,12 +66,12 @@ class ProductServiceTest : DescribeSpec({
 
         context("상품이 없는 경우") {
             it("빈 리스트를 반환") {
-                every { mockProductRepository.findAllByIsActive(true) } returns emptyList()
+                every { mockProductRepository.findAllByIsActive() } returns emptyList()
 
                 val result = sut.getProducts(1)
 
                 result shouldBe emptyList()
-                verify(exactly = 1) { mockProductRepository.findAllByIsActive(true) }
+                verify(exactly = 1) { mockProductRepository.findAllByIsActive() }
             }
         }
     }
@@ -82,12 +82,12 @@ class ProductServiceTest : DescribeSpec({
                 val productId = 1L
                 val mockProduct = mockk<Product>()
 
-                every { mockProductRepository.findByIdAndIsActive(productId, true) } returns mockProduct
+                every { mockProductRepository.findByIdAndIsActive(productId) } returns mockProduct
 
                 val result = sut.getProduct(productId)
 
                 result shouldBe mockProduct
-                verify(exactly = 1) { mockProductRepository.findByIdAndIsActive(productId, true) }
+                verify(exactly = 1) { mockProductRepository.findByIdAndIsActive(productId) }
             }
         }
 
@@ -95,13 +95,13 @@ class ProductServiceTest : DescribeSpec({
             it("ProductNotFound 예외를 발생") {
                 val productId = 999L
 
-                every { mockProductRepository.findByIdAndIsActive(productId, true) } returns null
+                every { mockProductRepository.findByIdAndIsActive(productId) } returns null
 
                 shouldThrow<ProductException.ProductNotFound> {
                     sut.getProduct(productId)
                 }
 
-                verify(exactly = 1) { mockProductRepository.findByIdAndIsActive(productId, true) }
+                verify(exactly = 1) { mockProductRepository.findByIdAndIsActive(productId) }
             }
         }
 
@@ -109,13 +109,13 @@ class ProductServiceTest : DescribeSpec({
             it("ProductNotFound 예외를 발생") {
                 val productId = 2L
 
-                every { mockProductRepository.findByIdAndIsActive(productId, true) } returns null
+                every { mockProductRepository.findByIdAndIsActive(productId) } returns null
 
                 shouldThrow<ProductException.ProductNotFound> {
                     sut.getProduct(productId)
                 }
 
-                verify(exactly = 1) { mockProductRepository.findByIdAndIsActive(productId, true) }
+                verify(exactly = 1) { mockProductRepository.findByIdAndIsActive(productId) }
             }
         }
 
@@ -125,12 +125,12 @@ class ProductServiceTest : DescribeSpec({
 
                 productIds.forEach { productId ->
                     val mockProduct = mockk<Product>()
-                    every { mockProductRepository.findByIdAndIsActive(productId, true) } returns mockProduct
+                    every { mockProductRepository.findByIdAndIsActive(productId) } returns mockProduct
 
                     val result = sut.getProduct(productId)
 
                     result shouldBe mockProduct
-                    verify(exactly = 1) { mockProductRepository.findByIdAndIsActive(productId, true) }
+                    verify(exactly = 1) { mockProductRepository.findByIdAndIsActive(productId) }
                     clearMocks(mockProductRepository)
                 }
             }
@@ -237,12 +237,12 @@ class ProductServiceTest : DescribeSpec({
                 val categoryId = 1L
                 val mockProducts = listOf(mockk<Product>(), mockk<Product>())
 
-                every { mockProductRepository.findByCategoryIdAndIsActive(categoryId, true) } returns mockProducts
+                every { mockProductRepository.findByCategoryIdAndIsActive(categoryId) } returns mockProducts
 
                 val result = sut.getProductsByCategory(categoryId)
 
                 result shouldBe mockProducts
-                verify(exactly = 1) { mockProductRepository.findByCategoryIdAndIsActive(categoryId, true) }
+                verify(exactly = 1) { mockProductRepository.findByCategoryIdAndIsActive(categoryId) }
             }
         }
 
@@ -250,12 +250,12 @@ class ProductServiceTest : DescribeSpec({
             it("빈 리스트를 반환") {
                 val categoryId = 999L
 
-                every { mockProductRepository.findByCategoryIdAndIsActive(categoryId, true) } returns emptyList()
+                every { mockProductRepository.findByCategoryIdAndIsActive(categoryId) } returns emptyList()
 
                 val result = sut.getProductsByCategory(categoryId)
 
                 result shouldBe emptyList()
-                verify(exactly = 1) { mockProductRepository.findByCategoryIdAndIsActive(categoryId, true) }
+                verify(exactly = 1) { mockProductRepository.findByCategoryIdAndIsActive(categoryId) }
             }
         }
 
@@ -265,12 +265,12 @@ class ProductServiceTest : DescribeSpec({
 
                 categoryIds.forEach { categoryId ->
                     val mockProducts = listOf(mockk<Product>())
-                    every { mockProductRepository.findByCategoryIdAndIsActive(categoryId, true) } returns mockProducts
+                    every { mockProductRepository.findByCategoryIdAndIsActive(categoryId) } returns mockProducts
 
                     val result = sut.getProductsByCategory(categoryId)
 
                     result shouldBe mockProducts
-                    verify(exactly = 1) { mockProductRepository.findByCategoryIdAndIsActive(categoryId, true) }
+                    verify(exactly = 1) { mockProductRepository.findByCategoryIdAndIsActive(categoryId) }
                     clearMocks(mockProductRepository)
                 }
             }
@@ -283,19 +283,19 @@ class ProductServiceTest : DescribeSpec({
                 val mockProduct = mockk<Product>()
 
                 // getProducts 테스트
-                every { mockProductRepository.findAllByIsActive(true) } returns listOf(mockProduct)
+                every { mockProductRepository.findAllByIsActive() } returns listOf(mockProduct)
                 sut.getProducts(1)
-                verify(exactly = 1) { mockProductRepository.findAllByIsActive(true) }
-                verify(exactly = 0) { mockProductRepository.findByIdAndIsActive(any(), any()) }
+                verify(exactly = 1) { mockProductRepository.findAllByIsActive() }
+                verify(exactly = 0) { mockProductRepository.findByIdAndIsActive(any()) }
                 verify(exactly = 0) { mockProductRepository.save(any()) }
 
                 clearMocks(mockProductRepository)
 
                 // getProduct 테스트
-                every { mockProductRepository.findByIdAndIsActive(1L, true) } returns mockProduct
+                every { mockProductRepository.findByIdAndIsActive(1L) } returns mockProduct
                 sut.getProduct(1L)
-                verify(exactly = 1) { mockProductRepository.findByIdAndIsActive(1L, true) }
-                verify(exactly = 0) { mockProductRepository.findAllByIsActive(any()) }
+                verify(exactly = 1) { mockProductRepository.findByIdAndIsActive(1L) }
+                verify(exactly = 0) { mockProductRepository.findAllByIsActive() }
                 verify(exactly = 0) { mockProductRepository.save(any()) }
 
                 clearMocks(mockProductRepository)
@@ -304,8 +304,8 @@ class ProductServiceTest : DescribeSpec({
                 every { mockProductRepository.save(any()) } returns mockProduct
                 sut.createProduct("테스트", "설명", 1000L, 1L, 1L)
                 verify(exactly = 1) { mockProductRepository.save(any()) }
-                verify(exactly = 0) { mockProductRepository.findByIdAndIsActive(any(), any()) }
-                verify(exactly = 0) { mockProductRepository.findAllByIsActive(any()) }
+                verify(exactly = 0) { mockProductRepository.findByIdAndIsActive(any()) }
+                verify(exactly = 0) { mockProductRepository.findAllByIsActive() }
             }
         }
 
@@ -315,23 +315,23 @@ class ProductServiceTest : DescribeSpec({
                 val mockProducts = listOf(mockProduct)
 
                 // getProducts 확인
-                every { mockProductRepository.findAllByIsActive(true) } returns mockProducts
+                every { mockProductRepository.findAllByIsActive() } returns mockProducts
                 sut.getProducts(1)
-                verify(exactly = 1) { mockProductRepository.findAllByIsActive(true) }
+                verify(exactly = 1) { mockProductRepository.findAllByIsActive() }
 
                 clearMocks(mockProductRepository)
 
                 // getProduct 확인
-                every { mockProductRepository.findByIdAndIsActive(1L, true) } returns mockProduct
+                every { mockProductRepository.findByIdAndIsActive(1L) } returns mockProduct
                 sut.getProduct(1L)
-                verify(exactly = 1) { mockProductRepository.findByIdAndIsActive(1L, true) }
+                verify(exactly = 1) { mockProductRepository.findByIdAndIsActive(1L) }
 
                 clearMocks(mockProductRepository)
 
                 // getProductsByCategory 확인
-                every { mockProductRepository.findByCategoryIdAndIsActive(1L, true) } returns mockProducts
+                every { mockProductRepository.findByCategoryIdAndIsActive(1L) } returns mockProducts
                 sut.getProductsByCategory(1L)
-                verify(exactly = 1) { mockProductRepository.findByCategoryIdAndIsActive(1L, true) }
+                verify(exactly = 1) { mockProductRepository.findByCategoryIdAndIsActive(1L) }
             }
         }
     }

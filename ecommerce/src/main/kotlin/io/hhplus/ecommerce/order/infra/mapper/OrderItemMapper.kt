@@ -2,6 +2,7 @@ package io.hhplus.ecommerce.order.infra.mapper
 
 import io.hhplus.ecommerce.order.domain.entity.OrderItem
 import io.hhplus.ecommerce.order.infra.persistence.entity.OrderItemJpaEntity
+import io.hhplus.ecommerce.order.infra.persistence.entity.OrderJpaEntity
 import org.springframework.stereotype.Component
 
 /**
@@ -40,6 +41,12 @@ class OrderItemMapper {
 
     /**
      * 도메인 모델 -> JPA 엔티티 변환
+     *
+     * Dual Mapping Pattern 적용:
+     * - orderId만 사용하여 엔티티 생성 (EntityManager 불필요)
+     * - order 참조는 읽기 전용으로 엔티티에 설정됨
+     *
+     * @param domain 도메인 모델
      */
     fun toEntity(domain: OrderItem): OrderItemJpaEntity {
         return OrderItemJpaEntity(
@@ -70,6 +77,8 @@ class OrderItemMapper {
 
     /**
      * 도메인 모델 리스트 -> JPA 엔티티 리스트 변환
+     *
+     * @param domains 도메인 모델 리스트
      */
     fun toEntityList(domains: List<OrderItem>): List<OrderItemJpaEntity> {
         return domains.map { toEntity(it) }
@@ -85,7 +94,7 @@ class OrderItemMapper {
  *
  * 사용법:
  * - entity.toDomain(mapper)  // JPA Entity → Domain
- * - domain.toEntity(mapper)   // Domain → JPA Entity
+ * - domain.toEntity(mapper)   // Domain → JPA Entity (Dual Mapping Pattern)
  * - entities.toDomain(mapper) // List 변환
  */
 fun OrderItemJpaEntity?.toDomain(mapper: OrderItemMapper): OrderItem? =

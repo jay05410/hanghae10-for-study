@@ -6,6 +6,7 @@ import io.hhplus.ecommerce.order.infra.mapper.OrderItemMapper
 import io.hhplus.ecommerce.order.infra.mapper.toDomain
 import io.hhplus.ecommerce.order.infra.mapper.toEntity
 import io.hhplus.ecommerce.order.infra.persistence.repository.OrderItemJpaRepository
+import jakarta.persistence.EntityManager
 import org.springframework.stereotype.Repository
 
 /**
@@ -23,8 +24,16 @@ class OrderItemRepositoryImpl(
     private val mapper: OrderItemMapper
 ) : OrderItemRepository {
 
-    override fun save(orderItem: OrderItem): OrderItem =
-        jpaRepository.save(orderItem.toEntity(mapper)).toDomain(mapper)!!
+    /**
+     * OrderItem 저장
+     *
+     * Dual Mapping Pattern:
+     * - orderId만 사용하여 저장 (EntityManager 불필요)
+     * - order 참조는 읽기 전용으로 자동 매핑됨
+     */
+    override fun save(orderItem: OrderItem): OrderItem {
+        return jpaRepository.save(orderItem.toEntity(mapper)).toDomain(mapper)!!
+    }
 
     override fun findById(id: Long): OrderItem? =
         jpaRepository.findById(id).orElse(null).toDomain(mapper)

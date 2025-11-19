@@ -20,8 +20,7 @@ import jakarta.persistence.*
     name = "cart_items",
     indexes = [
         Index(name = "idx_cart_item_cart", columnList = "cart_id"),
-        Index(name = "idx_cart_item_product", columnList = "product_id"),
-        Index(name = "idx_cart_item_active", columnList = "is_active, created_at")
+        Index(name = "idx_cart_item_product", columnList = "product_id")
     ]
 )
 class CartItemJpaEntity(
@@ -29,9 +28,14 @@ class CartItemJpaEntity(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
+    // Dual Mapping Pattern: ID 필드로 저장
+    @Column(name = "cart_id", nullable = false)
+    val cartId: Long,
+
+    // Dual Mapping Pattern: 읽기 전용 참조 (N+1 방지용)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "cart_id", nullable = false)
-    val cart: CartJpaEntity,
+    @JoinColumn(name = "cart_id", insertable = false, updatable = false)
+    val cart: CartJpaEntity? = null,
 
     @Column(nullable = false, name = "product_id")
     val productId: Long,
@@ -44,6 +48,4 @@ class CartItemJpaEntity(
 
     @Column(length = 500, name = "gift_message")
     val giftMessage: String? = null
-) : BaseJpaEntity() {
-    val cartId: Long get() = cart.id
-}
+) : BaseJpaEntity()

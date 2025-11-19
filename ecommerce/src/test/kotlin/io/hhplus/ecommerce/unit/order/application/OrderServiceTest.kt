@@ -175,13 +175,13 @@ class OrderServiceTest : DescribeSpec({
                     createMockOrder(id = 2L, userId = userId)
                 )
 
-                every { mockOrderRepository.findByUserIdAndIsActive(userId, true) } returns mockOrders
+                every { mockOrderRepository.findOrdersWithItemsByUserId(userId) } returns mockOrders
 
                 val result = sut.getOrdersByUser(userId)
 
                 result shouldHaveSize 2
                 result shouldBe mockOrders
-                verify(exactly = 1) { mockOrderRepository.findByUserIdAndIsActive(userId, true) }
+                verify(exactly = 1) { mockOrderRepository.findOrdersWithItemsByUserId(userId) }
             }
         }
 
@@ -189,12 +189,12 @@ class OrderServiceTest : DescribeSpec({
             it("빈 목록을 반환") {
                 val userId = 2L
 
-                every { mockOrderRepository.findByUserIdAndIsActive(userId, true) } returns emptyList()
+                every { mockOrderRepository.findOrdersWithItemsByUserId(userId) } returns emptyList()
 
                 val result = sut.getOrdersByUser(userId)
 
                 result.shouldBeEmpty()
-                verify(exactly = 1) { mockOrderRepository.findByUserIdAndIsActive(userId, true) }
+                verify(exactly = 1) { mockOrderRepository.findOrdersWithItemsByUserId(userId) }
             }
         }
     }

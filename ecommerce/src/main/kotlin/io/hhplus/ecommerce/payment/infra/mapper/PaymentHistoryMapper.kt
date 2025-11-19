@@ -2,6 +2,7 @@ package io.hhplus.ecommerce.payment.infra.mapper
 
 import io.hhplus.ecommerce.payment.domain.entity.PaymentHistory
 import io.hhplus.ecommerce.payment.infra.persistence.entity.PaymentHistoryJpaEntity
+import io.hhplus.ecommerce.payment.infra.persistence.entity.PaymentJpaEntity
 import org.springframework.stereotype.Component
 
 /**
@@ -43,6 +44,10 @@ class PaymentHistoryMapper {
     /**
      * 도메인 모델을 JPA 엔티티로 변환
      *
+     * Dual Mapping Pattern 적용:
+     * - paymentId만 사용하여 엔티티 생성 (EntityManager 불필요)
+     * - payment 참조는 읽기 전용으로 엔티티에 설정됨
+     *
      * @param domain 도메인 모델
      * @return JPA 엔티티
      */
@@ -73,6 +78,8 @@ class PaymentHistoryMapper {
 
     /**
      * 도메인 모델 리스트를 JPA 엔티티 리스트로 변환
+     *
+     * @param domains 도메인 모델 리스트
      */
     fun toEntityList(domains: List<PaymentHistory>): List<PaymentHistoryJpaEntity> {
         return domains.map { toEntity(it) }
@@ -88,7 +95,7 @@ class PaymentHistoryMapper {
  *
  * 사용법:
  * - entity.toDomain(mapper)  // JPA Entity → Domain
- * - domain.toEntity(mapper)   // Domain → JPA Entity
+ * - domain.toEntity(mapper)   // Domain → JPA Entity (Dual Mapping Pattern)
  * - entities.toDomain(mapper) // List 변환
  */
 fun PaymentHistoryJpaEntity?.toDomain(mapper: PaymentHistoryMapper): PaymentHistory? =

@@ -40,10 +40,10 @@ class CouponRepositoryImpl(
         jpaRepository.findByCode(code).toDomain(mapper)
 
     override fun findAvailableCoupons(): List<Coupon> =
-        jpaRepository.findByIsActiveTrue().toDomain(mapper)
+        jpaRepository.findAllActive().toDomain(mapper)
 
     override fun findByIsActiveTrue(): List<Coupon> =
-        jpaRepository.findByIsActiveTrue().toDomain(mapper)
+        jpaRepository.findAllActive().toDomain(mapper)
 
     override fun findByValidDateRange(startDate: LocalDateTime, endDate: LocalDateTime): List<Coupon> =
         jpaRepository.findByValidDateRange(startDate, endDate).toDomain(mapper)

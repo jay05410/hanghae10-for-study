@@ -23,8 +23,7 @@ import java.time.LocalDateTime
     indexes = [
         Index(name = "uk_coupon_name", columnList = "name", unique = true),
         Index(name = "uk_coupon_code", columnList = "code", unique = true),
-        Index(name = "idx_coupon_valid_period", columnList = "valid_from, valid_to"),
-        Index(name = "idx_coupon_active", columnList = "is_active")
+        Index(name = "idx_coupon_valid_period", columnList = "valid_from, valid_to")
     ]
 )
 class CouponJpaEntity(

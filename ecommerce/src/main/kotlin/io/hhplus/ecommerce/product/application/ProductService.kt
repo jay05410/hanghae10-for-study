@@ -32,11 +32,11 @@ class ProductService(
      */
     fun getProducts(page: Int): List<Product> {
         // TODO: 실제 페이징 로직 구현
-        return productRepository.findAllByIsActive(true)
+        return productRepository.findAllByIsActive()
     }
 
     fun getProduct(productId: Long): Product {
-        return productRepository.findByIdAndIsActive(productId, true)
+        return productRepository.findByIdAndIsActive(productId)
             ?: throw ProductException.ProductNotFound(productId)
     }
 
@@ -133,6 +133,6 @@ class ProductService(
      * 카테고리별 상품 조회
      */
     fun getProductsByCategory(categoryId: Long): List<Product> {
-        return productRepository.findByCategoryIdAndIsActive(categoryId, true)
+        return productRepository.findByCategoryIdAndIsActive(categoryId)
     }
 }

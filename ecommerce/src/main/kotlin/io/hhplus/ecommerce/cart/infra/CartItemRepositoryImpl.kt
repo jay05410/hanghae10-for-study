@@ -6,6 +6,7 @@ import io.hhplus.ecommerce.cart.infra.mapper.CartItemMapper
 import io.hhplus.ecommerce.cart.infra.mapper.toDomain
 import io.hhplus.ecommerce.cart.infra.mapper.toEntity
 import io.hhplus.ecommerce.cart.infra.persistence.repository.CartItemJpaRepository
+import jakarta.persistence.EntityManager
 import org.springframework.stereotype.Repository
 
 /**
@@ -23,14 +24,22 @@ class CartItemRepositoryImpl(
     private val mapper: CartItemMapper
 ) : CartItemRepository {
 
-    override fun save(cartItem: CartItem): CartItem =
-        jpaRepository.save(cartItem.toEntity(mapper)).toDomain(mapper)!!
+    /**
+     * CartItem 저장
+     *
+     * Dual Mapping Pattern:
+     * - cartId만 사용하여 저장 (EntityManager 불필요)
+     * - cart 참조는 읽기 전용으로 자동 매핑됨
+     */
+    override fun save(cartItem: CartItem): CartItem {
+        return jpaRepository.save(cartItem.toEntity(mapper)).toDomain(mapper)!!
+    }
 
     override fun findById(id: Long): CartItem? =
         jpaRepository.findById(id).orElse(null).toDomain(mapper)
 
     override fun findByCartId(cartId: Long): List<CartItem> =
-        jpaRepository.findByCartIdAndIsActive(cartId, true).toDomain(mapper)
+        jpaRepository.findActiveByCartId(cartId).toDomain(mapper)
 
     override fun findByCartIdAndProductId(cartId: Long, productId: Long): CartItem? =
         jpaRepository.findByCartIdAndProductId(cartId, productId).toDomain(mapper)

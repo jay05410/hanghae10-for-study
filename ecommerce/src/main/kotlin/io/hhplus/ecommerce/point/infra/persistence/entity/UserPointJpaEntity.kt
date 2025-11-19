@@ -19,8 +19,7 @@ import jakarta.persistence.*
 @Table(
     name = "user_point",
     indexes = [
-        Index(name = "uk_user_point_user", columnList = "user_id", unique = true),
-        Index(name = "idx_user_point_active", columnList = "is_active, deleted_at")
+        Index(name = "uk_user_point_user", columnList = "user_id", unique = true)
     ]
 )
 class UserPointJpaEntity(

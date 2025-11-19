@@ -35,12 +35,12 @@ class CartServiceTest : DescribeSpec({
             it("Repository에서 조회한 장바구니를 반환") {
                 val userId = 1L
                 val existingCart = mockk<Cart>()
-                every { mockCartRepository.findByUserId(userId) } returns existingCart
+                every { mockCartRepository.findByUserIdWithItems(userId) } returns existingCart
 
                 val result = sut.getOrCreateCart(userId)
 
                 result shouldBe existingCart
-                verify(exactly = 1) { mockCartRepository.findByUserId(userId) }
+                verify(exactly = 1) { mockCartRepository.findByUserIdWithItems(userId) }
                 verify(exactly = 0) { mockCartRepository.save(any()) }
             }
         }
@@ -50,7 +50,7 @@ class CartServiceTest : DescribeSpec({
                 val userId = 1L
                 val newCart = mockk<Cart>()
 
-                every { mockCartRepository.findByUserId(userId) } returns null
+                every { mockCartRepository.findByUserIdWithItems(userId) } returns null
                 mockkObject(Cart.Companion)
                 every { Cart.create(userId = userId, createdBy = userId) } returns newCart
                 every { mockCartRepository.save(newCart) } returns newCart
@@ -58,7 +58,7 @@ class CartServiceTest : DescribeSpec({
                 val result = sut.getOrCreateCart(userId)
 
                 result shouldBe newCart
-                verify(exactly = 1) { mockCartRepository.findByUserId(userId) }
+                verify(exactly = 1) { mockCartRepository.findByUserIdWithItems(userId) }
                 verify(exactly = 1) { Cart.create(userId = userId, createdBy = userId) }
                 verify(exactly = 1) { mockCartRepository.save(newCart) }
             }
@@ -86,7 +86,7 @@ class CartServiceTest : DescribeSpec({
                 val mockNewCartItem = spyk(realCartItem)
 
                 every { mockCart.items } returns emptyList()
-                every { mockCartRepository.findByUserId(userId) } returns mockCart
+                every { mockCartRepository.findByUserIdWithItems(userId) } returns mockCart
                 every { mockCart.addItem(
                     productId = productId,
                     quantity = quantity,
@@ -129,7 +129,7 @@ class CartServiceTest : DescribeSpec({
                 val mockSavedCart = mockk<Cart>(relaxed = true)
 
                 every { mockCart.items } returns listOf(mockExistingItem)
-                every { mockCartRepository.findByUserId(userId) } returns mockCart
+                every { mockCartRepository.findByUserIdWithItems(userId) } returns mockCart
                 every { mockCart.updateItem(1L, quantity, giftWrap, giftMessage, userId) } just Runs
                 every { mockCartRepository.save(mockCart) } returns mockSavedCart
 
@@ -169,7 +169,7 @@ class CartServiceTest : DescribeSpec({
                 val mockNewCartItem = spyk(realNewCartItem)
 
                 every { mockCart.items } returns listOf(mockExistingItem)
-                every { mockCartRepository.findByUserId(userId) } returns mockCart
+                every { mockCartRepository.findByUserIdWithItems(userId) } returns mockCart
                 every { mockCart.addItem(
                     productId = productId,
                     quantity = quantity,
@@ -203,14 +203,14 @@ class CartServiceTest : DescribeSpec({
                 val updatedBy = 1L
                 val mockCart = mockk<Cart>(relaxed = true)
 
-                every { mockCartRepository.findByUserId(userId) } returns mockCart
+                every { mockCartRepository.findByUserIdWithItems(userId) } returns mockCart
                 every { mockCart.updateItemQuantity(cartItemId, quantity, updatedBy) } just Runs
                 every { mockCartRepository.save(mockCart) } returns mockCart
 
                 val result = sut.updateCartItem(userId, cartItemId, quantity, updatedBy)
 
                 result shouldBe mockCart
-                verify(exactly = 1) { mockCartRepository.findByUserId(userId) }
+                verify(exactly = 1) { mockCartRepository.findByUserIdWithItems(userId) }
                 verify(exactly = 1) { mockCart.updateItemQuantity(cartItemId, quantity, updatedBy) }
                 verify(exactly = 1) { mockCartRepository.save(mockCart) }
                 verify(exactly = 0) { mockCart.removeItem(any(), any()) }
@@ -225,14 +225,14 @@ class CartServiceTest : DescribeSpec({
                 val updatedBy = 1L
                 val mockCart = mockk<Cart>(relaxed = true)
 
-                every { mockCartRepository.findByUserId(userId) } returns mockCart
+                every { mockCartRepository.findByUserIdWithItems(userId) } returns mockCart
                 every { mockCart.removeItem(cartItemId, updatedBy) } just Runs
                 every { mockCartRepository.save(mockCart) } returns mockCart
 
                 val result = sut.updateCartItem(userId, cartItemId, quantity, updatedBy)
 
                 result shouldBe mockCart
-                verify(exactly = 1) { mockCartRepository.findByUserId(userId) }
+                verify(exactly = 1) { mockCartRepository.findByUserIdWithItems(userId) }
                 verify(exactly = 1) { mockCart.removeItem(cartItemId, updatedBy) }
                 verify(exactly = 1) { mockCartRepository.save(mockCart) }
                 verify(exactly = 0) { mockCart.updateItemQuantity(any(), any(), any()) }
@@ -246,13 +246,13 @@ class CartServiceTest : DescribeSpec({
                 val quantity = 5
                 val updatedBy = 1L
 
-                every { mockCartRepository.findByUserId(userId) } returns null
+                every { mockCartRepository.findByUserIdWithItems(userId) } returns null
 
                 shouldThrow<CartException.CartNotFound> {
                     sut.updateCartItem(userId, cartItemId, quantity, updatedBy)
                 }
 
-                verify(exactly = 1) { mockCartRepository.findByUserId(userId) }
+                verify(exactly = 1) { mockCartRepository.findByUserIdWithItems(userId) }
                 verify(exactly = 0) { mockCartRepository.save(any()) }
             }
         }
@@ -265,14 +265,14 @@ class CartServiceTest : DescribeSpec({
                 val cartItemId = 1L
                 val mockCart = mockk<Cart>(relaxed = true)
 
-                every { mockCartRepository.findByUserId(userId) } returns mockCart
+                every { mockCartRepository.findByUserIdWithItems(userId) } returns mockCart
                 every { mockCart.removeItem(cartItemId, userId) } just Runs
                 every { mockCartRepository.save(mockCart) } returns mockCart
 
                 val result = sut.removeCartItem(userId, cartItemId)
 
                 result shouldBe mockCart
-                verify(exactly = 1) { mockCartRepository.findByUserId(userId) }
+                verify(exactly = 1) { mockCartRepository.findByUserIdWithItems(userId) }
                 verify(exactly = 1) { mockCart.removeItem(cartItemId, userId) }
                 verify(exactly = 1) { mockCartRepository.save(mockCart) }
             }
@@ -283,13 +283,13 @@ class CartServiceTest : DescribeSpec({
                 val userId = 999L
                 val cartItemId = 1L
 
-                every { mockCartRepository.findByUserId(userId) } returns null
+                every { mockCartRepository.findByUserIdWithItems(userId) } returns null
 
                 shouldThrow<CartException.CartNotFound> {
                     sut.removeCartItem(userId, cartItemId)
                 }
 
-                verify(exactly = 1) { mockCartRepository.findByUserId(userId) }
+                verify(exactly = 1) { mockCartRepository.findByUserIdWithItems(userId) }
                 verify(exactly = 0) { mockCartRepository.save(any()) }
             }
         }
@@ -301,14 +301,14 @@ class CartServiceTest : DescribeSpec({
                 val userId = 1L
                 val mockCart = mockk<Cart>(relaxed = true)
 
-                every { mockCartRepository.findByUserId(userId) } returns mockCart
+                every { mockCartRepository.findByUserIdWithItems(userId) } returns mockCart
                 every { mockCart.clear(userId) } just Runs
                 every { mockCartRepository.save(mockCart) } returns mockCart
 
                 val result = sut.clearCart(userId)
 
                 result shouldBe mockCart
-                verify(exactly = 1) { mockCartRepository.findByUserId(userId) }
+                verify(exactly = 1) { mockCartRepository.findByUserIdWithItems(userId) }
                 verify(exactly = 1) { mockCart.clear(userId) }
                 verify(exactly = 1) { mockCartRepository.save(mockCart) }
             }
@@ -318,13 +318,13 @@ class CartServiceTest : DescribeSpec({
             it("CartException.CartNotFound를 발생") {
                 val userId = 999L
 
-                every { mockCartRepository.findByUserId(userId) } returns null
+                every { mockCartRepository.findByUserIdWithItems(userId) } returns null
 
                 shouldThrow<CartException.CartNotFound> {
                     sut.clearCart(userId)
                 }
 
-                verify(exactly = 1) { mockCartRepository.findByUserId(userId) }
+                verify(exactly = 1) { mockCartRepository.findByUserIdWithItems(userId) }
                 verify(exactly = 0) { mockCartRepository.save(any()) }
             }
         }
@@ -336,12 +336,12 @@ class CartServiceTest : DescribeSpec({
                 val userId = 1L
                 val expectedCart = mockk<Cart>()
 
-                every { mockCartRepository.findByUserId(userId) } returns expectedCart
+                every { mockCartRepository.findByUserIdWithItems(userId) } returns expectedCart
 
                 val result = sut.getCartByUser(userId)
 
                 result shouldBe expectedCart
-                verify(exactly = 1) { mockCartRepository.findByUserId(userId) }
+                verify(exactly = 1) { mockCartRepository.findByUserIdWithItems(userId) }
             }
         }
 
@@ -349,12 +349,12 @@ class CartServiceTest : DescribeSpec({
             it("null을 반환") {
                 val userId = 999L
 
-                every { mockCartRepository.findByUserId(userId) } returns null
+                every { mockCartRepository.findByUserIdWithItems(userId) } returns null
 
                 val result = sut.getCartByUser(userId)
 
                 result shouldBe null
-                verify(exactly = 1) { mockCartRepository.findByUserId(userId) }
+                verify(exactly = 1) { mockCartRepository.findByUserIdWithItems(userId) }
             }
         }
     }
@@ -369,7 +369,7 @@ class CartServiceTest : DescribeSpec({
                 val mockCartItem2 = mockk<CartItem> { every { id } returns 12L; every { productId } returns 2L }
                 val mockCartItem3 = mockk<CartItem> { every { id } returns 13L; every { productId } returns 3L }
 
-                every { mockCartRepository.findByUserId(userId) } returns mockCart
+                every { mockCartRepository.findByUserIdWithItems(userId) } returns mockCart
                 every { mockCart.items } returns listOf(mockCartItem1, mockCartItem2, mockCartItem3)
                 every { mockCart.removeItem(11L, userId) } just Runs
                 every { mockCart.removeItem(13L, userId) } just Runs
@@ -378,7 +378,7 @@ class CartServiceTest : DescribeSpec({
 
                 sut.removeOrderedItems(userId, orderedProductIds)
 
-                verify(exactly = 1) { mockCartRepository.findByUserId(userId) }
+                verify(exactly = 1) { mockCartRepository.findByUserIdWithItems(userId) }
                 verify(exactly = 1) { mockCart.removeItem(11L, userId) }
                 verify(exactly = 1) { mockCart.removeItem(13L, userId) }
                 verify(exactly = 0) { mockCart.removeItem(12L, userId) }
@@ -395,7 +395,7 @@ class CartServiceTest : DescribeSpec({
                 val mockCartItem1 = mockk<CartItem> { every { id } returns 11L; every { productId } returns 1L }
                 val mockCartItem2 = mockk<CartItem> { every { id } returns 12L; every { productId } returns 2L }
 
-                every { mockCartRepository.findByUserId(userId) } returns mockCart
+                every { mockCartRepository.findByUserIdWithItems(userId) } returns mockCart
                 every { mockCart.items } returns listOf(mockCartItem1, mockCartItem2)
                 every { mockCart.removeItem(11L, userId) } just Runs
                 every { mockCart.removeItem(12L, userId) } just Runs
@@ -404,7 +404,7 @@ class CartServiceTest : DescribeSpec({
 
                 sut.removeOrderedItems(userId, orderedProductIds)
 
-                verify(exactly = 1) { mockCartRepository.findByUserId(userId) }
+                verify(exactly = 1) { mockCartRepository.findByUserIdWithItems(userId) }
                 verify(exactly = 1) { mockCart.removeItem(11L, userId) }
                 verify(exactly = 1) { mockCart.removeItem(12L, userId) }
                 verify(exactly = 1) { mockCartRepository.delete(mockCart) }
@@ -417,11 +417,11 @@ class CartServiceTest : DescribeSpec({
                 val userId = 999L
                 val orderedProductIds = listOf(1L, 2L)
 
-                every { mockCartRepository.findByUserId(userId) } returns null
+                every { mockCartRepository.findByUserIdWithItems(userId) } returns null
 
                 sut.removeOrderedItems(userId, orderedProductIds)
 
-                verify(exactly = 1) { mockCartRepository.findByUserId(userId) }
+                verify(exactly = 1) { mockCartRepository.findByUserIdWithItems(userId) }
                 verify(exactly = 0) { mockCartRepository.save(any()) }
                 verify(exactly = 0) { mockCartRepository.delete(any()) }
             }
@@ -434,12 +434,12 @@ class CartServiceTest : DescribeSpec({
                 val userId = 1L
                 val mockCart = mockk<Cart>()
 
-                every { mockCartRepository.findByUserId(userId) } returns mockCart
+                every { mockCartRepository.findByUserIdWithItems(userId) } returns mockCart
                 every { mockCartRepository.delete(mockCart) } just Runs
 
                 sut.deleteCart(userId)
 
-                verify(exactly = 1) { mockCartRepository.findByUserId(userId) }
+                verify(exactly = 1) { mockCartRepository.findByUserIdWithItems(userId) }
                 verify(exactly = 1) { mockCartRepository.delete(mockCart) }
             }
         }
@@ -448,13 +448,13 @@ class CartServiceTest : DescribeSpec({
             it("CartException.CartNotFound를 발생") {
                 val userId = 999L
 
-                every { mockCartRepository.findByUserId(userId) } returns null
+                every { mockCartRepository.findByUserIdWithItems(userId) } returns null
 
                 shouldThrow<CartException.CartNotFound> {
                     sut.deleteCart(userId)
                 }
 
-                verify(exactly = 1) { mockCartRepository.findByUserId(userId) }
+                verify(exactly = 1) { mockCartRepository.findByUserIdWithItems(userId) }
                 verify(exactly = 0) { mockCartRepository.delete(any()) }
             }
         }

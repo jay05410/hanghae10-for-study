@@ -6,6 +6,7 @@ import io.hhplus.ecommerce.payment.infra.mapper.PaymentHistoryMapper
 import io.hhplus.ecommerce.payment.infra.mapper.toDomain
 import io.hhplus.ecommerce.payment.infra.mapper.toEntity
 import io.hhplus.ecommerce.payment.infra.persistence.repository.PaymentHistoryJpaRepository
+import jakarta.persistence.EntityManager
 import org.springframework.stereotype.Repository
 
 /**
@@ -23,8 +24,16 @@ class PaymentHistoryRepositoryImpl(
     private val mapper: PaymentHistoryMapper
 ) : PaymentHistoryRepository {
 
-    override fun save(paymentHistory: PaymentHistory): PaymentHistory =
-        jpaRepository.save(paymentHistory.toEntity(mapper)).toDomain(mapper)!!
+    /**
+     * PaymentHistory 저장
+     *
+     * Dual Mapping Pattern:
+     * - paymentId만 사용하여 저장 (EntityManager 불필요)
+     * - payment 참조는 읽기 전용으로 자동 매핑됨
+     */
+    override fun save(paymentHistory: PaymentHistory): PaymentHistory {
+        return jpaRepository.save(paymentHistory.toEntity(mapper)).toDomain(mapper)!!
+    }
 
     override fun findById(id: Long): PaymentHistory? =
         jpaRepository.findById(id).orElse(null).toDomain(mapper)

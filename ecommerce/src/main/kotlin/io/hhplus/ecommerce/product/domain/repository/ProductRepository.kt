@@ -13,9 +13,9 @@ import io.hhplus.ecommerce.product.domain.entity.Product
 interface ProductRepository {
     fun save(product: Product): Product
     fun findById(id: Long): Product?
-    fun findByIdAndIsActive(id: Long, isActive: Boolean): Product?
-    fun findAllByIsActive(isActive: Boolean): List<Product>
+    fun findByIdAndIsActive(id: Long): Product?
+    fun findAllByIsActive(): List<Product>
     fun findByStatus(status: ProductStatus): List<Product>
-    fun findByCategoryIdAndIsActive(categoryId: Long, isActive: Boolean): List<Product>
+    fun findByCategoryIdAndIsActive(categoryId: Long): List<Product>
     fun findByNameContaining(keyword: String): List<Product>
 }

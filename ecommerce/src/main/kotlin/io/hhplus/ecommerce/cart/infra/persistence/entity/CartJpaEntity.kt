@@ -19,8 +19,7 @@ import jakarta.persistence.*
 @Table(
     name = "carts",
     indexes = [
-        Index(name = "uk_cart_user", columnList = "user_id", unique = true),
-        Index(name = "idx_cart_active", columnList = "is_active, created_at")
+        Index(name = "uk_cart_user", columnList = "user_id", unique = true)
     ]
 )
 class CartJpaEntity(

@@ -145,13 +145,14 @@ class OrderService(
      */
     @Transactional
     fun confirmOrder(orderId: Long, confirmedBy: Long): Order {
-        val order = orderRepository.findOrderWithItemsById(orderId)
+        val order = orderRepository.findById(orderId)
             ?: throw IllegalArgumentException("주문을 찾을 수 없습니다")
 
         order.confirm(confirmedBy)
 
-        // 주문 완료 시 판매량 증가 (직접 참조 활용)
-        order.orderItems.forEach { orderItem ->
+        // 주문 완료 시 판매량 증가
+        val orderItems = orderItemRepository.findByOrderId(orderId)
+        orderItems.forEach { orderItem ->
             productStatisticsService.incrementSalesCount(
                 productId = orderItem.productId,
                 quantity = orderItem.quantity,

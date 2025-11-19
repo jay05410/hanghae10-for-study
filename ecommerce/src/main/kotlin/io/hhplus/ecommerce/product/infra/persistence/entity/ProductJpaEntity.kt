@@ -21,8 +21,7 @@ import jakarta.persistence.*
     name = "items",
     indexes = [
         Index(name = "idx_items_category_id", columnList = "category_id"),
-        Index(name = "idx_items_status", columnList = "status"),
-        Index(name = "idx_items_is_active", columnList = "is_active")
+        Index(name = "idx_items_status", columnList = "status")
     ]
 )
 class ProductJpaEntity(

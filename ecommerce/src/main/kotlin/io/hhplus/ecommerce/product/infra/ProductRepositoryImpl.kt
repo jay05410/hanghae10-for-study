@@ -30,17 +30,17 @@ class ProductRepositoryImpl(
     override fun findById(id: Long): Product? =
         jpaRepository.findById(id).orElse(null).toDomain(mapper)
 
-    override fun findByIdAndIsActive(id: Long, isActive: Boolean): Product? =
-        jpaRepository.findByIdAndIsActive(id, isActive).toDomain(mapper)
+    override fun findByIdAndIsActive(id: Long): Product? =
+        jpaRepository.findByIdAndIsActive(id).toDomain(mapper)
 
-    override fun findAllByIsActive(isActive: Boolean): List<Product> =
-        jpaRepository.findAllByIsActive(isActive).toDomain(mapper)
+    override fun findAllByIsActive(): List<Product> =
+        jpaRepository.findAllByIsActive().toDomain(mapper)
 
     override fun findByStatus(status: ProductStatus): List<Product> =
         jpaRepository.findByStatus(status).toDomain(mapper)
 
-    override fun findByCategoryIdAndIsActive(categoryId: Long, isActive: Boolean): List<Product> =
-        jpaRepository.findByCategoryIdAndIsActive(categoryId, isActive).toDomain(mapper)
+    override fun findByCategoryIdAndIsActive(categoryId: Long): List<Product> =
+        jpaRepository.findByCategoryIdAndIsActive(categoryId).toDomain(mapper)
 
     override fun findByNameContaining(keyword: String): List<Product> =
         jpaRepository.findByNameContaining(keyword).toDomain(mapper)

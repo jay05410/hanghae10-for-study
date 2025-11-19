@@ -42,5 +42,5 @@ interface InventoryJpaRepository : JpaRepository<InventoryJpaEntity, Long> {
      * @return 활성 재고 JPA 엔티티 리스트
      */
     @Query("SELECT i FROM InventoryJpaEntity i WHERE i.deletedAt IS NULL")
-    fun findByIsActive(@Param("isActive") isActive: Boolean): List<InventoryJpaEntity>
+    fun findAllActive(): List<InventoryJpaEntity>
 }

@@ -2,6 +2,7 @@ package io.hhplus.ecommerce.cart.infra.persistence.repository
 
 import io.hhplus.ecommerce.cart.infra.persistence.entity.CartItemJpaEntity
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 
@@ -11,6 +12,9 @@ import org.springframework.data.repository.query.Param
  * 역할:
  * - Spring Data JPA를 사용한 데이터베이스 접근
  * - 기본 CRUD 및 커스텀 쿼리 메서드 제공
+ *
+ * Dual Mapping Pattern:
+ * - cartId 필드를 직접 사용하여 쿼리 (cart 엔티티 참조 불필요)
  *
  * 주의:
  * - 이 인터페이스는 JPA 엔티티를 다룹니다
@@ -22,20 +26,24 @@ interface CartItemJpaRepository : JpaRepository<CartItemJpaEntity, Long> {
      * 장바구니 ID로 모든 활성 아이템 조회
      */
     @Query("SELECT ci FROM CartItemJpaEntity ci WHERE ci.cartId = :cartId AND ci.deletedAt IS NULL")
-    fun findByCartIdAndIsActive(@Param("cartId") cartId: Long): List<CartItemJpaEntity>
+    fun findActiveByCartId(@Param("cartId") cartId: Long): List<CartItemJpaEntity>
 
     /**
      * 장바구니 ID로 모든 아이템 조회 (활성 여부 무관)
      */
-    fun findByCartId(cartId: Long): List<CartItemJpaEntity>
+    @Query("SELECT ci FROM CartItemJpaEntity ci WHERE ci.cartId = :cartId")
+    fun findByCartId(@Param("cartId") cartId: Long): List<CartItemJpaEntity>
 
     /**
      * 장바구니 ID와 상품 ID로 아이템 조회
      */
-    fun findByCartIdAndProductId(cartId: Long, productId: Long): CartItemJpaEntity?
+    @Query("SELECT ci FROM CartItemJpaEntity ci WHERE ci.cartId = :cartId AND ci.productId = :productId")
+    fun findByCartIdAndProductId(@Param("cartId") cartId: Long, @Param("productId") productId: Long): CartItemJpaEntity?
 
     /**
      * 장바구니 ID로 모든 아이템 삭제
      */
-    fun deleteByCartId(cartId: Long)
+    @Modifying
+    @Query("DELETE FROM CartItemJpaEntity ci WHERE ci.cartId = :cartId")
+    fun deleteByCartId(@Param("cartId") cartId: Long)
 }

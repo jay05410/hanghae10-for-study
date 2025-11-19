@@ -25,6 +25,6 @@ interface UserPointJpaRepository : JpaRepository<UserPointJpaEntity, Long> {
     @Query("SELECT up FROM UserPointJpaEntity up WHERE up.userId = :userId")
     fun findByUserIdWithLock(@Param("userId") userId: Long): UserPointJpaEntity?
 
-    @Query("SELECT up FROM UserPointJpaEntity up LEFT JOIN FETCH up.pointHistories WHERE up.userId = :userId ORDER BY up.pointHistories.createdAt DESC")
+    @Query("SELECT up FROM UserPointJpaEntity up LEFT JOIN FETCH up.pointHistories ph WHERE up.userId = :userId ORDER BY ph.createdAt DESC")
     fun findUserPointWithHistoriesByUserId(@Param("userId") userId: Long): UserPointJpaEntity?
 }
