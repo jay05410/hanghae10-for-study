@@ -29,11 +29,7 @@ class InventoryMapper {
             productId = entity.productId,
             quantity = entity.quantity,
             reservedQuantity = entity.reservedQuantity,
-            version = entity.version,
-            createdAt = entity.createdAt,
-            updatedAt = entity.updatedAt,
-            createdBy = entity.createdBy ?: 0,
-            updatedBy = entity.updatedBy ?: 0
+            version = entity.version
         )
     }
 
@@ -50,10 +46,7 @@ class InventoryMapper {
             quantity = domain.quantity,
             reservedQuantity = domain.reservedQuantity,
             version = domain.version
-        ).apply {
-            createdBy = domain.createdBy
-            updatedBy = domain.updatedBy
-        }
+        )
     }
 
     /**

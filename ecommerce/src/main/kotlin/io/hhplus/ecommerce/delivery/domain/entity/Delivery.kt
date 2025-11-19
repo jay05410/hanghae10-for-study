@@ -31,41 +31,33 @@ data class Delivery(
     var status: DeliveryStatus = DeliveryStatus.PENDING,
     var shippedAt: LocalDateTime? = null,
     var deliveredAt: LocalDateTime? = null,
-    val deliveryMemo: String? = null,
-    val createdAt: LocalDateTime = LocalDateTime.now(),
-    var updatedAt: LocalDateTime = LocalDateTime.now(),
-    val createdBy: Long = 0,
-    var updatedBy: Long = 0
+    val deliveryMemo: String? = null
 ) {
 
     /**
      * 배송 상태를 변경
      *
      * @param newStatus 새로운 배송 상태
-     * @param updatedBy 상태 변경자 ID
      * @return 상태가 변경된 새로운 Delivery 인스턴스
      * @throws DeliveryException.InvalidDeliveryStateTransition 잘못된 상태 전환 시도 시
      */
-    fun updateStatus(newStatus: DeliveryStatus, updatedBy: Long): Delivery {
+    fun updateStatus(newStatus: DeliveryStatus): Delivery {
         if (!status.canTransitionTo(newStatus)) {
             throw DeliveryException.InvalidDeliveryStateTransition(status, newStatus)
         }
         return this.copy(
-            status = newStatus,
-            updatedBy = updatedBy,
-            updatedAt = LocalDateTime.now()
+            status = newStatus
         )
     }
 
     /**
      * 배송 준비 시작
      *
-     * @param updatedBy 상태 변경자 ID
      * @return 상태가 변경된 새로운 Delivery 인스턴스
      * @throws DeliveryException.InvalidDeliveryStateTransition 잘못된 상태 전환 시도 시
      */
-    fun startPreparing(updatedBy: Long): Delivery {
-        return updateStatus(DeliveryStatus.PREPARING, updatedBy)
+    fun startPreparing(): Delivery {
+        return updateStatus(DeliveryStatus.PREPARING)
     }
 
     /**
@@ -73,7 +65,6 @@ data class Delivery(
      *
      * @param trackingNumber 운송장 번호
      * @param carrier 택배사
-     * @param updatedBy 상태 변경자 ID
      * @param shippedAt 발송 일시 (기본값: 현재 시간)
      * @return 발송 처리된 새로운 Delivery 인스턴스
      * @throws DeliveryException.InvalidDeliveryStateTransition 잘못된 상태일 때
@@ -82,7 +73,6 @@ data class Delivery(
     fun ship(
         trackingNumber: String,
         carrier: String,
-        updatedBy: Long,
         shippedAt: LocalDateTime = LocalDateTime.now()
     ): Delivery {
         require(trackingNumber.isNotBlank()) { "운송장 번호는 필수입니다" }
@@ -96,42 +86,36 @@ data class Delivery(
             trackingNumber = trackingNumber,
             carrier = carrier,
             shippedAt = shippedAt,
-            status = DeliveryStatus.SHIPPED,
-            updatedBy = updatedBy,
-            updatedAt = LocalDateTime.now()
+            status = DeliveryStatus.SHIPPED
         )
     }
 
     /**
      * 배송 완료 처리
      *
-     * @param updatedBy 상태 변경자 ID
      * @param deliveredAt 배송 완료 일시 (기본값: 현재 시간)
      * @return 배송 완료 처리된 새로운 Delivery 인스턴스
      * @throws DeliveryException.InvalidDeliveryStateTransition 잘못된 상태일 때
      */
-    fun deliver(updatedBy: Long, deliveredAt: LocalDateTime = LocalDateTime.now()): Delivery {
+    fun deliver(deliveredAt: LocalDateTime = LocalDateTime.now()): Delivery {
         if (!status.canTransitionTo(DeliveryStatus.DELIVERED)) {
             throw DeliveryException.InvalidDeliveryStateTransition(status, DeliveryStatus.DELIVERED)
         }
 
         return this.copy(
             deliveredAt = deliveredAt,
-            status = DeliveryStatus.DELIVERED,
-            updatedBy = updatedBy,
-            updatedAt = LocalDateTime.now()
+            status = DeliveryStatus.DELIVERED
         )
     }
 
     /**
      * 배송 실패 처리
      *
-     * @param updatedBy 상태 변경자 ID
      * @return 배송 실패 처리된 새로운 Delivery 인스턴스
      * @throws DeliveryException.InvalidDeliveryStateTransition 잘못된 상태일 때
      */
-    fun fail(updatedBy: Long): Delivery {
-        return updateStatus(DeliveryStatus.FAILED, updatedBy)
+    fun fail(): Delivery {
+        return updateStatus(DeliveryStatus.FAILED)
     }
 
     /**
@@ -162,20 +146,14 @@ data class Delivery(
         fun create(
             orderId: Long,
             deliveryAddress: DeliveryAddress,
-            deliveryMemo: String? = null,
-            createdBy: Long
+            deliveryMemo: String? = null
         ): Delivery {
             require(orderId > 0) { "주문 ID는 유효해야 합니다" }
 
-            val now = LocalDateTime.now()
             return Delivery(
                 orderId = orderId,
                 deliveryAddress = deliveryAddress,
-                deliveryMemo = deliveryMemo,
-                createdBy = createdBy,
-                updatedBy = createdBy,
-                createdAt = now,
-                updatedAt = now
+                deliveryMemo = deliveryMemo
             )
         }
     }

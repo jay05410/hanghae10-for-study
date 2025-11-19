@@ -27,7 +27,7 @@ class ProductStatsUseCase(
      * @param userId 상품을 조회한 사용자 ID
      */
     fun incrementViewCount(productId: Long, userId: Long) {
-        productStatisticsService.incrementViewCount(productId, userId)
+        productStatisticsService.incrementViewCount(productId)
     }
 
     /**
@@ -39,6 +39,6 @@ class ProductStatsUseCase(
      * @return 업데이트된 상품 통계 정보
      */
     fun incrementSalesCount(productId: Long, quantity: Int, userId: Long): ProductStatistics {
-        return productStatisticsService.incrementSalesCount(productId, quantity, userId)
+        return productStatisticsService.incrementSalesCount(productId, quantity)
     }
 }

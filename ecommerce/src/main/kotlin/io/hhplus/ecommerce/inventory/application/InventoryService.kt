@@ -29,58 +29,58 @@ class InventoryService(
     }
 
     @Transactional
-    fun createInventory(productId: Long, initialQuantity: Int, createdBy: Long): Inventory {
+    fun createInventory(productId: Long, initialQuantity: Int): Inventory {
         val existingInventory = inventoryRepository.findByProductId(productId)
         if (existingInventory != null) {
             throw InventoryException.InventoryAlreadyExists(productId)
         }
 
-        val inventory = Inventory.create(productId, initialQuantity, createdBy)
+        val inventory = Inventory.create(productId, initialQuantity)
         return inventoryRepository.save(inventory)
     }
 
     @Transactional
-    fun deductStock(productId: Long, quantity: Int, deductedBy: Long): Inventory {
+    fun deductStock(productId: Long, quantity: Int): Inventory {
         val inventory = inventoryRepository.findByProductIdWithLock(productId)
             ?: throw InventoryException.InventoryNotFound(productId)
 
-        inventory.deduct(quantity, deductedBy)
+        inventory.deduct(quantity)
         return inventoryRepository.save(inventory)
     }
 
     @Transactional
-    fun restockInventory(productId: Long, quantity: Int, restockedBy: Long): Inventory {
+    fun restockInventory(productId: Long, quantity: Int): Inventory {
         val inventory = inventoryRepository.findByProductIdWithLock(productId)
             ?: throw InventoryException.InventoryNotFound(productId)
 
-        inventory.restock(quantity, restockedBy)
+        inventory.restock(quantity)
         return inventoryRepository.save(inventory)
     }
 
     @Transactional
-    fun reserveStock(productId: Long, quantity: Int, reservedBy: Long): Inventory {
+    fun reserveStock(productId: Long, quantity: Int): Inventory {
         val inventory = inventoryRepository.findByProductIdWithLock(productId)
             ?: throw InventoryException.InventoryNotFound(productId)
 
-        inventory.reserve(quantity, reservedBy)
+        inventory.reserve(quantity)
         return inventoryRepository.save(inventory)
     }
 
     @Transactional
-    fun releaseReservation(productId: Long, quantity: Int, releasedBy: Long): Inventory {
+    fun releaseReservation(productId: Long, quantity: Int): Inventory {
         val inventory = inventoryRepository.findByProductIdWithLock(productId)
             ?: throw InventoryException.InventoryNotFound(productId)
 
-        inventory.releaseReservation(quantity, releasedBy)
+        inventory.releaseReservation(quantity)
         return inventoryRepository.save(inventory)
     }
 
     @Transactional
-    fun confirmReservation(productId: Long, quantity: Int, confirmedBy: Long): Inventory {
+    fun confirmReservation(productId: Long, quantity: Int): Inventory {
         val inventory = inventoryRepository.findByProductIdWithLock(productId)
             ?: throw InventoryException.InventoryNotFound(productId)
 
-        inventory.confirmReservation(quantity, confirmedBy)
+        inventory.confirmReservation(quantity)
         return inventoryRepository.save(inventory)
     }
 

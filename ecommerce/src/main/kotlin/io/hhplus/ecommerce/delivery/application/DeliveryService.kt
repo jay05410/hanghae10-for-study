@@ -32,15 +32,13 @@ class DeliveryService(
      * @param orderId 주문 ID
      * @param deliveryAddress 배송지 정보
      * @param deliveryMemo 배송 메모
-     * @param createdBy 생성자 ID
      * @return 생성된 배송 엔티티
      */
     @Transactional
     fun createDelivery(
         orderId: Long,
         deliveryAddress: DeliveryAddress,
-        deliveryMemo: String?,
-        createdBy: Long
+        deliveryMemo: String?
     ): Delivery {
         // 주문에 대한 배송이 이미 존재하는지 확인 (1:1 관계)
         deliveryRepository.findByOrderId(orderId)?.let {
@@ -50,8 +48,7 @@ class DeliveryService(
         val delivery = Delivery.create(
             orderId = orderId,
             deliveryAddress = deliveryAddress,
-            deliveryMemo = deliveryMemo,
-            createdBy = createdBy
+            deliveryMemo = deliveryMemo
         )
 
         return deliveryRepository.save(delivery)
@@ -98,13 +95,12 @@ class DeliveryService(
      * 배송 준비 시작
      *
      * @param id 배송 ID
-     * @param updatedBy 상태 변경자 ID
      * @return 업데이트된 배송 엔티티
      */
     @Transactional
-    fun startPreparing(id: Long, updatedBy: Long): Delivery {
+    fun startPreparing(id: Long): Delivery {
         val delivery = getDelivery(id)
-        val updated = delivery.startPreparing(updatedBy)
+        val updated = delivery.startPreparing()
         return deliveryRepository.save(updated)
     }
 
@@ -114,18 +110,16 @@ class DeliveryService(
      * @param id 배송 ID
      * @param trackingNumber 운송장 번호
      * @param carrier 택배사
-     * @param updatedBy 상태 변경자 ID
      * @return 업데이트된 배송 엔티티
      */
     @Transactional
     fun ship(
         id: Long,
         trackingNumber: String,
-        carrier: String,
-        updatedBy: Long
+        carrier: String
     ): Delivery {
         val delivery = getDelivery(id)
-        val updated = delivery.ship(trackingNumber, carrier, updatedBy)
+        val updated = delivery.ship(trackingNumber, carrier)
         return deliveryRepository.save(updated)
     }
 
@@ -133,13 +127,12 @@ class DeliveryService(
      * 배송 완료 처리
      *
      * @param id 배송 ID
-     * @param updatedBy 상태 변경자 ID
      * @return 업데이트된 배송 엔티티
      */
     @Transactional
-    fun deliver(id: Long, updatedBy: Long): Delivery {
+    fun deliver(id: Long): Delivery {
         val delivery = getDelivery(id)
-        val updated = delivery.deliver(updatedBy)
+        val updated = delivery.deliver()
         return deliveryRepository.save(updated)
     }
 
@@ -147,13 +140,12 @@ class DeliveryService(
      * 배송 실패 처리
      *
      * @param id 배송 ID
-     * @param updatedBy 상태 변경자 ID
      * @return 업데이트된 배송 엔티티
      */
     @Transactional
-    fun fail(id: Long, updatedBy: Long): Delivery {
+    fun fail(id: Long): Delivery {
         val delivery = getDelivery(id)
-        val updated = delivery.fail(updatedBy)
+        val updated = delivery.fail()
         return deliveryRepository.save(updated)
     }
 

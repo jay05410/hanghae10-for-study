@@ -24,11 +24,7 @@ class UserPointMapper {
             userId = entity.userId,
             balance = Balance.of(entity.balance),
             version = entity.version,
-            createdAt = entity.createdAt,
-            updatedAt = entity.updatedAt,
-            createdBy = entity.createdBy ?: 0,
-            updatedBy = entity.updatedBy ?: 0,
-            deletedAt = entity.deletedAt
+            status = entity.status
         )
     }
 
@@ -42,9 +38,7 @@ class UserPointMapper {
             balance = domain.balance.value,
             version = domain.version
         ).apply {
-            createdBy = domain.createdBy
-            updatedBy = domain.updatedBy
-            deletedAt = domain.deletedAt
+            status = domain.status
         }
     }
 

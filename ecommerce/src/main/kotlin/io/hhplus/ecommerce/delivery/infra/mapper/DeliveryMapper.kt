@@ -39,11 +39,7 @@ class DeliveryMapper(
             status = entity.status,
             shippedAt = entity.shippedAt,
             deliveredAt = entity.deliveredAt,
-            deliveryMemo = entity.deliveryMemo,
-            createdAt = entity.createdAt,
-            updatedAt = entity.updatedAt,
-            createdBy = entity.createdBy ?: 0,
-            updatedBy = entity.updatedBy ?: 0
+            deliveryMemo = entity.deliveryMemo
         )
     }
 
@@ -64,10 +60,7 @@ class DeliveryMapper(
             shippedAt = domain.shippedAt,
             deliveredAt = domain.deliveredAt,
             deliveryMemo = domain.deliveryMemo
-        ).apply {
-            createdBy = domain.createdBy
-            updatedBy = domain.updatedBy
-        }
+        )
     }
 
     /**

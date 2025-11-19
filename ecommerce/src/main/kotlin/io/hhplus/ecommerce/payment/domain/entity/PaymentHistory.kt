@@ -1,6 +1,5 @@
 package io.hhplus.ecommerce.payment.domain.entity
 
-import java.time.LocalDateTime
 
 /**
  * 결제 이력 도메인 모델 (순수 비즈니스 로직)
@@ -25,12 +24,7 @@ data class PaymentHistory(
     val statusAfter: String,
     val reason: String? = null,
     val pgResponse: String? = null,
-    val amount: Long,
-    val createdAt: LocalDateTime = LocalDateTime.now(),
-    val updatedAt: LocalDateTime = LocalDateTime.now(),
-    val createdBy: Long = 0,
-    val updatedBy: Long = 0,
-    val deletedAt: LocalDateTime? = null
+    val amount: Long
 ) {
 
     /**
@@ -48,10 +42,6 @@ data class PaymentHistory(
         }
     }
 
-    /**
-     * 삭제 여부 확인
-     */
-    fun isDeleted(): Boolean = deletedAt != null
 
     companion object {
         /**
@@ -73,25 +63,19 @@ data class PaymentHistory(
             statusAfter: String,
             reason: String? = null,
             pgResponse: String? = null,
-            amount: Long,
-            createdBy: Long
+            amount: Long
         ): PaymentHistory {
             require(paymentId > 0) { "결제 ID는 유효해야 합니다" }
             require(statusAfter.isNotBlank()) { "변경 후 상태는 필수입니다" }
             require(amount >= 0) { "결제 금액은 0 이상이어야 합니다" }
 
-            val now = LocalDateTime.now()
             return PaymentHistory(
                 paymentId = paymentId,
                 statusBefore = statusBefore,
                 statusAfter = statusAfter,
                 reason = reason,
                 pgResponse = pgResponse,
-                amount = amount,
-                createdBy = createdBy,
-                updatedBy = createdBy,
-                createdAt = now,
-                updatedAt = now
+                amount = amount
             ).also { it.validateStatus() }
         }
 
@@ -107,7 +91,6 @@ data class PaymentHistory(
         fun createInitialHistory(
             paymentId: Long,
             amount: Long,
-            createdBy: Long,
             reason: String? = "결제 생성"
         ): PaymentHistory {
             return create(
@@ -115,8 +98,7 @@ data class PaymentHistory(
                 statusBefore = null,
                 statusAfter = "PENDING",
                 reason = reason,
-                amount = amount,
-                createdBy = createdBy
+                amount = amount
             )
         }
 
@@ -137,7 +119,6 @@ data class PaymentHistory(
             statusBefore: String,
             statusAfter: String,
             amount: Long,
-            createdBy: Long,
             reason: String? = null,
             pgResponse: String? = null
         ): PaymentHistory {
@@ -147,8 +128,7 @@ data class PaymentHistory(
                 statusAfter = statusAfter,
                 reason = reason,
                 pgResponse = pgResponse,
-                amount = amount,
-                createdBy = createdBy
+                amount = amount
             )
         }
     }

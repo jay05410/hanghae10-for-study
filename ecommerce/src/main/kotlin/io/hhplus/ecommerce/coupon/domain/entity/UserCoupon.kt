@@ -27,11 +27,7 @@ data class UserCoupon(
     val issuedAt: LocalDateTime = LocalDateTime.now(),
     var usedAt: LocalDateTime? = null,
     var usedOrderId: Long? = null,
-    var status: UserCouponStatus = UserCouponStatus.ISSUED,
-    val createdAt: LocalDateTime = LocalDateTime.now(),
-    var updatedAt: LocalDateTime = LocalDateTime.now(),
-    val createdBy: Long = 0,
-    var updatedBy: Long = 0
+    var status: UserCouponStatus = UserCouponStatus.ISSUED
 ) {
     fun isUsable(): Boolean = status == UserCouponStatus.ISSUED
 
@@ -39,10 +35,9 @@ data class UserCoupon(
      * 쿠폰을 사용하고 사용 정보 업데이트
      *
      * @param orderId 주문 ID
-     * @param usedBy 사용자 ID
      * @throws CouponException.AlreadyUsedCoupon 이미 사용된 쿠폰인 경우
      */
-    fun use(orderId: Long, usedBy: Long) {
+    fun use(orderId: Long) {
         if (!isUsable()) {
             throw CouponException.AlreadyUsedCoupon(id)
         }
@@ -51,8 +46,6 @@ data class UserCoupon(
         this.status = UserCouponStatus.USED
         this.usedAt = now
         this.usedOrderId = orderId
-        this.updatedBy = usedBy
-        this.updatedAt = now
     }
 
     fun isExpired(couponValidTo: LocalDateTime): Boolean {
@@ -62,24 +55,20 @@ data class UserCoupon(
     /**
      * 쿠폰을 만료 처리
      *
-     * @param expiredBy 만료 처리자 ID
      * @throws IllegalStateException 이미 사용된 쿠폰인 경우
      */
-    fun expire(expiredBy: Long) {
+    fun expire() {
         if (status == UserCouponStatus.USED) {
             throw IllegalStateException("이미 사용된 쿠폰은 만료 처리할 수 없습니다")
         }
 
         this.status = UserCouponStatus.EXPIRED
-        this.updatedBy = expiredBy
-        this.updatedAt = LocalDateTime.now()
     }
 
     companion object {
         fun create(
             userId: Long,
-            couponId: Long,
-            createdBy: Long
+            couponId: Long
         ): UserCoupon {
             require(userId > 0) { "사용자 ID는 유효해야 합니다" }
             require(couponId > 0) { "쿠폰 ID는 유효해야 합니다" }
@@ -88,11 +77,7 @@ data class UserCoupon(
             return UserCoupon(
                 userId = userId,
                 couponId = couponId,
-                issuedAt = now,
-                createdBy = createdBy,
-                updatedBy = createdBy,
-                createdAt = now,
-                updatedAt = now
+                issuedAt = now
             )
         }
     }

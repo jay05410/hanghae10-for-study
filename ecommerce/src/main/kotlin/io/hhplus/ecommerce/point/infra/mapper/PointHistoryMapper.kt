@@ -27,12 +27,7 @@ class PointHistoryMapper {
             balanceBefore = entity.balanceBefore,
             balanceAfter = entity.balanceAfter,
             orderId = entity.orderId,
-            description = entity.description,
-            createdAt = entity.createdAt,
-            updatedAt = entity.updatedAt,
-            createdBy = entity.createdBy ?: 0,
-            updatedBy = entity.updatedBy ?: 0,
-            deletedAt = entity.deletedAt
+            description = entity.description
         )
     }
 
@@ -51,11 +46,7 @@ class PointHistoryMapper {
             balanceAfter = domain.balanceAfter,
             orderId = domain.orderId,
             description = domain.description
-        ).apply {
-            createdBy = domain.createdBy
-            updatedBy = domain.updatedBy
-            deletedAt = domain.deletedAt
-        }
+        )
     }
 
     /**

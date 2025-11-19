@@ -3,7 +3,7 @@ package io.hhplus.ecommerce.point.domain.entity
 import io.hhplus.ecommerce.point.exception.PointException
 import io.hhplus.ecommerce.point.domain.vo.Balance
 import io.hhplus.ecommerce.point.domain.vo.PointAmount
-import java.time.LocalDateTime
+import io.hhplus.ecommerce.point.domain.constant.PointAccountStatus
 
 /**
  * 사용자 포인트 도메인 엔티티 (Pure Domain Model)
@@ -25,33 +25,26 @@ data class UserPoint(
     val userId: Long,
     var balance: Balance = Balance.zero(),
     var version: Int = 0,
-    val createdAt: LocalDateTime = LocalDateTime.now(),
-    var updatedAt: LocalDateTime = LocalDateTime.now(),
-    val createdBy: Long? = null,
-    var updatedBy: Long? = null,
-    var deletedAt: LocalDateTime? = null
+    var status: PointAccountStatus = PointAccountStatus.ACTIVE
 ) {
 
     /**
-     * 삭제 상태 확인
+     * 활성 상태 확인
      *
-     * @return 삭제 여부
+     * @return 활성 여부
      */
-    fun isDeleted(): Boolean = deletedAt != null
+    fun isActive(): Boolean = status == PointAccountStatus.ACTIVE
 
     /**
      * 포인트 적립 (구매 시 자동 적립)
      *
      * @param amount 적립 금액
-     * @param earnedBy 적립 처리자 (시스템 또는 관리자)
      * @return 적립 전 잔액
      * @throws PointException.MaxBalanceExceeded 최대 잔액 초과 시
      */
-    fun earn(amount: PointAmount, earnedBy: Long): Balance {
+    fun earn(amount: PointAmount): Balance {
         val oldBalance = this.balance
         this.balance = this.balance + amount.value
-        this.updatedBy = earnedBy
-        this.updatedAt = LocalDateTime.now()
         return oldBalance
     }
 
@@ -59,12 +52,11 @@ data class UserPoint(
      * 포인트 사용 (할인 적용)
      *
      * @param amount 사용 금액
-     * @param usedBy 사용 처리자
      * @return 사용 전 잔액
      * @throws PointException.InvalidAmount 사용 금액이 0 이하인 경우
      * @throws PointException.InsufficientBalance 잔액 부족 시
      */
-    fun use(amount: PointAmount, usedBy: Long): Balance {
+    fun use(amount: PointAmount): Balance {
         if (amount.value <= 0) {
             throw PointException.InvalidAmount(amount.value)
         }
@@ -74,8 +66,6 @@ data class UserPoint(
 
         val oldBalance = this.balance
         this.balance = this.balance - amount.value
-        this.updatedBy = usedBy
-        this.updatedAt = LocalDateTime.now()
         return oldBalance
     }
 
@@ -97,33 +87,37 @@ data class UserPoint(
 
         val oldBalance = this.balance
         this.balance = this.balance - amount.value
-        this.updatedAt = LocalDateTime.now()
         return oldBalance
     }
 
 
     /**
-     * 소프트 삭제
+     * 포인트 계정 비활성화
      */
-    fun delete() {
-        this.deletedAt = LocalDateTime.now()
+    fun deactivate() {
+        this.status = PointAccountStatus.INACTIVE
     }
 
     /**
-     * 복원
+     * 포인트 계정 활성화
      */
-    fun restore() {
-        this.deletedAt = null
+    fun activate() {
+        this.status = PointAccountStatus.ACTIVE
+    }
+
+    /**
+     * 포인트 계정 일시정지
+     */
+    fun suspend() {
+        this.status = PointAccountStatus.SUSPENDED
     }
 
 
     companion object {
-        fun create(userId: Long, createdBy: Long): UserPoint {
+        fun create(userId: Long): UserPoint {
             return UserPoint(
                 userId = userId,
-                balance = Balance.zero(),
-                createdBy = createdBy,
-                updatedBy = createdBy
+                balance = Balance.zero()
             )
         }
     }

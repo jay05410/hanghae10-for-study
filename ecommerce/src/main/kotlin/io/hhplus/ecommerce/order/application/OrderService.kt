@@ -44,7 +44,6 @@ class OrderService(
      * @param usedCouponId 사용된 쿠폰 ID (선택적)
      * @param totalAmount 총 주문 금액
      * @param discountAmount 할인 금액
-     * @param createdBy 생성자 ID
      * @return 생성된 주문 엔티티
      */
     @Transactional
@@ -53,8 +52,7 @@ class OrderService(
         items: List<OrderItemData>,
         usedCouponId: Long?,
         totalAmount: Long,
-        discountAmount: Long,
-        createdBy: Long
+        discountAmount: Long
     ): Order {
         val orderNumber = snowflakeGenerator.generateNumberWithPrefix(IdPrefix.ORDER)
 
@@ -98,8 +96,7 @@ class OrderService(
             eventType = "OrderCreated",
             aggregateType = "Order",
             aggregateId = savedOrder.id.toString(),
-            payload = objectMapper.writeValueAsString(orderEventPayload),
-            createdBy = createdBy
+            payload = objectMapper.writeValueAsString(orderEventPayload)
         )
 
         return savedOrder
@@ -139,24 +136,22 @@ class OrderService(
      * 주문을 확정 처리한다
      *
      * @param orderId 확정할 주문의 ID
-     * @param confirmedBy 확정 처리자 ID
      * @return 확정된 주문 엔티티
      * @throws IllegalArgumentException 주문을 찾을 수 없는 경우
      */
     @Transactional
-    fun confirmOrder(orderId: Long, confirmedBy: Long): Order {
+    fun confirmOrder(orderId: Long): Order {
         val order = orderRepository.findById(orderId)
             ?: throw IllegalArgumentException("주문을 찾을 수 없습니다")
 
-        order.confirm(confirmedBy)
+        order.confirm()
 
         // 주문 완료 시 판매량 증가
         val orderItems = orderItemRepository.findByOrderId(orderId)
         orderItems.forEach { orderItem ->
             productStatisticsService.incrementSalesCount(
                 productId = orderItem.productId,
-                quantity = orderItem.quantity,
-                userId = confirmedBy
+                quantity = orderItem.quantity
             )
         }
 
@@ -167,17 +162,16 @@ class OrderService(
      * 주문을 취소 처리한다
      *
      * @param orderId 취소할 주문의 ID
-     * @param cancelledBy 취소 처리자 ID
      * @param reason 취소 사유 (선택적)
      * @return 취소된 주문 엔티티
      * @throws IllegalArgumentException 주문을 찾을 수 없는 경우
      */
     @Transactional
-    fun cancelOrder(orderId: Long, cancelledBy: Long, reason: String?): Order {
+    fun cancelOrder(orderId: Long, reason: String?): Order {
         val order = orderRepository.findById(orderId)
             ?: throw IllegalArgumentException("주문을 찾을 수 없습니다")
 
-        order.cancel(cancelledBy)
+        order.cancel()
 
         // 주문 취소 이벤트 발행
         val cancelEventPayload = mapOf(
@@ -185,7 +179,6 @@ class OrderService(
             "userId" to order.userId,
             "orderNumber" to order.orderNumber,
             "reason" to (reason ?: "사용자 요청"),
-            "cancelledBy" to cancelledBy,
             "status" to order.status.name
         )
 
@@ -193,8 +186,7 @@ class OrderService(
             eventType = "OrderCancelled",
             aggregateType = "Order",
             aggregateId = order.id.toString(),
-            payload = objectMapper.writeValueAsString(cancelEventPayload),
-            createdBy = cancelledBy
+            payload = objectMapper.writeValueAsString(cancelEventPayload)
         )
 
         return orderRepository.save(order)

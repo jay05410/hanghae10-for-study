@@ -30,12 +30,7 @@ class OrderItemMapper {
             giftWrap = entity.giftWrap,
             giftMessage = entity.giftMessage,
             giftWrapPrice = entity.giftWrapPrice,
-            totalPrice = entity.totalPrice,
-            createdAt = entity.createdAt,
-            updatedAt = entity.updatedAt,
-            createdBy = entity.createdBy,
-            updatedBy = entity.updatedBy,
-            deletedAt = entity.deletedAt
+            totalPrice = entity.totalPrice
         )
     }
 
@@ -57,11 +52,7 @@ class OrderItemMapper {
             giftMessage = domain.giftMessage,
             giftWrapPrice = domain.giftWrapPrice,
             totalPrice = domain.totalPrice
-        ).apply {
-            createdBy = domain.createdBy
-            updatedBy = domain.updatedBy
-            deletedAt = domain.deletedAt
-        }
+        )
     }
 
     /**

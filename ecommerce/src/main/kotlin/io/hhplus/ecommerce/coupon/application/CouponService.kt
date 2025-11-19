@@ -76,13 +76,12 @@ class CouponService(
         }
 
         // 가변 모델이므로 issue() 메서드 호출 후 저장
-        coupon.issue(userId)
+        coupon.issue()
         couponRepository.save(coupon)
 
         val userCoupon = UserCoupon.create(
             userId = userId,
-            couponId = coupon.id,
-            createdBy = userId
+            couponId = coupon.id
         )
 
         val savedUserCoupon = userCouponRepository.save(userCoupon)
@@ -141,7 +140,7 @@ class CouponService(
         val discountAmount = coupon.calculateDiscountAmount(orderAmount)
 
         // 가변 모델이므로 use() 메서드 호출 후 저장
-        userCoupon.use(orderId, userId)
+        userCoupon.use(orderId)
         userCouponRepository.save(userCoupon)
 
         // 쿠폰 사용 이력 저장
@@ -150,7 +149,7 @@ class CouponService(
             userId = userId,
             couponName = coupon.name,
             orderId = orderId,
-            issuedAt = userCoupon.createdAt
+            issuedAt = userCoupon.issuedAt
         )
 
         return discountAmount

@@ -27,13 +27,7 @@ data class StockReservationResponse(
     val reservedAt: LocalDateTime,
 
     @Schema(description = "만료 일시", example = "2025-01-13T10:05:00")
-    val expiresAt: LocalDateTime,
-
-    @Schema(description = "생성 일시", example = "2025-01-13T10:00:00")
-    val createdAt: LocalDateTime?,
-
-    @Schema(description = "수정 일시", example = "2025-01-13T10:02:00")
-    val updatedAt: LocalDateTime?
+    val expiresAt: LocalDateTime
 )
 
 fun StockReservation.toResponse(): StockReservationResponse = StockReservationResponse(
@@ -43,7 +37,5 @@ fun StockReservation.toResponse(): StockReservationResponse = StockReservationRe
     quantity = this.quantity,
     status = this.status,
     reservedAt = this.reservedAt,
-    expiresAt = this.expiresAt,
-    createdAt = this.createdAt,
-    updatedAt = this.updatedAt
+    expiresAt = this.expiresAt
 )

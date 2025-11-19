@@ -4,7 +4,6 @@ import io.hhplus.ecommerce.point.domain.entity.UserPoint
 import io.hhplus.ecommerce.point.domain.entity.PointHistory
 import io.hhplus.ecommerce.point.domain.constant.PointTransactionType
 import io.swagger.v3.oas.annotations.media.Schema
-import java.time.LocalDateTime
 
 /**
  * 사용자 포인트 정보 응답 DTO - 프레젠테이션 계층
@@ -26,13 +25,7 @@ data class UserPointResponse(
     val balance: Long,
 
     @Schema(description = "낙관적 락 버전", example = "3")
-    val version: Int,
-
-    @Schema(description = "생성 일시", example = "2025-01-01T10:00:00")
-    val createdAt: LocalDateTime,
-
-    @Schema(description = "수정 일시", example = "2025-01-15T14:30:00")
-    val updatedAt: LocalDateTime
+    val version: Int
 ) {
 }
 
@@ -63,22 +56,14 @@ data class PointHistoryResponse(
     val orderId: Long?,
 
     @Schema(description = "거래 설명 (선택)", example = "상품 구매")
-    val description: String?,
-
-    @Schema(description = "생성 일시", example = "2025-01-15T14:30:00")
-    val createdAt: LocalDateTime,
-
-    @Schema(description = "수정 일시", example = "2025-01-15T14:30:00")
-    val updatedAt: LocalDateTime
+    val description: String?
 )
 
 fun UserPoint.toResponse(): UserPointResponse = UserPointResponse(
     id = this.id,
     userId = this.userId,
     balance = this.balance.value,
-    version = this.version,
-    createdAt = this.createdAt,
-    updatedAt = this.updatedAt
+    version = this.version
 )
 
 fun PointHistory.toResponse(): PointHistoryResponse = PointHistoryResponse(
@@ -89,7 +74,5 @@ fun PointHistory.toResponse(): PointHistoryResponse = PointHistoryResponse(
     balanceBefore = this.balanceBefore,
     balanceAfter = this.balanceAfter,
     orderId = this.orderId,
-    description = this.description,
-    createdAt = this.createdAt,
-    updatedAt = this.updatedAt
+    description = this.description
 )

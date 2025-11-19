@@ -41,8 +41,8 @@ class PointService(
         return userPointRepository.findUserPointWithHistoriesByUserId(userId)
     }
 
-    fun createUserPoint(userId: Long, createdBy: Long): UserPoint {
-        val userPoint = UserPoint.create(userId, createdBy)
+    fun createUserPoint(userId: Long): UserPoint {
+        val userPoint = UserPoint.create(userId)
         return userPointRepository.save(userPoint)
     }
 
@@ -52,11 +52,11 @@ class PointService(
      * @throws PointException.PointNotFound 사용자 포인트 정보가 없는 경우
      * @throws PointException.MaxBalanceExceeded 최대 잔액 초과 시
      */
-    fun earnPoint(userId: Long, amount: PointAmount, earnedBy: Long, description: String? = null): UserPoint {
+    fun earnPoint(userId: Long, amount: PointAmount, description: String? = null): UserPoint {
         val userPoint = userPointRepository.findByUserIdWithLock(userId)
             ?: throw PointException.PointNotFound(userId)
 
-        userPoint.earn(amount, earnedBy)
+        userPoint.earn(amount)
         return userPointRepository.save(userPoint)
     }
 
@@ -67,11 +67,11 @@ class PointService(
      * @throws PointException.InsufficientBalance 잔액 부족 시
      * @throws PointException.InvalidAmount 사용 금액이 0 이하인 경우
      */
-    fun usePoint(userId: Long, amount: PointAmount, usedBy: Long, description: String? = null): UserPoint {
+    fun usePoint(userId: Long, amount: PointAmount, description: String? = null): UserPoint {
         val userPoint = userPointRepository.findByUserIdWithLock(userId)
             ?: throw PointException.PointNotFound(userId)
 
-        userPoint.use(amount, usedBy)
+        userPoint.use(amount)
         return userPointRepository.save(userPoint)
     }
 

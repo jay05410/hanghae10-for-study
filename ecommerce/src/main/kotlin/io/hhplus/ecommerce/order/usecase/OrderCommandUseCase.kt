@@ -80,8 +80,7 @@ class OrderCommandUseCase(
         orderItems.forEach { item ->
             inventoryService.deductStock(
                 productId = item.productId,
-                quantity = item.quantity,
-                deductedBy = request.userId
+                quantity = item.quantity
             )
         }
 
@@ -91,15 +90,13 @@ class OrderCommandUseCase(
             items = orderItems,
             usedCouponId = request.usedCouponId,
             totalAmount = totalAmount,
-            discountAmount = discountAmount,
-            createdBy = request.userId
+            discountAmount = discountAmount
         )
 
         // 5. 포인트 사용 (결제)
         pointService.usePoint(
             userId = request.userId,
             amount = PointAmount.of(order.finalAmount),
-            usedBy = request.userId,
             description = "주문 결제"
         )
 
@@ -119,8 +116,7 @@ class OrderCommandUseCase(
         deliveryService.createDelivery(
             orderId = order.id,
             deliveryAddress = request.deliveryAddress.toVo(),
-            deliveryMemo = request.deliveryAddress.deliveryMessage,
-            createdBy = request.userId
+            deliveryMemo = request.deliveryAddress.deliveryMessage
         )
 
         // 9. 장바구니에서 주문된 상품 제거 (주문 완료 후 정리)
@@ -157,7 +153,7 @@ class OrderCommandUseCase(
         }
 
         // 2. 주문 취소 처리 (상태 검증 포함)
-        val cancelledOrder = orderService.cancelOrder(orderId, cancelledBy, reason)
+        val cancelledOrder = orderService.cancelOrder(orderId, reason)
 
         // 3. 주문 아이템 조회
         val orderItems = orderItemRepository.findByOrderId(orderId)
@@ -166,8 +162,7 @@ class OrderCommandUseCase(
         orderItems.forEach { orderItem ->
             inventoryService.restockInventory(
                 productId = orderItem.productId,
-                quantity = orderItem.quantity,
-                restockedBy = cancelledBy
+                quantity = orderItem.quantity
             )
         }
 
@@ -175,7 +170,6 @@ class OrderCommandUseCase(
         pointService.earnPoint(
             userId = cancelledOrder.userId,
             amount = PointAmount.of(cancelledOrder.finalAmount),
-            earnedBy = cancelledBy,
             description = "주문 취소 환불"
         )
 
@@ -193,6 +187,6 @@ class OrderCommandUseCase(
      */
     @Transactional
     fun confirmOrder(orderId: Long, confirmedBy: Long): Order {
-        return orderService.confirmOrder(orderId, confirmedBy)
+        return orderService.confirmOrder(orderId)
     }
 }

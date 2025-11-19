@@ -44,7 +44,7 @@ class PointHistoryUseCase(
         orderId: Long? = null
     ): PointHistory {
         return pointHistoryService.recordEarnHistory(
-            userId, amount, balanceBefore, balanceAfter, createdBy, description, orderId
+            userId, amount, balanceBefore, balanceAfter, description, orderId
         )
     }
 
@@ -68,7 +68,7 @@ class PointHistoryUseCase(
         description: String? = null
     ): PointHistory {
         return pointHistoryService.recordExpireHistory(
-            userId, amount, balanceBefore, balanceAfter, createdBy, description
+            userId, amount, balanceBefore, balanceAfter, description
         )
     }
 

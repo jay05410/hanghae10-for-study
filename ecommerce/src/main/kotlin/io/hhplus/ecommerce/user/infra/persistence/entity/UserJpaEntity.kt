@@ -2,6 +2,7 @@ package io.hhplus.ecommerce.user.infra.persistence.entity
 
 import io.hhplus.ecommerce.common.baseentity.BaseJpaEntity
 import io.hhplus.ecommerce.user.domain.constant.LoginType
+import io.hhplus.ecommerce.user.domain.constant.UserStatus
 import jakarta.persistence.*
 
 /**
@@ -51,5 +52,9 @@ class UserJpaEntity(
     val phone: String,
 
     @Column(length = 100, name = "provider_id")
-    val providerId: String?
+    val providerId: String?,
+
+    @Column(nullable = false, length = 20)
+    @Enumerated(EnumType.STRING)
+    var status: UserStatus = UserStatus.ACTIVE
 ) : BaseJpaEntity()

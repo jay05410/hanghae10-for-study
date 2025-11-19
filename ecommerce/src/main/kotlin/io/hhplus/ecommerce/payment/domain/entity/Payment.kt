@@ -3,7 +3,6 @@ package io.hhplus.ecommerce.payment.domain.entity
 import io.hhplus.ecommerce.payment.exception.PaymentException
 import io.hhplus.ecommerce.payment.domain.constant.PaymentMethod
 import io.hhplus.ecommerce.payment.domain.constant.PaymentStatus
-import java.time.LocalDateTime
 
 /**
  * 결제 도메인 모델 (순수 비즈니스 로직)
@@ -30,68 +29,49 @@ data class Payment(
     val paymentMethod: PaymentMethod,
     var status: PaymentStatus = PaymentStatus.PENDING,
     var externalTransactionId: String? = null,
-    var failureReason: String? = null,
-    val createdAt: LocalDateTime = LocalDateTime.now(),
-    var updatedAt: LocalDateTime = LocalDateTime.now(),
-    val createdBy: Long = 0,
-    var updatedBy: Long = 0,
-    var deletedAt: LocalDateTime? = null
+    var failureReason: String? = null
 ) {
     /**
      * 결제를 처리 중 상태로 전환
-     *
-     * @param processedBy 처리자 ID
      */
-    fun process(processedBy: Long) {
+    fun process() {
         validateStatusTransition(PaymentStatus.PROCESSING)
         this.status = PaymentStatus.PROCESSING
-        this.updatedBy = processedBy
-        this.updatedAt = LocalDateTime.now()
     }
 
     /**
      * 결제를 완료 상태로 전환
      *
-     * @param completedBy 완료 처리자 ID
      * @param externalTxId 외부 거래 ID
      */
-    fun complete(completedBy: Long, externalTxId: String? = null) {
+    fun complete(externalTxId: String? = null) {
         validateStatusTransition(PaymentStatus.COMPLETED)
         this.status = PaymentStatus.COMPLETED
         if (externalTxId != null) {
             this.externalTransactionId = externalTxId
         }
-        this.updatedBy = completedBy
-        this.updatedAt = LocalDateTime.now()
     }
 
     /**
      * 결제를 실패 상태로 전환
      *
-     * @param failedBy 실패 처리자 ID
      * @param reason 실패 사유
      */
-    fun fail(failedBy: Long, reason: String) {
+    fun fail(reason: String) {
         validateStatusTransition(PaymentStatus.FAILED)
         this.status = PaymentStatus.FAILED
         this.failureReason = reason
-        this.updatedBy = failedBy
-        this.updatedAt = LocalDateTime.now()
     }
 
     /**
      * 결제를 취소 상태로 전환
-     *
-     * @param cancelledBy 취소 처리자 ID
      */
-    fun cancel(cancelledBy: Long) {
+    fun cancel() {
         if (!canBeCancelled()) {
             throw PaymentException.PaymentCancellationNotAllowed(paymentNumber, status)
         }
 
         this.status = PaymentStatus.CANCELLED
-        this.updatedBy = cancelledBy
-        this.updatedAt = LocalDateTime.now()
     }
 
     /**
@@ -121,10 +101,6 @@ data class Payment(
         }
     }
 
-    /**
-     * 삭제 여부 확인
-     */
-    fun isDeleted(): Boolean = deletedAt != null
 
     companion object {
         /**
@@ -146,7 +122,6 @@ data class Payment(
             userId: Long,
             amount: Long,
             paymentMethod: PaymentMethod,
-            createdBy: Long,
             externalTransactionId: String? = null
         ): Payment {
             require(paymentNumber.isNotBlank()) { "결제번호는 필수입니다" }
@@ -154,18 +129,13 @@ data class Payment(
             require(userId > 0) { "사용자 ID는 유효해야 합니다" }
             require(amount > 0) { "결제 금액은 0보다 커야 합니다" }
 
-            val now = LocalDateTime.now()
             return Payment(
                 paymentNumber = paymentNumber,
                 orderId = orderId,
                 userId = userId,
                 amount = amount,
                 paymentMethod = paymentMethod,
-                externalTransactionId = externalTransactionId,
-                createdBy = createdBy,
-                updatedBy = createdBy,
-                createdAt = now,
-                updatedAt = now
+                externalTransactionId = externalTransactionId
             )
         }
     }

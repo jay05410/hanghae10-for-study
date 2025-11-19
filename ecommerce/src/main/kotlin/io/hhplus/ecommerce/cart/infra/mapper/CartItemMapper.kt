@@ -31,11 +31,7 @@ class CartItemMapper {
             productId = entity.productId,
             quantity = entity.quantity,
             giftWrap = entity.giftWrap,
-            giftMessage = entity.giftMessage,
-            createdAt = entity.createdAt,
-            updatedAt = entity.updatedAt,
-            createdBy = entity.createdBy ?: 0,
-            updatedBy = entity.updatedBy ?: 0
+            giftMessage = entity.giftMessage
         )
     }
 
@@ -53,12 +49,7 @@ class CartItemMapper {
             quantity = domain.quantity,
             giftWrap = domain.giftWrap,
             giftMessage = domain.giftMessage
-        ).apply {
-            createdAt = domain.createdAt
-            updatedAt = domain.updatedAt
-            createdBy = domain.createdBy
-            updatedBy = domain.updatedBy
-        }
+        )
     }
 
     /**

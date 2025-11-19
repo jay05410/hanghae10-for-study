@@ -2,7 +2,6 @@ package io.hhplus.ecommerce.product.dto
 
 import io.hhplus.ecommerce.product.domain.entity.Product
 import io.swagger.v3.oas.annotations.media.Schema
-import java.time.LocalDateTime
 
 @Schema(description = "상품 정보")
 data class ProductResponse(
@@ -19,13 +18,7 @@ data class ProductResponse(
     val price: Long,
 
     @Schema(description = "카테고리 ID", example = "1")
-    val categoryId: Long,
-
-    @Schema(description = "생성 일시", example = "2025-01-01T10:00:00")
-    val createdAt: LocalDateTime?,
-
-    @Schema(description = "수정 일시", example = "2025-01-15T14:30:00")
-    val updatedAt: LocalDateTime?
+    val categoryId: Long
 )
 
 fun Product.toResponse(): ProductResponse = ProductResponse(
@@ -33,7 +26,5 @@ fun Product.toResponse(): ProductResponse = ProductResponse(
     name = this.name,
     description = this.description,
     price = this.price,
-    categoryId = this.categoryId,
-    createdAt = this.createdAt,
-    updatedAt = this.updatedAt
+    categoryId = this.categoryId
 )

@@ -1,6 +1,5 @@
 package io.hhplus.ecommerce.order.domain.entity
 
-import java.time.LocalDateTime
 
 /**
  * OrderItem 도메인 모델 (immutable)
@@ -20,12 +19,7 @@ data class OrderItem(
     val giftWrap: Boolean = false,
     val giftMessage: String? = null,
     val giftWrapPrice: Int = 0,
-    val totalPrice: Int,
-    val createdAt: LocalDateTime = LocalDateTime.now(),
-    val updatedAt: LocalDateTime = LocalDateTime.now(),
-    val createdBy: Long? = null,
-    val updatedBy: Long? = null,
-    val deletedAt: LocalDateTime? = null
+    val totalPrice: Int
 ) {
     fun validatePrices() {
         require(unitPrice >= 0) { "단가는 0 이상이어야 합니다: $unitPrice" }

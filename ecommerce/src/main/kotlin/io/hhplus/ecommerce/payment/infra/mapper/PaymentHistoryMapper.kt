@@ -32,12 +32,7 @@ class PaymentHistoryMapper {
             statusAfter = entity.statusAfter,
             reason = entity.reason,
             pgResponse = entity.pgResponse,
-            amount = entity.amount,
-            createdAt = entity.createdAt,
-            updatedAt = entity.updatedAt,
-            createdBy = entity.createdBy ?: 0,
-            updatedBy = entity.updatedBy ?: 0,
-            deletedAt = entity.deletedAt
+            amount = entity.amount
         )
     }
 
@@ -56,13 +51,7 @@ class PaymentHistoryMapper {
             reason = domain.reason,
             pgResponse = domain.pgResponse,
             amount = domain.amount
-        ).apply {
-            createdAt = domain.createdAt
-            updatedAt = domain.updatedAt
-            createdBy = domain.createdBy
-            updatedBy = domain.updatedBy
-            deletedAt = domain.deletedAt
-        }
+        )
     }
 
     /**

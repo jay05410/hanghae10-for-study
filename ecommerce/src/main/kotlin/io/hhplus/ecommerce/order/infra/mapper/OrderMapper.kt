@@ -26,12 +26,7 @@ class OrderMapper {
             discountAmount = entity.discountAmount,
             finalAmount = entity.finalAmount,
             usedCouponId = entity.usedCouponId,
-            status = entity.status,
-            createdAt = entity.createdAt,
-            updatedAt = entity.updatedAt,
-            createdBy = entity.createdBy ?: 0,
-            updatedBy = entity.updatedBy ?: 0,
-            deletedAt = entity.deletedAt
+            status = entity.status
         )
     }
 
@@ -48,11 +43,7 @@ class OrderMapper {
             finalAmount = domain.finalAmount,
             usedCouponId = domain.usedCouponId,
             status = domain.status
-        ).apply {
-            createdBy = domain.createdBy
-            updatedBy = domain.updatedBy
-            deletedAt = domain.deletedAt
-        }
+        )
     }
 
     /**

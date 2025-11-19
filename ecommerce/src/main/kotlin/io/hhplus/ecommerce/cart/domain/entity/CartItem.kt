@@ -22,11 +22,7 @@ data class CartItem(
     val productId: Long,
     var quantity: Int,
     val giftWrap: Boolean = false,
-    val giftMessage: String? = null,
-    val createdAt: LocalDateTime = LocalDateTime.now(),
-    var updatedAt: LocalDateTime = LocalDateTime.now(),
-    val createdBy: Long = 0,
-    var updatedBy: Long = 0
+    val giftMessage: String? = null
 ) {
     fun validateQuantity() {
         require(quantity > 0) { "수량은 0보다 커야 합니다: $quantity" }
@@ -35,7 +31,6 @@ data class CartItem(
     fun updateQuantity(newQuantity: Int) {
         require(newQuantity > 0) { "수량은 0보다 커야 합니다: $newQuantity" }
         this.quantity = newQuantity
-        this.updatedAt = LocalDateTime.now()
     }
 
     companion object {
@@ -55,15 +50,12 @@ data class CartItem(
             require(productId > 0) { "상품 ID는 유효해야 합니다" }
             require(quantity > 0) { "수량은 0보다 커야 합니다" }
 
-            val now = LocalDateTime.now()
             return CartItem(
                 cartId = cartId,
                 productId = productId,
                 quantity = quantity,
                 giftWrap = giftWrap,
-                giftMessage = giftMessage,
-                createdAt = now,
-                updatedAt = now
+                giftMessage = giftMessage
             ).also { it.validateQuantity() }
         }
     }

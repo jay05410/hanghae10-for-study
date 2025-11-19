@@ -119,13 +119,7 @@ data class DeliveryResponse(
     val deliveredAt: LocalDateTime?,
 
     @Schema(description = "배송 메모 (선택)", example = "안전하게 배송되었습니다")
-    val deliveryMemo: String?,
-
-    @Schema(description = "생성 일시", example = "2025-01-13T10:00:00")
-    val createdAt: LocalDateTime,
-
-    @Schema(description = "수정 일시", example = "2025-01-14T10:00:00")
-    val updatedAt: LocalDateTime
+    val deliveryMemo: String?
 ) {
     companion object {
         fun from(delivery: Delivery): DeliveryResponse {
@@ -138,9 +132,7 @@ data class DeliveryResponse(
                 status = delivery.status,
                 shippedAt = delivery.shippedAt,
                 deliveredAt = delivery.deliveredAt,
-                deliveryMemo = delivery.deliveryMemo,
-                createdAt = delivery.createdAt,
-                updatedAt = delivery.updatedAt
+                deliveryMemo = delivery.deliveryMemo
             )
         }
     }

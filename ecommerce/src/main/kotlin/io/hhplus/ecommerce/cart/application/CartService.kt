@@ -32,7 +32,7 @@ class CartService(
      */
     fun getOrCreateCart(userId: Long): Cart {
         return cartRepository.findByUserIdWithItems(userId)
-            ?: cartRepository.save(Cart.create(userId = userId, createdBy = userId))
+            ?: cartRepository.save(Cart.create(userId = userId))
     }
 
     /**
@@ -60,15 +60,14 @@ class CartService(
 
         if (existingItem != null) {
             // 기존 아이템이 있으면 수량 및 선물 옵션 업데이트
-            cart.updateItem(existingItem.id, quantity, giftWrap, giftMessage, userId)
+            cart.updateItem(existingItem.id, quantity, giftWrap, giftMessage)
         } else {
             // 새 아이템 추가
             cart.addItem(
                 productId = productId,
                 quantity = quantity,
                 giftWrap = giftWrap,
-                giftMessage = giftMessage,
-                addedBy = userId
+                giftMessage = giftMessage
             )
         }
 
@@ -81,18 +80,17 @@ class CartService(
      * @param userId 사용자 ID
      * @param cartItemId 업데이트할 장바구니 아이템 ID
      * @param quantity 새로운 수량 (0 이하이면 아이템 삭제)
-     * @param updatedBy 업데이트 실행자 ID
      * @return 업데이트된 장바구니
      * @throws CartException.CartNotFound 장바구니를 찾을 수 없는 경우
      */
-    fun updateCartItem(userId: Long, cartItemId: Long, quantity: Int, updatedBy: Long): Cart {
+    fun updateCartItem(userId: Long, cartItemId: Long, quantity: Int): Cart {
         val cart = cartRepository.findByUserIdWithItems(userId)
             ?: throw CartException.CartNotFound(userId)
 
         if (quantity <= 0) {
-            cart.removeItem(cartItemId, updatedBy)
+            cart.removeItem(cartItemId)
         } else {
-            cart.updateItemQuantity(cartItemId, quantity, updatedBy)
+            cart.updateItemQuantity(cartItemId, quantity)
         }
 
         return cartRepository.save(cart)
@@ -111,7 +109,7 @@ class CartService(
         val cart = cartRepository.findByUserIdWithItems(userId)
             ?: throw CartException.CartNotFound(userId)
 
-        cart.removeItem(cartItemId, userId)
+        cart.removeItem(cartItemId)
         return cartRepository.save(cart)
     }
 
@@ -127,7 +125,7 @@ class CartService(
         val cart = cartRepository.findByUserIdWithItems(userId)
             ?: throw CartException.CartNotFound(userId)
 
-        cart.clear(userId)
+        cart.clear()
         return cartRepository.save(cart)
     }
 
@@ -154,7 +152,7 @@ class CartService(
         // 주문된 상품들만 장바구니에서 제거
         orderedProductIds.forEach { productId ->
             val itemToRemove = cart.items.find { it.productId == productId }
-            itemToRemove?.let { cart.removeItem(it.id, userId) }
+            itemToRemove?.let { cart.removeItem(it.id) }
         }
 
         // 장바구니에 아이템이 남아있으면 저장, 비어있으면 전체 삭제

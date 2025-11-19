@@ -33,11 +33,7 @@ class UserMapper {
             name = entity.name,
             phone = entity.phone,
             providerId = entity.providerId,
-            createdAt = entity.createdAt,
-            updatedAt = entity.updatedAt,
-            createdBy = entity.createdBy ?: 0,
-            updatedBy = entity.updatedBy ?: 0,
-            deletedAt = entity.deletedAt
+            status = entity.status
         )
     }
 
@@ -58,9 +54,7 @@ class UserMapper {
             phone = domain.phone,
             providerId = domain.providerId
         ).apply {
-            createdBy = domain.createdBy
-            updatedBy = domain.updatedBy
-            deletedAt = domain.deletedAt
+            status = domain.status
         }
     }
 

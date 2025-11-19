@@ -37,12 +37,7 @@ class ProductMapper {
             pricePer100g = entity.pricePer100g,
             ingredients = entity.ingredients,
             origin = entity.origin,
-            status = entity.status,
-            createdAt = entity.createdAt,
-            updatedAt = entity.updatedAt,
-            createdBy = entity.createdBy ?: 0,
-            updatedBy = entity.updatedBy ?: 0,
-            deletedAt = entity.deletedAt
+            status = entity.status
         )
     }
 
@@ -67,11 +62,7 @@ class ProductMapper {
             ingredients = domain.ingredients,
             origin = domain.origin,
             status = domain.status
-        ).apply {
-            createdBy = domain.createdBy
-            updatedBy = domain.updatedBy
-            deletedAt = domain.deletedAt
-        }
+        )
     }
 
     /**

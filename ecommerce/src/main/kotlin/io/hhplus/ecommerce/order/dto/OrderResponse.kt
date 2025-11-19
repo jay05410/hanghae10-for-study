@@ -5,7 +5,6 @@ import io.swagger.v3.oas.annotations.media.Schema
 import io.hhplus.ecommerce.order.domain.entity.Order
 import io.hhplus.ecommerce.order.domain.entity.OrderItem
 import io.hhplus.ecommerce.order.domain.constant.OrderStatus
-import java.time.LocalDateTime
 
 /**
  * 주문 정보 응답 DTO - 프레젠테이션 계층
@@ -42,13 +41,7 @@ data class OrderResponse(
     val status: OrderStatus,
 
     @Schema(description = "주문 아이템 목록")
-    val orderItems: List<OrderItemResponse>,
-
-    @Schema(description = "주문 생성 일시", example = "2025-01-13T10:00:00")
-    val createdAt: LocalDateTime,
-
-    @Schema(description = "주문 수정 일시", example = "2025-01-13T14:30:00")
-    val updatedAt: LocalDateTime
+    val orderItems: List<OrderItemResponse>
 ) {
 }
 
@@ -86,13 +79,7 @@ data class OrderItemResponse(
     val giftWrapPrice: Int,
 
     @Schema(description = "아이템 총 가격", example = "38000")
-    val totalPrice: Int,
-
-    @Schema(description = "생성 일시", example = "2025-01-13T10:00:00")
-    val createdAt: LocalDateTime,
-
-    @Schema(description = "수정 일시", example = "2025-01-13T14:30:00")
-    val updatedAt: LocalDateTime
+    val totalPrice: Int
 )
 
 fun Order.toResponse(orderItems: List<OrderItem> = emptyList()): OrderResponse = OrderResponse(
@@ -104,9 +91,7 @@ fun Order.toResponse(orderItems: List<OrderItem> = emptyList()): OrderResponse =
     finalAmount = this.finalAmount,
     usedCouponId = this.usedCouponId,
     status = this.status,
-    orderItems = orderItems.map { it.toResponse() },
-    createdAt = this.createdAt,
-    updatedAt = this.updatedAt
+    orderItems = orderItems.map { it.toResponse() }
 )
 
 fun OrderItem.toResponse(): OrderItemResponse = OrderItemResponse(
@@ -119,7 +104,5 @@ fun OrderItem.toResponse(): OrderItemResponse = OrderItemResponse(
     giftWrap = this.giftWrap,
     giftMessage = this.giftMessage,
     giftWrapPrice = this.giftWrapPrice,
-    totalPrice = this.totalPrice,
-    createdAt = this.createdAt,
-    updatedAt = this.updatedAt
+    totalPrice = this.totalPrice
 )

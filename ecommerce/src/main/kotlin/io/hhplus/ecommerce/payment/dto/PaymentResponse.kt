@@ -4,7 +4,6 @@ import io.hhplus.ecommerce.payment.domain.entity.Payment
 import io.hhplus.ecommerce.payment.domain.constant.PaymentMethod
 import io.hhplus.ecommerce.payment.domain.constant.PaymentStatus
 import io.swagger.v3.oas.annotations.media.Schema
-import java.time.LocalDateTime
 
 /**
  * 결제 정보 응답 DTO - 프레젠테이션 계층
@@ -41,13 +40,7 @@ data class PaymentResponse(
     val externalTransactionId: String?,
 
     @Schema(description = "실패 사유 (선택)", example = "잔액 부족")
-    val failureReason: String?,
-
-    @Schema(description = "생성 일시", example = "2025-01-13T10:00:00")
-    val createdAt: LocalDateTime,
-
-    @Schema(description = "수정 일시", example = "2025-01-13T10:00:00")
-    val updatedAt: LocalDateTime
+    val failureReason: String?
 )
 
 fun Payment.toResponse(): PaymentResponse = PaymentResponse(
@@ -59,7 +52,5 @@ fun Payment.toResponse(): PaymentResponse = PaymentResponse(
     paymentMethod = this.paymentMethod,
     status = this.status,
     externalTransactionId = this.externalTransactionId,
-    failureReason = this.failureReason,
-    createdAt = this.createdAt,
-    updatedAt = this.updatedAt
+    failureReason = this.failureReason
 )

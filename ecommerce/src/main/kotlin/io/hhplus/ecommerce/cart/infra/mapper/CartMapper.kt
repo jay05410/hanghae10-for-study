@@ -31,11 +31,7 @@ class CartMapper {
         return Cart(
             id = entity.id,
             userId = entity.userId,
-            _items = items.toMutableList(),
-            createdAt = entity.createdAt,
-            updatedAt = entity.updatedAt,
-            createdBy = entity.createdBy ?: 0,
-            updatedBy = entity.updatedBy ?: 0
+            _items = items.toMutableList()
         )
     }
 
@@ -49,10 +45,7 @@ class CartMapper {
         return CartJpaEntity(
             id = domain.id,
             userId = domain.userId
-        ).apply {
-            createdBy = domain.createdBy
-            updatedBy = domain.updatedBy
-        }
+        )
     }
 
     /**

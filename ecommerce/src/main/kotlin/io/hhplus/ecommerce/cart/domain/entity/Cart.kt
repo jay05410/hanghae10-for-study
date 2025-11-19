@@ -22,11 +22,7 @@ import java.time.LocalDateTime
 data class Cart(
     val id: Long = 0,
     val userId: Long,
-    private val _items: MutableList<CartItem> = mutableListOf(),
-    val createdAt: LocalDateTime = LocalDateTime.now(),
-    var updatedAt: LocalDateTime = LocalDateTime.now(),
-    val createdBy: Long = 0,
-    var updatedBy: Long = 0
+    private val _items: MutableList<CartItem> = mutableListOf()
 ) {
     val items: List<CartItem> get() = _items.toList()
 
@@ -40,8 +36,7 @@ data class Cart(
         productId: Long,
         quantity: Int,
         giftWrap: Boolean = false,
-        giftMessage: String? = null,
-        addedBy: Long
+        giftMessage: String? = null
     ): CartItem {
         require(_items.size < MAX_CART_ITEMS) { "장바구니 최대 아이템 수($MAX_CART_ITEMS)를 초과할 수 없습니다" }
         require(_items.none { it.productId == productId }) { "이미 동일한 상품이 장바구니에 있습니다" }
@@ -55,8 +50,6 @@ data class Cart(
         )
 
         _items.add(cartItem)
-        this.updatedBy = addedBy
-        this.updatedAt = LocalDateTime.now()
 
         return cartItem
     }
@@ -66,11 +59,9 @@ data class Cart(
      *
      * @throws CartException.CartItemNotFound 아이템을 찾을 수 없는 경우
      */
-    fun updateItemQuantity(cartItemId: Long, newQuantity: Int, updatedBy: Long) {
+    fun updateItemQuantity(cartItemId: Long, newQuantity: Int) {
         val item = findItem(cartItemId)
         item.updateQuantity(newQuantity)
-        this.updatedBy = updatedBy
-        this.updatedAt = LocalDateTime.now()
     }
 
     /**
@@ -79,7 +70,7 @@ data class Cart(
      *
      * @throws CartException.CartItemNotFound 아이템을 찾을 수 없는 경우
      */
-    fun updateItem(cartItemId: Long, quantity: Int, giftWrap: Boolean, giftMessage: String?, updatedBy: Long) {
+    fun updateItem(cartItemId: Long, quantity: Int, giftWrap: Boolean, giftMessage: String?) {
         val existingItem = findItem(cartItemId)
         val productId = existingItem.productId
 
@@ -96,8 +87,6 @@ data class Cart(
         )
 
         _items.add(newCartItem)
-        this.updatedBy = updatedBy
-        this.updatedAt = LocalDateTime.now()
     }
 
     /**
@@ -105,20 +94,16 @@ data class Cart(
      *
      * @throws CartException.CartItemNotFound 아이템을 찾을 수 없는 경우
      */
-    fun removeItem(cartItemId: Long, removedBy: Long) {
+    fun removeItem(cartItemId: Long) {
         val item = findItem(cartItemId)
         _items.remove(item)
-        this.updatedBy = removedBy
-        this.updatedAt = LocalDateTime.now()
     }
 
     /**
      * 장바구니 전체 비우기
      */
-    fun clear(clearedBy: Long) {
+    fun clear() {
         _items.clear()
-        this.updatedBy = clearedBy
-        this.updatedAt = LocalDateTime.now()
     }
 
     fun isEmpty(): Boolean = items.isEmpty()
@@ -148,16 +133,11 @@ data class Cart(
          * @param createdBy 생성자 ID
          * @return 생성된 Cart 도메인 모델
          */
-        fun create(userId: Long, createdBy: Long): Cart {
+        fun create(userId: Long): Cart {
             require(userId > 0) { "사용자 ID는 유효해야 합니다" }
 
-            val now = LocalDateTime.now()
             return Cart(
-                userId = userId,
-                createdBy = createdBy,
-                updatedBy = createdBy,
-                createdAt = now,
-                updatedAt = now
+                userId = userId
             )
         }
     }

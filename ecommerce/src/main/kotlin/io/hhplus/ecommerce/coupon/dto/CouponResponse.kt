@@ -47,13 +47,7 @@ data class CouponResponse(
     val validFrom: LocalDateTime,
 
     @Schema(description = "유효 종료 일시", example = "2025-12-31T23:59:59")
-    val validTo: LocalDateTime,
-
-    @Schema(description = "생성 일시", example = "2025-01-01T10:00:00")
-    val createdAt: LocalDateTime,
-
-    @Schema(description = "수정 일시", example = "2025-01-13T14:30:00")
-    val updatedAt: LocalDateTime
+    val validTo: LocalDateTime
 )
 
 fun Coupon.toResponse(): CouponResponse = CouponResponse(
@@ -67,9 +61,7 @@ fun Coupon.toResponse(): CouponResponse = CouponResponse(
     issuedQuantity = this.issuedQuantity,
     remainingQuantity = this.getRemainingQuantity(),
     validFrom = this.validFrom,
-    validTo = this.validTo,
-    createdAt = this.createdAt,
-    updatedAt = this.updatedAt
+    validTo = this.validTo
 )
 
 /**
@@ -96,13 +88,7 @@ data class UserCouponResponse(
     val usedOrderId: Long?,
 
     @Schema(description = "쿠폰 상태", example = "ISSUED", allowableValues = ["ISSUED", "USED", "EXPIRED"])
-    val status: io.hhplus.ecommerce.coupon.domain.constant.UserCouponStatus,
-
-    @Schema(description = "생성 일시", example = "2025-01-13T10:00:00")
-    val createdAt: LocalDateTime,
-
-    @Schema(description = "수정 일시", example = "2025-01-14T15:30:00")
-    val updatedAt: LocalDateTime
+    val status: io.hhplus.ecommerce.coupon.domain.constant.UserCouponStatus
 )
 
 fun io.hhplus.ecommerce.coupon.domain.entity.UserCoupon.toResponse(): UserCouponResponse = UserCouponResponse(
@@ -112,7 +98,5 @@ fun io.hhplus.ecommerce.coupon.domain.entity.UserCoupon.toResponse(): UserCoupon
     issuedAt = this.issuedAt,
     usedAt = this.usedAt,
     usedOrderId = this.usedOrderId,
-    status = this.status,
-    createdAt = this.createdAt,
-    updatedAt = this.updatedAt
+    status = this.status
 )

@@ -43,7 +43,7 @@ class StockReservationService(
         val inventory = inventoryRepository.findByProductIdWithLock(productId)
             ?: throw InventoryException.InventoryNotFound(productId)
 
-        inventory.reserve(quantity, userId)
+        inventory.reserve(quantity)
         inventoryRepository.save(inventory)
 
         // 예약 기록 생성
@@ -75,7 +75,7 @@ class StockReservationService(
         val inventory = inventoryRepository.findByProductIdWithLock(reservation.productId)
             ?: throw InventoryException.InventoryNotFound(reservation.productId)
 
-        inventory.confirmReservation(reservation.quantity, userId)
+        inventory.confirmReservation(reservation.quantity)
         inventoryRepository.save(inventory)
 
         // 예약 상태 변경
@@ -100,7 +100,7 @@ class StockReservationService(
         val inventory = inventoryRepository.findByProductIdWithLock(reservation.productId)
             ?: throw InventoryException.InventoryNotFound(reservation.productId)
 
-        inventory.releaseReservation(reservation.quantity, userId)
+        inventory.releaseReservation(reservation.quantity)
         inventoryRepository.save(inventory)
 
         // 예약 취소
@@ -118,7 +118,7 @@ class StockReservationService(
                 // 재고 예약 해제
                 val inventory = inventoryRepository.findByProductIdWithLock(reservation.productId)
                 if (inventory != null) {
-                    inventory.releaseReservation(reservation.quantity, -1L) // 시스템에 의한 해제
+                    inventory.releaseReservation(reservation.quantity) // 시스템에 의한 해제
                     inventoryRepository.save(inventory)
                 }
 

@@ -2,7 +2,6 @@ package io.hhplus.ecommerce.order.domain.entity
 
 import io.hhplus.ecommerce.order.exception.OrderException
 import io.hhplus.ecommerce.order.domain.constant.OrderStatus
-import java.time.LocalDateTime
 
 /**
  * Order 도메인 모델 (mutable)
@@ -20,60 +19,41 @@ data class Order(
     val discountAmount: Long = 0,
     val finalAmount: Long,
     val usedCouponId: Long? = null,
-    var status: OrderStatus = OrderStatus.PENDING,
-    val createdAt: LocalDateTime = LocalDateTime.now(),
-    var updatedAt: LocalDateTime = LocalDateTime.now(),
-    val createdBy: Long? = null,
-    var updatedBy: Long? = null,
-    val deletedAt: LocalDateTime? = null
+    var status: OrderStatus = OrderStatus.PENDING
 ) {
 
-    /**
-     * 삭제 상태 확인
-     *
-     * @return 삭제 여부
-     */
-    fun isDeleted(): Boolean = deletedAt != null
 
     /**
      * 주문 확정
      */
-    fun confirm(confirmedBy: Long) {
+    fun confirm() {
         validateStatusTransition(OrderStatus.CONFIRMED)
         this.status = OrderStatus.CONFIRMED
-        this.updatedBy = confirmedBy
-        this.updatedAt = LocalDateTime.now()
     }
 
     /**
      * 주문 취소
      */
-    fun cancel(cancelledBy: Long) {
+    fun cancel() {
         if (!canBeCancelled()) {
             throw OrderException.OrderCancellationNotAllowed(orderNumber, status)
         }
         this.status = OrderStatus.CANCELLED
-        this.updatedBy = cancelledBy
-        this.updatedAt = LocalDateTime.now()
     }
 
     /**
      * 주문 완료
      */
-    fun complete(completedBy: Long) {
+    fun complete() {
         validateStatusTransition(OrderStatus.COMPLETED)
         this.status = OrderStatus.COMPLETED
-        this.updatedBy = completedBy
-        this.updatedAt = LocalDateTime.now()
     }
 
     /**
      * 주문 실패
      */
-    fun fail(failedBy: Long) {
+    fun fail() {
         this.status = OrderStatus.FAILED
-        this.updatedBy = failedBy
-        this.updatedAt = LocalDateTime.now()
     }
 
     fun canBeCancelled(): Boolean = status.canBeCancelled()

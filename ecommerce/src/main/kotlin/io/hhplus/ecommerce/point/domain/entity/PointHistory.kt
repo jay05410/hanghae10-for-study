@@ -2,7 +2,6 @@ package io.hhplus.ecommerce.point.domain.entity
 
 import io.hhplus.ecommerce.point.domain.constant.PointTransactionType
 import io.hhplus.ecommerce.point.domain.vo.PointAmount
-import java.time.LocalDateTime
 
 /**
  * 포인트 거래 이력 도메인 엔티티 (Pure Domain Model)
@@ -22,15 +21,9 @@ data class PointHistory(
     val balanceBefore: Long,
     val balanceAfter: Long,
     val orderId: Long? = null,
-    val description: String? = null,
-    val createdAt: LocalDateTime = LocalDateTime.now(),
-    val updatedAt: LocalDateTime = LocalDateTime.now(),
-    val createdBy: Long? = null,
-    val updatedBy: Long? = null,
-    val deletedAt: LocalDateTime? = null
+    val description: String? = null
 ) {
 
-    fun isDeleted(): Boolean = deletedAt != null
 
     companion object {
         fun createEarnHistory(
@@ -39,8 +32,7 @@ data class PointHistory(
             balanceBefore: Long,
             balanceAfter: Long,
             orderId: Long? = null,
-            description: String? = null,
-            createdBy: Long
+            description: String? = null
         ): PointHistory {
             return PointHistory(
                 userId = userId,
@@ -49,9 +41,7 @@ data class PointHistory(
                 balanceBefore = balanceBefore,
                 balanceAfter = balanceAfter,
                 orderId = orderId,
-                description = description,
-                createdBy = createdBy,
-                updatedBy = createdBy
+                description = description
             )
         }
 
@@ -61,8 +51,7 @@ data class PointHistory(
             balanceBefore: Long,
             balanceAfter: Long,
             orderId: Long? = null,
-            description: String? = null,
-            createdBy: Long
+            description: String? = null
         ): PointHistory {
             return PointHistory(
                 userId = userId,
@@ -71,9 +60,7 @@ data class PointHistory(
                 balanceBefore = balanceBefore,
                 balanceAfter = balanceAfter,
                 orderId = orderId,
-                description = description,
-                createdBy = createdBy,
-                updatedBy = createdBy
+                description = description
             )
         }
 
@@ -82,8 +69,7 @@ data class PointHistory(
             amount: PointAmount,
             balanceBefore: Long,
             balanceAfter: Long,
-            description: String? = null,
-            createdBy: Long
+            description: String? = null
         ): PointHistory {
             return PointHistory(
                 userId = userId,
@@ -92,9 +78,7 @@ data class PointHistory(
                 balanceBefore = balanceBefore,
                 balanceAfter = balanceAfter,
                 orderId = null,
-                description = description,
-                createdBy = createdBy,
-                updatedBy = createdBy
+                description = description
             )
         }
 
@@ -104,8 +88,7 @@ data class PointHistory(
             balanceBefore: Long,
             balanceAfter: Long,
             orderId: Long,
-            description: String? = null,
-            createdBy: Long
+            description: String? = null
         ): PointHistory {
             return PointHistory(
                 userId = userId,
@@ -114,9 +97,7 @@ data class PointHistory(
                 balanceBefore = balanceBefore,
                 balanceAfter = balanceAfter,
                 orderId = orderId,
-                description = description,
-                createdBy = createdBy,
-                updatedBy = createdBy
+                description = description
             )
         }
     }

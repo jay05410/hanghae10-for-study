@@ -47,15 +47,13 @@ class ProductService(
         name: String,
         description: String,
         price: Long,
-        categoryId: Long,
-        createdBy: Long
+        categoryId: Long
     ): Product {
         val product = Product.create(
             name = name,
             description = description,
             price = price,
-            categoryId = categoryId,
-            createdBy = createdBy
+            categoryId = categoryId
         )
 
         return productRepository.save(product)
@@ -70,11 +68,10 @@ class ProductService(
         productId: Long,
         name: String,
         description: String,
-        price: Long,
-        updatedBy: Long
+        price: Long
     ): Product {
         val product = getProduct(productId)
-        product.updateInfo(name, description, price, updatedBy)
+        product.updateInfo(name, description, price)
         return productRepository.save(product)
     }
 
@@ -90,9 +87,9 @@ class ProductService(
      *
      * 주의: 가변 객체이므로 markOutOfStock() 호출 후 저장
      */
-    fun markProductOutOfStock(productId: Long, updatedBy: Long): Product {
+    fun markProductOutOfStock(productId: Long): Product {
         val product = getProduct(productId)
-        product.markOutOfStock(updatedBy)
+        product.markOutOfStock()
         return productRepository.save(product)
     }
 
@@ -101,9 +98,9 @@ class ProductService(
      *
      * 주의: 가변 객체이므로 markDiscontinued() 호출 후 저장
      */
-    fun discontinueProduct(productId: Long, updatedBy: Long): Product {
+    fun discontinueProduct(productId: Long): Product {
         val product = getProduct(productId)
-        product.markDiscontinued(updatedBy)
+        product.markDiscontinued()
         return productRepository.save(product)
     }
 
@@ -112,9 +109,9 @@ class ProductService(
      *
      * 주의: 가변 객체이므로 hide() 호출 후 저장
      */
-    fun hideProduct(productId: Long, updatedBy: Long): Product {
+    fun hideProduct(productId: Long): Product {
         val product = getProduct(productId)
-        product.hide(updatedBy)
+        product.hide()
         return productRepository.save(product)
     }
 
@@ -123,9 +120,9 @@ class ProductService(
      *
      * 주의: 가변 객체이므로 restore() 호출 후 저장
      */
-    fun restoreProduct(productId: Long, updatedBy: Long): Product {
+    fun restoreProduct(productId: Long): Product {
         val product = getProduct(productId)
-        product.restore(updatedBy)
+        product.restore()
         return productRepository.save(product)
     }
 

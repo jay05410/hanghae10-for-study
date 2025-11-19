@@ -35,8 +35,7 @@ class ProductCommandUseCase(
             name = request.name,
             description = request.description,
             price = request.price,
-            categoryId = request.categoryId,
-            createdBy = request.createdBy
+            categoryId = request.categoryId
         )
     }
 
@@ -56,8 +55,7 @@ class ProductCommandUseCase(
         product.updateInfo(
             name = request.name,
             description = request.description,
-            price = request.price,
-            updatedBy = request.updatedBy
+            price = request.price
         )
 
         return productService.updateProduct(product)

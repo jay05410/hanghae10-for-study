@@ -59,8 +59,7 @@ class UserCommandUseCase(
             email = email,
             name = name,
             phone = phone,
-            providerId = providerId,
-            createdBy = createdBy
+            providerId = providerId
         )
 
         return userRepository.save(user)
@@ -92,8 +91,7 @@ class UserCommandUseCase(
         // 가변 모델: update 메서드 호출 후 저장
         user.update(
             name = name ?: user.name,
-            email = email ?: user.email,
-            updatedBy = updatedBy
+            email = email ?: user.email
         )
 
         return userRepository.save(user)
@@ -111,7 +109,7 @@ class UserCommandUseCase(
         val user = userRepository.findById(userId)
             ?: throw UserException.UserNotFound(userId)
 
-        user.delete(deletedBy)
+        user.deactivate()
         return userRepository.save(user)
     }
 
@@ -127,8 +125,7 @@ class UserCommandUseCase(
         val user = userRepository.findById(userId)
             ?: throw UserException.UserNotFound(userId)
 
-        user.restore()
-        user.updatedBy = restoredBy
+        user.activate()
         return userRepository.save(user)
     }
 }

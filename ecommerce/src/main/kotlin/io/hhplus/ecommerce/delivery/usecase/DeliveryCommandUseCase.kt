@@ -53,8 +53,7 @@ class DeliveryCommandUseCase(
         val delivery = Delivery.create(
             orderId = orderId,
             deliveryAddress = deliveryAddress,
-            deliveryMemo = deliveryMemo,
-            createdBy = createdBy
+            deliveryMemo = deliveryMemo
         )
 
         return deliveryRepository.save(delivery)
@@ -70,7 +69,7 @@ class DeliveryCommandUseCase(
     @Transactional
     fun startPreparing(id: Long, updatedBy: Long = 1L): Delivery {
         val delivery = getDelivery(id)
-        val updated = delivery.startPreparing(updatedBy)
+        val updated = delivery.startPreparing()
         return deliveryRepository.save(updated)
     }
 
@@ -91,7 +90,7 @@ class DeliveryCommandUseCase(
         updatedBy: Long = 1L
     ): Delivery {
         val delivery = getDelivery(id)
-        val updated = delivery.ship(trackingNumber, carrier, updatedBy)
+        val updated = delivery.ship(trackingNumber, carrier)
         return deliveryRepository.save(updated)
     }
 
@@ -105,7 +104,7 @@ class DeliveryCommandUseCase(
     @Transactional
     fun deliver(id: Long, updatedBy: Long = 1L): Delivery {
         val delivery = getDelivery(id)
-        val updated = delivery.deliver(updatedBy)
+        val updated = delivery.deliver()
         return deliveryRepository.save(updated)
     }
 
@@ -119,7 +118,7 @@ class DeliveryCommandUseCase(
     @Transactional
     fun fail(id: Long, updatedBy: Long = 1L): Delivery {
         val delivery = getDelivery(id)
-        val updated = delivery.fail(updatedBy)
+        val updated = delivery.fail()
         return deliveryRepository.save(updated)
     }
 }

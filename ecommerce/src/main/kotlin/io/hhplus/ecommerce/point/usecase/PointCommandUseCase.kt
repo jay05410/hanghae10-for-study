@@ -44,7 +44,7 @@ class PointCommandUseCase(
         // 사용자 포인트가 없는 경우 새로 생성
         val existingUserPoint = pointService.getUserPoint(userId)
         if (existingUserPoint == null) {
-            pointService.createUserPoint(userId, userId)
+            pointService.createUserPoint(userId)
         }
 
         // 충전 전 잔액 조회
@@ -52,7 +52,7 @@ class PointCommandUseCase(
         val balanceBefore = userPointBefore.balance
 
         // 포인트 충전
-        val updatedUserPoint = pointService.earnPoint(userId, pointAmount, userId, description)
+        val updatedUserPoint = pointService.earnPoint(userId, pointAmount, description)
 
         // 히스토리 기록
         pointHistoryService.recordEarnHistory(
@@ -60,7 +60,6 @@ class PointCommandUseCase(
             amount = pointAmount,
             balanceBefore = balanceBefore,
             balanceAfter = updatedUserPoint.balance,
-            createdBy = userId,
             description = description,
             orderId = orderId
         )
@@ -89,7 +88,7 @@ class PointCommandUseCase(
         val balanceBefore = userPointBefore.balance
 
         // 포인트 사용
-        val updatedUserPoint = pointService.usePoint(userId, pointAmount, userId, description)
+        val updatedUserPoint = pointService.usePoint(userId, pointAmount, description)
 
         // 히스토리 기록
         pointHistoryService.recordUseHistory(
@@ -97,7 +96,6 @@ class PointCommandUseCase(
             amount = pointAmount,
             balanceBefore = balanceBefore,
             balanceAfter = updatedUserPoint.balance,
-            createdBy = userId,
             description = description,
             orderId = orderId
         )
@@ -119,7 +117,7 @@ class PointCommandUseCase(
      */
     @Transactional
     fun deductPoint(userId: Long, amount: PointAmount, deductedBy: Long, description: String? = null): UserPoint {
-        return pointService.usePoint(userId, amount, deductedBy, description)
+        return pointService.usePoint(userId, amount, description)
     }
 
     /**
@@ -131,7 +129,7 @@ class PointCommandUseCase(
      */
     @Transactional
     fun createUserPoint(userId: Long, createdBy: Long): UserPoint {
-        return pointService.createUserPoint(userId, createdBy)
+        return pointService.createUserPoint(userId)
     }
 
     /**
@@ -147,7 +145,7 @@ class PointCommandUseCase(
      */
     @Transactional
     fun earnPoint(userId: Long, amount: PointAmount, earnedBy: Long, description: String? = null): UserPoint {
-        return pointService.earnPoint(userId, amount, earnedBy, description)
+        return pointService.earnPoint(userId, amount, description)
     }
 
     /**

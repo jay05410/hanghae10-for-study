@@ -29,11 +29,7 @@ class CouponMapper {
             issuedQuantity = entity.issuedQuantity,
             version = entity.version,
             validFrom = entity.validFrom,
-            validTo = entity.validTo,
-            createdAt = entity.createdAt,
-            updatedAt = entity.updatedAt,
-            createdBy = entity.createdBy ?: 0,
-            updatedBy = entity.updatedBy ?: 0
+            validTo = entity.validTo
         )
     }
 
@@ -53,10 +49,7 @@ class CouponMapper {
             version = domain.version,
             validFrom = domain.validFrom,
             validTo = domain.validTo
-        ).apply {
-            createdBy = domain.createdBy
-            updatedBy = domain.updatedBy
-        }
+        )
     }
 
     /**

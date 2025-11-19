@@ -30,8 +30,7 @@ class CartJpaEntity(
     @Column(nullable = false, unique = true, name = "user_id")
     val userId: Long,
 
-    // Dual Mapping Pattern: 읽기 전용 참조 (N+1 방지용)
-    // cascade 제거: CartItem은 수동으로 관리 (Dual Mapping Pattern)
-    @OneToMany(mappedBy = "cart", fetch = FetchType.LAZY)
+    @OneToMany(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cart_id")
     val cartItems: List<CartItemJpaEntity> = mutableListOf()
 ) : BaseJpaEntity()

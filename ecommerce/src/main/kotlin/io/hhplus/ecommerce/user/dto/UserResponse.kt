@@ -3,7 +3,6 @@ package io.hhplus.ecommerce.user.dto
 import io.hhplus.ecommerce.user.domain.entity.User
 import io.hhplus.ecommerce.user.domain.constant.LoginType
 import io.swagger.v3.oas.annotations.media.Schema
-import java.time.LocalDateTime
 
 /**
  * 사용자 정보 응답 DTO - 프레젠테이션 계층
@@ -34,13 +33,7 @@ data class UserResponse(
     val phone: String,
 
     @Schema(description = "OAuth Provider ID (선택)", example = "kakao_123456")
-    val providerId: String?,
-
-    @Schema(description = "생성 일시", example = "2025-01-01T10:00:00")
-    val createdAt: LocalDateTime,
-
-    @Schema(description = "수정 일시", example = "2025-01-15T14:30:00")
-    val updatedAt: LocalDateTime
+    val providerId: String?
 )
 
 fun User.toResponse(): UserResponse = UserResponse(
@@ -50,7 +43,5 @@ fun User.toResponse(): UserResponse = UserResponse(
     email = this.email,
     name = this.name,
     phone = this.phone,
-    providerId = this.providerId,
-    createdAt = this.createdAt,
-    updatedAt = this.updatedAt
+    providerId = this.providerId
 )

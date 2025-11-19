@@ -24,20 +24,20 @@ class ProductStatisticsService(
 ) {
 
     @Transactional
-    fun incrementViewCount(productId: Long, userId: Long): ProductStatistics {
+    fun incrementViewCount(productId: Long): ProductStatistics {
         val statistics = productStatisticsRepository.findByProductIdWithLock(productId)
-            ?: createStatistics(productId, userId)
+            ?: createStatistics(productId)
 
-        statistics.incrementViewCount(userId)
+        statistics.incrementViewCount(1L)
         return productStatisticsRepository.save(statistics)
     }
 
     @Transactional
-    fun incrementSalesCount(productId: Long, quantity: Int, userId: Long): ProductStatistics {
+    fun incrementSalesCount(productId: Long, quantity: Int): ProductStatistics {
         val statistics = productStatisticsRepository.findByProductIdWithLock(productId)
-            ?: createStatistics(productId, userId)
+            ?: createStatistics(productId)
 
-        statistics.incrementSalesCount(quantity, userId)
+        statistics.incrementSalesCount(quantity, 1L)
         return productStatisticsRepository.save(statistics)
     }
 
@@ -49,8 +49,8 @@ class ProductStatisticsService(
         return productStatisticsRepository.findByProductId(productId)
     }
 
-    private fun createStatistics(productId: Long, createdBy: Long): ProductStatistics {
-        val statistics = ProductStatistics.create(productId, createdBy)
+    private fun createStatistics(productId: Long): ProductStatistics {
+        val statistics = ProductStatistics.create(productId, 1L)
         return productStatisticsRepository.save(statistics)
     }
 }

@@ -1,7 +1,6 @@
 package io.hhplus.ecommerce.product.domain.entity
 
 import io.hhplus.ecommerce.product.domain.constant.ProductStatus
-import java.time.LocalDateTime
 
 /**
  * 상품 도메인 모델 (순수 비즈니스 로직)
@@ -33,12 +32,7 @@ data class Product(
     var pricePer100g: Int,
     val ingredients: String,
     val origin: String,
-    var status: ProductStatus = ProductStatus.ACTIVE,
-    val createdAt: LocalDateTime = LocalDateTime.now(),
-    var updatedAt: LocalDateTime = LocalDateTime.now(),
-    val createdBy: Long = 0,
-    var updatedBy: Long = 0,
-    val deletedAt: LocalDateTime? = null
+    var status: ProductStatus = ProductStatus.ACTIVE
 ) {
     val price: Long get() = pricePer100g.toLong()
 
@@ -47,55 +41,33 @@ data class Product(
      */
     fun isAvailable(): Boolean = status == ProductStatus.ACTIVE
 
-    /**
-     * 삭제 상태 확인
-     *
-     * @return 삭제 여부
-     */
-    fun isDeleted(): Boolean = deletedAt != null
 
     /**
      * 품절 상태로 변경
-     *
-     * @param updatedBy 변경자 ID
      */
-    fun markOutOfStock(updatedBy: Long) {
+    fun markOutOfStock() {
         this.status = ProductStatus.OUT_OF_STOCK
-        this.updatedBy = updatedBy
-        this.updatedAt = LocalDateTime.now()
     }
 
     /**
      * 단종 상태로 변경
-     *
-     * @param updatedBy 변경자 ID
      */
-    fun markDiscontinued(updatedBy: Long) {
+    fun markDiscontinued() {
         this.status = ProductStatus.DISCONTINUED
-        this.updatedBy = updatedBy
-        this.updatedAt = LocalDateTime.now()
     }
 
     /**
      * 숨김 상태로 변경
-     *
-     * @param updatedBy 변경자 ID
      */
-    fun hide(updatedBy: Long) {
+    fun hide() {
         this.status = ProductStatus.HIDDEN
-        this.updatedBy = updatedBy
-        this.updatedAt = LocalDateTime.now()
     }
 
     /**
      * 활성 상태로 복구
-     *
-     * @param updatedBy 변경자 ID
      */
-    fun restore(updatedBy: Long) {
+    fun restore() {
         this.status = ProductStatus.ACTIVE
-        this.updatedBy = updatedBy
-        this.updatedAt = LocalDateTime.now()
     }
 
     /**
@@ -104,14 +76,12 @@ data class Product(
      * @param name 변경할 상품명
      * @param description 변경할 상품 설명
      * @param price 변경할 가격
-     * @param updatedBy 변경자 ID
      * @throws IllegalArgumentException 필수 정보 누락 시
      */
     fun updateInfo(
         name: String,
         description: String,
-        price: Long,
-        updatedBy: Long
+        price: Long
     ) {
         require(name.isNotBlank()) { "상품명은 필수입니다" }
         require(price > 0) { "가격은 0보다 커야 합니다" }
@@ -119,8 +89,6 @@ data class Product(
         this.name = name
         this.description = description
         this.pricePer100g = price.toInt()
-        this.updatedBy = updatedBy
-        this.updatedAt = LocalDateTime.now()
     }
 
 
@@ -132,13 +100,11 @@ data class Product(
             name: String,
             description: String,
             price: Long,
-            categoryId: Long,
-            createdBy: Long
+            categoryId: Long
         ): Product {
             require(name.isNotBlank()) { "상품명은 필수입니다" }
             require(price > 0) { "가격은 0보다 커야 합니다" }
 
-            val now = LocalDateTime.now()
             return Product(
                 categoryId = categoryId,
                 name = name,
@@ -150,11 +116,7 @@ data class Product(
                 bagPerWeight = 3,        // 기본값
                 pricePer100g = price.toInt(),
                 ingredients = "차 잎 100%", // 기본값
-                origin = "한국",          // 기본값
-                createdBy = createdBy,
-                updatedBy = createdBy,
-                createdAt = now,
-                updatedAt = now
+                origin = "한국"          // 기본값
             )
         }
 
@@ -172,14 +134,12 @@ data class Product(
             bagPerWeight: Int,
             pricePer100g: Int,
             ingredients: String,
-            origin: String,
-            createdBy: Long
+            origin: String
         ): Product {
             require(name.isNotBlank()) { "상품명은 필수입니다" }
             require(pricePer100g > 0) { "가격은 0보다 커야 합니다" }
             require(bagPerWeight > 0) { "티백 용량은 0보다 커야 합니다" }
 
-            val now = LocalDateTime.now()
             return Product(
                 categoryId = categoryId,
                 name = name,
@@ -191,11 +151,7 @@ data class Product(
                 bagPerWeight = bagPerWeight,
                 pricePer100g = pricePer100g,
                 ingredients = ingredients,
-                origin = origin,
-                createdBy = createdBy,
-                updatedBy = createdBy,
-                createdAt = now,
-                updatedAt = now
+                origin = origin
             )
         }
     }

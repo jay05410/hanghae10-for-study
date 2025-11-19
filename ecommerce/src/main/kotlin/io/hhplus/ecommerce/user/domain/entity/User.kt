@@ -1,7 +1,7 @@
 package io.hhplus.ecommerce.user.domain.entity
 
 import io.hhplus.ecommerce.user.domain.constant.LoginType
-import java.time.LocalDateTime
+import io.hhplus.ecommerce.user.domain.constant.UserStatus
 
 /**
  * 사용자 도메인 모델 (순수 비즈니스 로직)
@@ -28,11 +28,7 @@ data class User(
     var name: String,
     val phone: String,
     val providerId: String?,
-    val createdAt: LocalDateTime = LocalDateTime.now(),
-    var updatedAt: LocalDateTime = LocalDateTime.now(),
-    val createdBy: Long = 0,
-    var updatedBy: Long = 0,
-    var deletedAt: LocalDateTime? = null
+    var status: UserStatus = UserStatus.ACTIVE
 ) {
 
     /**
@@ -40,17 +36,14 @@ data class User(
      *
      * @param name 변경할 이름
      * @param email 변경할 이메일
-     * @param updatedBy 변경자 ID
      * @throws IllegalArgumentException 필수 정보 누락 시
      */
-    fun update(name: String, email: String, updatedBy: Long) {
+    fun update(name: String, email: String) {
         require(name.isNotBlank()) { "이름은 필수입니다" }
         require(email.isNotBlank()) { "이메일은 필수입니다" }
 
         this.name = name
         this.email = email
-        this.updatedBy = updatedBy
-        this.updatedAt = LocalDateTime.now()
     }
 
     /**
@@ -67,29 +60,24 @@ data class User(
 
 
     /**
-     * 소프트 삭제
-     *
-     * @param deletedBy 삭제 처리자 ID
+     * 사용자 비활성화
      */
-    fun delete(deletedBy: Long) {
-        this.deletedAt = LocalDateTime.now()
-        this.updatedBy = deletedBy
-        this.updatedAt = LocalDateTime.now()
+    fun deactivate() {
+        this.status = UserStatus.INACTIVE
     }
 
     /**
-     * 삭제 상태 확인
+     * 사용자 활성 상태 확인
      *
-     * @return 삭제 여부
+     * @return 활성 여부
      */
-    fun isDeleted(): Boolean = deletedAt != null
+    fun isActive(): Boolean = status == UserStatus.ACTIVE
 
     /**
-     * 소프트 삭제 복구
+     * 사용자 활성화
      */
-    fun restore() {
-        this.deletedAt = null
-        this.updatedAt = LocalDateTime.now()
+    fun activate() {
+        this.status = UserStatus.ACTIVE
     }
 
 
@@ -115,10 +103,8 @@ data class User(
             email: String,
             name: String,
             phone: String,
-            providerId: String?,
-            createdBy: Long
+            providerId: String?
         ): User {
-            val now = LocalDateTime.now()
             return User(
                 loginType = loginType,
                 loginId = loginId,
@@ -126,11 +112,7 @@ data class User(
                 email = email,
                 name = name,
                 phone = phone,
-                providerId = providerId,
-                createdBy = createdBy,
-                updatedBy = createdBy,
-                createdAt = now,
-                updatedAt = now
+                providerId = providerId
             ).also { it.validatePhoneFormat() }
         }
     }

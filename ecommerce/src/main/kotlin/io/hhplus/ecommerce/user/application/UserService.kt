@@ -31,8 +31,7 @@ class UserService(
         email: String,
         name: String,
         phone: String,
-        providerId: String?,
-        createdBy: Long
+        providerId: String?
     ): User {
         // 이메일 중복 검증
         val existingUser = userRepository.findByEmail(email)
@@ -47,8 +46,7 @@ class UserService(
             email = email,
             name = name,
             phone = phone,
-            providerId = providerId,
-            createdBy = createdBy
+            providerId = providerId
         )
 
         return userRepository.save(user)
@@ -62,7 +60,7 @@ class UserService(
         return userRepository.findByEmail(email)
     }
 
-    fun updateUser(userId: Long, name: String?, email: String?, updatedBy: Long): User {
+    fun updateUser(userId: Long, name: String?, email: String?): User {
         val user = userRepository.findById(userId)
             ?: throw UserException.UserNotFound(userId)
 
@@ -77,29 +75,27 @@ class UserService(
         // 가변 모델: update 메서드 호출 후 저장
         user.update(
             name = name ?: user.name,
-            email = email ?: user.email,
-            updatedBy = updatedBy
+            email = email ?: user.email
         )
 
         return userRepository.save(user)
     }
 
-    fun deleteUser(userId: Long, deletedBy: Long): User {
+    fun deleteUser(userId: Long): User {
         val user = userRepository.findById(userId)
             ?: throw UserException.UserNotFound(userId)
 
-        // 가변 모델: delete 메서드 호출 후 저장 (soft delete)
-        user.delete(deletedBy)
+        // 가변 모델: deactivate 메서드 호출 후 저장
+        user.deactivate()
         return userRepository.save(user)
     }
 
-    fun restoreUser(userId: Long, restoredBy: Long): User {
+    fun restoreUser(userId: Long): User {
         val user = userRepository.findById(userId)
             ?: throw UserException.UserNotFound(userId)
 
-        // 가변 모델: restore 메서드 호출 후 저장
-        user.restore()
-        user.updatedBy = restoredBy
+        // 가변 모델: activate 메서드 호출 후 저장
+        user.activate()
         return userRepository.save(user)
     }
 

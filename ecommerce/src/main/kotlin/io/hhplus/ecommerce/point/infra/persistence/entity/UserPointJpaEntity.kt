@@ -1,6 +1,7 @@
 package io.hhplus.ecommerce.point.infra.persistence.entity
 
 import io.hhplus.ecommerce.common.baseentity.BaseJpaEntity
+import io.hhplus.ecommerce.point.domain.constant.PointAccountStatus
 import jakarta.persistence.*
 
 /**
@@ -36,8 +37,11 @@ class UserPointJpaEntity(
     @Version
     var version: Int = 0,
 
-    // Dual Mapping Pattern: 읽기 전용 참조 (N+1 방지용)
-    // cascade 제거: PointHistory는 수동으로 관리 (Dual Mapping Pattern)
-    @OneToMany(mappedBy = "userPoint", fetch = FetchType.LAZY)
+    @Column(nullable = false, length = 20)
+    @Enumerated(EnumType.STRING)
+    var status: PointAccountStatus = PointAccountStatus.ACTIVE,
+
+    @OneToMany(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
     val pointHistories: List<PointHistoryJpaEntity> = mutableListOf()
 ) : BaseJpaEntity()

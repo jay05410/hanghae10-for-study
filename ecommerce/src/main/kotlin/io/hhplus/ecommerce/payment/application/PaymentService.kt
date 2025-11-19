@@ -37,8 +37,7 @@ class PaymentService(
             userId = userId,
             orderId = orderId,
             amount = amount,
-            paymentMethod = paymentMethod,
-            createdBy = userId
+            paymentMethod = paymentMethod
         )
 
         val savedPayment = paymentRepository.save(payment)
@@ -53,12 +52,11 @@ class PaymentService(
             }
 
             // 결제 처리 중 상태로 전환 (PENDING -> PROCESSING)
-            savedPayment.process(userId)
+            savedPayment.process()
             paymentRepository.save(savedPayment)
 
             // 결제 완료 처리 (PROCESSING -> COMPLETED)
             savedPayment.complete(
-                completedBy = userId,
                 externalTxId = snowflakeGenerator.generateNumberWithPrefix(IdPrefix.TRANSACTION)
             )
 
@@ -66,7 +64,7 @@ class PaymentService(
 
         } catch (e: Exception) {
             // 결제 실패 처리 (가변 모델: fail 메서드가 void 반환)
-            savedPayment.fail(userId, e.message ?: "결제 처리 중 오류가 발생했습니다")
+            savedPayment.fail(e.message ?: "결제 처리 중 오류가 발생했습니다")
             paymentRepository.save(savedPayment)
             throw e
         }

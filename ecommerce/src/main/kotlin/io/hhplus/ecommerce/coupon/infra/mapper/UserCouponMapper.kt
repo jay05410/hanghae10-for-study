@@ -25,11 +25,7 @@ class UserCouponMapper {
             issuedAt = entity.issuedAt,
             usedAt = entity.usedAt,
             usedOrderId = entity.usedOrderId,
-            status = entity.status,
-            createdAt = entity.createdAt,
-            updatedAt = entity.updatedAt,
-            createdBy = entity.createdBy ?: 0,
-            updatedBy = entity.updatedBy ?: 0
+            status = entity.status
         )
     }
 
@@ -45,10 +41,7 @@ class UserCouponMapper {
             usedAt = domain.usedAt,
             usedOrderId = domain.usedOrderId,
             status = domain.status
-        ).apply {
-            createdBy = domain.createdBy
-            updatedBy = domain.updatedBy
-        }
+        )
     }
 
     /**

@@ -17,15 +17,14 @@ class OutboxEventService(
         eventType: String,
         aggregateType: String,
         aggregateId: String,
-        payload: String,
-        createdBy: Long
+        payload: String
     ): OutboxEvent {
         val outboxEvent = OutboxEvent.create(
             eventType = eventType,
             aggregateType = aggregateType,
             aggregateId = aggregateId,
             payload = payload,
-            createdBy = createdBy
+            createdBy = 1L // 시스템 사용자 ID
         )
 
         return outboxEventRepository.save(outboxEvent)

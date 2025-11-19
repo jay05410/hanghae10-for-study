@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.media.Schema
 
 import io.hhplus.ecommerce.cart.domain.entity.Cart
 import io.hhplus.ecommerce.cart.domain.entity.CartItem
-import java.time.LocalDateTime
 
 /**
  * 장바구니 정보 응답 DTO - 프레젠테이션 계층
@@ -32,13 +31,7 @@ data class CartResponse(
     val totalQuantity: Int,
 
     @Schema(description = "총 가격", example = "50000")
-    val totalPrice: Long,
-
-    @Schema(description = "생성 일시", example = "2025-01-13T10:00:00")
-    val createdAt: LocalDateTime,
-
-    @Schema(description = "수정 일시", example = "2025-01-13T14:30:00")
-    val updatedAt: LocalDateTime
+    val totalPrice: Long
 ) {
 }
 
@@ -61,13 +54,7 @@ data class CartItemResponse(
     val giftWrap: Boolean,
 
     @Schema(description = "선물 메시지 (선택)", example = "생일 축하합니다!")
-    val giftMessage: String?,
-
-    @Schema(description = "생성 일시", example = "2025-01-13T10:00:00")
-    val createdAt: LocalDateTime,
-
-    @Schema(description = "수정 일시", example = "2025-01-13T14:30:00")
-    val updatedAt: LocalDateTime
+    val giftMessage: String?
 )
 
 fun Cart.toResponse(): CartResponse = CartResponse(
@@ -76,9 +63,7 @@ fun Cart.toResponse(): CartResponse = CartResponse(
     items = this.items.map { it.toResponse() },
     totalItemCount = this.getTotalItemCount(),
     totalQuantity = this.getTotalQuantity(),
-    totalPrice = this.getTotalPrice(),
-    createdAt = this.createdAt,
-    updatedAt = this.updatedAt
+    totalPrice = this.getTotalPrice()
 )
 
 fun CartItem.toResponse(): CartItemResponse = CartItemResponse(
@@ -86,7 +71,5 @@ fun CartItem.toResponse(): CartItemResponse = CartItemResponse(
     productId = this.productId,
     quantity = this.quantity,
     giftWrap = this.giftWrap,
-    giftMessage = this.giftMessage,
-    createdAt = this.createdAt,
-    updatedAt = this.updatedAt
+    giftMessage = this.giftMessage
 )

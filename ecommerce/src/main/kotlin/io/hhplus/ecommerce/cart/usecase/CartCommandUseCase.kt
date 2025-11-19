@@ -58,8 +58,7 @@ class CartCommandUseCase(
         return cartService.updateCartItem(
             userId = userId,
             cartItemId = cartItemId,
-            quantity = quantity,
-            updatedBy = userId
+            quantity = quantity
         )
     }
 

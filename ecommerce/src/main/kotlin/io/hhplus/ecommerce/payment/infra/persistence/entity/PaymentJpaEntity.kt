@@ -59,8 +59,7 @@ class PaymentJpaEntity(
     @Column(columnDefinition = "TEXT", name = "failure_reason")
     val failureReason: String? = null,
 
-    // Dual Mapping Pattern: 읽기 전용 참조 (N+1 방지용)
-    // cascade 제거: PaymentHistory는 수동으로 관리 (Dual Mapping Pattern)
-    @OneToMany(mappedBy = "payment", fetch = FetchType.LAZY)
+    @OneToMany(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payment_id")
     val paymentHistories: List<PaymentHistoryJpaEntity> = mutableListOf()
 ) : BaseJpaEntity()

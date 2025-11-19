@@ -1,7 +1,6 @@
 package io.hhplus.ecommerce.inventory.domain.entity
 
 import io.hhplus.ecommerce.inventory.exception.InventoryException
-import java.time.LocalDateTime
 
 /**
  * 재고 도메인 모델 (순수 비즈니스 로직)
@@ -24,19 +23,8 @@ data class Inventory(
     val productId: Long,
     var quantity: Int = 0,
     var reservedQuantity: Int = 0,
-    var version: Int = 0,
-    val createdAt: LocalDateTime = LocalDateTime.now(),
-    var updatedAt: LocalDateTime = LocalDateTime.now(),
-    val createdBy: Long = 0,
-    var updatedBy: Long = 0,
-    var deletedAt: LocalDateTime? = null
+    var version: Int = 0
 ) {
-    /**
-     * 삭제 상태 확인
-     *
-     * @return 삭제 여부
-     */
-    fun isDeleted(): Boolean = deletedAt != null
 
     /**
      * 가용 재고 수량 조회
@@ -57,82 +45,67 @@ data class Inventory(
      * 재고 차감
      *
      * @param requestedQuantity 차감할 수량
-     * @param deductedBy 차감 수행자 ID
      * @throws InventoryException.InsufficientStock 재고 부족 시
      */
-    fun deduct(requestedQuantity: Int, deductedBy: Long) {
+    fun deduct(requestedQuantity: Int) {
         if (!isStockAvailable(requestedQuantity)) {
             throw InventoryException.InsufficientStock(productId, getAvailableQuantity(), requestedQuantity)
         }
 
         this.quantity -= requestedQuantity
-        this.updatedBy = deductedBy
-        this.updatedAt = LocalDateTime.now()
     }
 
     /**
      * 재고 보충
      *
      * @param additionalQuantity 보충할 수량
-     * @param restockedBy 보충 수행자 ID
      * @throws IllegalArgumentException 추가 수량이 0 이하일 때
      */
-    fun restock(additionalQuantity: Int, restockedBy: Long) {
+    fun restock(additionalQuantity: Int) {
         require(additionalQuantity > 0) { "추가할 재고 수량은 0보다 커야 합니다" }
 
         this.quantity += additionalQuantity
-        this.updatedBy = restockedBy
-        this.updatedAt = LocalDateTime.now()
     }
 
     /**
      * 재고 예약
      *
      * @param requestedQuantity 예약할 수량
-     * @param reservedBy 예약 수행자 ID
      * @throws InventoryException.InsufficientStock 재고 부족 시
      */
-    fun reserve(requestedQuantity: Int, reservedBy: Long) {
+    fun reserve(requestedQuantity: Int) {
         if (!isStockAvailable(requestedQuantity)) {
             throw InventoryException.InsufficientStock(productId, getAvailableQuantity(), requestedQuantity)
         }
 
         this.reservedQuantity += requestedQuantity
-        this.updatedBy = reservedBy
-        this.updatedAt = LocalDateTime.now()
     }
 
     /**
      * 예약 해제
      *
      * @param releaseQuantity 해제할 수량
-     * @param releasedBy 해제 수행자 ID
      * @throws IllegalArgumentException 해제 수량이 잘못되었을 때
      */
-    fun releaseReservation(releaseQuantity: Int, releasedBy: Long) {
+    fun releaseReservation(releaseQuantity: Int) {
         require(releaseQuantity > 0) { "해제할 예약 수량은 0보다 커야 합니다" }
         require(releaseQuantity <= reservedQuantity) { "해제할 수량이 예약된 수량보다 클 수 없습니다" }
 
         this.reservedQuantity -= releaseQuantity
-        this.updatedBy = releasedBy
-        this.updatedAt = LocalDateTime.now()
     }
 
     /**
      * 예약 확정 (재고 차감 + 예약 해제)
      *
      * @param confirmQuantity 확정할 수량
-     * @param confirmedBy 확정 수행자 ID
      * @throws IllegalArgumentException 확정 수량이 잘못되었을 때
      */
-    fun confirmReservation(confirmQuantity: Int, confirmedBy: Long) {
+    fun confirmReservation(confirmQuantity: Int) {
         require(confirmQuantity > 0) { "확정할 예약 수량은 0보다 커야 합니다" }
         require(confirmQuantity <= reservedQuantity) { "확정할 수량이 예약된 수량보다 클 수 없습니다" }
 
         this.quantity -= confirmQuantity
         this.reservedQuantity -= confirmQuantity
-        this.updatedBy = confirmedBy
-        this.updatedAt = LocalDateTime.now()
     }
 
     companion object {
@@ -146,20 +119,14 @@ data class Inventory(
          */
         fun create(
             productId: Long,
-            initialQuantity: Int = 0,
-            createdBy: Long
+            initialQuantity: Int = 0
         ): Inventory {
             require(productId > 0) { "상품 ID는 유효해야 합니다" }
             require(initialQuantity >= 0) { "초기 재고는 0 이상이어야 합니다" }
 
-            val now = LocalDateTime.now()
             return Inventory(
                 productId = productId,
-                quantity = initialQuantity,
-                createdBy = createdBy,
-                updatedBy = createdBy,
-                createdAt = now,
-                updatedAt = now
+                quantity = initialQuantity
             )
         }
     }

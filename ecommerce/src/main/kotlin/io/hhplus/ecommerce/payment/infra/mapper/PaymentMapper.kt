@@ -33,12 +33,7 @@ class PaymentMapper {
             paymentMethod = entity.paymentMethod,
             status = entity.status,
             externalTransactionId = entity.externalTransactionId,
-            failureReason = entity.failureReason,
-            createdAt = entity.createdAt,
-            updatedAt = entity.updatedAt,
-            createdBy = entity.createdBy ?: 0,
-            updatedBy = entity.updatedBy ?: 0,
-            deletedAt = entity.deletedAt
+            failureReason = entity.failureReason
         )
     }
 
@@ -59,13 +54,7 @@ class PaymentMapper {
             status = domain.status,
             externalTransactionId = domain.externalTransactionId,
             failureReason = domain.failureReason
-        ).apply {
-            createdAt = domain.createdAt
-            updatedAt = domain.updatedAt
-            createdBy = domain.createdBy
-            updatedBy = domain.updatedBy
-            deletedAt = domain.deletedAt
-        }
+        )
     }
 
     /**

@@ -31,7 +31,7 @@ class InventoryCommandUseCase(
      * @throws InventoryException.InventoryAlreadyExists 이미 재고가 존재하는 경우
      */
     fun createInventory(productId: Long, initialQuantity: Int, createdBy: Long): Inventory {
-        return inventoryService.createInventory(productId, initialQuantity, createdBy)
+        return inventoryService.createInventory(productId, initialQuantity)
     }
 
     /**
@@ -45,7 +45,7 @@ class InventoryCommandUseCase(
      * @throws InventoryException.InsufficientStock 재고가 부족한 경우
      */
     fun deductStock(productId: Long, quantity: Int, deductedBy: Long): Inventory {
-        return inventoryService.deductStock(productId, quantity, deductedBy)
+        return inventoryService.deductStock(productId, quantity)
     }
 
     /**
@@ -58,6 +58,6 @@ class InventoryCommandUseCase(
      * @throws InventoryException.InventoryNotFound 재고를 찾을 수 없는 경우
      */
     fun restockInventory(productId: Long, quantity: Int, restockedBy: Long): Inventory {
-        return inventoryService.restockInventory(productId, quantity, restockedBy)
+        return inventoryService.restockInventory(productId, quantity)
     }
 }

@@ -31,11 +31,7 @@ data class Coupon(
     var issuedQuantity: Int = 0,
     var version: Int = 0,
     val validFrom: LocalDateTime,
-    val validTo: LocalDateTime,
-    val createdAt: LocalDateTime = LocalDateTime.now(),
-    var updatedAt: LocalDateTime = LocalDateTime.now(),
-    val createdBy: Long = 0,
-    var updatedBy: Long = 0
+    val validTo: LocalDateTime
 ) {
     fun getRemainingQuantity(): Int = totalQuantity - issuedQuantity
 
@@ -53,17 +49,14 @@ data class Coupon(
     /**
      * 쿠폰을 발급하고 발급 수량을 증가
      *
-     * @param issuedBy 발급자 ID
      * @throws CouponException.CouponSoldOut 쿠폰이 품절된 경우
      */
-    fun issue(issuedBy: Long) {
+    fun issue() {
         if (!isAvailableForIssue()) {
             throw CouponException.CouponSoldOut(name, getRemainingQuantity())
         }
 
         this.issuedQuantity += 1
-        this.updatedBy = issuedBy
-        this.updatedAt = LocalDateTime.now()
     }
 
     fun calculateDiscountAmount(orderAmount: Long): Long {
@@ -87,8 +80,7 @@ data class Coupon(
             minimumOrderAmount: Long = 0,
             totalQuantity: Int,
             validFrom: LocalDateTime,
-            validTo: LocalDateTime,
-            createdBy: Long
+            validTo: LocalDateTime
         ): Coupon {
             require(name.isNotBlank()) { "쿠폰명은 필수입니다" }
             require(discountValue > 0) { "할인값은 0보다 커야 합니다" }
@@ -100,7 +92,6 @@ data class Coupon(
                 require(discountValue <= 100) { "퍼센트 할인값은 100 이하여야 합니다" }
             }
 
-            val now = LocalDateTime.now()
             return Coupon(
                 name = name,
                 code = code,
@@ -109,11 +100,7 @@ data class Coupon(
                 minimumOrderAmount = minimumOrderAmount,
                 totalQuantity = totalQuantity,
                 validFrom = validFrom,
-                validTo = validTo,
-                createdBy = createdBy,
-                updatedBy = createdBy,
-                createdAt = now,
-                updatedAt = now
+                validTo = validTo
             )
         }
     }

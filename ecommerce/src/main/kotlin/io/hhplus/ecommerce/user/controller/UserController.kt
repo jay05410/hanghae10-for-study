@@ -42,8 +42,7 @@ class UserController(
             email = request.email,
             name = request.name,
             phone = "010-0000-0000",
-            providerId = null,
-            createdBy = 1L
+            providerId = null
         )
         return ApiResponse.success(user.toResponse())
     }
@@ -69,8 +68,7 @@ class UserController(
         val user = userService.updateUser(
             userId = userId,
             name = request.name,
-            email = request.email,
-            updatedBy = userId
+            email = request.email
         )
         return ApiResponse.success(user.toResponse())
     }
@@ -89,7 +87,7 @@ class UserController(
         @Parameter(description = "비활성화할 사용자 ID", required = true)
         @PathVariable userId: Long
     ): ApiResponse<UserResponse> {
-        val user = userService.deleteUser(userId, userId)
+        val user = userService.deleteUser(userId)
         return ApiResponse.success(user.toResponse())
     }
 
@@ -99,7 +97,7 @@ class UserController(
         @Parameter(description = "활성화할 사용자 ID", required = true)
         @PathVariable userId: Long
     ): ApiResponse<UserResponse> {
-        val user = userService.restoreUser(userId, userId)
+        val user = userService.restoreUser(userId)
         return ApiResponse.success(user.toResponse())
     }
 }
