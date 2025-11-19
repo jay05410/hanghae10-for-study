@@ -211,7 +211,19 @@ class XxxIntegrationTest(
 
 ### 문제 식별 및 해결 현황
 
-**2025년 1월 업데이트**: 강하게 결합된 엔티티들에 직접 참조와 FETCH JOIN을 적용하여 N+1 문제를 해결했습니다.
+**2025년 1월 업데이트**: Dual Mapping Pattern과 EntityGraph/Fetch Join을 적절히 조합하여 N+1 문제를 해결했습니다.
+
+### 📋 EntityGraph vs Fetch Join 선택 기준
+
+**EntityGraph** (페이지네이션 지원):
+- 리스트 조회 쿼리 (향후 페이징 확장 가능)
+- 런타임 유연성이 필요한 경우
+- 데이터가 시간이 지나면서 계속 증가하는 경우
+
+**Fetch Join** (단건 조회):
+- 단건 엔티티 조회
+- 페이지네이션이 불필요한 경우
+- 명시적인 쿼리 제어가 필요한 경우
 
 ### ✅ 해결된 N+1 문제 영역
 
@@ -225,16 +237,22 @@ fun getOrdersByUser(userId: Long): List<Order> {
     }
 }
 
-// 해결 후 (FETCH JOIN 적용)
+// 해결 후 (EntityGraph/Fetch Join 혼합 적용)
+// 리스트 조회: EntityGraph (페이지네이션 지원)
 fun getOrdersByUser(userId: Long): List<Order> {
-    return orderRepository.findOrdersWithItemsByUserId(userId) // 한 번의 쿼리
+    return orderRepository.findOrdersWithItemsByUserId(userId) // @EntityGraph 사용
+}
+
+// 단건 조회: Fetch Join (명시적 제어)
+fun getOrderById(orderId: Long): Order? {
+    return orderRepository.findOrderWithItemsById(orderId) // Fetch Join 사용
 }
 ```
 
 **적용된 최적화**:
-- `@OneToMany(mappedBy = "order", fetch = FetchType.LAZY)` 직접 참조 추가
-- `findOrdersWithItemsByUserId()` FETCH JOIN 쿼리 메서드 추가
-- `findOrderWithItemsById()` 주문 확정 시 FETCH JOIN 활용
+- **Dual Mapping Pattern**: OrderItem에 `orderId` (저장용) + `order` 참조 (읽기 전용)
+- **EntityGraph**: `findOrdersWithItemsByUserId()` - 주문 목록 조회 (페이징 가능)
+- **Fetch Join**: `findOrderWithItemsById()` - 주문 상세 조회 (단건)
 
 #### 2. **Cart-CartItem 관계**
 ```kotlin
@@ -244,43 +262,49 @@ fun getCartByUser(userId: Long): Cart? {
     cart?.items // CartItem 별도 조회
 }
 
-// 해결 후 (FETCH JOIN 적용)
+// 해결 후 (Fetch Join 적용)
 fun getCartByUser(userId: Long): Cart? {
     return cartRepository.findByUserIdWithItems(userId) // 한 번의 쿼리
 }
 ```
 
 **적용된 최적화**:
-- `@OneToMany(mappedBy = "cart", fetch = FetchType.LAZY)` 직접 참조 추가
-- 모든 Cart 관련 메서드에서 `findByUserIdWithItems()` 활용
+- **Dual Mapping Pattern**: CartItem에 `cartId` (저장용) + `cart` 참조 (읽기 전용)
+- **Fetch Join**: 각 사용자는 하나의 장바구니만 가지므로 단건 조회에 최적화
+  - `findByUserIdWithItems()` - 사용자 장바구니 조회
+  - `findCartWithItemsById()` - ID로 장바구니 조회
 
 #### 3. **UserPoint-PointHistory 관계**
 ```kotlin
-// 새로 추가된 최적화 메서드
+// 새로 추가된 최적화 메서드 (EntityGraph 적용)
 fun getUserPointWithHistories(userId: Long): UserPoint? {
     return userPointRepository.findUserPointWithHistoriesByUserId(userId)
 }
 ```
 
 **적용된 최적화**:
-- `@OneToMany(mappedBy = "userPoint", fetch = FetchType.LAZY)` 직접 참조 추가
-- `findUserPointWithHistoriesByUserId()` FETCH JOIN 메서드 추가
+- **Dual Mapping Pattern**: PointHistory에 `userId` (저장용) + `userPoint` 참조 (읽기 전용)
+  - 특수 케이스: `referencedColumnName = "user_id"` (UserPoint의 PK가 아닌 userId 컬럼 참조)
+- **EntityGraph**: 포인트 이력은 시간이 지나면서 계속 증가하므로 페이징 지원 필요
+  - `findUserPointWithHistoriesByUserId()` - @EntityGraph 사용
 
 #### 4. **Payment-PaymentHistory 관계**
 ```kotlin
-// 새로 추가된 최적화 메서드들
+// 새로 추가된 최적화 메서드들 (Fetch Join 적용)
 fun getPaymentWithHistories(paymentId: Long): Payment? {
     return paymentRepository.findPaymentWithHistoriesById(paymentId)
 }
 
-fun getPaymentsWithHistoriesByOrderId(orderId: Long): List<Payment> {
-    return paymentRepository.findPaymentsWithHistoriesByOrderId(orderId)
+fun getPaymentByPaymentNumber(paymentNumber: String): Payment? {
+    return paymentRepository.findPaymentWithHistoriesByPaymentNumber(paymentNumber)
 }
 ```
 
 **적용된 최적화**:
-- `@OneToMany(mappedBy = "payment", fetch = FetchType.LAZY)` 직접 참조 추가
-- 다양한 조회 패턴에 FETCH JOIN 메서드 추가
+- **Dual Mapping Pattern**: PaymentHistory에 `paymentId` (저장용) + `payment` 참조 (읽기 전용)
+- **Fetch Join**: 결제 조회는 단건 조회 패턴이므로 Fetch Join 사용
+  - `findPaymentWithHistoriesById()` - ID로 결제 조회
+  - `findPaymentWithHistoriesByPaymentNumber()` - 결제번호로 조회
 
 ### 🎯 성능 최적화 효과
 
@@ -294,40 +318,66 @@ SELECT * FROM order_item WHERE order_id = 103;    -- N회
 -- 총 1 + N개의 쿼리
 ```
 
-#### After (FETCH JOIN 적용)
+#### After (EntityGraph/Fetch Join 적용)
 ```sql
--- 한 번의 쿼리로 해결
+-- EntityGraph 사용 (리스트 조회, 페이징 가능)
 SELECT o.*, oi.*
 FROM orders o
 LEFT JOIN order_item oi ON o.id = oi.order_id
 WHERE o.user_id = 1
 ORDER BY o.created_at DESC;
--- 총 1개의 쿼리
+-- 총 1개의 쿼리 + 향후 페이징 확장 가능
+
+-- Fetch Join 사용 (단건 조회)
+SELECT o.*, oi.*
+FROM orders o
+LEFT JOIN order_item oi ON o.id = oi.order_id
+WHERE o.id = 101;
+-- 총 1개의 쿼리 + 명시적 제어
 ```
 
-### 📏 도메인 경계 고려사항
+### 📏 Dual Mapping Pattern 적용 현황
 
-**✅ 직접 참조 적용 대상** (같은 마이크로서비스):
-- Order ↔ OrderItem (주문 서비스)
-- Cart ↔ CartItem (장바구니 서비스)
-- UserPoint ↔ PointHistory (포인트 서비스)
-- Payment ↔ PaymentHistory (결제 서비스)
+**모든 자식 엔티티는 Dual Mapping Pattern 적용**:
+- **저장용**: ID 필드 (`orderId`, `cartId`, `paymentId`, `userId`)
+- **조회용**: 읽기 전용 엔티티 참조 (`insertable=false, updatable=false`)
+
+**✅ Dual Mapping + EntityGraph** (리스트 조회, 페이징 지원):
+- Order ↔ OrderItem: `findOrdersWithItemsByUserId()` - 주문 목록
+- UserPoint ↔ PointHistory: `findUserPointWithHistoriesByUserId()` - 포인트 이력
+
+**✅ Dual Mapping + Fetch Join** (단건 조회):
+- Order ↔ OrderItem: `findOrderWithItemsById()` - 주문 상세
+- Cart ↔ CartItem: `findByUserIdWithItems()`, `findCartWithItemsById()` - 장바구니
+- Payment ↔ PaymentHistory: `findPaymentWithHistoriesById()`, `findPaymentWithHistoriesByPaymentNumber()` - 결제
 
 **❌ 간접 참조 유지 대상** (MSA 경계):
-- Order → User (Order 서비스 → User 서비스)
-- Order → Product (Order 서비스 → Product 서비스)
-- Payment → Order (Payment 서비스 → Order 서비스)
+- Order → User (Order 서비스 → User 서비스) - ID만 저장
+- Order → Product (Order 서비스 → Product 서비스) - ID만 저장
+- Payment → Order (Payment 서비스 → Order 서비스) - ID만 저장
+
+**⚠️ 특수 케이스**:
+- PointHistory → UserPoint: `referencedColumnName = "user_id"` (PK가 아닌 unique 컬럼 참조)
 
 ### 🚀 사용 가이드
 
 **상황별 메서드 선택**:
 ```kotlin
-// 연관 데이터가 필요 없는 경우
+// 1. 연관 데이터가 필요 없는 경우
 orderRepository.findByUserId(userId)
 
-// 연관 데이터가 필요한 경우 (성능 최적화)
+// 2. 리스트 조회 (향후 페이징 가능) - EntityGraph
 orderRepository.findOrdersWithItemsByUserId(userId)
+userPointRepository.findUserPointWithHistoriesByUserId(userId)
 
-// 특정 주문과 아이템을 함께 조회
+// 3. 단건 조회 (명시적 제어) - Fetch Join
 orderRepository.findOrderWithItemsById(orderId)
+cartRepository.findByUserIdWithItems(userId)
+paymentRepository.findPaymentWithHistoriesById(paymentId)
 ```
+
+**새로운 JPA Repository 메서드 작성 시 고려사항**:
+1. **리스트 조회이고 데이터가 계속 증가하는가?** → EntityGraph 사용
+2. **단건 조회이거나 항목 수가 제한적인가?** → Fetch Join 사용
+3. **연관 데이터가 필요한가?** → Dual Mapping Pattern + 위 전략
+4. **연관 데이터가 불필요한가?** → 단순 쿼리 메서드

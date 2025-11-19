@@ -17,6 +17,9 @@ import org.springframework.data.repository.query.Param
  * - 결제 엔티티 저장/조회/수정/삭제
  * - 결제번호, 주문ID, 사용자ID, 상태 기반 조회
  * - 외부 거래 ID 기반 조회
+ *
+ * N+1 문제 방지:
+ * - Fetch join: 단건 조회에 적합 (결제 상세 조회)
  */
 interface PaymentJpaRepository : JpaRepository<PaymentJpaEntity, Long> {
 
@@ -57,13 +60,21 @@ interface PaymentJpaRepository : JpaRepository<PaymentJpaEntity, Long> {
     fun findActivePayments(): List<PaymentJpaEntity>
 
     /**
-     * 결제번호로 결제와 이력을 함께 조회
+     * 결제번호로 결제와 이력을 함께 조회 (단건)
+     *
+     * Fetch join 사용 이유:
+     * - 단건 조회이므로 페이지네이션 불필요
+     * - 명시적인 쿼리 제어 가능
      */
     @Query("SELECT p FROM PaymentJpaEntity p LEFT JOIN FETCH p.paymentHistories WHERE p.paymentNumber = :paymentNumber")
     fun findPaymentWithHistoriesByPaymentNumber(@Param("paymentNumber") paymentNumber: String): PaymentJpaEntity?
 
     /**
-     * 결제 ID로 결제와 이력을 함께 조회
+     * 결제 ID로 결제와 이력을 함께 조회 (단건)
+     *
+     * Fetch join 사용 이유:
+     * - 단건 조회이므로 페이지네이션 불필요
+     * - 명시적인 쿼리 제어 가능
      */
     @Query("SELECT p FROM PaymentJpaEntity p LEFT JOIN FETCH p.paymentHistories WHERE p.id = :paymentId")
     fun findPaymentWithHistoriesById(@Param("paymentId") paymentId: Long): PaymentJpaEntity?
