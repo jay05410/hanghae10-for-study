@@ -42,6 +42,8 @@ class OrderJpaEntity(
     @Enumerated(EnumType.STRING)
     val status: OrderStatus = OrderStatus.PENDING,
 
-    @OneToMany(mappedBy = "order", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    // Dual Mapping Pattern: 읽기 전용 참조 (N+1 방지용)
+    // cascade 제거: OrderItem은 수동으로 관리 (Dual Mapping Pattern)
+    @OneToMany(mappedBy = "order", fetch = FetchType.LAZY)
     val orderItems: List<OrderItemJpaEntity> = mutableListOf()
 ) : BaseJpaEntity()

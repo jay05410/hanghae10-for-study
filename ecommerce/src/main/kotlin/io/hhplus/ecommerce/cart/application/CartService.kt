@@ -159,7 +159,7 @@ class CartService(
 
         // 장바구니에 아이템이 남아있으면 저장, 비어있으면 전체 삭제
         if (cart.isEmpty()) {
-            cartRepository.delete(cart)
+            cartRepository.deleteById(cart.id)
         } else {
             cartRepository.save(cart)
         }
@@ -177,6 +177,6 @@ class CartService(
             ?: throw CartException.CartNotFound(userId)
 
         // Cart는 임시성 데이터이므로 물리 삭제
-        cartRepository.delete(cart)
+        cartRepository.deleteById(cart.id)
     }
 }

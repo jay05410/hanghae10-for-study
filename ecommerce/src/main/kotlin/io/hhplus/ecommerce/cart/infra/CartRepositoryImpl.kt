@@ -30,21 +30,22 @@ class CartRepositoryImpl(
 
     @Transactional
     override fun save(cart: Cart): Cart {
-        // 1. Cart 엔티티 저장
-        val savedCartEntity = cartJpaRepository.save(cart.toEntity(cartMapper))
-
-        // 2. 기존 CartItem들 조회 - FETCH JOIN 활용하여 N+1 문제 방지
-        val existingItemsEntity = if (cart.id > 0) {
-            // FETCH JOIN으로 기존 Cart와 Items를 함께 조회
-            cartJpaRepository.findByUserIdWithItems(cart.userId)?.cartItems ?: emptyList()
+        // 1. 기존 CartItem들 조회 (재조회 없이 데이터베이스에서 직접 조회)
+        val existingItemIds = if (cart.id > 0) {
+            cartItemJpaRepository.findActiveByCartId(cart.id).map { it.id }.toSet()
         } else {
-            emptyList()
+            emptySet()
         }
+
+        // 2. Cart 엔티티 저장
+        val savedCartEntity = cartJpaRepository.save(cart.toEntity(cartMapper))
 
         // 3. 삭제된 아이템들 제거 (기존에는 있었지만 cart.items에는 없는 것들)
         val currentItemIds = cart.items.map { it.id }.toSet()
-        val itemsToDelete = existingItemsEntity.filter { it.id !in currentItemIds }
-        itemsToDelete.forEach { cartItemJpaRepository.deleteById(it.id) }
+        val itemIdsToDelete = existingItemIds - currentItemIds
+        if (itemIdsToDelete.isNotEmpty()) {
+            cartItemJpaRepository.deleteByIdIn(itemIdsToDelete)
+        }
 
         // 4. CartItem 엔티티들 저장 (Dual Mapping Pattern)
         val savedItems = cart.items.map { item ->
@@ -82,17 +83,20 @@ class CartRepositoryImpl(
     @Transactional
     override fun delete(cart: Cart) {
         // Cart는 임시성 데이터이므로 물리 삭제
-        // 1. 관련 CartItem들 먼저 물리 삭제
-        cartItemJpaRepository.deleteByCartId(cart.id)
-        // 2. Cart 물리 삭제
-        cartJpaRepository.deleteById(cart.id)
+        deleteById(cart.id)
     }
 
     @Transactional
     override fun deleteById(id: Long) {
         // Cart는 임시성 데이터이므로 물리 삭제
+        // Cart가 존재하는지 확인
+        if (!cartJpaRepository.existsById(id)) {
+            return
+        }
+
         // 1. 관련 CartItem들 먼저 물리 삭제
         cartItemJpaRepository.deleteByCartId(id)
+
         // 2. Cart 물리 삭제
         cartJpaRepository.deleteById(id)
     }

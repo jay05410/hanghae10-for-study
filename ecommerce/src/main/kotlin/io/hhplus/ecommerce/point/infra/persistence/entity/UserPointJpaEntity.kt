@@ -36,6 +36,8 @@ class UserPointJpaEntity(
     @Version
     var version: Int = 0,
 
-    @OneToMany(mappedBy = "userPoint", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+    // Dual Mapping Pattern: 읽기 전용 참조 (N+1 방지용)
+    // cascade 제거: PointHistory는 수동으로 관리 (Dual Mapping Pattern)
+    @OneToMany(mappedBy = "userPoint", fetch = FetchType.LAZY)
     val pointHistories: List<PointHistoryJpaEntity> = mutableListOf()
 ) : BaseJpaEntity()

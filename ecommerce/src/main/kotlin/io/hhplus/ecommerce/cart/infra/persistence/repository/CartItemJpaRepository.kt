@@ -43,7 +43,14 @@ interface CartItemJpaRepository : JpaRepository<CartItemJpaEntity, Long> {
     /**
      * 장바구니 ID로 모든 아이템 삭제
      */
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE FROM CartItemJpaEntity ci WHERE ci.cartId = :cartId")
     fun deleteByCartId(@Param("cartId") cartId: Long)
+
+    /**
+     * ID 목록으로 아이템 일괄 삭제
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM CartItemJpaEntity ci WHERE ci.id IN :ids")
+    fun deleteByIdIn(@Param("ids") ids: Collection<Long>): Int
 }

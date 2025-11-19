@@ -182,7 +182,7 @@ class IndexPerformanceComparisonTest(
         it("카테고리별 활성 상품 조회") {
             val time = measureTimeMillis {
                 jdbcTemplate.query(
-                    "SELECT * FROM items WHERE category_id = ? AND is_active = true LIMIT 50",
+                    "SELECT * FROM items WHERE category_id = ? AND deleted_at IS NULL LIMIT 50",
                     { rs, _ -> rs.getLong("id") },
                     5L
                 )
@@ -217,11 +217,11 @@ class IndexPerformanceComparisonTest(
                     """
                     SELECT
                         o.id, o.order_number, o.user_id, o.total_amount,
-                        oi.package_type_id, oi.quantity, oi.total_price,
+                        oi.product_id, oi.quantity, oi.unit_price,
                         i.name as product_name
                     FROM orders o
                     INNER JOIN order_item oi ON o.id = oi.order_id
-                    INNER JOIN items i ON oi.package_type_id = i.id
+                    INNER JOIN items i ON oi.product_id = i.id
                     WHERE o.user_id = ?
                     ORDER BY o.created_at DESC
                     LIMIT 100
@@ -316,7 +316,7 @@ class IndexPerformanceComparisonTest(
 
             val time = measureTimeMillis {
                 jdbcTemplate.query(
-                    "SELECT * FROM carts WHERE user_id = ? AND is_active = true",
+                    "SELECT * FROM carts WHERE user_id = ? AND deleted_at IS NULL",
                     { rs, _ -> rs.getLong("id") },
                     userId
                 )
@@ -334,12 +334,12 @@ class IndexPerformanceComparisonTest(
                     SELECT
                         c.id as cart_id,
                         ci.id as cart_item_id,
-                        ci.package_type_id,
-                        ci.total_quantity,
-                        ci.package_type_name
+                        ci.product_id,
+                        ci.quantity,
+                        ci.gift_wrap
                     FROM carts c
                     INNER JOIN cart_items ci ON c.id = ci.cart_id
-                    WHERE c.user_id = ? AND c.is_active = true
+                    WHERE c.user_id = ? AND c.deleted_at IS NULL
                     """.trimIndent(),
                     { rs, _ -> rs.getLong("cart_id") },
                     userId
