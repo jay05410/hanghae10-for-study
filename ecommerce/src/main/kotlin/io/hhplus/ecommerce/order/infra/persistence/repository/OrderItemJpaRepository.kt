@@ -12,9 +12,6 @@ import org.springframework.data.repository.query.Param
  * 역할:
  * - Spring Data JPA를 통한 자동 쿼리 메서드 생성
  * - JPA 엔티티 기반 데이터 접근
- *
- * Dual Mapping Pattern:
- * - orderId 필드를 직접 사용하여 쿼리 (order 엔티티 참조 불필요)
  */
 interface OrderItemJpaRepository : JpaRepository<OrderItemJpaEntity, Long> {
     @Query("SELECT oi FROM OrderItemJpaEntity oi WHERE oi.orderId = :orderId")

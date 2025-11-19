@@ -12,9 +12,6 @@ import org.springframework.data.repository.query.Param
  * - Spring Data JPA를 사용한 결제 이력 영속성 처리
  * - 기본 CRUD 및 사용자 정의 쿼리 제공
  *
- * Dual Mapping Pattern:
- * - paymentId 필드를 직접 사용하여 쿼리 (payment 엔티티 참조 불필요)
- *
  * 책임:
  * - 결제 이력 엔티티 저장/조회/수정/삭제
  * - 결제 ID 기반 이력 조회

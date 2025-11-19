@@ -12,9 +12,6 @@ import org.springframework.stereotype.Repository
  * 역할:
  * - Spring Data JPA를 사용한 데이터베이스 접근
  * - 기본 CRUD 및 쿼리 메서드 제공
- *
- * Dual Mapping Pattern:
- * - userId 필드를 직접 사용하여 쿼리
  */
 @Repository
 interface PointHistoryJpaRepository : JpaRepository<PointHistoryJpaEntity, Long> {

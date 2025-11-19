@@ -39,10 +39,6 @@ class PointHistoryMapper {
     /**
      * 도메인 모델 -> JPA 엔티티 변환
      *
-     * Dual Mapping Pattern:
-     * - userId만 사용하여 저장 (FK 제약 없음)
-     * - userPoint 참조는 읽기 전용으로 자동 매핑
-     *
      * @param domain 도메인 모델
      */
     fun toEntity(domain: PointHistory): PointHistoryJpaEntity {
@@ -88,7 +84,7 @@ class PointHistoryMapper {
  *
  * 사용법:
  * - entity.toDomain(mapper)  // JPA Entity → Domain
- * - domain.toEntity(mapper)   // Domain → JPA Entity (Dual Mapping)
+ * - domain.toEntity(mapper)   // Domain → JPA Entity
  * - entities.toDomain(mapper) // List 변환
  */
 fun PointHistoryJpaEntity?.toDomain(mapper: PointHistoryMapper): PointHistory? =

@@ -29,14 +29,8 @@ class PaymentHistoryJpaEntity(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
-    // Dual Mapping Pattern: ID 필드로 저장
     @Column(name = "payment_id", nullable = false)
     val paymentId: Long,
-
-    // Dual Mapping Pattern: 읽기 전용 참조 (N+1 방지용)
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "payment_id", insertable = false, updatable = false)
-    val payment: PaymentJpaEntity? = null,
 
     @Column(length = 20, name = "status_before")
     val statusBefore: String? = null,

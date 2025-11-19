@@ -30,15 +30,8 @@ class PointHistoryJpaEntity(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
-    // Dual Mapping Pattern: ID 필드로 저장 (FK 제약 없음)
     @Column(name = "user_id", nullable = false)
     val userId: Long,
-
-    // Dual Mapping Pattern: 읽기 전용 참조 (N+1 방지용)
-    // referencedColumnName: user_point.user_id를 참조 (PK가 아닌 userId 컬럼)
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", referencedColumnName = "user_id", insertable = false, updatable = false)
-    val userPoint: UserPointJpaEntity? = null,
 
     @Column(nullable = false)
     val amount: Long,

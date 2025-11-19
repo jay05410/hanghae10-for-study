@@ -13,9 +13,6 @@ import org.springframework.data.repository.query.Param
  * - Spring Data JPA를 사용한 데이터베이스 접근
  * - 기본 CRUD 및 커스텀 쿼리 메서드 제공
  *
- * Dual Mapping Pattern:
- * - cartId 필드를 직접 사용하여 쿼리 (cart 엔티티 참조 불필요)
- *
  * 주의:
  * - 이 인터페이스는 JPA 엔티티를 다룹니다
  * - 도메인 모델 변환은 CartItemRepositoryImpl에서 처리합니다

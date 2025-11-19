@@ -47,7 +47,7 @@ class CartRepositoryImpl(
             cartItemJpaRepository.deleteByIdIn(itemIdsToDelete)
         }
 
-        // 4. CartItem 엔티티들 저장 (Dual Mapping Pattern)
+        // 4. CartItem 엔티티들 저장
         val savedItems = cart.items.map { item ->
             val itemEntity = item.toEntity(cartItemMapper)
             cartItemJpaRepository.save(itemEntity).toDomain(cartItemMapper)!!

@@ -42,10 +42,6 @@ class OrderItemMapper {
     /**
      * 도메인 모델 -> JPA 엔티티 변환
      *
-     * Dual Mapping Pattern 적용:
-     * - orderId만 사용하여 엔티티 생성 (EntityManager 불필요)
-     * - order 참조는 읽기 전용으로 엔티티에 설정됨
-     *
      * @param domain 도메인 모델
      */
     fun toEntity(domain: OrderItem): OrderItemJpaEntity {
@@ -94,7 +90,7 @@ class OrderItemMapper {
  *
  * 사용법:
  * - entity.toDomain(mapper)  // JPA Entity → Domain
- * - domain.toEntity(mapper)   // Domain → JPA Entity (Dual Mapping Pattern)
+ * - domain.toEntity(mapper)   // Domain → JPA Entity
  * - entities.toDomain(mapper) // List 변환
  */
 fun OrderItemJpaEntity?.toDomain(mapper: OrderItemMapper): OrderItem? =

@@ -19,14 +19,8 @@ class OrderItemJpaEntity(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
-    // Dual Mapping Pattern: ID 필드로 저장
     @Column(name = "order_id", nullable = false)
     val orderId: Long,
-
-    // Dual Mapping Pattern: 읽기 전용 참조 (N+1 방지용)
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id", insertable = false, updatable = false)
-    val order: OrderJpaEntity? = null,
 
     @Column(nullable = false)
     val productId: Long,

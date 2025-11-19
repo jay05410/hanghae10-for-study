@@ -28,14 +28,8 @@ class CartItemJpaEntity(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
-    // Dual Mapping Pattern: ID 필드로 저장
     @Column(name = "cart_id", nullable = false)
     val cartId: Long,
-
-    // Dual Mapping Pattern: 읽기 전용 참조 (N+1 방지용)
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "cart_id", insertable = false, updatable = false)
-    val cart: CartJpaEntity? = null,
 
     @Column(nullable = false, name = "product_id")
     val productId: Long,

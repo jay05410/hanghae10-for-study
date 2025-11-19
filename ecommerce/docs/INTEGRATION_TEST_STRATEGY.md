@@ -211,7 +211,7 @@ class XxxIntegrationTest(
 
 ### 문제 식별 및 해결 현황
 
-**2025년 1월 업데이트**: Dual Mapping Pattern과 EntityGraph/Fetch Join을 적절히 조합하여 N+1 문제를 해결했습니다.
+**2025년 1월 업데이트**: EntityGraph/Fetch Join을 적절히 조합하여 N+1 문제를 해결했습니다.
 
 ### 📋 EntityGraph vs Fetch Join 선택 기준
 
@@ -250,7 +250,6 @@ fun getOrderById(orderId: Long): Order? {
 ```
 
 **적용된 최적화**:
-- **Dual Mapping Pattern**: OrderItem에 `orderId` (저장용) + `order` 참조 (읽기 전용)
 - **EntityGraph**: `findOrdersWithItemsByUserId()` - 주문 목록 조회 (페이징 가능)
 - **Fetch Join**: `findOrderWithItemsById()` - 주문 상세 조회 (단건)
 
@@ -269,7 +268,6 @@ fun getCartByUser(userId: Long): Cart? {
 ```
 
 **적용된 최적화**:
-- **Dual Mapping Pattern**: CartItem에 `cartId` (저장용) + `cart` 참조 (읽기 전용)
 - **Fetch Join**: 각 사용자는 하나의 장바구니만 가지므로 단건 조회에 최적화
   - `findByUserIdWithItems()` - 사용자 장바구니 조회
   - `findCartWithItemsById()` - ID로 장바구니 조회
@@ -283,8 +281,6 @@ fun getUserPointWithHistories(userId: Long): UserPoint? {
 ```
 
 **적용된 최적화**:
-- **Dual Mapping Pattern**: PointHistory에 `userId` (저장용) + `userPoint` 참조 (읽기 전용)
-  - 특수 케이스: `referencedColumnName = "user_id"` (UserPoint의 PK가 아닌 userId 컬럼 참조)
 - **EntityGraph**: 포인트 이력은 시간이 지나면서 계속 증가하므로 페이징 지원 필요
   - `findUserPointWithHistoriesByUserId()` - @EntityGraph 사용
 
@@ -301,7 +297,6 @@ fun getPaymentByPaymentNumber(paymentNumber: String): Payment? {
 ```
 
 **적용된 최적화**:
-- **Dual Mapping Pattern**: PaymentHistory에 `paymentId` (저장용) + `payment` 참조 (읽기 전용)
 - **Fetch Join**: 결제 조회는 단건 조회 패턴이므로 Fetch Join 사용
   - `findPaymentWithHistoriesById()` - ID로 결제 조회
   - `findPaymentWithHistoriesByPaymentNumber()` - 결제번호로 조회
@@ -336,17 +331,13 @@ WHERE o.id = 101;
 -- 총 1개의 쿼리 + 명시적 제어
 ```
 
-### 📏 Dual Mapping Pattern 적용 현황
+### 📏 EntityGraph/Fetch Join 적용 현황
 
-**모든 자식 엔티티는 Dual Mapping Pattern 적용**:
-- **저장용**: ID 필드 (`orderId`, `cartId`, `paymentId`, `userId`)
-- **조회용**: 읽기 전용 엔티티 참조 (`insertable=false, updatable=false`)
-
-**✅ Dual Mapping + EntityGraph** (리스트 조회, 페이징 지원):
+**✅ EntityGraph** (리스트 조회, 페이징 지원):
 - Order ↔ OrderItem: `findOrdersWithItemsByUserId()` - 주문 목록
 - UserPoint ↔ PointHistory: `findUserPointWithHistoriesByUserId()` - 포인트 이력
 
-**✅ Dual Mapping + Fetch Join** (단건 조회):
+**✅ Fetch Join** (단건 조회):
 - Order ↔ OrderItem: `findOrderWithItemsById()` - 주문 상세
 - Cart ↔ CartItem: `findByUserIdWithItems()`, `findCartWithItemsById()` - 장바구니
 - Payment ↔ PaymentHistory: `findPaymentWithHistoriesById()`, `findPaymentWithHistoriesByPaymentNumber()` - 결제
@@ -355,9 +346,6 @@ WHERE o.id = 101;
 - Order → User (Order 서비스 → User 서비스) - ID만 저장
 - Order → Product (Order 서비스 → Product 서비스) - ID만 저장
 - Payment → Order (Payment 서비스 → Order 서비스) - ID만 저장
-
-**⚠️ 특수 케이스**:
-- PointHistory → UserPoint: `referencedColumnName = "user_id"` (PK가 아닌 unique 컬럼 참조)
 
 ### 🚀 사용 가이드
 
@@ -379,5 +367,5 @@ paymentRepository.findPaymentWithHistoriesById(paymentId)
 **새로운 JPA Repository 메서드 작성 시 고려사항**:
 1. **리스트 조회이고 데이터가 계속 증가하는가?** → EntityGraph 사용
 2. **단건 조회이거나 항목 수가 제한적인가?** → Fetch Join 사용
-3. **연관 데이터가 필요한가?** → Dual Mapping Pattern + 위 전략
+3. **연관 데이터가 필요한가?** → 위 전략 적용
 4. **연관 데이터가 불필요한가?** → 단순 쿼리 메서드

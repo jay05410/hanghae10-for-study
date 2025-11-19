@@ -26,10 +26,6 @@ class CartItemRepositoryImpl(
 
     /**
      * CartItem 저장
-     *
-     * Dual Mapping Pattern:
-     * - cartId만 사용하여 저장 (EntityManager 불필요)
-     * - cart 참조는 읽기 전용으로 자동 매핑됨
      */
     override fun save(cartItem: CartItem): CartItem {
         return jpaRepository.save(cartItem.toEntity(mapper)).toDomain(mapper)!!

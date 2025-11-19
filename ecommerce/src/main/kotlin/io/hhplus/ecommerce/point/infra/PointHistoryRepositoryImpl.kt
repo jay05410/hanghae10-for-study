@@ -6,7 +6,6 @@ import io.hhplus.ecommerce.point.infra.mapper.PointHistoryMapper
 import io.hhplus.ecommerce.point.infra.mapper.toDomain
 import io.hhplus.ecommerce.point.infra.mapper.toEntity
 import io.hhplus.ecommerce.point.infra.persistence.repository.PointHistoryJpaRepository
-import jakarta.persistence.EntityManager
 import org.springframework.stereotype.Repository
 
 /**
@@ -25,10 +24,6 @@ class PointHistoryRepositoryImpl(
 
     /**
      * PointHistory 저장
-     *
-     * Dual Mapping Pattern:
-     * - userId만 저장 (FK 제약 없음)
-     * - userPoint 참조는 읽기 전용
      */
     override fun save(pointHistory: PointHistory): PointHistory {
         return jpaRepository.save(pointHistory.toEntity(mapper)).toDomain(mapper)!!
