@@ -5,6 +5,7 @@ import io.hhplus.ecommerce.order.usecase.OrderCommandUseCase
 import io.hhplus.ecommerce.order.usecase.GetOrderQueryUseCase
 import io.hhplus.ecommerce.order.dto.*
 import io.hhplus.ecommerce.order.domain.entity.Order
+import io.hhplus.ecommerce.order.domain.entity.OrderItem
 import io.hhplus.ecommerce.order.domain.constant.OrderStatus
 import io.hhplus.ecommerce.delivery.usecase.GetDeliveryQueryUseCase
 import io.hhplus.ecommerce.delivery.dto.DeliveryAddressRequest
@@ -76,14 +77,16 @@ class OrderControllerTest : DescribeSpec({
                         deliveryMessage = "부재 시 문 앞에 놓아주세요"
                     )
                 )
-                val mockOrder = createMockOrder(userId = 1L)
+                val mockOrder = createMockOrder(id = 1L, userId = 1L)
 
                 every { mockOrderCommandUseCase.createOrder(request) } returns mockOrder
+                every { mockGetOrderQueryUseCase.getOrderWithItems(any()) } returns Pair(mockOrder, emptyList())
 
                 val result = sut.createOrder(request)
 
                 result.success shouldBe true
                 verify(exactly = 1) { mockOrderCommandUseCase.createOrder(request) }
+                verify(exactly = 1) { mockGetOrderQueryUseCase.getOrderWithItems(any()) }
             }
         }
     }
@@ -94,12 +97,12 @@ class OrderControllerTest : DescribeSpec({
                 val orderId = 1L
                 val mockOrder = createMockOrder(id = orderId)
 
-                every { mockGetOrderQueryUseCase.getOrder(orderId) } returns mockOrder
+                every { mockGetOrderQueryUseCase.getOrderWithItems(orderId) } returns Pair(mockOrder, emptyList())
 
                 val result = sut.getOrder(orderId)
 
                 result.success shouldBe true
-                verify(exactly = 1) { mockGetOrderQueryUseCase.getOrder(orderId) }
+                verify(exactly = 1) { mockGetOrderQueryUseCase.getOrderWithItems(orderId) }
             }
         }
 
@@ -107,12 +110,12 @@ class OrderControllerTest : DescribeSpec({
             it("UseCase에서 null 반환 시 처리") {
                 val orderId = 999L
 
-                every { mockGetOrderQueryUseCase.getOrder(orderId) } returns null
+                every { mockGetOrderQueryUseCase.getOrderWithItems(orderId) } returns null
 
                 val result = sut.getOrder(orderId)
 
                 result.success shouldBe true
-                verify(exactly = 1) { mockGetOrderQueryUseCase.getOrder(orderId) }
+                verify(exactly = 1) { mockGetOrderQueryUseCase.getOrderWithItems(orderId) }
             }
         }
     }
@@ -121,17 +124,19 @@ class OrderControllerTest : DescribeSpec({
         context("GET /api/v1/orders?userId=x 요청") {
             it("UseCase를 호출하고 결과를 ApiResponse로 감싸서 반환") {
                 val userId = 1L
-                val mockOrders = listOf(
-                    createMockOrder(id = 1L, userId = userId),
-                    createMockOrder(id = 2L, userId = userId)
+                val mockOrder1 = createMockOrder(id = 1L, userId = userId)
+                val mockOrder2 = createMockOrder(id = 2L, userId = userId)
+                val mockOrders = mapOf<Order, List<OrderItem>>(
+                    mockOrder1 to emptyList(),
+                    mockOrder2 to emptyList()
                 )
 
-                every { mockGetOrderQueryUseCase.getOrdersByUser(userId) } returns mockOrders
+                every { mockGetOrderQueryUseCase.getOrdersWithItemsByUser(userId) } returns mockOrders
 
                 val result = sut.getOrders(userId)
 
                 result.success shouldBe true
-                verify(exactly = 1) { mockGetOrderQueryUseCase.getOrdersByUser(userId) }
+                verify(exactly = 1) { mockGetOrderQueryUseCase.getOrdersWithItemsByUser(userId) }
             }
         }
 
@@ -139,12 +144,12 @@ class OrderControllerTest : DescribeSpec({
             it("빈 목록을 ApiResponse로 감싸서 반환") {
                 val userId = 999L
 
-                every { mockGetOrderQueryUseCase.getOrdersByUser(userId) } returns emptyList()
+                every { mockGetOrderQueryUseCase.getOrdersWithItemsByUser(userId) } returns emptyMap()
 
                 val result = sut.getOrders(userId)
 
                 result.success shouldBe true
-                verify(exactly = 1) { mockGetOrderQueryUseCase.getOrdersByUser(userId) }
+                verify(exactly = 1) { mockGetOrderQueryUseCase.getOrdersWithItemsByUser(userId) }
             }
         }
     }

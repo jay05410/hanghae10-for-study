@@ -1,7 +1,7 @@
 package io.hhplus.ecommerce.user.usecase
 
+import io.hhplus.ecommerce.user.application.UserService
 import io.hhplus.ecommerce.user.domain.entity.User
-import io.hhplus.ecommerce.user.domain.repository.UserRepository
 import org.springframework.stereotype.Component
 
 /**
@@ -14,18 +14,18 @@ import org.springframework.stereotype.Component
  */
 @Component
 class GetUserQueryUseCase(
-    private val userRepository: UserRepository
+    private val userService: UserService
 ) {
 
     fun getUser(userId: Long): User? {
-        return userRepository.findById(userId)
+        return userService.getUser(userId)
     }
 
     fun getUserByEmail(email: String): User? {
-        return userRepository.findByEmail(email)
+        return userService.getUserByEmail(email)
     }
 
     fun getAllActiveUsers(): List<User> {
-        return userRepository.findByIsActiveTrue()
+        return userService.getAllUsers()
     }
 }

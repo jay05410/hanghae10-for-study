@@ -1,9 +1,8 @@
 package io.hhplus.ecommerce.user.usecase
 
+import io.hhplus.ecommerce.user.application.UserService
 import io.hhplus.ecommerce.user.domain.entity.User
-import io.hhplus.ecommerce.user.domain.repository.UserRepository
 import io.hhplus.ecommerce.user.domain.constant.LoginType
-import io.hhplus.ecommerce.user.exception.UserException
 import org.springframework.stereotype.Component
 
 /**
@@ -19,7 +18,7 @@ import org.springframework.stereotype.Component
  */
 @Component
 class UserCommandUseCase(
-    private val userRepository: UserRepository
+    private val userService: UserService
 ) {
 
     /**
@@ -44,23 +43,7 @@ class UserCommandUseCase(
         phone: String,
         providerId: String? = null
     ): User {
-        // 이메일 중복 검증
-        val existingUser = userRepository.findByEmail(email)
-        if (existingUser != null) {
-            throw UserException.EmailAlreadyExists(email)
-        }
-
-        val user = User.create(
-            loginType = loginType,
-            loginId = loginId,
-            password = password,
-            email = email,
-            name = name,
-            phone = phone,
-            providerId = providerId
-        )
-
-        return userRepository.save(user)
+        return userService.createUser(loginType, loginId, password, email, name, phone, providerId)
     }
 
     /**
@@ -74,24 +57,7 @@ class UserCommandUseCase(
      * @throws UserException.EmailAlreadyExists 이메일이 이미 존재하는 경우
      */
     fun updateUser(userId: Long, name: String?, email: String?): User {
-        val user = userRepository.findById(userId)
-            ?: throw UserException.UserNotFound(userId)
-
-        // 이메일 변경 시 중복 검증
-        if (email != null && email != user.email) {
-            val existingUser = userRepository.findByEmail(email)
-            if (existingUser != null && existingUser.id != userId) {
-                throw UserException.EmailAlreadyExists(email)
-            }
-        }
-
-        // 가변 모델: update 메서드 호출 후 저장
-        user.update(
-            name = name ?: user.name,
-            email = email ?: user.email
-        )
-
-        return userRepository.save(user)
+        return userService.updateUser(userId, name, email)
     }
 
     /**
@@ -102,11 +68,7 @@ class UserCommandUseCase(
      * @throws UserException.UserNotFound 사용자를 찾을 수 없는 경우
      */
     fun deleteUser(userId: Long): User {
-        val user = userRepository.findById(userId)
-            ?: throw UserException.UserNotFound(userId)
-
-        user.deactivate()
-        return userRepository.save(user)
+        return userService.deleteUser(userId)
     }
 
     /**
@@ -117,10 +79,6 @@ class UserCommandUseCase(
      * @throws UserException.UserNotFound 사용자를 찾을 수 없는 경우
      */
     fun restoreUser(userId: Long): User {
-        val user = userRepository.findById(userId)
-            ?: throw UserException.UserNotFound(userId)
-
-        user.activate()
-        return userRepository.save(user)
+        return userService.restoreUser(userId)
     }
 }

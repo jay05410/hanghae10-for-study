@@ -135,6 +135,57 @@ class OrderService(
     }
 
     /**
+     * 주문 ID로 주문과 주문 아이템을 함께 조회한다
+     * Application-level에서 orderId로 조합
+     *
+     * @param orderId 조회할 주문 ID
+     * @return 주문 정보와 주문 아이템 목록 Pair (존재하지 않으면 null 반환)
+     */
+    fun getOrderWithItems(orderId: Long): Pair<Order, List<OrderItem>>? {
+        val order = orderRepository.findById(orderId) ?: return null
+        val orderItems = orderItemRepository.findByOrderId(orderId)
+        return Pair(order, orderItems)
+    }
+
+    /**
+     * 사용자가 진행한 모든 주문과 주문 아이템을 함께 조회한다
+     * Application-level에서 orderId로 조합 (N+1 방지)
+     *
+     * @param userId 인증된 사용자 ID
+     * @return 주문 정보와 주문 아이템 목록의 Map
+     */
+    fun getOrdersWithItemsByUser(userId: Long): Map<Order, List<OrderItem>> {
+        val orders = orderRepository.findByUserIdOrderByCreatedAtDesc(userId)
+        if (orders.isEmpty()) return emptyMap()
+
+        // 모든 주문 ID 수집
+        val orderIds = orders.map { it.id }
+
+        // 한 번의 쿼리로 모든 OrderItem 조회
+        val allOrderItems = orderIds.flatMap { orderId ->
+            orderItemRepository.findByOrderId(orderId)
+        }
+
+        // orderId로 그룹화
+        val orderItemsMap = allOrderItems.groupBy { it.orderId }
+
+        // Order와 OrderItems 조합
+        return orders.associateWith { order ->
+            orderItemsMap[order.id] ?: emptyList()
+        }
+    }
+
+    /**
+     * 주문 ID로 주문 아이템 목록을 조회한다
+     *
+     * @param orderId 조회할 주문 ID
+     * @return 주문 아이템 목록
+     */
+    fun getOrderItems(orderId: Long): List<OrderItem> {
+        return orderItemRepository.findByOrderId(orderId)
+    }
+
+    /**
      * 주문을 확정 처리한다
      *
      * @param orderId 확정할 주문의 ID

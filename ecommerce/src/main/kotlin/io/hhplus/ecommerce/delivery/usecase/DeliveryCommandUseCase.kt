@@ -1,9 +1,8 @@
 package io.hhplus.ecommerce.delivery.usecase
 
+import io.hhplus.ecommerce.delivery.application.DeliveryService
 import io.hhplus.ecommerce.delivery.domain.entity.Delivery
-import io.hhplus.ecommerce.delivery.domain.repository.DeliveryRepository
 import io.hhplus.ecommerce.delivery.domain.vo.DeliveryAddress
-import io.hhplus.ecommerce.delivery.exception.DeliveryException
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
@@ -20,13 +19,8 @@ import org.springframework.transaction.annotation.Transactional
  */
 @Component
 class DeliveryCommandUseCase(
-    private val deliveryRepository: DeliveryRepository
+    private val deliveryService: DeliveryService
 ) {
-
-    private fun getDelivery(id: Long): Delivery {
-        return deliveryRepository.findById(id)
-            ?: throw DeliveryException.DeliveryNotFound(id)
-    }
 
     /**
      * 새로운 배송 정보를 생성합니다.
@@ -43,18 +37,7 @@ class DeliveryCommandUseCase(
         deliveryAddress: DeliveryAddress,
         deliveryMemo: String? = null
     ): Delivery {
-        // 주문에 대한 배송이 이미 존재하는지 확인 (1:1 관계)
-        deliveryRepository.findByOrderId(orderId)?.let {
-            throw IllegalStateException("주문 ID $orderId 에 대한 배송 정보가 이미 존재합니다")
-        }
-
-        val delivery = Delivery.create(
-            orderId = orderId,
-            deliveryAddress = deliveryAddress,
-            deliveryMemo = deliveryMemo
-        )
-
-        return deliveryRepository.save(delivery)
+        return deliveryService.createDelivery(orderId, deliveryAddress, deliveryMemo)
     }
 
     /**
@@ -65,9 +48,7 @@ class DeliveryCommandUseCase(
      */
     @Transactional
     fun startPreparing(id: Long): Delivery {
-        val delivery = getDelivery(id)
-        val updated = delivery.startPreparing()
-        return deliveryRepository.save(updated)
+        return deliveryService.startPreparing(id)
     }
 
     /**
@@ -84,9 +65,7 @@ class DeliveryCommandUseCase(
         trackingNumber: String,
         carrier: String
     ): Delivery {
-        val delivery = getDelivery(id)
-        val updated = delivery.ship(trackingNumber, carrier)
-        return deliveryRepository.save(updated)
+        return deliveryService.ship(id, trackingNumber, carrier)
     }
 
     /**
@@ -97,9 +76,7 @@ class DeliveryCommandUseCase(
      */
     @Transactional
     fun deliver(id: Long): Delivery {
-        val delivery = getDelivery(id)
-        val updated = delivery.deliver()
-        return deliveryRepository.save(updated)
+        return deliveryService.deliver(id)
     }
 
     /**
@@ -110,8 +87,6 @@ class DeliveryCommandUseCase(
      */
     @Transactional
     fun fail(id: Long): Delivery {
-        val delivery = getDelivery(id)
-        val updated = delivery.fail()
-        return deliveryRepository.save(updated)
+        return deliveryService.fail(id)
     }
 }

@@ -1,11 +1,10 @@
 package io.hhplus.ecommerce.delivery.usecase
 
-import io.hhplus.ecommerce.delivery.domain.repository.DeliveryRepository
+import io.hhplus.ecommerce.delivery.application.DeliveryService
 import io.hhplus.ecommerce.delivery.domain.constant.DeliveryStatus
-import io.hhplus.ecommerce.delivery.exception.DeliveryException
-import org.springframework.transaction.annotation.Transactional
 import io.hhplus.ecommerce.delivery.domain.entity.Delivery
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 
 /**
  * 배송 정보 조회 유스케이스 - 애플리케이션 계층
@@ -21,7 +20,7 @@ import org.springframework.stereotype.Component
  */
 @Component
 class GetDeliveryQueryUseCase(
-    private val deliveryRepository: DeliveryRepository
+    private val deliveryService: DeliveryService
 ) {
 
     /**
@@ -33,8 +32,7 @@ class GetDeliveryQueryUseCase(
      */
     @Transactional(readOnly = true)
     fun getDelivery(deliveryId: Long): Delivery {
-        return deliveryRepository.findById(deliveryId)
-            ?: throw DeliveryException.DeliveryNotFound(deliveryId)
+        return deliveryService.getDelivery(deliveryId)
     }
 
     /**
@@ -46,8 +44,7 @@ class GetDeliveryQueryUseCase(
      */
     @Transactional(readOnly = true)
     fun getDeliveryByOrderId(orderId: Long): Delivery {
-        return deliveryRepository.findByOrderId(orderId)
-            ?: throw DeliveryException.DeliveryNotFoundByOrder(orderId)
+        return deliveryService.getDeliveryByOrderId(orderId)
     }
 
     /**
@@ -59,8 +56,7 @@ class GetDeliveryQueryUseCase(
      */
     @Transactional(readOnly = true)
     fun getDeliveryByTrackingNumber(trackingNumber: String): Delivery {
-        return deliveryRepository.findByTrackingNumber(trackingNumber)
-            ?: throw DeliveryException.DeliveryNotFound(0L)
+        return deliveryService.getDeliveryByTrackingNumber(trackingNumber)
     }
 
     /**
@@ -71,7 +67,7 @@ class GetDeliveryQueryUseCase(
      */
     @Transactional(readOnly = true)
     fun getDeliveriesByOrderIds(orderIds: List<Long>): List<Delivery> {
-        return deliveryRepository.findByOrderIdIn(orderIds)
+        return deliveryService.getDeliveriesByOrderIds(orderIds)
     }
 
     /**
@@ -82,6 +78,6 @@ class GetDeliveryQueryUseCase(
      */
     @Transactional(readOnly = true)
     fun getDeliveriesByStatus(status: DeliveryStatus): List<Delivery> {
-        return deliveryRepository.findByStatus(status)
+        return deliveryService.getDeliveriesByStatus(status)
     }
 }

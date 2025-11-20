@@ -9,7 +9,6 @@ import io.hhplus.ecommerce.coupon.application.CouponService
 import io.hhplus.ecommerce.payment.application.PaymentService
 import io.hhplus.ecommerce.delivery.application.DeliveryService
 import io.hhplus.ecommerce.inventory.application.InventoryService
-import io.hhplus.ecommerce.order.domain.repository.OrderItemRepository
 import io.hhplus.ecommerce.point.application.PointService
 import io.hhplus.ecommerce.point.domain.vo.PointAmount
 import io.hhplus.ecommerce.order.exception.OrderException
@@ -39,7 +38,6 @@ class OrderCommandUseCase(
     private val deliveryService: DeliveryService,
     private val inventoryService: InventoryService,
     private val pointService: PointService,
-    private val orderItemRepository: OrderItemRepository,
     private val cartService: CartService
 ) {
 
@@ -155,7 +153,7 @@ class OrderCommandUseCase(
         val cancelledOrder = orderService.cancelOrder(orderId, reason)
 
         // 3. 주문 아이템 조회
-        val orderItems = orderItemRepository.findByOrderId(orderId)
+        val orderItems = orderService.getOrderItems(orderId)
 
         // 4. 재고 복구
         orderItems.forEach { orderItem ->

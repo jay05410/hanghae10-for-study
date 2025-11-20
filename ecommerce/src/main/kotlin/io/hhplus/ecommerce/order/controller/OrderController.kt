@@ -47,11 +47,15 @@ class OrderController(
         @RequestBody request: CreateOrderRequest
     ): ApiResponse<OrderResponse> {
         val order = orderCommandUseCase.createOrder(request)
-        return ApiResponse.success(order.toResponse())
+        val orderWithItems = getOrderQueryUseCase.getOrderWithItems(order.id)
+        return ApiResponse.success(orderWithItems?.let { (_, items) ->
+            order.toResponse(items)
+        } ?: order.toResponse())
     }
 
     /**
      * 주문 ID로 단일 주문을 조회한다
+     * Application-level에서 OrderItem과 조합하여 반환
      *
      * @param orderId 조회할 주문의 ID
      * @return 주문 정보를 포함한 API 응답
@@ -62,12 +66,15 @@ class OrderController(
         @Parameter(description = "주문 ID", required = true, example = "1")
         @PathVariable orderId: Long
     ): ApiResponse<OrderResponse?> {
-        val order = getOrderQueryUseCase.getOrder(orderId)
-        return ApiResponse.success(order?.toResponse())
+        val orderWithItems = getOrderQueryUseCase.getOrderWithItems(orderId)
+        return ApiResponse.success(orderWithItems?.let { (order, items) ->
+            order.toResponse(items)
+        })
     }
 
     /**
      * 특정 사용자의 모든 주문을 조회한다
+     * Application-level에서 OrderItem과 조합하여 반환 (N+1 방지)
      *
      * @param userId 조회할 사용자의 ID
      * @return 사용자의 주문 목록을 포함한 API 응답
@@ -78,8 +85,10 @@ class OrderController(
         @Parameter(description = "사용자 ID", required = true, example = "1")
         @RequestParam userId: Long
     ): ApiResponse<List<OrderResponse>> {
-        val orders = getOrderQueryUseCase.getOrdersByUser(userId)
-        return ApiResponse.success(orders.map { it.toResponse() })
+        val ordersWithItems = getOrderQueryUseCase.getOrdersWithItemsByUser(userId)
+        return ApiResponse.success(ordersWithItems.map { (order, items) ->
+            order.toResponse(items)
+        })
     }
 
     /**
@@ -98,7 +107,10 @@ class OrderController(
         @RequestBody request: OrderConfirmRequest
     ): ApiResponse<OrderResponse> {
         val order = orderCommandUseCase.confirmOrder(orderId)
-        return ApiResponse.success(order.toResponse())
+        val orderWithItems = getOrderQueryUseCase.getOrderWithItems(orderId)
+        return ApiResponse.success(orderWithItems?.let { (_, items) ->
+            order.toResponse(items)
+        } ?: order.toResponse())
     }
 
     /**
@@ -117,7 +129,10 @@ class OrderController(
         @RequestBody request: OrderCancelRequest
     ): ApiResponse<OrderResponse> {
         val order = orderCommandUseCase.cancelOrder(orderId, request.reason)
-        return ApiResponse.success(order.toResponse())
+        val orderWithItems = getOrderQueryUseCase.getOrderWithItems(orderId)
+        return ApiResponse.success(orderWithItems?.let { (_, items) ->
+            order.toResponse(items)
+        } ?: order.toResponse())
     }
 
     /**
