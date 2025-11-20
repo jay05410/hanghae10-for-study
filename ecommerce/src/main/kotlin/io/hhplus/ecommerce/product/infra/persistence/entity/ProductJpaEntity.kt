@@ -64,5 +64,8 @@ class ProductJpaEntity(
 
     @Column(nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
-    val status: ProductStatus = ProductStatus.ACTIVE
+    val status: ProductStatus = ProductStatus.ACTIVE,
+
+    @Column(nullable = false, name = "requires_reservation")
+    val requiresReservation: Boolean = false
 ) : BaseJpaEntity()

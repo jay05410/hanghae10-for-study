@@ -14,8 +14,11 @@ import io.hhplus.ecommerce.point.domain.vo.PointAmount
 import io.hhplus.ecommerce.order.exception.OrderException
 import io.hhplus.ecommerce.delivery.domain.constant.DeliveryStatus
 import io.hhplus.ecommerce.cart.application.CartService
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.support.TransactionTemplate
 
 /**
  * 주문 명령 UseCase
@@ -38,8 +41,11 @@ class OrderCommandUseCase(
     private val deliveryService: DeliveryService,
     private val inventoryService: InventoryService,
     private val pointService: PointService,
-    private val cartService: CartService
+    private val cartService: CartService,
+    transactionManager: PlatformTransactionManager
 ) {
+    private val transactionTemplate = TransactionTemplate(transactionManager)
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     /**
      * 주문 생성 비즈니스 플로우를 실행한다
@@ -49,10 +55,87 @@ class OrderCommandUseCase(
      * @throws IllegalArgumentException 상품 정보가 유효하지 않을 경우
      * @throws RuntimeException 결제 처리에 실패한 경우
      */
-    @Transactional
     fun createOrder(request: CreateOrderRequest): Order {
         // 1. 상품 정보 검증 및 가격 계산
-        val orderItems = request.items.map { item ->
+        val orderItems = validateAndPrepareOrderItems(request)
+        val totalAmount = calculateTotalAmount(orderItems)
+
+        // 2. 쿠폰 검증 (선택적)
+        val discountAmount = validateCoupon(request, totalAmount)
+
+        // 3. DB 작업 (트랜잭션 내부)
+        val order = transactionTemplate.execute { status ->
+            try {
+                // 재고 처리 (productId 정렬로 데드락 방지)
+                orderItems.sortedBy { it.productId }.forEach { item ->
+                    if (item.requiresReservation) {
+                        // 선착순/한정판: 예약된 재고 확정
+                        inventoryService.confirmReservation(item.productId, item.quantity)
+                    } else {
+                        // 일반 상품: 바로 재고 차감
+                        inventoryService.deductStock(item.productId, item.quantity)
+                    }
+                }
+
+                // 주문 생성
+                val savedOrder = orderService.createOrder(
+                    userId = request.userId,
+                    items = orderItems,
+                    usedCouponId = request.usedCouponId,
+                    totalAmount = totalAmount,
+                    discountAmount = discountAmount
+                )
+
+                // 포인트 사용 (결제)
+                pointService.usePoint(
+                    userId = request.userId,
+                    amount = PointAmount.of(savedOrder.finalAmount),
+                    description = "주문 결제"
+                )
+
+                // 결제 처리 (기록용)
+                paymentService.processPayment(
+                    userId = request.userId,
+                    orderId = savedOrder.id,
+                    amount = savedOrder.finalAmount
+                )
+
+                // 쿠폰 사용 처리
+                request.usedCouponId?.let { couponId ->
+                    couponService.applyCoupon(request.userId, couponId, savedOrder.id, totalAmount)
+                }
+
+                // 배송 정보 생성
+                deliveryService.createDelivery(
+                    orderId = savedOrder.id,
+                    deliveryAddress = request.deliveryAddress.toVo(),
+                    deliveryMemo = request.deliveryAddress.deliveryMessage
+                )
+
+                savedOrder
+
+            } catch (e: Exception) {
+                status.setRollbackOnly()
+                throw e
+            }
+        } ?: throw IllegalStateException("주문 생성 실패")
+
+        // 4. 장바구니 정리 (실패해도 주문 성공 유지)
+        try {
+            val orderedProductIds = orderItems.map { it.productId }
+            cartService.removeOrderedItems(request.userId, orderedProductIds)
+        } catch (e: Exception) {
+            logger.warn("장바구니 정리 실패 (주문은 성공): ${e.message}")
+        }
+
+        return order
+    }
+
+    /**
+     * 상품 정보를 검증하고 주문 아이템 데이터를 준비한다
+     */
+    private fun validateAndPrepareOrderItems(request: CreateOrderRequest): List<OrderItemData> {
+        return request.items.map { item ->
             val product = productService.getProduct(item.productId)
             OrderItemData(
                 productId = item.productId,
@@ -63,65 +146,26 @@ class OrderCommandUseCase(
                 giftWrap = item.giftWrap,
                 giftMessage = item.giftMessage,
                 giftWrapPrice = if (item.giftWrap) 2000 else 0,
-                totalPrice = (product.price.toInt() * item.quantity) + if (item.giftWrap) 2000 else 0
+                totalPrice = (product.price.toInt() * item.quantity) + if (item.giftWrap) 2000 else 0,
+                requiresReservation = product.requiresStockReservation()
             )
         }
+    }
 
-        val totalAmount = orderItems.sumOf { it.totalPrice }.toLong()
+    /**
+     * 총 주문 금액을 계산한다
+     */
+    private fun calculateTotalAmount(orderItems: List<OrderItemData>): Long {
+        return orderItems.sumOf { it.totalPrice }.toLong()
+    }
 
-        // 2. 쿠폰 적용 (선택적)
-        val discountAmount = request.usedCouponId?.let { couponId ->
+    /**
+     * 쿠폰 사용 가능 여부를 검증하고 할인 금액을 계산한다
+     */
+    private fun validateCoupon(request: CreateOrderRequest, totalAmount: Long): Long {
+        return request.usedCouponId?.let { couponId ->
             couponService.validateCouponUsage(request.userId, couponId, totalAmount)
         } ?: 0L
-
-        // 3. 재고 차감
-        orderItems.forEach { item ->
-            inventoryService.deductStock(
-                productId = item.productId,
-                quantity = item.quantity
-            )
-        }
-
-        // 4. 주문 생성
-        val order = orderService.createOrder(
-            userId = request.userId,
-            items = orderItems,
-            usedCouponId = request.usedCouponId,
-            totalAmount = totalAmount,
-            discountAmount = discountAmount
-        )
-
-        // 5. 포인트 사용 (결제)
-        pointService.usePoint(
-            userId = request.userId,
-            amount = PointAmount.of(order.finalAmount),
-            description = "주문 결제"
-        )
-
-        // 6. 결제 처리 (기록용)
-        paymentService.processPayment(
-            userId = request.userId,
-            orderId = order.id,
-            amount = order.finalAmount
-        )
-
-        // 7. 쿠폰 사용 처리
-        request.usedCouponId?.let { couponId ->
-            couponService.applyCoupon(request.userId, couponId, order.id, totalAmount)
-        }
-
-        // 8. 배송 정보 생성
-        deliveryService.createDelivery(
-            orderId = order.id,
-            deliveryAddress = request.deliveryAddress.toVo(),
-            deliveryMemo = request.deliveryAddress.deliveryMessage
-        )
-
-        // 9. 장바구니에서 주문된 상품 제거 (주문 완료 후 정리)
-        val orderedProductIds = orderItems.map { it.productId }
-        cartService.removeOrderedItems(request.userId, orderedProductIds)
-
-        return order
     }
 
     /**

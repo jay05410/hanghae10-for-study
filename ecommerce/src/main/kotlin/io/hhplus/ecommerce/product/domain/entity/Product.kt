@@ -32,7 +32,8 @@ data class Product(
     var pricePer100g: Int,
     val ingredients: String,
     val origin: String,
-    var status: ProductStatus = ProductStatus.ACTIVE
+    var status: ProductStatus = ProductStatus.ACTIVE,
+    val requiresReservation: Boolean = false  // 선착순/한정판 여부
 ) {
     val price: Long get() = pricePer100g.toLong()
 
@@ -40,6 +41,12 @@ data class Product(
      * 상품 사용 가능 여부 확인
      */
     fun isAvailable(): Boolean = status == ProductStatus.ACTIVE
+
+    /**
+     * 재고 예약이 필요한 상품인지 확인
+     * (선착순, 한정판 등)
+     */
+    fun requiresStockReservation(): Boolean = requiresReservation
 
 
     /**

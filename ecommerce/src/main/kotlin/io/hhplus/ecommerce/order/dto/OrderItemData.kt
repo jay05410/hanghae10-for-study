@@ -10,5 +10,6 @@ data class OrderItemData(
     val giftWrap: Boolean = false,
     val giftMessage: String? = null,
     val giftWrapPrice: Int = 0,
-    val totalPrice: Int
+    val totalPrice: Int,
+    val requiresReservation: Boolean = false  // 선착순/한정판 여부
 )

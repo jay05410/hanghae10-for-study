@@ -37,7 +37,8 @@ class ProductMapper {
             pricePer100g = entity.pricePer100g,
             ingredients = entity.ingredients,
             origin = entity.origin,
-            status = entity.status
+            status = entity.status,
+            requiresReservation = entity.requiresReservation
         )
     }
 
@@ -61,7 +62,8 @@ class ProductMapper {
             pricePer100g = domain.pricePer100g,
             ingredients = domain.ingredients,
             origin = domain.origin,
-            status = domain.status
+            status = domain.status,
+            requiresReservation = domain.requiresReservation
         )
     }
 
