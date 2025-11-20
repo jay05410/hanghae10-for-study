@@ -15,8 +15,10 @@ abstract class BaseQueueWorker<T, R>(
 
     /**
      * Queue 처리 메인 로직
+     *
+     * 테스트에서도 사용할 수 있도록 public으로 선언
      */
-    protected fun processQueue() {
+    fun processQueue() {
         try {
             val item = processor.dequeue() ?: return
 

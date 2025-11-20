@@ -45,4 +45,14 @@ class GetCouponQueryUseCase(
             couponService.getUserCoupons(userId)
         }
     }
+
+    /**
+     * 사용 가능한 사용자 쿠폰 조회 (ISSUED 상태만)
+     *
+     * @param userId 사용자 ID
+     * @return 사용 가능한 쿠폰 목록
+     */
+    fun getAvailableUserCoupons(userId: Long): List<UserCoupon> {
+        return couponService.getAvailableUserCoupons(userId)
+    }
 }

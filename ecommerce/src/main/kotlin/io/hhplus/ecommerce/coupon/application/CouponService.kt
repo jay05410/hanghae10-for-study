@@ -109,6 +109,16 @@ class CouponService(
     }
 
     /**
+     * 사용 가능한 사용자 쿠폰 조회 (ISSUED 상태만)
+     *
+     * @param userId 사용자 ID
+     * @return 사용 가능한 쿠폰 목록
+     */
+    fun getAvailableUserCoupons(userId: Long): List<UserCoupon> {
+        return getUserCoupons(userId, UserCouponStatus.ISSUED)
+    }
+
+    /**
      * 쿼폰을 사용하여 할인을 적용한다
      *
      * @param userId 사용자 ID

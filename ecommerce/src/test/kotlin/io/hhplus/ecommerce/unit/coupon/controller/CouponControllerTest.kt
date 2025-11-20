@@ -3,10 +3,12 @@ package io.hhplus.ecommerce.unit.coupon.controller
 import io.hhplus.ecommerce.coupon.controller.CouponController
 import io.hhplus.ecommerce.coupon.usecase.GetCouponQueryUseCase
 import io.hhplus.ecommerce.coupon.usecase.CouponCommandUseCase
+import io.hhplus.ecommerce.coupon.usecase.CouponQueueQueryUseCase
 import io.hhplus.ecommerce.coupon.usecase.ValidateCouponUseCase
 import io.hhplus.ecommerce.coupon.dto.IssueCouponRequest
 import io.hhplus.ecommerce.coupon.dto.UseCouponRequest
 import io.hhplus.ecommerce.coupon.domain.entity.Coupon
+import io.hhplus.ecommerce.coupon.domain.entity.CouponQueueRequest
 import io.hhplus.ecommerce.coupon.domain.entity.UserCoupon
 import io.hhplus.ecommerce.common.response.ApiResponse
 import io.kotest.core.spec.style.DescribeSpec
@@ -32,18 +34,21 @@ class CouponControllerTest : DescribeSpec({
     val mockGetCouponQueryUseCase = mockk<GetCouponQueryUseCase>()
     val mockCouponCommandUseCase = mockk<CouponCommandUseCase>()
     val mockValidateCouponUseCase = mockk<ValidateCouponUseCase>()
+    val mockCouponQueueQueryUseCase = mockk<CouponQueueQueryUseCase>()
 
     val sut = CouponController(
         getCouponQueryUseCase = mockGetCouponQueryUseCase,
         couponCommandUseCase = mockCouponCommandUseCase,
-        validateCouponUseCase = mockValidateCouponUseCase
+        validateCouponUseCase = mockValidateCouponUseCase,
+        couponQueueQueryUseCase = mockCouponQueueQueryUseCase
     )
 
     beforeEach {
         clearMocks(
             mockGetCouponQueryUseCase,
             mockCouponCommandUseCase,
-            mockValidateCouponUseCase
+            mockValidateCouponUseCase,
+            mockCouponQueueQueryUseCase
         )
     }
 
@@ -81,12 +86,12 @@ class CouponControllerTest : DescribeSpec({
 
     describe("issueCoupon") {
         context("POST /api/v1/coupons/issue 요청") {
-            it("IssueCouponRequest를 IssueCouponUseCase에 전달하고 ApiResponse로 반환") {
+            it("IssueCouponRequest를 CouponCommandUseCase에 전달하고 ApiResponse로 반환") {
                 val userId = 1L
                 val request = IssueCouponRequest(couponId = 1L)
-                val mockUserCoupon = mockk<UserCoupon>(relaxed = true)
+                val mockQueueRequest = mockk<CouponQueueRequest>(relaxed = true)
 
-                every { mockCouponCommandUseCase.issueCoupon(userId, request) } returns mockUserCoupon
+                every { mockCouponCommandUseCase.issueCoupon(userId, request) } returns mockQueueRequest
 
                 val result = sut.issueCoupon(userId, request)
 
@@ -99,9 +104,9 @@ class CouponControllerTest : DescribeSpec({
             it("각각의 사용자와 쿠폰에 대해 정확한 파라미터 전달") {
                 val userId = 2L
                 val request = IssueCouponRequest(couponId = 5L)
-                val mockUserCoupon = mockk<UserCoupon>(relaxed = true)
+                val mockQueueRequest = mockk<CouponQueueRequest>(relaxed = true)
 
-                every { mockCouponCommandUseCase.issueCoupon(userId, request) } returns mockUserCoupon
+                every { mockCouponCommandUseCase.issueCoupon(userId, request) } returns mockQueueRequest
 
                 val result = sut.issueCoupon(userId, request)
 
@@ -117,9 +122,9 @@ class CouponControllerTest : DescribeSpec({
 
                 couponIds.forEach { couponId ->
                     val request = IssueCouponRequest(couponId = couponId)
-                    val mockUserCoupon = mockk<UserCoupon>(relaxed = true)
+                    val mockQueueRequest = mockk<CouponQueueRequest>(relaxed = true)
 
-                    every { mockCouponCommandUseCase.issueCoupon(userId, request) } returns mockUserCoupon
+                    every { mockCouponCommandUseCase.issueCoupon(userId, request) } returns mockQueueRequest
 
                     val result = sut.issueCoupon(userId, request)
 
