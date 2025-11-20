@@ -47,6 +47,15 @@ dependencies {
     implementation(libs.springdoc.openapi.webmvc.ui)
     implementation(libs.springdoc.openapi.common)
 
+    // Spring Actuator
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+
+    // Micrometer Prometheus for metrics export
+    implementation("io.micrometer:micrometer-registry-prometheus")
+
+    // Redis
+    implementation("org.springframework.boot:spring-boot-starter-data-redis")
+
     // Test Dependencies
     testImplementation(libs.spring.boot.starter.test)
     testImplementation(kotlin("test"))

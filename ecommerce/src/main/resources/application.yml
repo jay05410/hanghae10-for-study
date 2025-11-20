@@ -12,6 +12,19 @@ spring:
     username: admin
     password: admin123
 
+  # Redis
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 5
+      timeout: 3000ms
+
   h2:
     console:
       enabled: false
@@ -71,4 +84,42 @@ swagger:
   description: HH Plus E-Commerce Platform API Documentation
   version: 1.0.0
   auto-wrap-response: true  # false로 변경하면 ApiResponse 자동 래핑 비활성화
+
+# 쿠폰 Queue Worker 설정
+coupon:
+  queue:
+    worker:
+      enabled: true  # Queue Worker 활성화 여부
+
+# Spring Actuator 모니터링 설정
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,hikaricp  # 노출할 엔드포인트
+      base-path: /actuator  # Actuator 엔드포인트 기본 경로
+  endpoint:
+    health:
+      show-details: always  # 헬스 체크 상세 정보 표시
+      show-components: always
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true  # HTTP 요청 히스토그램
+    tags:
+      application: ${spring.application.name}  # 모든 메트릭에 애플리케이션 이름 태그 추가
+  # HikariCP 메트릭 활성화
+  hikari:
+    minimumIdle: 5
+    maximumPoolSize: 20
+    connectionTimeout: 30000
+    idleTimeout: 600000
+    maxLifetime: 1800000
 
