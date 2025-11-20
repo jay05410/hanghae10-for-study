@@ -4,6 +4,8 @@ import io.swagger.v3.oas.annotations.media.Schema
 
 import io.hhplus.ecommerce.coupon.domain.entity.Coupon
 import io.hhplus.ecommerce.coupon.domain.constant.DiscountType
+import io.hhplus.ecommerce.coupon.domain.entity.CouponQueueRequest
+import io.hhplus.ecommerce.coupon.domain.entity.UserCoupon
 import java.time.LocalDateTime
 
 /**
@@ -91,7 +93,7 @@ data class UserCouponResponse(
     val status: io.hhplus.ecommerce.coupon.domain.constant.UserCouponStatus
 )
 
-fun io.hhplus.ecommerce.coupon.domain.entity.UserCoupon.toResponse(): UserCouponResponse = UserCouponResponse(
+fun UserCoupon.toResponse(): UserCouponResponse = UserCouponResponse(
     id = this.id,
     userId = this.userId,
     couponId = this.couponId,
@@ -99,4 +101,65 @@ fun io.hhplus.ecommerce.coupon.domain.entity.UserCoupon.toResponse(): UserCoupon
     usedAt = this.usedAt,
     usedOrderId = this.usedOrderId,
     status = this.status
+)
+
+/**
+ * 쿠폰 발급 Queue 응답 DTO - 프레젠테이션 계층
+ *
+ * 역할:
+ * - 쿠폰 발급 Queue 요청의 상태를 클라이언트에게 전달
+ * - 대기 순번, 예상 대기 시간 등의 정보 제공
+ */
+@Schema(description = "쿠폰 발급 Queue 정보")
+data class CouponQueueResponse(
+    @Schema(description = "Queue ID", example = "550e8400-e29b-41d4-a716-446655440000")
+    val queueId: String,
+
+    @Schema(description = "사용자 ID", example = "100")
+    val userId: Long,
+
+    @Schema(description = "쿠폰 ID", example = "1")
+    val couponId: Long,
+
+    @Schema(description = "쿠폰 이름", example = "신규회원 10% 할인")
+    val couponName: String,
+
+    @Schema(description = "대기 순번 (0부터 시작)", example = "42")
+    val queuePosition: Int,
+
+    @Schema(description = "Queue 상태", example = "WAITING", allowableValues = ["WAITING", "PROCESSING", "COMPLETED", "FAILED", "EXPIRED"])
+    val status: io.hhplus.ecommerce.coupon.domain.constant.QueueStatus,
+
+    @Schema(description = "예상 대기 시간 (초)", example = "120")
+    val estimatedWaitingTimeSeconds: Long,
+
+    @Schema(description = "요청 일시", example = "2025-01-20T10:00:00")
+    val requestedAt: LocalDateTime,
+
+    @Schema(description = "처리 시작 일시 (선택)", example = "2025-01-20T10:02:00")
+    val processedAt: LocalDateTime?,
+
+    @Schema(description = "완료 일시 (선택)", example = "2025-01-20T10:02:05")
+    val completedAt: LocalDateTime?,
+
+    @Schema(description = "실패 사유 (선택)", example = "쿠폰이 품절되었습니다")
+    val failureReason: String?,
+
+    @Schema(description = "발급된 사용자 쿠폰 ID (선택, COMPLETED 상태일 때만)", example = "1001")
+    val userCouponId: Long?
+)
+
+fun CouponQueueRequest.toResponse(): CouponQueueResponse = CouponQueueResponse(
+    queueId = this.queueId,
+    userId = this.userId,
+    couponId = this.couponId,
+    couponName = this.couponName,
+    queuePosition = this.queuePosition,
+    status = this.status,
+    estimatedWaitingTimeSeconds = this.getEstimatedWaitingTimeSeconds(),
+    requestedAt = this.requestedAt,
+    processedAt = this.processedAt,
+    completedAt = this.completedAt,
+    failureReason = this.failureReason,
+    userCouponId = this.userCouponId
 )

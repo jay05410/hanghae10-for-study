@@ -33,22 +33,16 @@ class GetCouponQueryUseCase(
     }
 
     /**
-     * 사용자가 소유한 모든 쿠폰을 조회한다 (사용완료 포함)
+     * 사용자 쿠폰 조회
      *
-     * @param userId 인증된 사용자 ID
-     * @return 사용자 소유 쿠폰 목록
+     * @param userId 사용자 ID
+     * @param onlyAvailable true면 사용 가능한 쿠폰만, false면 전체
      */
-    fun getUserCoupons(userId: Long): List<UserCoupon> {
-        return couponService.getUserCoupons(userId)
-    }
-
-    /**
-     * 사용자가 소유한 사용 가능한 쿠폰만 조회한다
-     *
-     * @param userId 인증된 사용자 ID
-     * @return 사용 가능한 쿠폰 목록
-     */
-    fun getAvailableUserCoupons(userId: Long): List<UserCoupon> {
-        return couponService.getAvailableUserCoupons(userId)
+    fun getUserCoupons(userId: Long, onlyAvailable: Boolean = false): List<UserCoupon> {
+        return if (onlyAvailable) {
+            couponService.getUserCoupons(userId, io.hhplus.ecommerce.coupon.domain.constant.UserCouponStatus.ISSUED)
+        } else {
+            couponService.getUserCoupons(userId)
+        }
     }
 }

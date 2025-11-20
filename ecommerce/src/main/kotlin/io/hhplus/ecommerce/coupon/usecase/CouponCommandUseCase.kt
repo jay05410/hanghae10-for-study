@@ -1,9 +1,12 @@
 package io.hhplus.ecommerce.coupon.usecase
 
+import io.hhplus.ecommerce.coupon.application.CouponQueueService
 import io.hhplus.ecommerce.coupon.application.CouponService
-import io.hhplus.ecommerce.coupon.domain.entity.UserCoupon
+import io.hhplus.ecommerce.coupon.domain.entity.CouponQueueRequest
+import io.hhplus.ecommerce.coupon.domain.repository.CouponRepository
 import io.hhplus.ecommerce.coupon.dto.IssueCouponRequest
 import io.hhplus.ecommerce.coupon.dto.UseCouponRequest
+import io.hhplus.ecommerce.coupon.exception.CouponException
 import org.springframework.stereotype.Component
 
 /**
@@ -11,30 +14,37 @@ import org.springframework.stereotype.Component
  *
  * 역할:
  * - 모든 쿠폰 변경 작업을 통합 관리
- * - 쿠폰 발급, 사용 기능 제공
+ * - 쿠폰 발급 Queue 등록, 사용 기능 제공
  *
  * 책임:
- * - 쿠폰 발급/사용 요청 검증 및 실행
+ * - 쿠폰 발급 Queue 등록 (직접 발급 대신)
+ * - 쿠폰 사용 요청 검증 및 실행
  * - 쿠폰 데이터 무결성 보장
  */
 @Component
 class CouponCommandUseCase(
-    private val couponService: CouponService
+    private val couponService: CouponService,
+    private val couponQueueService: CouponQueueService,
+    private val couponRepository: CouponRepository
 ) {
 
     /**
-     * 사용자에게 지정된 쿠폰을 발급한다
+     * 사용자의 쿠폰 발급 요청을 Queue에 등록한다
      *
      * @param userId 인증된 사용자 ID
      * @param request 쿠폰 발급 요청 데이터
-     * @return 사용자에게 발급된 쿠폰
-     * @throws IllegalArgumentException 발급 불가능한 쿠폰이거나 유효하지 않은 사용자인 경우
-     * @throws RuntimeException 쿠폰 발급 수량 초과 또는 발급 처리 실패인 경우
+     * @return Queue에 등록된 요청 정보 (대기 순번, 예상 시간 포함)
+     * @throws CouponException.CouponNotFound 쿠폰을 찾을 수 없는 경우
+     * @throws CouponException.AlreadyInQueue 이미 Queue에 등록된 경우
      */
-    fun issueCoupon(userId: Long, request: IssueCouponRequest): UserCoupon {
-        return couponService.issueCoupon(
+    fun issueCoupon(userId: Long, request: IssueCouponRequest): CouponQueueRequest {
+        val coupon = couponRepository.findById(request.couponId)
+            ?: throw CouponException.CouponNotFound(request.couponId)
+
+        return couponQueueService.enqueue(
             userId = userId,
-            couponId = request.couponId
+            couponId = coupon.id,
+            couponName = coupon.name
         )
     }
 

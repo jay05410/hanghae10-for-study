@@ -51,5 +51,11 @@ enum class CouponErrorCode(
         code = "COUPON007",
         message = "사용자 쿠폰을 찾을 수 없습니다. 사용자 ID: {userId}",
         httpStatus = 404
+    ),
+
+    ALREADY_IN_QUEUE(
+        code = "COUPON008",
+        message = "이미 쿠폰 발급 대기열에 등록되어 있습니다. 사용자 ID: {userId}, 쿠폰: {couponName}",
+        httpStatus = 409
     );
 }

@@ -32,13 +32,11 @@ class CouponService(
 ) {
 
     /**
-     * 발급 가능한 쿼폰 목록을 조회한다
-     *
-     * @return 발급 가능한 쿼폰 목록
+     * 발급 가능한 쿼폰 목록 조회 (재고 있고 유효기간 내)
      */
     fun getAvailableCoupons(): List<Coupon> {
         return couponRepository.findAvailableCoupons()
-            .filter { it.isAvailableForIssue() }
+            .filter { it.isAvailableForIssue() }  // 재고 & 유효기간 체크 (동적 조건)
     }
 
     /**
@@ -96,13 +94,18 @@ class CouponService(
         return savedUserCoupon
     }
 
-    fun getUserCoupons(userId: Long): List<UserCoupon> {
-        return userCouponRepository.findByUserId(userId)
-    }
-
-    fun getAvailableUserCoupons(userId: Long): List<UserCoupon> {
-        return userCouponRepository.findByUserIdAndStatus(userId, UserCouponStatus.ISSUED)
-            .filter { it.isUsable() }
+    /**
+     * 사용자 쿠폰 조회
+     *
+     * @param userId 사용자 ID
+     * @param status 쿠폰 상태 (null이면 전체 조회)
+     */
+    fun getUserCoupons(userId: Long, status: UserCouponStatus? = null): List<UserCoupon> {
+        return if (status != null) {
+            userCouponRepository.findByUserIdAndStatus(userId, status)
+        } else {
+            userCouponRepository.findByUserId(userId)
+        }
     }
 
     /**

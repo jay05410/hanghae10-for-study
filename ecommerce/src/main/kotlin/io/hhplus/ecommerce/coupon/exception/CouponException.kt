@@ -108,4 +108,19 @@ sealed class CouponException(
             "orderAmount" to orderAmount
         )
     )
+
+    /**
+     * 이미 Queue에 등록된 예외
+     */
+    class AlreadyInQueue(userId: Long, couponName: String) : CouponException(
+        errorCode = CouponErrorCode.ALREADY_IN_QUEUE,
+        message = CouponErrorCode.ALREADY_IN_QUEUE.withParams(
+            "userId" to userId,
+            "couponName" to couponName
+        ),
+        data = mapOf(
+            "userId" to userId,
+            "couponName" to couponName
+        )
+    )
 }
