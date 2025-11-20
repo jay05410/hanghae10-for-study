@@ -28,9 +28,5 @@ class CartJpaEntity(
     val id: Long = 0,
 
     @Column(nullable = false, unique = true, name = "user_id")
-    val userId: Long,
-
-    @OneToMany(fetch = FetchType.LAZY)
-    @JoinColumn(name = "cart_id")
-    val cartItems: List<CartItemJpaEntity> = mutableListOf()
+    val userId: Long
 ) : BaseJpaEntity()

@@ -116,13 +116,14 @@ class InventoryDeductIntegrationTest(
             it("가용 재고만 차감할 수 있다") {
                 // Given
                 val productId = IntegrationTestFixtures.createTestProductId(5)
+                val userId = IntegrationTestFixtures.createTestUserId(5)
                 val initialQuantity = 100
                 val reserveQuantity = 30
                 val deductQuantity = 70 // 가용 재고 딱 맞게
 
                 // 재고 생성 및 예약
                 inventoryCommandUseCase.createInventory(productId, initialQuantity)
-                inventoryReservationUseCase.reserveStock(productId, reserveQuantity)
+                inventoryReservationUseCase.reserveStock(productId, userId, reserveQuantity)
 
                 // When - 가용 재고만큼 차감
                 val updatedInventory = inventoryCommandUseCase.deductStock(productId, deductQuantity)
@@ -136,13 +137,14 @@ class InventoryDeductIntegrationTest(
             it("가용 재고를 초과하면 예외가 발생한다") {
                 // Given
                 val productId = IntegrationTestFixtures.createTestProductId(6)
+                val userId = IntegrationTestFixtures.createTestUserId(6)
                 val initialQuantity = 100
                 val reserveQuantity = 40
                 val deductQuantity = 80 // 가용 재고(60)보다 많음
 
                 // 재고 생성 및 예약
                 inventoryCommandUseCase.createInventory(productId, initialQuantity)
-                inventoryReservationUseCase.reserveStock(productId, reserveQuantity)
+                inventoryReservationUseCase.reserveStock(productId, userId, reserveQuantity)
 
                 // When & Then
                 shouldThrow<InventoryException.InsufficientStock> {

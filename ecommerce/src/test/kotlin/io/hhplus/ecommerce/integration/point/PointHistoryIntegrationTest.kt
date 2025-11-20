@@ -49,7 +49,7 @@ class PointHistoryIntegrationTest(
                 histories shouldHaveSize 5
 
                 // 최신순 정렬 확인
-                histories shouldBeSortedWith compareByDescending { it.createdAt }
+                histories shouldBeSortedWith compareByDescending { it.id }
 
                 // 거래 타입 확인
                 histories.count { it.transactionType == PointTransactionType.EARN } shouldBe 3
@@ -121,7 +121,7 @@ class PointHistoryIntegrationTest(
                 histories.all { it.transactionType == PointTransactionType.EARN } shouldBe true
 
                 // 최신 거래가 먼저
-                histories shouldBeSortedWith compareByDescending { it.createdAt }
+                histories shouldBeSortedWith compareByDescending { it.id }
 
                 // 금액 확인
                 histories.sumOf { it.amount.toLong() } shouldBe (1000L + 2000L + 3000L + 4000L + 5000L)

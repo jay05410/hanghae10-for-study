@@ -26,25 +26,4 @@ interface CartJpaRepository : JpaRepository<CartJpaEntity, Long> {
      * 사용자 ID로 장바구니 조회 (활성 여부 무관)
      */
     fun findByUserId(userId: Long): CartJpaEntity?
-
-    /**
-     * 사용자 ID로 장바구니와 아이템을 함께 조회 (단건)
-     *
-     * Fetch join 사용 이유:
-     * - 단건 조회 (각 사용자는 하나의 장바구니만 가짐)
-     * - 페이지네이션 불필요
-     * - 명시적인 쿼리 제어 가능
-     */
-    @Query("SELECT c FROM CartJpaEntity c LEFT JOIN FETCH c.cartItems WHERE c.userId = :userId AND c.deletedAt IS NULL")
-    fun findByUserIdWithItems(@Param("userId") userId: Long): CartJpaEntity?
-
-    /**
-     * 장바구니 ID로 장바구니와 아이템을 함께 조회 (단건)
-     *
-     * Fetch join 사용 이유:
-     * - 단건 조회이므로 페이지네이션 불필요
-     * - 명시적인 쿼리 제어 가능
-     */
-    @Query("SELECT c FROM CartJpaEntity c LEFT JOIN FETCH c.cartItems WHERE c.id = :cartId")
-    fun findCartWithItemsById(@Param("cartId") cartId: Long): CartJpaEntity?
 }

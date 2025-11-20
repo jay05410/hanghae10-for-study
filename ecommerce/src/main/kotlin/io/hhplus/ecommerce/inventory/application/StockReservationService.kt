@@ -51,8 +51,7 @@ class StockReservationService(
             productId = productId,
             userId = userId,
             quantity = quantity,
-            reservationMinutes = reservationMinutes,
-            createdBy = userId
+            reservationMinutes = reservationMinutes
         )
 
         return stockReservationRepository.save(reservation)
@@ -79,7 +78,7 @@ class StockReservationService(
         inventoryRepository.save(inventory)
 
         // 예약 상태 변경
-        reservation.confirm(userId)
+        reservation.confirm()
         return stockReservationRepository.save(reservation)
     }
 
@@ -104,7 +103,7 @@ class StockReservationService(
         inventoryRepository.save(inventory)
 
         // 예약 취소
-        reservation.cancel(userId)
+        reservation.cancel()
         return stockReservationRepository.save(reservation)
     }
 
@@ -123,7 +122,7 @@ class StockReservationService(
                 }
 
                 // 예약 만료 처리
-                reservation.expire(-1L) // 시스템에 의한 만료
+                reservation.expire()
                 stockReservationRepository.save(reservation)
                 expiredCount++
             } catch (e: Exception) {

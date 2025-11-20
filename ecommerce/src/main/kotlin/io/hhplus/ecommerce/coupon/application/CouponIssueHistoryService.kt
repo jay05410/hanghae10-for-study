@@ -35,8 +35,7 @@ class CouponIssueHistoryService(
             couponId = couponId,
             userId = userId,
             issuedAt = LocalDateTime.now(),
-            description = "쿠폰 발급: $couponName",
-            createdBy = userId
+            description = "쿠폰 발급: $couponName"
         )
         return couponIssueHistoryRepository.save(issueHistory)
     }
@@ -54,8 +53,7 @@ class CouponIssueHistoryService(
             userId = userId,
             issuedAt = issuedAt,
             usedAt = LocalDateTime.now(),
-            description = "쿠폰 사용: $couponName, 주문 ID: $orderId",
-            createdBy = userId
+            description = "쿠폰 사용: $couponName, 주문 ID: $orderId"
         )
         return couponIssueHistoryRepository.save(usageHistory)
     }
@@ -72,8 +70,7 @@ class CouponIssueHistoryService(
             userId = userId,
             issuedAt = issuedAt,
             expiredAt = LocalDateTime.now(),
-            description = "쿠폰 만료: $couponName",
-            createdBy = userId
+            description = "쿠폰 만료: $couponName"
         )
         return couponIssueHistoryRepository.save(expirationHistory)
     }

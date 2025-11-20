@@ -97,7 +97,7 @@ class OrderController(
         @Parameter(description = "주문 확정 요청 정보", required = true)
         @RequestBody request: OrderConfirmRequest
     ): ApiResponse<OrderResponse> {
-        val order = orderCommandUseCase.confirmOrder(orderId, request.confirmedBy)
+        val order = orderCommandUseCase.confirmOrder(orderId)
         return ApiResponse.success(order.toResponse())
     }
 
@@ -116,7 +116,7 @@ class OrderController(
         @Parameter(description = "주문 취소 요청 정보", required = true)
         @RequestBody request: OrderCancelRequest
     ): ApiResponse<OrderResponse> {
-        val order = orderCommandUseCase.cancelOrder(orderId, request.cancelledBy, request.reason)
+        val order = orderCommandUseCase.cancelOrder(orderId, request.reason)
         return ApiResponse.success(order.toResponse())
     }
 

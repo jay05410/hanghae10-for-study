@@ -42,6 +42,7 @@ class CartAddIntegrationTest(
                 description = "장바구니 테스트용 상품",
                 price = 10000L,
                 categoryId = 1L,
+                createdBy = 1L
             )
         )
         product2 = productCommandUseCase.createProduct(
@@ -50,6 +51,7 @@ class CartAddIntegrationTest(
                 description = "장바구니 테스트용 상품",
                 price = 15000L,
                 categoryId = 1L,
+                createdBy = 1L
             )
         )
 
@@ -311,7 +313,8 @@ class CartAddIntegrationTest(
                         description = "장바구니 테스트용 상품",
                         price = 20000L,
                         categoryId = 1L,
-                            )
+                        createdBy = 1L
+                    )
                 )
                 inventoryCommandUseCase.createInventory(product3.id, 1000)
 

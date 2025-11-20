@@ -26,11 +26,10 @@ class InventoryCommandUseCase(
      *
      * @param productId 상품 ID
      * @param initialQuantity 초기 재고 수량
-     * @param createdBy 생성 요청자 ID
      * @return 생성된 재고 정보
      * @throws InventoryException.InventoryAlreadyExists 이미 재고가 존재하는 경우
      */
-    fun createInventory(productId: Long, initialQuantity: Int, createdBy: Long): Inventory {
+    fun createInventory(productId: Long, initialQuantity: Int): Inventory {
         return inventoryService.createInventory(productId, initialQuantity)
     }
 
@@ -39,12 +38,11 @@ class InventoryCommandUseCase(
      *
      * @param productId 상품 ID
      * @param quantity 차감할 수량
-     * @param deductedBy 차감 요청자 ID
      * @return 차감 완료된 재고 정보
      * @throws InventoryException.InventoryNotFound 재고를 찾을 수 없는 경우
      * @throws InventoryException.InsufficientStock 재고가 부족한 경우
      */
-    fun deductStock(productId: Long, quantity: Int, deductedBy: Long): Inventory {
+    fun deductStock(productId: Long, quantity: Int): Inventory {
         return inventoryService.deductStock(productId, quantity)
     }
 
@@ -53,11 +51,10 @@ class InventoryCommandUseCase(
      *
      * @param productId 상품 ID
      * @param quantity 보충할 수량
-     * @param restockedBy 보충 요청자 ID
      * @return 보충 완료된 재고 정보
      * @throws InventoryException.InventoryNotFound 재고를 찾을 수 없는 경우
      */
-    fun restockInventory(productId: Long, quantity: Int, restockedBy: Long): Inventory {
+    fun restockInventory(productId: Long, quantity: Int): Inventory {
         return inventoryService.restockInventory(productId, quantity)
     }
 }

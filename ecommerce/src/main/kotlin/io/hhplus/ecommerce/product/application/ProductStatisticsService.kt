@@ -28,7 +28,7 @@ class ProductStatisticsService(
         val statistics = productStatisticsRepository.findByProductIdWithLock(productId)
             ?: createStatistics(productId)
 
-        statistics.incrementViewCount(1L)
+        statistics.incrementViewCount()
         return productStatisticsRepository.save(statistics)
     }
 
@@ -37,7 +37,7 @@ class ProductStatisticsService(
         val statistics = productStatisticsRepository.findByProductIdWithLock(productId)
             ?: createStatistics(productId)
 
-        statistics.incrementSalesCount(quantity, 1L)
+        statistics.incrementSalesCount(quantity)
         return productStatisticsRepository.save(statistics)
     }
 
@@ -50,7 +50,7 @@ class ProductStatisticsService(
     }
 
     private fun createStatistics(productId: Long): ProductStatistics {
-        val statistics = ProductStatistics.create(productId, 1L)
+        val statistics = ProductStatistics.create(productId)
         return productStatisticsRepository.save(statistics)
     }
 }

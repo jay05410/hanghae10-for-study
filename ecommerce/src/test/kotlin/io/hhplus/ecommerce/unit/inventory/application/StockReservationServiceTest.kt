@@ -38,10 +38,9 @@ class StockReservationServiceTest : DescribeSpec({
         every { this@mockk.quantity } returns quantity
         every { this@mockk.status } returns status
         every { isReservationActive() } returns (status == ReservationStatus.RESERVED)
-        every { confirm(any()) } just Runs
-        every { cancel(any()) } just Runs
-        every { expire(any()) } just Runs
-        every { createdAt } returns LocalDateTime.now()
+        every { confirm() } just Runs
+        every { cancel() } just Runs
+        every { expire() } just Runs
         every { expiresAt } returns LocalDateTime.now().plusMinutes(20)
     }
 
@@ -56,9 +55,9 @@ class StockReservationServiceTest : DescribeSpec({
         every { mockInventory.productId } returns productId
         every { mockInventory.quantity } returns quantity
         every { mockInventory.reservedQuantity } returns reservedQuantity
-        every { mockInventory.reserve(any(), any()) } just runs
-        every { mockInventory.releaseReservation(any(), any()) } just runs
-        every { mockInventory.confirmReservation(any(), any()) } just runs
+        every { mockInventory.reserve(any()) } just runs
+        every { mockInventory.releaseReservation(any()) } just runs
+        every { mockInventory.confirmReservation(any()) } just runs
         return mockInventory
     }
 
@@ -81,15 +80,15 @@ class StockReservationServiceTest : DescribeSpec({
                 every { mockStockReservationRepository.save(any()) } returns mockReservation
 
                 mockkObject(StockReservation.Companion)
-                every { StockReservation.create(productId, userId, quantity, 20, userId) } returns mockReservation
+                every { StockReservation.create(productId, userId, quantity, 20) } returns mockReservation
 
                 val result = sut.reserveStock(productId, userId, quantity)
 
                 result shouldBe mockReservation
                 verify(exactly = 1) { mockInventoryRepository.findByProductIdWithLock(productId) }
-                verify(exactly = 1) { mockInventory.reserve(quantity, userId) }
+                verify(exactly = 1) { mockInventory.reserve(quantity) }
                 verify(exactly = 1) { mockInventoryRepository.save(mockInventory) }
-                verify(exactly = 1) { StockReservation.create(productId, userId, quantity, 20, userId) }
+                verify(exactly = 1) { StockReservation.create(productId, userId, quantity, 20) }
                 verify(exactly = 1) { mockStockReservationRepository.save(any()) }
             }
         }
@@ -129,7 +128,7 @@ class StockReservationServiceTest : DescribeSpec({
                 every { mockStockReservationRepository.save(any()) } returns newReservation
 
                 mockkObject(StockReservation.Companion)
-                every { StockReservation.create(productId, userId, quantity, 20, userId) } returns newReservation
+                every { StockReservation.create(productId, userId, quantity, 20) } returns newReservation
 
                 val result = sut.reserveStock(productId, userId, quantity)
 
@@ -178,8 +177,8 @@ class StockReservationServiceTest : DescribeSpec({
 
                 result shouldBe mockReservation
                 verify(exactly = 1) { mockStockReservationRepository.findById(reservationId) }
-                verify(exactly = 1) { mockInventory.confirmReservation(quantity, userId) }
-                verify(exactly = 1) { mockReservation.confirm(userId) }
+                verify(exactly = 1) { mockInventory.confirmReservation(quantity) }
+                verify(exactly = 1) { mockReservation.confirm() }
                 verify(exactly = 1) { mockStockReservationRepository.save(mockReservation) }
             }
         }
@@ -278,8 +277,8 @@ class StockReservationServiceTest : DescribeSpec({
 
                 result shouldBe mockReservation
                 verify(exactly = 1) { mockStockReservationRepository.findById(reservationId) }
-                verify(exactly = 1) { mockInventory.releaseReservation(quantity, userId) }
-                verify(exactly = 1) { mockReservation.cancel(userId) }
+                verify(exactly = 1) { mockInventory.releaseReservation(quantity) }
+                verify(exactly = 1) { mockReservation.cancel() }
                 verify(exactly = 1) { mockStockReservationRepository.save(mockReservation) }
             }
         }
@@ -377,10 +376,10 @@ class StockReservationServiceTest : DescribeSpec({
 
                 result shouldBe 2
                 verify(exactly = 1) { mockStockReservationRepository.findExpiredReservations(any()) }
-                verify(exactly = 1) { mockInventory1.releaseReservation(5, -1L) }
-                verify(exactly = 1) { mockInventory2.releaseReservation(5, -1L) }
-                verify(exactly = 1) { expiredReservation1.expire(-1L) }
-                verify(exactly = 1) { expiredReservation2.expire(-1L) }
+                verify(exactly = 1) { mockInventory1.releaseReservation(5) }
+                verify(exactly = 1) { mockInventory2.releaseReservation(5) }
+                verify(exactly = 1) { expiredReservation1.expire() }
+                verify(exactly = 1) { expiredReservation2.expire() }
             }
         }
 
@@ -398,7 +397,7 @@ class StockReservationServiceTest : DescribeSpec({
                 result shouldBe 1
                 verify(exactly = 1) { mockStockReservationRepository.findExpiredReservations(any()) }
                 verify(exactly = 1) { mockInventoryRepository.findByProductIdWithLock(999L) }
-                verify(exactly = 1) { expiredReservation.expire(-1L) }
+                verify(exactly = 1) { expiredReservation.expire() }
                 verify(exactly = 1) { mockStockReservationRepository.save(expiredReservation) }
             }
         }

@@ -57,9 +57,5 @@ class PaymentJpaEntity(
     val externalTransactionId: String? = null,
 
     @Column(columnDefinition = "TEXT", name = "failure_reason")
-    val failureReason: String? = null,
-
-    @OneToMany(fetch = FetchType.LAZY)
-    @JoinColumn(name = "payment_id")
-    val paymentHistories: List<PaymentHistoryJpaEntity> = mutableListOf()
+    val failureReason: String? = null
 ) : BaseJpaEntity()

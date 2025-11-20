@@ -108,7 +108,6 @@ class PointCommandUseCase(
      *
      * @param userId 사용자 ID
      * @param amount 차감할 포인트 금액
-     * @param deductedBy 차감 요청자 ID
      * @param description 차감 설명
      * @return 차감 완료된 사용자 포인트 정보
      * @throws PointException.PointNotFound 사용자 포인트 정보가 없는 경우
@@ -116,7 +115,7 @@ class PointCommandUseCase(
      * @throws PointException.InvalidAmount 차감 금액이 0 이하인 경우
      */
     @Transactional
-    fun deductPoint(userId: Long, amount: PointAmount, deductedBy: Long, description: String? = null): UserPoint {
+    fun deductPoint(userId: Long, amount: PointAmount, description: String? = null): UserPoint {
         return pointService.usePoint(userId, amount, description)
     }
 
@@ -124,11 +123,10 @@ class PointCommandUseCase(
      * 새 사용자 포인트를 생성합니다.
      *
      * @param userId 사용자 ID
-     * @param createdBy 생성 요청자 ID
      * @return 생성된 사용자 포인트 정보
      */
     @Transactional
-    fun createUserPoint(userId: Long, createdBy: Long): UserPoint {
+    fun createUserPoint(userId: Long): UserPoint {
         return pointService.createUserPoint(userId)
     }
 
@@ -137,14 +135,13 @@ class PointCommandUseCase(
      *
      * @param userId 사용자 ID
      * @param amount 적립할 포인트 금액
-     * @param earnedBy 적립 요청자 ID
      * @param description 적립 설명
      * @return 적립 완료된 사용자 포인트 정보
      * @throws PointException.PointNotFound 사용자 포인트 정보가 없는 경우
      * @throws PointException.MaxBalanceExceeded 최대 잔액 초과 시
      */
     @Transactional
-    fun earnPoint(userId: Long, amount: PointAmount, earnedBy: Long, description: String? = null): UserPoint {
+    fun earnPoint(userId: Long, amount: PointAmount, description: String? = null): UserPoint {
         return pointService.earnPoint(userId, amount, description)
     }
 

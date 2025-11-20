@@ -43,17 +43,13 @@ class ProductControllerTest : DescribeSpec({
         name: String = "Test Product",
         description: String = "Test Description",
         price: Long = 1000L,
-        categoryId: Long = 1L,
-        isDeleted: Boolean = false
+        categoryId: Long = 1L
     ): Product = mockk(relaxed = true) {
         every { this@mockk.id } returns id
         every { this@mockk.name } returns name
         every { this@mockk.description } returns description
         every { this@mockk.price } returns price
         every { this@mockk.categoryId } returns categoryId
-        every { this@mockk.isDeleted() } returns isDeleted
-        every { createdAt } returns LocalDateTime.now()
-        every { updatedAt } returns LocalDateTime.now()
     }
 
     beforeEach {
@@ -230,7 +226,8 @@ class ProductControllerTest : DescribeSpec({
                     name = "테스트상품",
                     description = "테스트상품설명",
                     price = 10000L,
-                    categoryId = 1L
+                    categoryId = 1L,
+                    createdBy = 1L
                 )
                 val mockProduct = createMockProduct()
 
@@ -246,9 +243,9 @@ class ProductControllerTest : DescribeSpec({
         context("다양한 상품 정보로 생성 요청") {
             it("각 요청이 정확히 UseCase에 전달") {
                 val requests = listOf(
-                    CreateProductRequest("상품1", "설명1", 5000L, 1L),
-                    CreateProductRequest("상품2", "설명2", 15000L, 2L),
-                    CreateProductRequest("상품3", "설명3", 25000L, 3L)
+                    CreateProductRequest("상품1", "설명1", 5000L, 1L, 1L),
+                    CreateProductRequest("상품2", "설명2", 15000L, 2L, 1L),
+                    CreateProductRequest("상품3", "설명3", 25000L, 3L, 1L)
                 )
 
                 requests.forEach { request ->
@@ -272,7 +269,8 @@ class ProductControllerTest : DescribeSpec({
                 val request = UpdateProductRequest(
                     name = "수정된상품",
                     description = "수정된설명",
-                    price = 20000L
+                    price = 20000L,
+                    updatedBy = 1L
                 )
                 val mockProduct = createMockProduct()
 
@@ -288,9 +286,9 @@ class ProductControllerTest : DescribeSpec({
         context("다양한 파라미터 조합") {
             it("모든 파라미터가 정확히 UseCase에 전달되는지 확인") {
                 val testCases = listOf(
-                    Pair(1L, UpdateProductRequest("상품1", "설명1", 10000L)),
-                    Pair(100L, UpdateProductRequest("상품100", "설명100", 50000L)),
-                    Pair(999L, UpdateProductRequest("상품999", "설명999", 99000L))
+                    Pair(1L, UpdateProductRequest("상품1", "설명1", 10000L, 1L)),
+                    Pair(100L, UpdateProductRequest("상품100", "설명100", 50000L, 1L)),
+                    Pair(999L, UpdateProductRequest("상품999", "설명999", 99000L, 1L))
                 )
 
                 testCases.forEach { (productId, request) ->
@@ -372,7 +370,7 @@ class ProductControllerTest : DescribeSpec({
                 clearMocks(mockGetProductQueryUseCase, mockProductCommandUseCase, mockProductStatsUseCase)
 
                 // createProduct 테스트
-                val createRequest = CreateProductRequest("테스트", "설명", 1000L, 1L)
+                val createRequest = CreateProductRequest("테스트", "설명", 1000L, 1L, 1L)
                 every { mockProductCommandUseCase.createProduct(createRequest) } returns mockProduct
                 sut.createProduct(createRequest)
                 verify(exactly = 1) { mockProductCommandUseCase.createProduct(createRequest) }
@@ -407,8 +405,8 @@ class ProductControllerTest : DescribeSpec({
 
                 val getProductsResult = sut.getProducts(1, null)
                 val getProductResult = sut.getProduct(1L, 1L)
-                val createResult = sut.createProduct(CreateProductRequest("테스트", "설명", 1000L, 1L))
-                val updateResult = sut.updateProduct(1L, UpdateProductRequest("수정", "수정설명", 2000L))
+                val createResult = sut.createProduct(CreateProductRequest("테스트", "설명", 1000L, 1L, 1L))
+                val updateResult = sut.updateProduct(1L, UpdateProductRequest("수정", "수정설명", 2000L, 1L))
                 val getPopularResult = sut.getPopularProducts(10)
 
                 // 모든 결과가 ApiResponse.success 형태인지 확인

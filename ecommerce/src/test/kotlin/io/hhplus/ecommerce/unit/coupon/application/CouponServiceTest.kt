@@ -113,7 +113,7 @@ class CouponServiceTest : DescribeSpec({
                 }
                 val mockUserCoupon = mockk<UserCoupon>()
 
-                every { mockCoupon.issue(userId) } just runs
+                every { mockCoupon.issue() } just runs
                 every { mockCouponRepository.findByIdWithLock(couponId) } returns mockCoupon
                 every { mockUserCouponRepository.findByUserIdAndCouponId(userId, couponId) } returns null
                 every { mockCouponRepository.save(mockCoupon) } returns mockCoupon
@@ -121,7 +121,7 @@ class CouponServiceTest : DescribeSpec({
                 every { mockCouponIssueHistoryService.recordIssue(couponId, userId, "할인쿠폰") } returns mockk()
 
                 mockkObject(UserCoupon.Companion)
-                every { UserCoupon.create(userId, couponId, userId) } returns mockUserCoupon
+                every { UserCoupon.create(userId, couponId) } returns mockUserCoupon
 
                 val result = sut.issueCoupon(userId, couponId)
 
@@ -130,9 +130,9 @@ class CouponServiceTest : DescribeSpec({
                     mockCouponRepository.findByIdWithLock(couponId)
                     mockCoupon.isAvailableForIssue()
                     mockUserCouponRepository.findByUserIdAndCouponId(userId, couponId)
-                    mockCoupon.issue(userId)
+                    mockCoupon.issue()
                     mockCouponRepository.save(mockCoupon)
-                    UserCoupon.create(userId, couponId, userId)
+                    UserCoupon.create(userId, couponId)
                     mockUserCouponRepository.save(mockUserCoupon)
                     mockCouponIssueHistoryService.recordIssue(couponId, userId, "할인쿠폰")
                 }
@@ -255,7 +255,6 @@ class CouponServiceTest : DescribeSpec({
                     every { id } returns userCouponId
                     every { couponId } returns 1L
                     every { isUsable() } returns true
-                    every { createdAt } returns java.time.LocalDateTime.now()
                 }
                 val mockCoupon = mockk<Coupon> {
                     every { id } returns 1L
@@ -264,7 +263,7 @@ class CouponServiceTest : DescribeSpec({
                     every { calculateDiscountAmount(orderAmount) } returns discountAmount
                 }
 
-                every { mockUserCoupon.use(orderId, userId) } just runs
+                every { mockUserCoupon.use(orderId) } just runs
                 every { mockUserCouponRepository.findById(userCouponId) } returns mockUserCoupon
                 every { mockCouponRepository.findById(1L) } returns mockCoupon
                 every { mockUserCouponRepository.save(mockUserCoupon) } returns mockUserCoupon
@@ -279,7 +278,7 @@ class CouponServiceTest : DescribeSpec({
                     mockUserCoupon.isUsable()
                     mockCoupon.isValidForUse(orderAmount)
                     mockCoupon.calculateDiscountAmount(orderAmount)
-                    mockUserCoupon.use(orderId, userId)
+                    mockUserCoupon.use(orderId)
                     mockUserCouponRepository.save(mockUserCoupon)
                     mockCouponIssueHistoryService.recordUsage(1L, userId, "할인쿠폰", orderId, any())
                 }

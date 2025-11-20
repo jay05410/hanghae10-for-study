@@ -23,8 +23,7 @@ class OutboxEventService(
             eventType = eventType,
             aggregateType = aggregateType,
             aggregateId = aggregateId,
-            payload = payload,
-            createdBy = 1L // 시스템 사용자 ID
+            payload = payload
         )
 
         return outboxEventRepository.save(outboxEvent)

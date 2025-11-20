@@ -45,9 +45,7 @@ class PaymentServiceTest : DescribeSpec({
         orderId = orderId,
         amount = amount,
         paymentMethod = PaymentMethod.BALANCE,
-        status = status,
-        createdAt = LocalDateTime.now(),
-        updatedAt = LocalDateTime.now()
+        status = status
     )
 
     beforeEach {
@@ -64,8 +62,8 @@ class PaymentServiceTest : DescribeSpec({
                 val txId = "TXN-001"
                 val pendingPayment = mockk<Payment>(relaxed = true) {
                     every { status } returns PaymentStatus.COMPLETED
-                    every { process(any()) } just runs
-                    every { complete(any(), any()) } just runs
+                    every { process() } just runs
+                    every { complete(any()) } just runs
                 }
 
                 mockkObject(Payment.Companion)

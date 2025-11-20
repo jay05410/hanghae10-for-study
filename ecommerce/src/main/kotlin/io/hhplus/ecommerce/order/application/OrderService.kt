@@ -126,10 +126,12 @@ class OrderService(
      * 특정 사용자의 활성 주문 목록을 조회한다
      *
      * @param userId 조회할 사용자의 ID
-     * @return 사용자의 활성 주문 목록
+     * @return 사용자의 활성 주문 목록 (최신순 정렬)
+     *
+     * 참고: OrderItem은 별도로 조회해야 합니다 (OneToMany 관계 제거됨)
      */
     fun getOrdersByUser(userId: Long): List<Order> {
-        return orderRepository.findOrdersWithItemsByUserId(userId)
+        return orderRepository.findByUserIdOrderByCreatedAtDesc(userId)
     }
 
     /**

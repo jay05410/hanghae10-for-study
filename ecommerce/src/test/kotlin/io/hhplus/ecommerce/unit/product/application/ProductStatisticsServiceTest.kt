@@ -37,17 +37,17 @@ class ProductStatisticsServiceTest : DescribeSpec({
                 val productId = 1L
                 val userId = 1L
                 val mockStatistics = mockk<ProductStatistics> {
-                    every { incrementViewCount(userId) } returns 0L
+                    every { incrementViewCount() } returns 0L
                 }
 
                 every { mockProductStatisticsRepository.findByProductIdWithLock(productId) } returns mockStatistics
                 every { mockProductStatisticsRepository.save(mockStatistics) } returns mockStatistics
 
-                val result = sut.incrementViewCount(productId, userId)
+                val result = sut.incrementViewCount(productId)
 
                 result shouldBe mockStatistics
                 verify(exactly = 1) { mockProductStatisticsRepository.findByProductIdWithLock(productId) }
-                verify(exactly = 1) { mockStatistics.incrementViewCount(userId) }
+                verify(exactly = 1) { mockStatistics.incrementViewCount() }
                 verify(exactly = 1) { mockProductStatisticsRepository.save(mockStatistics) }
             }
         }
@@ -57,18 +57,18 @@ class ProductStatisticsServiceTest : DescribeSpec({
                 val productId = 2L
                 val userId = 2L
                 val mockNewStatistics = mockk<ProductStatistics> {
-                    every { incrementViewCount(userId) } returns 0L
+                    every { incrementViewCount() } returns 0L
                 }
 
                 every { mockProductStatisticsRepository.findByProductIdWithLock(productId) } returns null
                 every { mockProductStatisticsRepository.save(any()) } returns mockNewStatistics
 
-                val result = sut.incrementViewCount(productId, userId)
+                val result = sut.incrementViewCount(productId)
 
                 result shouldBe mockNewStatistics
                 verify(exactly = 1) { mockProductStatisticsRepository.findByProductIdWithLock(productId) }
                 verify(exactly = 2) { mockProductStatisticsRepository.save(any()) } // 생성 + 업데이트
-                verify(exactly = 1) { mockNewStatistics.incrementViewCount(userId) }
+                verify(exactly = 1) { mockNewStatistics.incrementViewCount() }
             }
         }
 
@@ -82,17 +82,17 @@ class ProductStatisticsServiceTest : DescribeSpec({
 
                 testCases.forEach { (productId, userId) ->
                     val mockStatistics = mockk<ProductStatistics> {
-                        every { incrementViewCount(userId) } returns 0L
+                        every { incrementViewCount() } returns 0L
                     }
 
                     every { mockProductStatisticsRepository.findByProductIdWithLock(productId) } returns mockStatistics
                     every { mockProductStatisticsRepository.save(mockStatistics) } returns mockStatistics
 
-                    val result = sut.incrementViewCount(productId, userId)
+                    val result = sut.incrementViewCount(productId)
 
                     result shouldBe mockStatistics
                     verify(exactly = 1) { mockProductStatisticsRepository.findByProductIdWithLock(productId) }
-                    verify(exactly = 1) { mockStatistics.incrementViewCount(userId) }
+                    verify(exactly = 1) { mockStatistics.incrementViewCount() }
                     verify(exactly = 1) { mockProductStatisticsRepository.save(mockStatistics) }
                     clearMocks(mockProductStatisticsRepository, mockStatistics)
                 }
@@ -107,17 +107,17 @@ class ProductStatisticsServiceTest : DescribeSpec({
                 val quantity = 5
                 val userId = 1L
                 val mockStatistics = mockk<ProductStatistics> {
-                    every { incrementSalesCount(quantity, userId) } returns 0L
+                    every { incrementSalesCount(quantity) } returns 0L
                 }
 
                 every { mockProductStatisticsRepository.findByProductIdWithLock(productId) } returns mockStatistics
                 every { mockProductStatisticsRepository.save(mockStatistics) } returns mockStatistics
 
-                val result = sut.incrementSalesCount(productId, quantity, userId)
+                val result = sut.incrementSalesCount(productId, quantity)
 
                 result shouldBe mockStatistics
                 verify(exactly = 1) { mockProductStatisticsRepository.findByProductIdWithLock(productId) }
-                verify(exactly = 1) { mockStatistics.incrementSalesCount(quantity, userId) }
+                verify(exactly = 1) { mockStatistics.incrementSalesCount(quantity) }
                 verify(exactly = 1) { mockProductStatisticsRepository.save(mockStatistics) }
             }
         }
@@ -128,18 +128,18 @@ class ProductStatisticsServiceTest : DescribeSpec({
                 val quantity = 2
                 val userId = 3L
                 val mockNewStatistics = mockk<ProductStatistics> {
-                    every { incrementSalesCount(quantity, userId) } returns 0L
+                    every { incrementSalesCount(quantity) } returns 0L
                 }
 
                 every { mockProductStatisticsRepository.findByProductIdWithLock(productId) } returns null
                 every { mockProductStatisticsRepository.save(any()) } returns mockNewStatistics
 
-                val result = sut.incrementSalesCount(productId, quantity, userId)
+                val result = sut.incrementSalesCount(productId, quantity)
 
                 result shouldBe mockNewStatistics
                 verify(exactly = 1) { mockProductStatisticsRepository.findByProductIdWithLock(productId) }
                 verify(exactly = 2) { mockProductStatisticsRepository.save(any()) } // 생성 + 업데이트
-                verify(exactly = 1) { mockNewStatistics.incrementSalesCount(quantity, userId) }
+                verify(exactly = 1) { mockNewStatistics.incrementSalesCount(quantity) }
             }
         }
 
@@ -151,16 +151,16 @@ class ProductStatisticsServiceTest : DescribeSpec({
 
                 quantities.forEach { quantity ->
                     val mockStatistics = mockk<ProductStatistics> {
-                        every { incrementSalesCount(quantity, userId) } returns 0L
+                        every { incrementSalesCount(quantity) } returns 0L
                     }
 
                     every { mockProductStatisticsRepository.findByProductIdWithLock(productId) } returns mockStatistics
                     every { mockProductStatisticsRepository.save(mockStatistics) } returns mockStatistics
 
-                    val result = sut.incrementSalesCount(productId, quantity, userId)
+                    val result = sut.incrementSalesCount(productId, quantity)
 
                     result shouldBe mockStatistics
-                    verify(exactly = 1) { mockStatistics.incrementSalesCount(quantity, userId) }
+                    verify(exactly = 1) { mockStatistics.incrementSalesCount(quantity) }
                     clearMocks(mockProductStatisticsRepository, mockStatistics)
                 }
             }
@@ -265,17 +265,17 @@ class ProductStatisticsServiceTest : DescribeSpec({
                 val productId = 5L
                 val userId = 5L
                 val mockNewStatistics = mockk<ProductStatistics> {
-                    every { incrementViewCount(userId) } returns 0L
+                    every { incrementViewCount() } returns 0L
                 }
 
                 every { mockProductStatisticsRepository.findByProductIdWithLock(productId) } returns null
                 every { mockProductStatisticsRepository.save(any()) } returns mockNewStatistics
 
-                sut.incrementViewCount(productId, userId)
+                sut.incrementViewCount(productId)
 
                 // createStatistics 내부 로직 검증: ProductStatistics.create -> save -> incrementViewCount -> save
                 verify(exactly = 2) { mockProductStatisticsRepository.save(any()) }
-                verify(exactly = 1) { mockNewStatistics.incrementViewCount(userId) }
+                verify(exactly = 1) { mockNewStatistics.incrementViewCount() }
             }
         }
 
@@ -285,16 +285,16 @@ class ProductStatisticsServiceTest : DescribeSpec({
                 val quantity = 3
                 val userId = 6L
                 val mockNewStatistics = mockk<ProductStatistics> {
-                    every { incrementSalesCount(quantity, userId) } returns 0L
+                    every { incrementSalesCount(quantity) } returns 0L
                 }
 
                 every { mockProductStatisticsRepository.findByProductIdWithLock(productId) } returns null
                 every { mockProductStatisticsRepository.save(any()) } returns mockNewStatistics
 
-                sut.incrementSalesCount(productId, quantity, userId)
+                sut.incrementSalesCount(productId, quantity)
 
                 verify(exactly = 2) { mockProductStatisticsRepository.save(any()) }
-                verify(exactly = 1) { mockNewStatistics.incrementSalesCount(quantity, userId) }
+                verify(exactly = 1) { mockNewStatistics.incrementSalesCount(quantity) }
             }
         }
     }
@@ -305,15 +305,15 @@ class ProductStatisticsServiceTest : DescribeSpec({
                 val productId = 7L
                 val userId = 7L
                 val mockStatistics = mockk<ProductStatistics> {
-                    every { incrementViewCount(userId) } returns 0L
-                    every { incrementSalesCount(any(), userId) } returns 0L
+                    every { incrementViewCount() } returns 0L
+                    every { incrementSalesCount(any()) } returns 0L
                 }
 
                 every { mockProductStatisticsRepository.findByProductIdWithLock(productId) } returns mockStatistics
                 every { mockProductStatisticsRepository.save(mockStatistics) } returns mockStatistics
 
                 // incrementViewCount 테스트
-                sut.incrementViewCount(productId, userId)
+                sut.incrementViewCount(productId)
                 verify(exactly = 1) { mockProductStatisticsRepository.findByProductIdWithLock(productId) }
 
                 clearMocks(mockProductStatisticsRepository)
@@ -321,7 +321,7 @@ class ProductStatisticsServiceTest : DescribeSpec({
                 // incrementSalesCount 테스트
                 every { mockProductStatisticsRepository.findByProductIdWithLock(productId) } returns mockStatistics
                 every { mockProductStatisticsRepository.save(mockStatistics) } returns mockStatistics
-                sut.incrementSalesCount(productId, 1, userId)
+                sut.incrementSalesCount(productId, 1)
                 verify(exactly = 1) { mockProductStatisticsRepository.findByProductIdWithLock(productId) }
             }
         }

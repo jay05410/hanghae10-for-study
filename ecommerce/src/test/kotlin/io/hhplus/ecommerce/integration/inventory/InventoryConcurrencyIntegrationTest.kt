@@ -39,6 +39,7 @@ class InventoryConcurrencyIntegrationTest(
                         description = "테스트용",
                         price = 10000L,
                         categoryId = 1L,
+                        createdBy = 1L
                     )
                 )
                 val productId = product.id
@@ -91,6 +92,7 @@ class InventoryConcurrencyIntegrationTest(
                         description = "테스트용",
                         price = 10000L,
                         categoryId = 1L,
+                        createdBy = 1L
                     )
                 )
                 val productId = product.id
@@ -143,6 +145,7 @@ class InventoryConcurrencyIntegrationTest(
                         description = "테스트용",
                         price = 10000L,
                         categoryId = 1L,
+                        createdBy = 1L
                     )
                 )
                 val productId = product.id
@@ -162,7 +165,7 @@ class InventoryConcurrencyIntegrationTest(
                 repeat(threadCount) {
                     executor.submit {
                         try {
-                            inventoryReservationUseCase.reserveStock(productId, reserveQuantity)
+                            inventoryReservationUseCase.reserveStock(productId, it.toLong(), reserveQuantity)
                             successCount.incrementAndGet()
                         } catch (e: Exception) {
                             failCount.incrementAndGet()
@@ -203,6 +206,7 @@ class InventoryConcurrencyIntegrationTest(
                         description = "테스트용",
                         price = 10000L,
                         categoryId = 1L,
+                        createdBy = 1L
                     )
                 )
                 val productId = product.id
@@ -225,7 +229,7 @@ class InventoryConcurrencyIntegrationTest(
                         try {
                             if (index % 2 == 0) {
                                 // 짝수: 예약
-                                inventoryReservationUseCase.reserveStock(productId, reserveQuantity)
+                                inventoryReservationUseCase.reserveStock(productId, index.toLong(), reserveQuantity)
                                 reserveSuccessCount.incrementAndGet()
                             } else {
                                 // 홀수: 차감
@@ -264,6 +268,7 @@ class InventoryConcurrencyIntegrationTest(
                         description = "테스트용",
                         price = 10000L,
                         categoryId = 1L,
+                        createdBy = 1L
                     )
                 )
                 val productId = product.id
@@ -314,6 +319,7 @@ class InventoryConcurrencyIntegrationTest(
                         description = "테스트용",
                         price = 10000L,
                         categoryId = 1L,
+                        createdBy = 1L
                     )
                 )
                 val productId = product.id
@@ -335,8 +341,8 @@ class InventoryConcurrencyIntegrationTest(
                     executor.submit {
                         try {
                             // 각 스레드가 예약을 시도한 후 바로 확정
-                            val reservation = inventoryReservationUseCase.reserveStock(productId, reserveQuantity)
-                            inventoryReservationUseCase.confirmReservation(reservation.id)
+                            val reservation = inventoryReservationUseCase.reserveStock(productId, index.toLong(), reserveQuantity)
+                            inventoryReservationUseCase.confirmReservation(reservation.id, index.toLong())
                             successCount.incrementAndGet()
                         } catch (e: Exception) {
                             failCount.incrementAndGet()

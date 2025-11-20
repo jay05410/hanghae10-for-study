@@ -32,7 +32,6 @@ class UserCommandUseCase(
      * @param name 이름
      * @param phone 전화번호
      * @param providerId 외부 제공자 ID
-     * @param createdBy 생성 요청자 ID
      * @return 생성된 사용자 정보
      * @throws UserException.EmailAlreadyExists 이메일이 이미 존재하는 경우
      */
@@ -43,8 +42,7 @@ class UserCommandUseCase(
         email: String,
         name: String,
         phone: String,
-        providerId: String? = null,
-        createdBy: Long = 1L
+        providerId: String? = null
     ): User {
         // 이메일 중복 검증
         val existingUser = userRepository.findByEmail(email)
@@ -71,12 +69,11 @@ class UserCommandUseCase(
      * @param userId 사용자 ID
      * @param name 이름
      * @param email 이메일
-     * @param updatedBy 업데이트 요청자 ID
      * @return 업데이트된 사용자 정보
      * @throws UserException.UserNotFound 사용자를 찾을 수 없는 경우
      * @throws UserException.EmailAlreadyExists 이메일이 이미 존재하는 경우
      */
-    fun updateUser(userId: Long, name: String?, email: String?, updatedBy: Long = 1L): User {
+    fun updateUser(userId: Long, name: String?, email: String?): User {
         val user = userRepository.findById(userId)
             ?: throw UserException.UserNotFound(userId)
 
@@ -101,11 +98,10 @@ class UserCommandUseCase(
      * 사용자를 삭제합니다.
      *
      * @param userId 사용자 ID
-     * @param deletedBy 삭제 요청자 ID
      * @return 삭제된 사용자 정보
      * @throws UserException.UserNotFound 사용자를 찾을 수 없는 경우
      */
-    fun deleteUser(userId: Long, deletedBy: Long = 1L): User {
+    fun deleteUser(userId: Long): User {
         val user = userRepository.findById(userId)
             ?: throw UserException.UserNotFound(userId)
 
@@ -117,11 +113,10 @@ class UserCommandUseCase(
      * 사용자를 복구합니다.
      *
      * @param userId 사용자 ID
-     * @param restoredBy 복구 요청자 ID
      * @return 복구된 사용자 정보
      * @throws UserException.UserNotFound 사용자를 찾을 수 없는 경우
      */
-    fun restoreUser(userId: Long, restoredBy: Long = 1L): User {
+    fun restoreUser(userId: Long): User {
         val user = userRepository.findById(userId)
             ?: throw UserException.UserNotFound(userId)
 

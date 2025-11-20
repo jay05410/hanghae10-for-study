@@ -381,7 +381,7 @@ class UserServiceTest : DescribeSpec({
             it("사용자를 삭제하고 저장") {
                 val userId = 1L
                 val mockUser = mockk<User> {
-                    every { delete() } just runs
+                    every { deactivate() } just runs
                 }
 
                 every { mockUserRepository.findById(userId) } returns mockUser
@@ -391,7 +391,7 @@ class UserServiceTest : DescribeSpec({
 
                 result shouldBe mockUser
                 verify(exactly = 1) { mockUserRepository.findById(userId) }
-                verify(exactly = 1) { mockUser.delete() }
+                verify(exactly = 1) { mockUser.deactivate() }
                 verify(exactly = 1) { mockUserRepository.save(any()) }
             }
         }
@@ -417,7 +417,7 @@ class UserServiceTest : DescribeSpec({
             it("사용자를 복구하고 저장") {
                 val userId = 1L
                 val mockUser = mockk<User> {
-                    every { restore() } just runs
+                    every { activate() } just runs
                 }
 
                 every { mockUserRepository.findById(userId) } returns mockUser
@@ -427,7 +427,7 @@ class UserServiceTest : DescribeSpec({
 
                 result shouldBe mockUser
                 verify(exactly = 1) { mockUserRepository.findById(userId) }
-                verify(exactly = 1) { mockUser.restore() }
+                verify(exactly = 1) { mockUser.activate() }
                 verify(exactly = 1) { mockUserRepository.save(any()) }
             }
         }

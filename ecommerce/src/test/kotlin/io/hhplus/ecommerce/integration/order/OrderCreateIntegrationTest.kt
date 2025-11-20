@@ -47,7 +47,8 @@ class OrderCreateIntegrationTest(
                 name = "주문 테스트 상품 1",
                 description = "주문 테스트용 상품",
                 price = 20000L,
-                categoryId = 1L
+                categoryId = 1L,
+                createdBy = 1L
             )
         )
         product2 = productCommandUseCase.createProduct(
@@ -55,7 +56,8 @@ class OrderCreateIntegrationTest(
                 name = "주문 테스트 상품 2",
                 description = "주문 테스트용 상품",
                 price = 15000L,
-                categoryId = 1L
+                categoryId = 1L,
+                createdBy = 1L
             )
         )
 

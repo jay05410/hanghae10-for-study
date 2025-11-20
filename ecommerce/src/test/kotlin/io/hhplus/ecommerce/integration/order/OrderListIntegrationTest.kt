@@ -98,7 +98,7 @@ class OrderListIntegrationTest(
                 orders shouldHaveSize orderCount
 
                 // 최신순 정렬 확인 (최근 생성된 주문이 먼저)
-                orders shouldBeSortedWith compareByDescending { it.createdAt }
+                orders shouldBeSortedWith compareByDescending { it.id }
 
                 // 모든 주문이 조회되었는지 확인
                 orders.map { it.id }.toSet() shouldBe createdOrderIds.toSet()

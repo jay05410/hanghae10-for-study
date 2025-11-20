@@ -48,9 +48,6 @@ class OrderControllerTest : DescribeSpec({
         every { this@mockk.finalAmount } returns (totalAmount - discountAmount)
         every { this@mockk.status } returns status
         every { this@mockk.usedCouponId } returns null
-        every { isDeleted() } returns false
-        every { createdAt } returns LocalDateTime.now()
-        every { updatedAt } returns LocalDateTime.now()
     }
 
     beforeEach {

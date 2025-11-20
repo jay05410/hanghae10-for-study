@@ -58,24 +58,23 @@ class CartRepositoryImpl(
     }
 
     override fun findById(id: Long): Cart? {
-        // FETCH JOIN으로 Cart와 CartItem을 함께 조회하여 N+1 문제 방지
-        val cartEntity = cartJpaRepository.findCartWithItemsById(id) ?: return null
+        val cartEntity = cartJpaRepository.findById(id).orElse(null) ?: return null
 
-        // FETCH JOIN으로 가져온 cartItems 직접 활용
-        val items = cartEntity.cartItems.toDomain(cartItemMapper)
+        // CartItem을 별도로 조회
+        val items = cartItemJpaRepository.findByCartId(id).toDomain(cartItemMapper)
         return cartMapper.toDomain(cartEntity, items)
     }
 
     override fun findByUserId(userId: Long): Cart? {
-        // FETCH JOIN이 있는 findByUserIdWithItems를 활용하여 N+1 문제 방지
+        // findByUserIdWithItems를 활용하여 CartItem과 함께 조회
         return findByUserIdWithItems(userId)
     }
 
     override fun findByUserIdWithItems(userId: Long): Cart? {
-        val cartEntity = cartJpaRepository.findByUserIdWithItems(userId) ?: return null
+        val cartEntity = cartJpaRepository.findByUserId(userId) ?: return null
 
-        // FETCH JOIN으로 가져온 cartItems 직접 활용 (N+1 문제 해결)
-        val items = cartEntity.cartItems.toDomain(cartItemMapper)
+        // CartItem을 별도로 조회
+        val items = cartItemJpaRepository.findByCartId(cartEntity.id).toDomain(cartItemMapper)
 
         return cartMapper.toDomain(cartEntity, items)
     }

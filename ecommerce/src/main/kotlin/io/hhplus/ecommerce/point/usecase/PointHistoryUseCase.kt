@@ -29,7 +29,6 @@ class PointHistoryUseCase(
      * @param amount 적립된 포인트 금액
      * @param balanceBefore 적립 전 잔액
      * @param balanceAfter 적립 후 잔액
-     * @param createdBy 기록 요청자 ID
      * @param description 적립 설명
      * @param orderId 연관된 주문 ID (선택사항)
      * @return 기록된 포인트 이력 정보
@@ -39,7 +38,6 @@ class PointHistoryUseCase(
         amount: PointAmount,
         balanceBefore: Balance,
         balanceAfter: Balance,
-        createdBy: Long,
         description: String? = null,
         orderId: Long? = null
     ): PointHistory {
@@ -55,7 +53,6 @@ class PointHistoryUseCase(
      * @param amount 소멸된 포인트 금액
      * @param balanceBefore 소멸 전 잔액
      * @param balanceAfter 소멸 후 잔액
-     * @param createdBy 기록 요청자 ID
      * @param description 소멸 설명
      * @return 기록된 포인트 이력 정보
      */
@@ -64,7 +61,6 @@ class PointHistoryUseCase(
         amount: PointAmount,
         balanceBefore: Balance,
         balanceAfter: Balance,
-        createdBy: Long,
         description: String? = null
     ): PointHistory {
         return pointHistoryService.recordExpireHistory(

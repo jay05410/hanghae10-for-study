@@ -40,9 +40,5 @@ class OrderJpaEntity(
 
     @Column(nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
-    val status: OrderStatus = OrderStatus.PENDING,
-
-    @OneToMany(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id")
-    val orderItems: List<OrderItemJpaEntity> = mutableListOf()
+    val status: OrderStatus = OrderStatus.PENDING
 ) : BaseJpaEntity()

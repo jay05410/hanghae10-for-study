@@ -34,7 +34,6 @@ class DeliveryCommandUseCase(
      * @param orderId 주문 ID
      * @param deliveryAddress 배송지 정보
      * @param deliveryMemo 배송 메모
-     * @param createdBy 생성 요청자 ID
      * @return 생성된 배송 정보
      * @throws IllegalStateException 이미 배송 정보가 존재하는 경우
      */
@@ -42,8 +41,7 @@ class DeliveryCommandUseCase(
     fun createDelivery(
         orderId: Long,
         deliveryAddress: DeliveryAddress,
-        deliveryMemo: String? = null,
-        createdBy: Long = 1L
+        deliveryMemo: String? = null
     ): Delivery {
         // 주문에 대한 배송이 이미 존재하는지 확인 (1:1 관계)
         deliveryRepository.findByOrderId(orderId)?.let {
@@ -63,11 +61,10 @@ class DeliveryCommandUseCase(
      * 배송 준비를 시작합니다.
      *
      * @param id 배송 ID
-     * @param updatedBy 업데이트 요청자 ID
      * @return 업데이트된 배송 정보
      */
     @Transactional
-    fun startPreparing(id: Long, updatedBy: Long = 1L): Delivery {
+    fun startPreparing(id: Long): Delivery {
         val delivery = getDelivery(id)
         val updated = delivery.startPreparing()
         return deliveryRepository.save(updated)
@@ -79,15 +76,13 @@ class DeliveryCommandUseCase(
      * @param id 배송 ID
      * @param trackingNumber 운송장 번호
      * @param carrier 택배사
-     * @param updatedBy 업데이트 요청자 ID
      * @return 업데이트된 배송 정보
      */
     @Transactional
     fun ship(
         id: Long,
         trackingNumber: String,
-        carrier: String,
-        updatedBy: Long = 1L
+        carrier: String
     ): Delivery {
         val delivery = getDelivery(id)
         val updated = delivery.ship(trackingNumber, carrier)
@@ -98,11 +93,10 @@ class DeliveryCommandUseCase(
      * 배송을 완료합니다.
      *
      * @param id 배송 ID
-     * @param updatedBy 업데이트 요청자 ID
      * @return 업데이트된 배송 정보
      */
     @Transactional
-    fun deliver(id: Long, updatedBy: Long = 1L): Delivery {
+    fun deliver(id: Long): Delivery {
         val delivery = getDelivery(id)
         val updated = delivery.deliver()
         return deliveryRepository.save(updated)
@@ -112,11 +106,10 @@ class DeliveryCommandUseCase(
      * 배송을 실패 처리합니다.
      *
      * @param id 배송 ID
-     * @param updatedBy 업데이트 요청자 ID
      * @return 업데이트된 배송 정보
      */
     @Transactional
-    fun fail(id: Long, updatedBy: Long = 1L): Delivery {
+    fun fail(id: Long): Delivery {
         val delivery = getDelivery(id)
         val updated = delivery.fail()
         return deliveryRepository.save(updated)

@@ -44,8 +44,7 @@ class DeliveryStatusIntegrationTest(
                 val delivery = deliveryCommandUseCase.createDelivery(
                     orderId = orderId,
                     deliveryAddress = deliveryAddress,
-                    deliveryMemo = "문 앞에 놓아주세요",
-                    createdBy = createdBy
+                    deliveryMemo = "문 앞에 놓아주세요"
                 )
 
                 // Then
@@ -68,11 +67,11 @@ class DeliveryStatusIntegrationTest(
                     addressDetail = "101호"
                 )
 
-                deliveryCommandUseCase.createDelivery(orderId, deliveryAddress, null, 1L)
+                deliveryCommandUseCase.createDelivery(orderId, deliveryAddress, null)
 
                 // When & Then
                 shouldThrow<IllegalStateException> {
-                    deliveryCommandUseCase.createDelivery(orderId, deliveryAddress, null, 1L)
+                    deliveryCommandUseCase.createDelivery(orderId, deliveryAddress, null)
                 }
             }
         }
@@ -84,10 +83,10 @@ class DeliveryStatusIntegrationTest(
                 // Given
                 val orderId = 3000L
                 val deliveryAddress = DeliveryAddress("수신자1", "010-1111-2222", "12345", "주소1", "상세주소1")
-                val delivery = deliveryCommandUseCase.createDelivery(orderId, deliveryAddress, null, 1L)
+                val delivery = deliveryCommandUseCase.createDelivery(orderId, deliveryAddress, null)
 
                 // When
-                val updated = deliveryCommandUseCase.startPreparing(delivery.id, 1L)
+                val updated = deliveryCommandUseCase.startPreparing(delivery.id)
 
                 // Then
                 updated.status shouldBe DeliveryStatus.PREPARING
@@ -99,13 +98,13 @@ class DeliveryStatusIntegrationTest(
                 // Given
                 val orderId = 4000L
                 val deliveryAddress = DeliveryAddress("수신자2", "010-2222-3333", "23456", "주소2", "상세주소2")
-                val delivery = deliveryCommandUseCase.createDelivery(orderId, deliveryAddress, null, 1L)
-                deliveryCommandUseCase.startPreparing(delivery.id, 1L)
+                val delivery = deliveryCommandUseCase.createDelivery(orderId, deliveryAddress, null)
+                deliveryCommandUseCase.startPreparing(delivery.id)
 
                 // When
                 val trackingNumber = "1234567890"
                 val carrier = "CJ대한통운"
-                val updated = deliveryCommandUseCase.ship(delivery.id, trackingNumber, carrier, 1L)
+                val updated = deliveryCommandUseCase.ship(delivery.id, trackingNumber, carrier)
 
                 // Then
                 updated.status shouldBe DeliveryStatus.SHIPPED
@@ -120,12 +119,12 @@ class DeliveryStatusIntegrationTest(
                 // Given
                 val orderId = 5000L
                 val deliveryAddress = DeliveryAddress("수신자3", "010-3333-4444", "34567", "주소3", "상세주소3")
-                val delivery = deliveryCommandUseCase.createDelivery(orderId, deliveryAddress, null, 1L)
-                deliveryCommandUseCase.startPreparing(delivery.id, 1L)
-                deliveryCommandUseCase.ship(delivery.id, "9876543210", "롯데택배", 1L)
+                val delivery = deliveryCommandUseCase.createDelivery(orderId, deliveryAddress, null)
+                deliveryCommandUseCase.startPreparing(delivery.id)
+                deliveryCommandUseCase.ship(delivery.id, "9876543210", "롯데택배")
 
                 // When
-                val updated = deliveryCommandUseCase.deliver(delivery.id, 1L)
+                val updated = deliveryCommandUseCase.deliver(delivery.id)
 
                 // Then
                 updated.status shouldBe DeliveryStatus.DELIVERED
@@ -138,11 +137,11 @@ class DeliveryStatusIntegrationTest(
                 // Given
                 val orderId = 6000L
                 val deliveryAddress = DeliveryAddress("수신자4", "010-4444-5555", "45678", "주소4", "상세주소4")
-                val delivery = deliveryCommandUseCase.createDelivery(orderId, deliveryAddress, null, 1L)
-                deliveryCommandUseCase.startPreparing(delivery.id, 1L)
+                val delivery = deliveryCommandUseCase.createDelivery(orderId, deliveryAddress, null)
+                deliveryCommandUseCase.startPreparing(delivery.id)
 
                 // When
-                val updated = deliveryCommandUseCase.fail(delivery.id, 1L)
+                val updated = deliveryCommandUseCase.fail(delivery.id)
 
                 // Then
                 updated.status shouldBe DeliveryStatus.FAILED
@@ -158,19 +157,19 @@ class DeliveryStatusIntegrationTest(
                 val deliveryAddress = DeliveryAddress("수신자5", "010-5555-6666", "56789", "주소5", "상세주소5")
 
                 // When - PENDING
-                val delivery = deliveryCommandUseCase.createDelivery(orderId, deliveryAddress, "빠른 배송 부탁드립니다", 1L)
+                val delivery = deliveryCommandUseCase.createDelivery(orderId, deliveryAddress, "빠른 배송 부탁드립니다")
                 delivery.status shouldBe DeliveryStatus.PENDING
 
                 // When - PREPARING
-                val preparing = deliveryCommandUseCase.startPreparing(delivery.id, 1L)
+                val preparing = deliveryCommandUseCase.startPreparing(delivery.id)
                 preparing.status shouldBe DeliveryStatus.PREPARING
 
                 // When - SHIPPED
-                val shipped = deliveryCommandUseCase.ship(delivery.id, "TRACK123", "한진택배", 1L)
+                val shipped = deliveryCommandUseCase.ship(delivery.id, "TRACK123", "한진택배")
                 shipped.status shouldBe DeliveryStatus.SHIPPED
 
                 // When - DELIVERED
-                val delivered = deliveryCommandUseCase.deliver(delivery.id, 1L)
+                val delivered = deliveryCommandUseCase.deliver(delivery.id)
                 delivered.status shouldBe DeliveryStatus.DELIVERED
 
                 // Then
@@ -188,7 +187,7 @@ class DeliveryStatusIntegrationTest(
                 // Given
                 val orderId = 8000L
                 val deliveryAddress = DeliveryAddress("수신자6", "010-6666-7777", "67890", "주소6", "상세주소6")
-                val delivery = deliveryCommandUseCase.createDelivery(orderId, deliveryAddress, null, 1L)
+                val delivery = deliveryCommandUseCase.createDelivery(orderId, deliveryAddress, null)
 
                 // When
                 val found = getDeliveryQueryUseCase.getDelivery(delivery.id)
@@ -205,7 +204,7 @@ class DeliveryStatusIntegrationTest(
                 // Given
                 val orderId = 9000L
                 val deliveryAddress = DeliveryAddress("수신자7", "010-7777-8888", "78901", "주소7", "상세주소7")
-                val delivery = deliveryCommandUseCase.createDelivery(orderId, deliveryAddress, null, 1L)
+                val delivery = deliveryCommandUseCase.createDelivery(orderId, deliveryAddress, null)
 
                 // When
                 val found = getDeliveryQueryUseCase.getDeliveryByOrderId(orderId)
@@ -230,10 +229,10 @@ class DeliveryStatusIntegrationTest(
                 // Given
                 val orderId = 10000L
                 val deliveryAddress = DeliveryAddress("수신자8", "010-8888-9999", "89012", "주소8", "상세주소8")
-                val delivery = deliveryCommandUseCase.createDelivery(orderId, deliveryAddress, null, 1L)
-                deliveryCommandUseCase.startPreparing(delivery.id, 1L)
+                val delivery = deliveryCommandUseCase.createDelivery(orderId, deliveryAddress, null)
+                deliveryCommandUseCase.startPreparing(delivery.id)
                 val trackingNumber = "UNIQUE_TRACK_999"
-                deliveryCommandUseCase.ship(delivery.id, trackingNumber, "우체국택배", 1L)
+                deliveryCommandUseCase.ship(delivery.id, trackingNumber, "우체국택배")
 
                 // When
                 val found = getDeliveryQueryUseCase.getDeliveryByTrackingNumber(trackingNumber)
@@ -248,9 +247,9 @@ class DeliveryStatusIntegrationTest(
             it("해당 상태의 배송 목록을 조회할 수 있다") {
                 // Given
                 val deliveryAddress = DeliveryAddress("수신자9", "010-9999-0000", "90123", "주소9", "상세주소9")
-                val delivery1 = deliveryCommandUseCase.createDelivery(11001L, deliveryAddress, null, 1L)
-                val delivery2 = deliveryCommandUseCase.createDelivery(11002L, deliveryAddress, null, 1L)
-                deliveryCommandUseCase.startPreparing(delivery1.id, 1L)
+                val delivery1 = deliveryCommandUseCase.createDelivery(11001L, deliveryAddress, null)
+                val delivery2 = deliveryCommandUseCase.createDelivery(11002L, deliveryAddress, null)
+                deliveryCommandUseCase.startPreparing(delivery1.id)
 
                 // When
                 val preparingDeliveries = getDeliveryQueryUseCase.getDeliveriesByStatus(DeliveryStatus.PREPARING)

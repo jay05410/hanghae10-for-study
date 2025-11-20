@@ -70,10 +70,7 @@ class OrderServiceTest : DescribeSpec({
             discountAmount = discountAmount,
             finalAmount = totalAmount - discountAmount,
             usedCouponId = null,
-            status = status,
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now(),
-            deletedAt = null
+            status = status
         )
     }
 
@@ -113,7 +110,7 @@ class OrderServiceTest : DescribeSpec({
                 every { mockSnowflakeGenerator.generateNumberWithPrefix(IdPrefix.ORDER) } returns orderNumber
                 every { mockOrderRepository.save(any()) } answers { firstArg() }
                 every { mockOrderItemRepository.save(any()) } answers { firstArg() }
-                every { mockOutboxEventService.publishEvent(any(), any(), any(), any(), any()) } returns mockk()
+                every { mockOutboxEventService.publishEvent(any(), any(), any(), any()) } returns mockk()
                 every { mockObjectMapper.writeValueAsString(any()) } returns "{\"orderId\":1}"
 
                 // When
@@ -127,7 +124,7 @@ class OrderServiceTest : DescribeSpec({
                 verify { mockSnowflakeGenerator.generateNumberWithPrefix(IdPrefix.ORDER) }
                 verify { mockOrderRepository.save(any()) }
                 verify { mockOrderItemRepository.save(any()) }
-                verify { mockOutboxEventService.publishEvent(any(), any(), any(), any(), any()) }
+                verify { mockOutboxEventService.publishEvent(any(), any(), any(), any()) }
             }
 
         }
@@ -171,13 +168,13 @@ class OrderServiceTest : DescribeSpec({
                     createMockOrder(id = 2L, userId = userId)
                 )
 
-                every { mockOrderRepository.findOrdersWithItemsByUserId(userId) } returns mockOrders
+                every { mockOrderRepository.findByUserIdOrderByCreatedAtDesc(userId) } returns mockOrders
 
                 val result = sut.getOrdersByUser(userId)
 
                 result shouldHaveSize 2
                 result shouldBe mockOrders
-                verify(exactly = 1) { mockOrderRepository.findOrdersWithItemsByUserId(userId) }
+                verify(exactly = 1) { mockOrderRepository.findByUserIdOrderByCreatedAtDesc(userId) }
             }
         }
 
@@ -185,12 +182,12 @@ class OrderServiceTest : DescribeSpec({
             it("빈 목록을 반환") {
                 val userId = 2L
 
-                every { mockOrderRepository.findOrdersWithItemsByUserId(userId) } returns emptyList()
+                every { mockOrderRepository.findByUserIdOrderByCreatedAtDesc(userId) } returns emptyList()
 
                 val result = sut.getOrdersByUser(userId)
 
                 result.shouldBeEmpty()
-                verify(exactly = 1) { mockOrderRepository.findOrdersWithItemsByUserId(userId) }
+                verify(exactly = 1) { mockOrderRepository.findByUserIdOrderByCreatedAtDesc(userId) }
             }
         }
     }
@@ -222,7 +219,7 @@ class OrderServiceTest : DescribeSpec({
 
                 every { mockOrderRepository.findById(orderId) } returns mockOrder
                 every { mockOrderItemRepository.findByOrderId(orderId) } returns mockOrderItems
-                every { mockProductStatisticsService.incrementSalesCount(any(), any(), any()) } returns mockk()
+                every { mockProductStatisticsService.incrementSalesCount(any(), any()) } returns mockk()
                 every { mockOrderRepository.save(any()) } returns mockOrder
 
                 val result = sut.confirmOrder(orderId)
@@ -258,7 +255,7 @@ class OrderServiceTest : DescribeSpec({
 
                 every { mockOrderRepository.findById(orderId) } returns mockOrder
                 every { mockObjectMapper.writeValueAsString(any()) } returns "{\"orderId\":1}"
-                every { mockOutboxEventService.publishEvent(any(), any(), any(), any(), any()) } returns mockk()
+                every { mockOutboxEventService.publishEvent(any(), any(), any(), any()) } returns mockk()
                 every { mockOrderRepository.save(any()) } returns mockOrder
 
                 val result = sut.cancelOrder(orderId, reason)
@@ -276,7 +273,7 @@ class OrderServiceTest : DescribeSpec({
 
                 every { mockOrderRepository.findById(orderId) } returns mockOrder
                 every { mockObjectMapper.writeValueAsString(any()) } returns "{\"orderId\":1}"
-                every { mockOutboxEventService.publishEvent(any(), any(), any(), any(), any()) } returns mockk()
+                every { mockOutboxEventService.publishEvent(any(), any(), any(), any()) } returns mockk()
                 every { mockOrderRepository.save(any()) } returns mockOrder
 
                 val result = sut.cancelOrder(orderId, null)

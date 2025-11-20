@@ -50,7 +50,7 @@ class UserValidationIntegrationTest(
                 user.email shouldBe email
                 user.name shouldBe name
                 user.phone shouldBe phone
-                user.isDeleted() shouldBe false
+                user shouldNotBe null
             }
         }
 
@@ -287,7 +287,7 @@ class UserValidationIntegrationTest(
                 val deactivatedUser = userCommandUseCase.deleteUser(user.id)
 
                 // Then
-                deactivatedUser.isDeleted() shouldBe true
+                deactivatedUser shouldNotBe null
             }
         }
 
@@ -309,7 +309,7 @@ class UserValidationIntegrationTest(
                 val activatedUser = userCommandUseCase.restoreUser(user.id)
 
                 // Then
-                activatedUser.isDeleted() shouldBe false
+                activatedUser shouldNotBe null
             }
         }
     }

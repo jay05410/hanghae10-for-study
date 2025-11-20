@@ -48,7 +48,8 @@ class OrderServiceConcurrencyIntegrationTest(
                 name = "동시성 테스트 상품",
                 description = "동시성 테스트용 상품",
                 price = 10000L,
-                categoryId = 1L
+                categoryId = 1L,
+                createdBy = 1L
             )
         )
 

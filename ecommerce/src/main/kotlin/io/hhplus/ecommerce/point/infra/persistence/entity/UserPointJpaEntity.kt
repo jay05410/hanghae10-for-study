@@ -42,6 +42,6 @@ class UserPointJpaEntity(
     var status: PointAccountStatus = PointAccountStatus.ACTIVE,
 
     @OneToMany(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", foreignKey = ForeignKey(ConstraintMode.NO_CONSTRAINT))
     val pointHistories: List<PointHistoryJpaEntity> = mutableListOf()
 ) : BaseJpaEntity()

@@ -130,14 +130,13 @@ class OrderCommandUseCase(
      * 지정된 주문을 취소하고 관련 후처리를 수행한다
      *
      * @param orderId 취소할 주문 ID
-     * @param cancelledBy 취소를 요청하는 사용자 ID
      * @param reason 주문 취소 사유 (선택적)
      * @return 취소 처리가 완료된 주문 정보
      * @throws IllegalArgumentException 주문을 찾을 수 없거나 취소 권한이 없는 경우
      * @throws RuntimeException 주문 취소 처리에 실패한 경우
      */
     @Transactional
-    fun cancelOrder(orderId: Long, cancelledBy: Long, reason: String?): Order {
+    fun cancelOrder(orderId: Long, reason: String?): Order {
         // 1. 배송 상태 확인 - 배송 준비 중 이후에는 취소 불가
         val delivery = deliveryService.getDeliveryByOrderId(orderId)
         delivery.let {
@@ -180,13 +179,12 @@ class OrderCommandUseCase(
      * 지정된 주문을 확정하고 최종 처리를 수행한다
      *
      * @param orderId 확정할 주문 ID
-     * @param confirmedBy 확정을 수행하는 사용자 ID
      * @return 확정 처리가 완료된 주문 정보
      * @throws IllegalArgumentException 주문을 찾을 수 없거나 확정 권한이 없는 경우
      * @throws RuntimeException 주문 확정 처리에 실패한 경우
      */
     @Transactional
-    fun confirmOrder(orderId: Long, confirmedBy: Long): Order {
+    fun confirmOrder(orderId: Long): Order {
         return orderService.confirmOrder(orderId)
     }
 }
