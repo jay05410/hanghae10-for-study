@@ -36,9 +36,10 @@ class ProductStatsUseCase(
      * @param productId 상품 ID
      * @param quantity 판매 수량
      * @param userId 판매 요청자 ID
-     * @return 업데이트된 상품 통계 정보
+     * @return 업데이트된 상품 통계 정보 (Redis + DB 합산)
      */
     fun incrementSalesCount(productId: Long, quantity: Int, userId: Long): ProductStatistics {
-        return productStatisticsService.incrementSalesCount(productId, quantity)
+        productStatisticsService.incrementSalesCount(productId, quantity)
+        return productStatisticsService.getProductStatistics(productId)
     }
 }
