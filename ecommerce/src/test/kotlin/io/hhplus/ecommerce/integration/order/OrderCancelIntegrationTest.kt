@@ -17,6 +17,7 @@ import io.hhplus.ecommerce.delivery.application.DeliveryService
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.collections.shouldHaveSize
 
 /**
  * 주문 취소 통합 테스트
@@ -39,14 +40,16 @@ class OrderCancelIntegrationTest(
     private val getInventoryQueryUseCase: GetInventoryQueryUseCase,
     private val productRepository: ProductRepository,
     private val inventoryRepository: InventoryRepository,
-    private val deliveryService: DeliveryService
+    private val deliveryService: DeliveryService,
+    private val getOrderQueryUseCase: io.hhplus.ecommerce.order.usecase.GetOrderQueryUseCase,
+    private val orderQueueWorker: io.hhplus.ecommerce.order.application.OrderQueueWorker
 ) : KotestIntegrationTestBase({
 
     describe("주문 취소") {
         context("정상적인 주문을 취소할 때") {
             it("재고가 복구되고 포인트가 환불되어야 한다") {
                 // Given: 사용자, 상품, 재고 준비
-                val userId = 1000L
+                val userId = 20001L
                 val orderQuantity = 3
 
                 // 상품 생성
@@ -94,7 +97,18 @@ class OrderCancelIntegrationTest(
                     )
                 )
 
-                val createdOrder = orderCommandUseCase.createOrder(createOrderRequest)
+                // 주문 생성 (Queue 처리)
+                val queueRequest = orderCommandUseCase.createOrder(createOrderRequest)
+                queueRequest.status shouldBe io.hhplus.ecommerce.coupon.domain.constant.QueueStatus.WAITING
+
+                // Queue 처리 강제 실행
+                orderQueueWorker.forceProcessAllQueue()
+
+                // 주문 조회
+                Thread.sleep(200) // Queue 처리 대기
+                val orders = getOrderQueryUseCase.getOrdersByUser(userId)
+                orders shouldHaveSize 1
+                val createdOrder = orders.first()
 
                 // 주문 후 재고 확인
                 val stockAfterOrder = getInventoryQueryUseCase.getAvailableQuantity(savedProduct.id)
@@ -126,7 +140,7 @@ class OrderCancelIntegrationTest(
         context("이미 배송 시작된 주문을 취소하려 할 때") {
             it("취소할 수 없어야 한다") {
                 // Given: 주문 생성 후 확정
-                val userId = 1001L
+                val userId = 20002L
 
                 val product = Product.create(
                     name = "배송 테스트 티",
@@ -167,7 +181,18 @@ class OrderCancelIntegrationTest(
                     )
                 )
 
-                val createdOrder = orderCommandUseCase.createOrder(createOrderRequest)
+                // 주문 생성 (Queue 처리)
+                val queueRequest = orderCommandUseCase.createOrder(createOrderRequest)
+                queueRequest.status shouldBe io.hhplus.ecommerce.coupon.domain.constant.QueueStatus.WAITING
+
+                // Queue 처리 강제 실행
+                orderQueueWorker.forceProcessAllQueue()
+
+                // 주문 조회
+                Thread.sleep(200) // Queue 처리 대기
+                val orders = getOrderQueryUseCase.getOrdersByUser(userId)
+                orders shouldHaveSize 1
+                val createdOrder = orders.first()
 
                 // 주문 확정 (배송 시작)
                 orderCommandUseCase.confirmOrder(createdOrder.id)
@@ -176,7 +201,7 @@ class OrderCancelIntegrationTest(
                 val delivery = deliveryService.getDeliveryByOrderId(createdOrder.id)
                 delivery.let { deliveryService.startPreparing(it.id) }
 
-                // When & Then: 배송 준비 중인 주문은 취소 불가
+                // When & Then: 배송 준비 중인 주문은 취소 뵦0가
                 val exception = runCatching {
                     orderCommandUseCase.cancelOrder(createdOrder.id, "취소 시도")
                 }.exceptionOrNull()

@@ -85,17 +85,26 @@ class OrderCreateIntegrationTest(
         pointCommandUseCase.chargePoint(8000L, 500000, "주문 테스트용 충전")
     }
 
-    // Queue 기반 주문 생성 및 처리 완료 대기 헬퍼 함수
+    // Queue 기반 주문 생성 및 처리 완룉 대기 헬퍼 함수
     fun createOrderAndWait(request: CreateOrderRequest): io.hhplus.ecommerce.order.domain.entity.Order {
         // 1. Queue에 주문 등록
         val queueResponse = orderCommandUseCase.createOrder(request)
         queueResponse.status shouldBe QueueStatus.WAITING
 
-        // 2. Queue 처리 (강제 실행으로 즉시 완료)
+        // 2. Queue 처리 (강제 실행으로 즉시 완룉)
         orderQueueWorker.forceProcessAllQueue()
 
-        // 3. 처리된 주문 조회
-        val orders = getOrderQueryUseCase.getOrdersByUser(request.userId)
+        // 3. 처리된 주문 조회 (재시도 로직 추가)
+        var orders: List<io.hhplus.ecommerce.order.domain.entity.Order> = emptyList()
+        var attempts = 0
+        val maxAttempts = 10
+
+        while (orders.isEmpty() && attempts < maxAttempts) {
+            Thread.sleep(100) // 짧은 대기
+            orders = getOrderQueryUseCase.getOrdersByUser(request.userId)
+            attempts++
+        }
+
         orders shouldHaveSize 1
         return orders.first()
     }
@@ -104,7 +113,7 @@ class OrderCreateIntegrationTest(
         context("정상적인 주문 생성 요청일 때") {
             it("주문을 정상적으로 생성할 수 있다") {
                 // Given
-                val userId = 1000L
+                val userId = 10001L
                 val items = listOf(
                     CreateOrderItemRequest(
                         productId = product1.id,
@@ -145,7 +154,7 @@ class OrderCreateIntegrationTest(
         context("쿠폰을 적용한 주문 생성 시") {
             it("할인 금액이 반영된 주문이 생성된다") {
                 // Given
-                val userId = 2000L
+                val userId = 10002L
 
                 // 쿠폰 생성 및 발급은 일단 스킵하고 null로 설정
                 val items = listOf(
@@ -183,7 +192,7 @@ class OrderCreateIntegrationTest(
         context("여러 아이템을 포함한 주문 생성 시") {
             it("모든 아이템이 주문에 포함된다") {
                 // Given
-                val userId = 3000L
+                val userId = 10003L
                 val items = listOf(
                     CreateOrderItemRequest(
                         productId = product1.id,
@@ -230,7 +239,7 @@ class OrderCreateIntegrationTest(
         context("선물 포장 옵션이 있는 주문 생성 시") {
             it("선물 포장 정보가 저장된다") {
                 // Given
-                val userId = 4000L
+                val userId = 10004L
                 val giftMessage = "사랑하는 사람에게"
                 val items = listOf(
                     CreateOrderItemRequest(
@@ -268,7 +277,7 @@ class OrderCreateIntegrationTest(
         context("차 구성을 포함한 주문 생성 시") {
             it("차 구성 정보가 함께 저장된다") {
                 // Given
-                val userId = 5000L
+                val userId = 10005L
                 val items = listOf(
                     CreateOrderItemRequest(
                         productId = product2.id,

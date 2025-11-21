@@ -14,6 +14,7 @@ import io.hhplus.ecommerce.inventory.domain.repository.InventoryRepository
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.collections.shouldHaveSize
 
 /**
  * 주문 확정 통합 테스트
@@ -31,14 +32,16 @@ class OrderConfirmIntegrationTest(
     private val orderCommandUseCase: OrderCommandUseCase,
     private val pointCommandUseCase: PointCommandUseCase,
     private val productRepository: ProductRepository,
-    private val inventoryRepository: InventoryRepository
+    private val inventoryRepository: InventoryRepository,
+    private val getOrderQueryUseCase: io.hhplus.ecommerce.order.usecase.GetOrderQueryUseCase,
+    private val orderQueueWorker: io.hhplus.ecommerce.order.application.OrderQueueWorker
 ) : KotestIntegrationTestBase({
 
     describe("주문 확정") {
         context("PENDING 상태의 주문을 확정할 때") {
             it("상태가 CONFIRMED로 변경되어야 한다") {
                 // Given: 주문 생성
-                val userId = 2000L
+                val userId = 30001L
 
                 val product = Product.create(
                     name = "확정 테스트 티",
@@ -79,7 +82,18 @@ class OrderConfirmIntegrationTest(
                     )
                 )
 
-                val createdOrder = orderCommandUseCase.createOrder(createOrderRequest)
+                // 주문 생성 (Queue 처리)
+                val queueRequest = orderCommandUseCase.createOrder(createOrderRequest)
+                queueRequest.status shouldBe io.hhplus.ecommerce.coupon.domain.constant.QueueStatus.WAITING
+
+                // Queue 처리 강제 실행
+                orderQueueWorker.forceProcessAllQueue()
+
+                // 주문 조회
+                Thread.sleep(200) // Queue 처리 대기
+                val orders = getOrderQueryUseCase.getOrdersByUser(userId)
+                orders shouldHaveSize 1
+                val createdOrder = orders.first()
 
                 // 주문 생성 직후 상태 확인
                 createdOrder.status shouldBe OrderStatus.PENDING
@@ -97,7 +111,7 @@ class OrderConfirmIntegrationTest(
         context("이미 확정된 주문을 다시 확정하려 할 때") {
             it("멱등성이 보장되거나 예외가 발생해야 한다") {
                 // Given: 주문 생성 및 확정
-                val userId = 2001L
+                val userId = 30002L
 
                 val product = Product.create(
                     name = "중복 확정 테스트 티",
@@ -138,7 +152,18 @@ class OrderConfirmIntegrationTest(
                     )
                 )
 
-                val createdOrder = orderCommandUseCase.createOrder(createOrderRequest)
+                // 주문 생성 (Queue 처리)
+                val queueRequest = orderCommandUseCase.createOrder(createOrderRequest)
+                queueRequest.status shouldBe io.hhplus.ecommerce.coupon.domain.constant.QueueStatus.WAITING
+
+                // Queue 처리 강제 실행
+                orderQueueWorker.forceProcessAllQueue()
+
+                // 주문 조회
+                Thread.sleep(200) // Queue 처리 대기
+                val orders = getOrderQueryUseCase.getOrdersByUser(userId)
+                orders shouldHaveSize 1
+                val createdOrder = orders.first()
 
                 // 첫 번째 확정
                 orderCommandUseCase.confirmOrder(createdOrder.id)
@@ -158,7 +183,7 @@ class OrderConfirmIntegrationTest(
         context("CANCELLED 상태의 주문을 확정하려 할 때") {
             it("예외가 발생해야 한다") {
                 // Given: 주문 생성 후 취소
-                val userId = 2002L
+                val userId = 30003L
 
                 val product = Product.create(
                     name = "취소 후 확정 테스트 티",
@@ -199,7 +224,18 @@ class OrderConfirmIntegrationTest(
                     )
                 )
 
-                val createdOrder = orderCommandUseCase.createOrder(createOrderRequest)
+                // 주문 생성 (Queue 처리)
+                val queueRequest = orderCommandUseCase.createOrder(createOrderRequest)
+                queueRequest.status shouldBe io.hhplus.ecommerce.coupon.domain.constant.QueueStatus.WAITING
+
+                // Queue 처리 강제 실행
+                orderQueueWorker.forceProcessAllQueue()
+
+                // 주문 조회
+                Thread.sleep(200) // Queue 처리 대기
+                val orders = getOrderQueryUseCase.getOrdersByUser(userId)
+                orders shouldHaveSize 1
+                val createdOrder = orders.first()
 
                 // 주문 취소
                 orderCommandUseCase.cancelOrder(createdOrder.id, "테스트 취소")
