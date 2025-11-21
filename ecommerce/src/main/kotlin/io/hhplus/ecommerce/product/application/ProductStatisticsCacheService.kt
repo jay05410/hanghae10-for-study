@@ -18,21 +18,32 @@ class ProductStatisticsCacheService(
     companion object {
         private const val VIEW_COUNT_PREFIX = "product:view:"
         private const val SALES_COUNT_PREFIX = "product:sales:"
+        private const val RANKING_SALES = "popular:products:sales"
+        private const val RANKING_VIEWS = "popular:products:views"
+        private const val RANKING_HOT = "popular:products:hot"
     }
 
     /**
-     * 조회수 증가 (Redis INCR)
+     * 조회수 증가 (Redis INCR + 랭킹 업데이트)
      *
      * @param productId 상품 ID
      * @return 증가된 조회수
      */
     fun incrementViewCount(productId: Long): Long {
         val key = "$VIEW_COUNT_PREFIX$productId"
-        return redisTemplate.opsForValue().increment(key) ?: 0L
+        val newViewCount = redisTemplate.opsForValue().increment(key) ?: 0L
+
+        // 조회수 랭킹 업데이트
+        redisTemplate.opsForZSet().add(RANKING_VIEWS, productId.toString(), newViewCount.toDouble())
+
+        // 종합 인기도 랭킹 업데이트
+        updateHotRanking(productId, newViewCount, getSalesCount(productId))
+
+        return newViewCount
     }
 
     /**
-     * 판매량 증가 (Redis)
+     * 판매량 증가 (Redis + 랭킹 업데이트)
      *
      * @param productId 상품 ID
      * @param quantity 판매 수량
@@ -40,7 +51,15 @@ class ProductStatisticsCacheService(
      */
     fun incrementSalesCount(productId: Long, quantity: Int): Long {
         val key = "$SALES_COUNT_PREFIX$productId"
-        return redisTemplate.opsForValue().increment(key, quantity.toLong()) ?: 0L
+        val newSalesCount = redisTemplate.opsForValue().increment(key, quantity.toLong()) ?: 0L
+
+        // 판매량 랭킹 업데이트
+        redisTemplate.opsForZSet().add(RANKING_SALES, productId.toString(), newSalesCount.toDouble())
+
+        // 종합 인기도 랭킹 업데이트
+        updateHotRanking(productId, getViewCount(productId), newSalesCount)
+
+        return newSalesCount
     }
 
     /**
@@ -115,5 +134,67 @@ class ProductStatisticsCacheService(
      */
     fun getAllSalesCountKeys(): Set<String> {
         return redisTemplate.keys("$SALES_COUNT_PREFIX*") ?: emptySet()
+    }
+
+    /**
+     * 종합 인기도 랭킹 업데이트
+     * 공식: 판매량 * 0.7 + 조회수 * 0.3
+     */
+    private fun updateHotRanking(productId: Long, viewCount: Long, salesCount: Long) {
+        val hotScore = salesCount * 0.7 + viewCount * 0.3
+        redisTemplate.opsForZSet().add(RANKING_HOT, productId.toString(), hotScore)
+    }
+
+    /**
+     * 판매량순 인기 상품 조회
+     *
+     * @param limit 조회할 상품 수
+     * @return 판매량순 상품 ID 목록
+     */
+    fun getPopularProductsBySales(limit: Int): List<Long> {
+        val productIds = redisTemplate.opsForZSet()
+            .reverseRange(RANKING_SALES, 0, (limit - 1).toLong()) ?: emptySet()
+        return productIds.map { it.toString().toLong() }
+    }
+
+    /**
+     * 조회수순 인기 상품 조회
+     *
+     * @param limit 조회할 상품 수
+     * @return 조회수순 상품 ID 목록
+     */
+    fun getPopularProductsByViews(limit: Int): List<Long> {
+        val productIds = redisTemplate.opsForZSet()
+            .reverseRange(RANKING_VIEWS, 0, (limit - 1).toLong()) ?: emptySet()
+        return productIds.map { it.toString().toLong() }
+    }
+
+    /**
+     * 종합 인기순 상품 조회
+     *
+     * @param limit 조회할 상품 수
+     * @return 종합 인기순 상품 ID 목록
+     */
+    fun getPopularProductsByHot(limit: Int): List<Long> {
+        val productIds = redisTemplate.opsForZSet()
+            .reverseRange(RANKING_HOT, 0, (limit - 1).toLong()) ?: emptySet()
+        return productIds.map { it.toString().toLong() }
+    }
+
+    /**
+     * 상품의 랭킹 점수 조회
+     *
+     * @param productId 상품 ID
+     * @param rankingType 랭킹 타입 ("sales", "views", "hot")
+     * @return 랭킹 점수 (없으면 0.0)
+     */
+    fun getProductRankingScore(productId: Long, rankingType: String): Double {
+        val key = when (rankingType) {
+            "sales" -> RANKING_SALES
+            "views" -> RANKING_VIEWS
+            "hot" -> RANKING_HOT
+            else -> return 0.0
+        }
+        return redisTemplate.opsForZSet().score(key, productId.toString()) ?: 0.0
     }
 }

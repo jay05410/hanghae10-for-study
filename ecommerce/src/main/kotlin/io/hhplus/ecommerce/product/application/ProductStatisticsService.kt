@@ -45,33 +45,61 @@ class ProductStatisticsService(
     }
 
     /**
-     * 인기 상품 조회 (DB 기준)
+     * 인기 상품 조회 (Redis 실시간 랭킹 기반) - 판매량순
      *
-     * 주의: 실시간 랭킹이 필요하면 별도 Redis Sorted Set 구현 필요
+     * @param limit 조회할 상품 수
+     * @return 판매량순 인기 상품 통계 목록
      */
     fun getPopularProducts(limit: Int): List<ProductStatistics> {
-        return productStatisticsRepository.findTopPopularProducts(limit)
+        return getPopularProducts(limit, "sales")
+    }
+
+    /**
+     * 인기 상품 조회 (Redis 실시간 랭킹 기반) - 정렬 기준 선택 가능
+     *
+     * @param limit 조회할 상품 수
+     * @param sortBy 정렬 기준 ("sales": 판매량순, "views": 조회수순, "hot": 종합인기순)
+     * @return 인기 상품 통계 목록
+     */
+    fun getPopularProducts(limit: Int, sortBy: String): List<ProductStatistics> {
+        // Redis에서 인기 상품 ID 목록 조회
+        val popularProductIds = when (sortBy) {
+            "views" -> productStatisticsCacheService.getPopularProductsByViews(limit)
+            "hot" -> productStatisticsCacheService.getPopularProductsByHot(limit)
+            else -> productStatisticsCacheService.getPopularProductsBySales(limit)
+        }
+
+        // 각 상품의 통계 정보 조회
+        return popularProductIds.mapNotNull { productId ->
+            getProductStatistics(productId)
+        }
     }
 
     /**
      * 상품 통계 조회 (Redis + DB 합산)
      *
      * @param productId 상품 ID
-     * @return Redis와 DB를 합산한 최신 통계
+     * @return Redis와 DB를 합산한 최신 통계 (상품이 존재하지 않고 Redis에도 데이터가 없으면 null)
      */
-    fun getProductStatistics(productId: Long): ProductStatistics {
+    fun getProductStatistics(productId: Long): ProductStatistics? {
         val dbStats = productStatisticsRepository.findByProductId(productId)
-            ?: ProductStatistics.create(productId)
-
         val redisViewCount = productStatisticsCacheService.getViewCount(productId)
         val redisSalesCount = productStatisticsCacheService.getSalesCount(productId)
 
+        // DB와 Redis 모두에 데이터가 없으면 null 반환
+        if (dbStats == null && redisViewCount == 0L && redisSalesCount == 0L) {
+            return null
+        }
+
+        // DB에 데이터가 없으면 새로 생성 (Redis에 데이터가 있는 경우)
+        val baseStats = dbStats ?: ProductStatistics.create(productId)
+
         return ProductStatistics(
-            id = dbStats.id,
+            id = baseStats.id,
             productId = productId,
-            viewCount = dbStats.viewCount + redisViewCount,
-            salesCount = dbStats.salesCount + redisSalesCount,
-            version = dbStats.version
+            viewCount = baseStats.viewCount + redisViewCount,
+            salesCount = baseStats.salesCount + redisSalesCount,
+            version = baseStats.version
         )
     }
 }
