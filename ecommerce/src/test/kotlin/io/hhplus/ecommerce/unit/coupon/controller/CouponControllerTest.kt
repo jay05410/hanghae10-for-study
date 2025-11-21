@@ -206,12 +206,12 @@ class CouponControllerTest : DescribeSpec({
                     )
                 )
 
-                every { mockGetCouponQueryUseCase.getAvailableUserCoupons(userId) } returns expectedAvailableCoupons
+                every { mockGetCouponQueryUseCase.getUserCoupons(userId, onlyAvailable = true) } returns expectedAvailableCoupons
 
                 val result = sut.getAvailableUserCoupons(userId)
 
                 result.success shouldBe true
-                verify(exactly = 1) { mockGetCouponQueryUseCase.getAvailableUserCoupons(userId) }
+                verify(exactly = 1) { mockGetCouponQueryUseCase.getUserCoupons(userId, onlyAvailable = true) }
             }
         }
 
@@ -220,12 +220,12 @@ class CouponControllerTest : DescribeSpec({
                 val userId = 999L
                 val emptyAvailableCoupons = emptyList<UserCoupon>()
 
-                every { mockGetCouponQueryUseCase.getAvailableUserCoupons(userId) } returns emptyAvailableCoupons
+                every { mockGetCouponQueryUseCase.getUserCoupons(userId, onlyAvailable = true) } returns emptyAvailableCoupons
 
                 val result = sut.getAvailableUserCoupons(userId)
 
                 result.success shouldBe true
-                verify(exactly = 1) { mockGetCouponQueryUseCase.getAvailableUserCoupons(userId) }
+                verify(exactly = 1) { mockGetCouponQueryUseCase.getUserCoupons(userId, onlyAvailable = true) }
             }
         }
     }

@@ -48,11 +48,16 @@ class OrderServiceTest : DescribeSpec({
         id: Long = 1L,
         productId: Long = 1L,
         quantity: Int = 2
-    ): OrderItem = mockk(relaxed = true) {
-        every { this@mockk.id } returns id
-        every { this@mockk.productId } returns productId
-        every { this@mockk.quantity } returns quantity
-    }
+    ): OrderItem = OrderItem(
+        id = id,
+        orderId = 1L,
+        productId = productId,
+        productName = "테스트 상품",
+        categoryName = "전자기기",
+        quantity = quantity,
+        unitPrice = 1000,
+        totalPrice = 1000 * quantity
+    )
 
     fun createMockOrder(
         id: Long = 1L,

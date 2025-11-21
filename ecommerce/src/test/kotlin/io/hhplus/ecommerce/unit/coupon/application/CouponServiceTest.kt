@@ -220,7 +220,7 @@ class CouponServiceTest : DescribeSpec({
 
     describe("getAvailableUserCoupons") {
         context("사용 가능한 쿠폰들이 있는 경우") {
-            it("발급된 쿠폰 중 사용 가능한 것들만 필터링하여 반환") {
+            it("ISSUED 상태의 쿠폰을 조회하여 반환") {
                 val userId = 1L
                 val usableCoupon = UserCoupon(
                     id = 1L,
@@ -228,22 +228,13 @@ class CouponServiceTest : DescribeSpec({
                     couponId = 1L,
                     status = UserCouponStatus.ISSUED
                 )
-                val unusableCoupon = UserCoupon(
-                    id = 2L,
-                    userId = userId,
-                    couponId = 2L,
-                    status = UserCouponStatus.USED
-                )
-                val issuedCoupons = listOf(usableCoupon, unusableCoupon)
 
-                every { mockUserCouponRepository.findByUserIdAndStatus(userId, UserCouponStatus.ISSUED) } returns issuedCoupons
+                every { mockUserCouponRepository.findByUserIdAndStatus(userId, UserCouponStatus.ISSUED) } returns listOf(usableCoupon)
 
                 val result = sut.getAvailableUserCoupons(userId)
 
                 result shouldBe listOf(usableCoupon)
                 verify(exactly = 1) { mockUserCouponRepository.findByUserIdAndStatus(userId, UserCouponStatus.ISSUED) }
-                verify(exactly = 1) { usableCoupon.isUsable() }
-                verify(exactly = 1) { unusableCoupon.isUsable() }
             }
         }
     }

@@ -6,6 +6,7 @@ import io.hhplus.ecommerce.product.domain.entity.ProductStatistics
 import io.hhplus.ecommerce.product.domain.repository.ProductStatisticsRepository
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.collections.shouldHaveSize
 import io.mockk.*
 
 /**
@@ -69,33 +70,22 @@ class ProductStatisticsServiceTest : DescribeSpec({
 
     describe("getPopularProducts") {
         context("인기 상품 목록 조회") {
-            it("ProductStatisticsRepository에서 인기 상품을 조회하고 반환") {
-                val limit = 10
+            it("Redis 랭킹에서 인기 상품을 조회하고 반환") {
+                val limit = 3
+                val mockProductIds = listOf(1L, 2L, 3L)
                 val mockStatistics = listOf(mockk<ProductStatistics>(), mockk<ProductStatistics>(), mockk<ProductStatistics>())
 
-                every { mockProductStatisticsRepository.findTopPopularProducts(limit) } returns mockStatistics
+                every { mockProductStatisticsCacheService.getPopularProductsBySales(limit) } returns mockProductIds
+                every { mockProductStatisticsRepository.findByProductId(1L) } returns mockStatistics[0]
+                every { mockProductStatisticsRepository.findByProductId(2L) } returns mockStatistics[1]
+                every { mockProductStatisticsRepository.findByProductId(3L) } returns mockStatistics[2]
+                every { mockProductStatisticsCacheService.getViewCount(any()) } returns 0L
+                every { mockProductStatisticsCacheService.getSalesCount(any()) } returns 0L
 
                 val result = sut.getPopularProducts(limit)
 
-                result shouldBe mockStatistics
-                verify(exactly = 1) { mockProductStatisticsRepository.findTopPopularProducts(limit) }
-            }
-        }
-
-        context("다양한 limit으로 인기 상품 조회") {
-            it("각 limit이 정확히 Repository에 전달") {
-                val limits = listOf(5, 10, 20, 50)
-
-                limits.forEach { limit ->
-                    val mockStatistics = (1..limit).map { mockk<ProductStatistics>() }
-                    every { mockProductStatisticsRepository.findTopPopularProducts(limit) } returns mockStatistics
-
-                    val result = sut.getPopularProducts(limit)
-
-                    result shouldBe mockStatistics
-                    verify(exactly = 1) { mockProductStatisticsRepository.findTopPopularProducts(limit) }
-                    clearMocks(mockProductStatisticsRepository)
-                }
+                result shouldHaveSize 3
+                verify(exactly = 1) { mockProductStatisticsCacheService.getPopularProductsBySales(limit) }
             }
         }
 
@@ -103,12 +93,12 @@ class ProductStatisticsServiceTest : DescribeSpec({
             it("빈 리스트를 반환") {
                 val limit = 10
 
-                every { mockProductStatisticsRepository.findTopPopularProducts(limit) } returns emptyList()
+                every { mockProductStatisticsCacheService.getPopularProductsBySales(limit) } returns emptyList()
 
                 val result = sut.getPopularProducts(limit)
 
                 result shouldBe emptyList()
-                verify(exactly = 1) { mockProductStatisticsRepository.findTopPopularProducts(limit) }
+                verify(exactly = 1) { mockProductStatisticsCacheService.getPopularProductsBySales(limit) }
             }
         }
     }

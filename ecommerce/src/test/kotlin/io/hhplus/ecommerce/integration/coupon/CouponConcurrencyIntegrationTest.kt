@@ -1,7 +1,5 @@
 package io.hhplus.ecommerce.integration.coupon
 
-import io.hhplus.ecommerce.coupon.application.CouponQueueWorker
-import io.hhplus.ecommerce.coupon.application.CouponQueueProcessor
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 
 import io.hhplus.ecommerce.coupon.usecase.CouponCommandUseCase
@@ -9,17 +7,12 @@ import io.hhplus.ecommerce.coupon.dto.IssueCouponRequest
 import io.hhplus.ecommerce.coupon.domain.constant.DiscountType
 import io.hhplus.ecommerce.coupon.domain.entity.Coupon
 import io.hhplus.ecommerce.coupon.domain.repository.CouponRepository
-import io.hhplus.ecommerce.coupon.domain.repository.UserCouponRepository
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.shouldNotBe
 import java.time.LocalDateTime
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 import org.springframework.data.redis.core.RedisTemplate
-import io.hhplus.ecommerce.coupon.application.CouponQueueService
-import org.springframework.test.context.TestPropertySource
-
 /**
  * 쿠폰 동시성 통합 테스트
  *
@@ -28,8 +21,7 @@ import org.springframework.test.context.TestPropertySource
 class CouponConcurrencyIntegrationTest(
     private val couponCommandUseCase: CouponCommandUseCase,
     private val couponRepository: CouponRepository,
-    private val redisTemplate: RedisTemplate<String, Any>,
-    private val couponQueueService: CouponQueueService
+    private val redisTemplate: RedisTemplate<String, Any>
 ) : KotestIntegrationTestBase({
 
     beforeEach {
