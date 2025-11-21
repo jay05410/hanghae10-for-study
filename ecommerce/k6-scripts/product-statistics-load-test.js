@@ -72,11 +72,15 @@ export default function(data) {
     const randomIndex = Math.floor(Math.random() * data.topProductIds.length);
     const productId = data.topProductIds[randomIndex];
 
-    const url = `${BASE_URL}/api/products/${productId}`;
+    // 고유한 사용자 ID 생성
+    const userId = __VU * 1000 + __ITER;
+
+    const url = `${BASE_URL}/api/v1/products/${productId}`;
 
     const params = {
         headers: {
             'Content-Type': 'application/json',
+            'User-Id': userId.toString(),  // 상품 조회 통계를 위한 사용자 ID 헤더
         },
         timeout: '5s',  // 5초 타임아웃
     };
@@ -96,7 +100,7 @@ export default function(data) {
         'has product data': (r) => {
             try {
                 const body = JSON.parse(r.body);
-                return body.id && body.name;
+                return body.data && body.data.id && body.data.name;
             } catch (e) {
                 return false;
             }

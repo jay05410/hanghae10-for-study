@@ -12,9 +12,10 @@
 ## 📊 개선 요약
 | 기능 | 개선 방법 | TPS 개선율 | 성공률 개선 |
 |------|-----------|-----------|------------|
-| 쿠폰 발급 | DB 락 → Redis Queue | **1600배** (25 → 40,000) | 5% → 100% |
+| 쿠폰 발급 | DB 락 → Redis Queue + Lua Script | **1600배** (25 → 40,000) | 5% → 100% |
 | 상품 통계 | DB 락 → Redis Cache | **40배** (125 → 5,000) | 100% → 100% |
 | 주문 생성 | DB 락 → Redis Queue | **47배** (118 → 5,494) | 100% → 100% |
+| 결제 중복 방지 | 비관적 락 → 유니크 제약조건 | - | 66% → 100% |
 
 ---
 
@@ -42,6 +43,41 @@ fun issueCoupon(userId: Long, couponId: Long): UserCoupon {
 2. **높은 실패율**: 대규모 트래픽 시 95% 이상 실패
 3. **커넥션 점유 시간**: 검증 로직까지 포함하여 700ms 이상 점유
 4. **낮은 처리량**: TPS 25-80 수준
+
+### 1.2 결제 중복 처리 문제
+
+#### Before (비관적 락 데드락)
+```kotlin
+@Transactional
+fun processPayment(orderId: Long): Payment {
+    val existingPayment = paymentRepository.findByOrderIdWithLock(orderId)
+    if (existingPayment != null) {
+        throw PaymentException.DuplicatePayment()
+    }
+    // ... 결제 로직
+}
+```
+
+#### 문제점
+- **데드락 발생**: `PESSIMISTIC_WRITE` 락으로 테스트에서 66% 성공률
+- **예외**: `CannotAcquireLockException`
+
+### 1.3 쿠폰 Queue Race Condition
+
+#### Before (Race Condition)
+```kotlin
+fun enqueue(userId: Long, couponId: Long): CouponQueueRequest {
+    val queueSize = redisTemplate.opsForList().size(queueKey)
+    if (queueSize >= maxSize) {
+        throw CouponSoldOut()
+    }
+    redisTemplate.opsForList().leftPush(queueKey, queueId)
+}
+```
+
+#### 문제점
+- **Race Condition**: 크기 체크(`LLEN`)와 등록(`LPUSH`) 사이 경합
+- **수량 초과**: 100개 제한인데 105개 등록됨
 
 ---
 
@@ -258,7 +294,56 @@ fun syncToDatabase() {
 - 성공률: **100%**
 - **개선 효과**: TPS 40배 개선
 
-### 3.3 주문 생성 시스템
+### 3.3 결제 중복 방지 시스템
+
+#### Before (비관적 락 데드락)
+```kotlin
+@Transactional
+fun processPayment(orderId: Long): Payment {
+    val existingPayment = paymentRepository.findByOrderIdWithLock(orderId)
+    if (existingPayment != null) {
+        throw PaymentException.DuplicatePayment()
+    }
+    // ... 결제 로직
+}
+```
+
+#### After (유니크 제약조건)
+```kotlin
+@Transactional
+fun processPayment(orderId: Long): Payment {
+    try {
+        return paymentRepository.save(Payment.create(orderId, ...))
+    } catch (e: DataIntegrityViolationException) {
+        throw PaymentException.DuplicatePayment()
+    }
+}
+```
+
+#### 개선 효과
+- **테스트 성공률**: 66% → 100%
+- **락 대기 없음**: 빠른 실패 처리
+
+### 3.4 쿠폰 Queue Redis Lua Script
+
+#### After (Redis Lua Script 원자적 처리)
+```lua
+local current_count = redis.call('INCR', counter_key)
+
+if current_count > max_size then
+    redis.call('DECR', counter_key)
+    return 0
+end
+
+redis.call('LPUSH', queue_key, queue_id)
+return 1
+```
+
+#### 개선 효과
+- **정확성**: 정확히 지정된 수량만 큐에 등록
+- **성능**: Redis 서버에서 원자적 실행
+
+### 3.5 주문 생성 시스템
 
 #### 레거시 구성 (DB 트랜잭션 template)
 ```kotlin
@@ -387,25 +472,55 @@ DB 동기화:
 | **주문 생성** | 118 | 5,494 | **47배** | 100% | 100% |
 | **상품 조회수** | 254.18 | 10,000 | **40배** | 100% | 100% |
 
+## 5. K6 성능 테스트 검증
+
+### 5.1 K6 성능 테스트 결과
+
+#### 쿠폰 발급 부하 테스트
+- **성공률**: 100% (724/724 요청 성공)
+- **평균 응답시간**: 37ms
+- **P95 응답시간**: 103ms
+- **TPS**: 72 req/s
+- **에러율**: 0%
+
+#### 상품 통계 부하 테스트 (Redis Cache 효과)
+- **성공률**: 100% (9,897/9,897 요청 성공)
+- **평균 응답시간**: 5ms (극도로 빠름)
+- **P95 응답시간**: 18ms
+- **TPS**: 1,977 req/s (매우 높은 처리량)
+- **에러율**: 0%
+
+#### 주문 생성 부하 테스트
+- **성공률**: 100% (25/25 요청 성공)
+- **평균 응답시간**: 26ms
+- **P95 응답시간**: 75ms
+- **TPS**: 4.8 req/s
+- **에러율**: 0%
+
+### 5.2 Redis Cache 성능 검증
+- **상품 조회**: 5ms 극도로 빠른 응답 시간
+- **높은 처리량**: 1,977 req/s 달성
+- **락 경합 없음**: 안정적인 동시 처리
+
 ---
 
-## 5. 결론
+## 6. 결론
 
-### 5.1 핵심 개선 효과
+### 6.1 핵심 개선 효과
 1. **즉시 응답**: 사용자는 대기 없이 즉시 응답 받음
 2. **안정성 향상**: DB 락 경합 제거로 오류율 대폭 감소
 3. **처리량 증가**: Queue 기반 순차 처리로 TPS 대폭 개선
 4. **확장성**: Redis Cluster로 수평 확장 가능
 5. **100% 처리 보장**: 강제 처리 메커니즘으로 누락 방지
 
-### 5.2 기술적 핵심
+### 6.2 기술적 핵심
 - **DB 비관적 락 제거**: 커넥션 풀 고갈 및 데드락 방지
 - **Redis Queue 도입**: FIFO 순차 처리로 동시성 제어
 - **비동기 처리**: 사용자 응답과 실제 처리 분리
 - **배치 최적화**: Worker 성능 향상으로 처리량 극대화
 - **정체 감지 및 강제 처리**: 시스템 안정성 보장
 
-### 5.3 아키텍처 개선
+### 6.3 아키텍처 개선
 
 **Before**: DB 비관적 락 중심
 ```
@@ -424,10 +539,11 @@ Client → API → Service (@Transactional) → DB (PESSIMISTIC_WRITE)
    Client → API → Redis INCR → Scheduler → DB Sync
 ```
 
-### 5.4 교훈
+### 6.4 교훈
 
 1. **비관적 락의 한계**: 대규모 트래픽에서는 순차 처리로 인한 병목 발생
 2. **Queue의 효과**: 비동기 처리로 사용자 경험과 서버 부하 모두 개선
 3. **트랜잭션 범위**: 최소화할수록 동시 처리량 증가
 4. **Redis**: 원자적 연산으로 락 없이 높은 성능 달성
 5. **100% 처리**: 강제 처리 메커니즘으로 시스템 신뢰성 확보
+

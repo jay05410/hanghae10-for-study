@@ -66,7 +66,7 @@ export function setup() {
 export default function(data) {
     const userId = __VU * 1000 + __ITER;  // 고유한 사용자 ID 생성
 
-    const url = `${BASE_URL}/api/orders`;
+    const url = `${BASE_URL}/api/v1/orders`;
     const payload = JSON.stringify({
         userId: userId,
         items: [
@@ -80,7 +80,7 @@ export default function(data) {
         usedCouponId: null,
         deliveryAddress: {
             recipientName: `테스트사용자${userId}`,
-            recipientPhone: '010-1234-5678',
+            phone: '010-1234-5678',
             zipCode: '12345',
             address: '서울특별시 강남구 테헤란로 123',
             addressDetail: `${userId}호`,
@@ -108,10 +108,10 @@ export default function(data) {
     const isSuccess = check(response, {
         'status is 200 or 201': (r) => r.status === 200 || r.status === 201,
         'response time < 3s': (r) => r.timings.duration < 3000,
-        'has orderId in response': (r) => {
+        'has queueId in response': (r) => {
             try {
                 const body = JSON.parse(r.body);
-                return body.orderId || body.id;
+                return body.data && body.data.queueId;
             } catch (e) {
                 return false;
             }

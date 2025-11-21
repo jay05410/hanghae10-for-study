@@ -69,7 +69,7 @@ export function setup() {
 export default function(data) {
     const userId = __VU * 1000 + __ITER;  // 고유한 사용자 ID 생성
 
-    const url = `${BASE_URL}/api/coupons/${data.couponId}/issue`;
+    const url = `${BASE_URL}/api/v1/coupons/issue`;
     const payload = JSON.stringify({
         couponId: parseInt(data.couponId),
     });
@@ -77,24 +77,33 @@ export default function(data) {
     const params = {
         headers: {
             'Content-Type': 'application/json',
-            'X-User-Id': userId.toString(),  // 인증 헤더 (실제 구현에 맞게 수정)
         },
         timeout: '30s',  // 30초 타임아웃
     };
 
+    // userId를 쿼리 파라미터로 추가
+    const urlWithParams = `${url}?userId=${userId}`;
+
     requestCount.add(1);
     const startTime = new Date().getTime();
 
-    const response = http.post(url, payload, params);
+    const response = http.post(urlWithParams, payload, params);
 
     const duration = new Date().getTime() - startTime;
     responseTime.add(duration);
 
-    // 응답 검증
+    // Queue 기반 응답 검증 (즉시 queueId 반환)
     const isSuccess = check(response, {
-        'status is 200 or 201': (r) => r.status === 200 || r.status === 201,
+        'status is 200': (r) => r.status === 200,
         'response time < 30s': (r) => r.timings.duration < 30000,
-        'has response body': (r) => r.body.length > 0,
+        'has queueId in response': (r) => {
+            try {
+                const body = JSON.parse(r.body);
+                return body.data && body.data.queueId;
+            } catch (e) {
+                return false;
+            }
+        },
     });
 
     // 타임아웃 체크
