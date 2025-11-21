@@ -30,19 +30,25 @@ class PaymentService(
 
     @Transactional
     fun processPayment(userId: Long, orderId: Long, amount: Long, paymentMethod: PaymentMethod = PaymentMethod.BALANCE): Payment {
-        // 결제 엔티티 생성
-        val paymentNumber = snowflakeGenerator.generateNumberWithPrefix(IdPrefix.PAYMENT)
-        val payment = Payment.create(
-            paymentNumber = paymentNumber,
-            userId = userId,
-            orderId = orderId,
-            amount = amount,
-            paymentMethod = paymentMethod
-        )
-
-        val savedPayment = paymentRepository.save(payment)
+        // 중복 결제 검증 - 먼저 읽기 전용으로 확인
+        val existingPayment = paymentRepository.findByOrderId(orderId).firstOrNull()
+        if (existingPayment != null) {
+            throw PaymentException.DuplicatePayment("주문 ID ${orderId}는 이미 결제 처리되었습니다. 기존 결제 ID: ${existingPayment.id}")
+        }
 
         try {
+            // 결제 엔티티 생성
+            val paymentNumber = snowflakeGenerator.generateNumberWithPrefix(IdPrefix.PAYMENT)
+            val payment = Payment.create(
+                paymentNumber = paymentNumber,
+                userId = userId,
+                orderId = orderId,
+                amount = amount,
+                paymentMethod = paymentMethod
+            )
+
+            val savedPayment = paymentRepository.save(payment)
+
             when (paymentMethod) {
                 PaymentMethod.BALANCE -> {
                     // 잔액 결제는 별도의 서비스에서 처리
@@ -62,10 +68,31 @@ class PaymentService(
 
             return paymentRepository.save(savedPayment)
 
+        } catch (e: org.springframework.dao.DataIntegrityViolationException) {
+            // 데이터베이스 제약 조건 위반 시 (다른 트랜잭션에서 같은 orderId로 결제가 이미 생성된 경우)
+            val existingPaymentAfterConflict = paymentRepository.findByOrderId(orderId).firstOrNull()
+            if (existingPaymentAfterConflict != null) {
+                throw PaymentException.DuplicatePayment("주문 ID ${orderId}는 이미 결제 처리되었습니다. 기존 결제 ID: ${existingPaymentAfterConflict.id}")
+            }
+            throw e
+        } catch (e: org.springframework.dao.CannotAcquireLockException) {
+            // 락 획득 실패 시에도 중복 결제 예외로 변환
+            val existingPaymentAfterLockFailure = paymentRepository.findByOrderId(orderId).firstOrNull()
+            if (existingPaymentAfterLockFailure != null) {
+                throw PaymentException.DuplicatePayment("주문 ID ${orderId}는 이미 결제 처리되었습니다. 기존 결제 ID: ${existingPaymentAfterLockFailure.id}")
+            }
+            throw PaymentException.DuplicatePayment("주문 ID ${orderId}에 대한 동시 결제 요청이 처리 중입니다. 잠시 후 다시 시도해주세요.")
         } catch (e: Exception) {
-            // 결제 실패 처리 (가변 모델: fail 메서드가 void 반환)
-            savedPayment.fail(e.message ?: "결제 처리 중 오류가 발생했습니다")
-            paymentRepository.save(savedPayment)
+            // 결제 실패 처리 - 저장된 결제가 있을 경우에만 실패 상태로 변경
+            try {
+                val existingPaymentForFailure = paymentRepository.findByOrderId(orderId).firstOrNull()
+                if (existingPaymentForFailure != null) {
+                    existingPaymentForFailure.fail(e.message ?: "결제 처리 중 오류가 발생했습니다")
+                    paymentRepository.save(existingPaymentForFailure)
+                }
+            } catch (ignored: Exception) {
+                // 실패 상태 업데이트 중 오류는 무시
+            }
             throw e
         }
     }

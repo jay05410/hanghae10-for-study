@@ -8,6 +8,7 @@ interface PaymentRepository {
     fun findById(id: Long): Payment?
     fun findByPaymentNumber(paymentNumber: String): Payment?
     fun findByOrderId(orderId: Long): List<Payment>
+    fun findByOrderIdWithLock(orderId: Long): Payment?
     fun findByUserId(userId: Long): List<Payment>
     fun findByStatus(status: PaymentStatus): List<Payment>
     fun findByExternalTransactionId(externalTransactionId: String): Payment?

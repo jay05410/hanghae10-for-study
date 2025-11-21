@@ -36,6 +36,9 @@ class PaymentRepositoryImpl(
     override fun findByOrderId(orderId: Long): List<Payment> =
         jpaRepository.findByOrderId(orderId).toDomain(mapper)
 
+    override fun findByOrderIdWithLock(orderId: Long): Payment? =
+        jpaRepository.findByOrderIdWithLock(orderId).toDomain(mapper)
+
     override fun findByUserId(userId: Long): List<Payment> =
         jpaRepository.findByUserId(userId).toDomain(mapper)
 

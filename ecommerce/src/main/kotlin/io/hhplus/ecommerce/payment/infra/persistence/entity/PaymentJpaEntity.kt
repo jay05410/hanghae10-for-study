@@ -22,7 +22,7 @@ import jakarta.persistence.*
     name = "payments",
     indexes = [
         Index(name = "uk_payments_payment_number", columnList = "payment_number", unique = true),
-        Index(name = "idx_payments_order_id", columnList = "order_id"),
+        Index(name = "uk_payments_order_id", columnList = "order_id", unique = true),
         Index(name = "idx_payments_user_id", columnList = "user_id"),
         Index(name = "idx_payments_status", columnList = "status"),
         Index(name = "idx_payments_external_tx_id", columnList = "external_transaction_id")

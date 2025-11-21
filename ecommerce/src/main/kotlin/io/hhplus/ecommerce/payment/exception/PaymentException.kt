@@ -126,4 +126,12 @@ sealed class PaymentException(
         message = PaymentErrorCode.UNSUPPORTED_PAYMENT_METHOD.withParams("paymentMethod" to paymentMethod),
         data = mapOf("paymentMethod" to paymentMethod)
     )
+
+    /**
+     * 중복 결제 예외
+     */
+    class DuplicatePayment(message: String) : PaymentException(
+        errorCode = PaymentErrorCode.DUPLICATE_PAYMENT,
+        message = message
+    )
 }

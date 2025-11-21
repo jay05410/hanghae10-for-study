@@ -3,7 +3,9 @@ package io.hhplus.ecommerce.payment.infra.persistence.repository
 import io.hhplus.ecommerce.payment.domain.constant.PaymentStatus
 import io.hhplus.ecommerce.payment.infra.persistence.entity.PaymentJpaEntity
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Lock
 import org.springframework.data.jpa.repository.Query
+import jakarta.persistence.LockModeType
 
 /**
  * Payment JPA Repository
@@ -51,6 +53,15 @@ interface PaymentJpaRepository : JpaRepository<PaymentJpaEntity, Long> {
      * 결제번호 존재 여부 확인
      */
     fun existsByPaymentNumber(paymentNumber: String): Boolean
+
+    /**
+     * 주문 ID로 결제 조회 (비관적 락 적용)
+     * - 중복 결제 방지를 위해 사용
+     * - 동시 결제 요청 시 순차 처리 보장
+     */
+    @Query("SELECT p FROM PaymentJpaEntity p WHERE p.orderId = :orderId AND p.deletedAt IS NULL")
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    fun findByOrderIdWithLock(orderId: Long): PaymentJpaEntity?
 
     /**
      * 활성 결제 전체 조회 (deletedAt이 null인 경우만)

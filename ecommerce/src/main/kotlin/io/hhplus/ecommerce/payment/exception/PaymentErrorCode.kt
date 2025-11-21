@@ -57,5 +57,11 @@ enum class PaymentErrorCode(
         code = "PAYMENT008",
         message = "지원하지 않는 결제 수단입니다: {paymentMethod}",
         httpStatus = 400
+    ),
+
+    DUPLICATE_PAYMENT(
+        code = "PAYMENT009",
+        message = "중복 결제가 감지되었습니다",
+        httpStatus = 409
     );
 }
