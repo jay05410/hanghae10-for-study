@@ -14,19 +14,22 @@ abstract class BaseQueueWorker<T, R>(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     /**
-     * Queue 처리 메인 로직
+     * Queue 처리 메인 로직 (배치 처리)
      *
      * 테스트에서도 사용할 수 있도록 public으로 선언
      */
     fun processQueue() {
         try {
-            val item = processor.dequeue() ?: return
+            // 배치 처리: 한 번에 최대 50개까지 처리
+            repeat(50) {
+                val item = processor.dequeue() ?: return@repeat
 
-            try {
-                val result = processor.process(item)
-                processor.onSuccess(item, result)
-            } catch (e: Exception) {
-                processor.onFailure(item, e)
+                try {
+                    val result = processor.process(item)
+                    processor.onSuccess(item, result)
+                } catch (e: Exception) {
+                    processor.onFailure(item, e)
+                }
             }
         } catch (e: Exception) {
             logger.error("Queue 처리 중 예상치 못한 오류", e)
