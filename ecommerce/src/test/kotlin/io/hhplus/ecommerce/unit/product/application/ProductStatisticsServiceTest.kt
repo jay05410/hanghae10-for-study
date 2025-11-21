@@ -73,7 +73,11 @@ class ProductStatisticsServiceTest : DescribeSpec({
             it("Redis 랭킹에서 인기 상품을 조회하고 반환") {
                 val limit = 3
                 val mockProductIds = listOf(1L, 2L, 3L)
-                val mockStatistics = listOf(mockk<ProductStatistics>(), mockk<ProductStatistics>(), mockk<ProductStatistics>())
+                val mockStatistics = listOf(
+                    ProductStatistics(id = 1L, productId = 1L, viewCount = 100L, salesCount = 50L),
+                    ProductStatistics(id = 2L, productId = 2L, viewCount = 200L, salesCount = 75L),
+                    ProductStatistics(id = 3L, productId = 3L, viewCount = 300L, salesCount = 100L)
+                )
 
                 every { mockProductStatisticsCacheService.getPopularProductsBySales(limit) } returns mockProductIds
                 every { mockProductStatisticsRepository.findByProductId(1L) } returns mockStatistics[0]

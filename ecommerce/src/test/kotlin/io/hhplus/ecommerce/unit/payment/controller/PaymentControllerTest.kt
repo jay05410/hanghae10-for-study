@@ -85,7 +85,7 @@ class PaymentControllerTest : DescribeSpec({
                     Triple(100000L, PaymentMethod.BALANCE, 3L)
                 )
 
-                testCases.forEachIndexed { index, (amount, paymentMethod, orderId) ->
+                testCases.forEachIndexed { _, (amount, paymentMethod, orderId) ->
                     val request = ProcessPaymentRequest(
                         userId = 1L,
                         orderId = orderId,

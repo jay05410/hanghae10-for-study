@@ -50,6 +50,7 @@ class PaymentServiceTest : DescribeSpec({
 
     beforeEach {
         clearMocks(mockPaymentRepository, mockSnowflakeGenerator)
+        unmockkAll() // Clear all static mocks to prevent interference
     }
 
     describe("processPayment") {
@@ -60,17 +61,10 @@ class PaymentServiceTest : DescribeSpec({
                 val amount = 10000L
                 val paymentNumber = "PAY-001"
                 val txId = "TXN-001"
-                val pendingPayment = mockk<Payment>(relaxed = true) {
-                    every { status } returns PaymentStatus.COMPLETED
-                    every { process() } just runs
-                    every { complete(any()) } just runs
-                }
 
-                mockkObject(Payment.Companion)
-                every { Payment.create(any(), any(), any(), any(), any()) } returns pendingPayment
-
+                every { mockPaymentRepository.findByOrderId(orderId) } returns emptyList()
                 every { mockSnowflakeGenerator.generateNumberWithPrefix(any()) } returnsMany listOf(paymentNumber, txId)
-                every { mockPaymentRepository.save(any()) } returns pendingPayment
+                every { mockPaymentRepository.save(any()) } answers { firstArg() }
 
                 val result = sut.processPayment(userId, orderId, amount)
 
@@ -86,11 +80,10 @@ class PaymentServiceTest : DescribeSpec({
                 val orderId = 1L
                 val amount = 10000L
                 val paymentNumber = "PAY-001"
-                val pendingPayment = createTestPayment(status = PaymentStatus.PENDING)
-                val failedPayment = pendingPayment.copy(status = PaymentStatus.FAILED)
 
+                every { mockPaymentRepository.findByOrderId(orderId) } returns emptyList()
                 every { mockSnowflakeGenerator.generateNumberWithPrefix(any()) } returns paymentNumber
-                every { mockPaymentRepository.save(any()) } returnsMany listOf(pendingPayment, failedPayment)
+                every { mockPaymentRepository.save(any()) } answers { firstArg() }
 
                 shouldThrow<PaymentException.UnsupportedPaymentMethod> {
                     sut.processPayment(userId, orderId, amount, PaymentMethod.CARD)
@@ -104,11 +97,10 @@ class PaymentServiceTest : DescribeSpec({
                 val orderId = 1L
                 val amount = 10000L
                 val paymentNumber = "PAY-001"
-                val pendingPayment = createTestPayment(status = PaymentStatus.PENDING)
-                val failedPayment = pendingPayment.copy(status = PaymentStatus.FAILED)
 
+                every { mockPaymentRepository.findByOrderId(orderId) } returns emptyList()
                 every { mockSnowflakeGenerator.generateNumberWithPrefix(any()) } returns paymentNumber
-                every { mockPaymentRepository.save(any()) } returnsMany listOf(pendingPayment, failedPayment)
+                every { mockPaymentRepository.save(any()) } answers { firstArg() }
 
                 shouldThrow<PaymentException.UnsupportedPaymentMethod> {
                     sut.processPayment(userId, orderId, amount, PaymentMethod.BANK_TRANSFER)
@@ -125,12 +117,11 @@ class PaymentServiceTest : DescribeSpec({
                 val amount = 10000L
                 val paymentNumber = "PAY-001"
                 val txId = "TXN-001"
-                val pendingPayment = createTestPayment(status = PaymentStatus.PENDING)
-                val failedPayment = pendingPayment.copy(status = PaymentStatus.FAILED)
                 val dbException = RuntimeException("DB 연결 오류")
 
+                every { mockPaymentRepository.findByOrderId(orderId) } returns emptyList()
                 every { mockSnowflakeGenerator.generateNumberWithPrefix(any()) } returnsMany listOf(paymentNumber, txId)
-                every { mockPaymentRepository.save(any()) } returns pendingPayment andThenThrows dbException andThen failedPayment
+                every { mockPaymentRepository.save(any()) } answers { firstArg() } andThenThrows dbException
 
                 shouldThrow<RuntimeException> {
                     sut.processPayment(userId, orderId, amount)
@@ -145,12 +136,11 @@ class PaymentServiceTest : DescribeSpec({
                 val amount = 10000L
                 val paymentNumber = "PAY-001"
                 val txId = "TXN-001"
-                val pendingPayment = createTestPayment(status = PaymentStatus.PENDING)
-                val failedPayment = pendingPayment.copy(status = PaymentStatus.FAILED)
                 val nullMessageException = RuntimeException()
 
+                every { mockPaymentRepository.findByOrderId(orderId) } returns emptyList()
                 every { mockSnowflakeGenerator.generateNumberWithPrefix(any()) } returnsMany listOf(paymentNumber, txId)
-                every { mockPaymentRepository.save(any()) } returns pendingPayment andThenThrows nullMessageException andThen failedPayment
+                every { mockPaymentRepository.save(any()) } answers { firstArg() } andThenThrows nullMessageException
 
                 shouldThrow<RuntimeException> {
                     sut.processPayment(userId, orderId, amount)
