@@ -4,8 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import io.hhplus.ecommerce.common.util.SnowflakeGenerator
 import io.hhplus.ecommerce.coupon.domain.entity.CouponQueueRequest
 import io.hhplus.ecommerce.coupon.domain.constant.QueueStatus
+import io.hhplus.ecommerce.coupon.domain.repository.CouponRepository
 import io.hhplus.ecommerce.coupon.exception.CouponException
 import org.springframework.data.redis.core.RedisTemplate
+import org.springframework.data.redis.core.script.DefaultRedisScript
 import org.springframework.stereotype.Service
 import java.util.concurrent.TimeUnit
 
@@ -37,7 +39,8 @@ import java.util.concurrent.TimeUnit
 class CouponQueueService(
     private val redisTemplate: RedisTemplate<String, Any>,
     private val objectMapper: ObjectMapper,
-    private val snowflakeGenerator: SnowflakeGenerator
+    private val snowflakeGenerator: SnowflakeGenerator,
+    private val couponRepository: CouponRepository
 ) {
 
     companion object {
@@ -69,11 +72,71 @@ class CouponQueueService(
             }
         }
 
-        // Queue 순번 생성 (원자적 증가)
-        val queuePosition = getNextQueuePosition(couponId)
+        // 쿠폰 정보 조회 및 큐 크기 제한 체크
+        val coupon = couponRepository.findById(couponId)
+            ?: throw CouponException.CouponNotFound(couponId)
 
         // Snowflake ID 생성
         val queueId = snowflakeGenerator.nextId().toString()
+
+        // Redis Lua 스크립트로 원자적 큐 크기 제한
+        val queueKey = getQueueKey(couponId)
+
+        // 원자적 큐 크기 제한을 위한 Lua 스크립트 (카운터 기반)
+        val luaScript = """
+            local queue_key = KEYS[1]
+            local counter_key = KEYS[2]
+            local max_size = tonumber(ARGV[1])
+            local queue_id = ARGV[2]
+
+            local current_count = redis.call('INCR', counter_key)
+
+            if current_count > max_size then
+                redis.call('DECR', counter_key)
+                return 0
+            end
+
+            redis.call('LPUSH', queue_key, queue_id)
+            return 1
+        """.trimIndent()
+
+        val counterKey = "coupon:queue:counter:$couponId"
+
+        val result = try {
+            redisTemplate.execute { connection ->
+                connection.eval(
+                    luaScript.toByteArray(),
+                    org.springframework.data.redis.connection.ReturnType.INTEGER,
+                    2,
+                    queueKey.toByteArray(),
+                    counterKey.toByteArray(),
+                    coupon.totalQuantity.toString().toByteArray(),
+                    queueId.toByteArray()
+                ) as? Long ?: 0L
+            }
+        } catch (e: Exception) {
+            println("Lua script execution error for user $userId: ${e.message}")
+            e.printStackTrace()
+            0L
+        }
+
+        println("Lua script result for user $userId: $result, maxSize: ${coupon.totalQuantity}, queueKey: $queueKey")
+
+        if (result != 1L) {
+            throw CouponException.CouponSoldOut(couponName, 0)
+        }
+
+        // Lua 스크립트 성공 후 실제 큐 크기 확인
+        val actualQueueSize = redisTemplate.opsForList().size(queueKey) ?: 0L
+        println("Queue 등록 후 실제 큐 크기 확인 - userId: $userId, queueKey: $queueKey, size: $actualQueueSize")
+
+        // Queue 순번 생성 (원자적 증가)
+        val queuePosition = try {
+            getNextQueuePosition(couponId)
+        } catch (e: Exception) {
+            println("Queue 순번 생성 실패 - userId: $userId, error: ${e.message}")
+            throw e
+        }
 
         // Queue 요청 생성
         val queueRequest = CouponQueueRequest.create(
@@ -84,12 +147,14 @@ class CouponQueueService(
             queuePosition = queuePosition
         )
 
-        // 1. Queue에 queueId 추가 (FIFO)
-        val queueKey = getQueueKey(couponId)
-        redisTemplate.opsForList().leftPush(queueKey, queueRequest.queueId)
-
-        // 2. Request 데이터 저장
-        saveQueueRequest(queueRequest)
+        // Queue 데이터 저장
+        try {
+            saveQueueRequest(queueRequest)
+            println("Queue 데이터 저장 성공 - userId: $userId, queueId: $queueId")
+        } catch (e: Exception) {
+            println("Queue 데이터 저장 실패 - userId: $userId, error: ${e.message}")
+            throw e
+        }
 
         // 3. User Mapping 저장 (중복 방지용)
         redisTemplate.opsForValue().set(
