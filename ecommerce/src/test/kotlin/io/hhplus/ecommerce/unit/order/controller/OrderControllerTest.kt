@@ -6,7 +6,9 @@ import io.hhplus.ecommerce.order.usecase.GetOrderQueryUseCase
 import io.hhplus.ecommerce.order.dto.*
 import io.hhplus.ecommerce.order.domain.entity.Order
 import io.hhplus.ecommerce.order.domain.entity.OrderItem
+import io.hhplus.ecommerce.order.domain.entity.OrderQueueRequest
 import io.hhplus.ecommerce.order.domain.constant.OrderStatus
+import io.hhplus.ecommerce.coupon.domain.constant.QueueStatus
 import io.hhplus.ecommerce.delivery.usecase.GetDeliveryQueryUseCase
 import io.hhplus.ecommerce.delivery.dto.DeliveryAddressRequest
 import io.hhplus.ecommerce.common.response.ApiResponse
@@ -78,8 +80,17 @@ class OrderControllerTest : DescribeSpec({
                     )
                 )
                 val mockOrder = createMockOrder(id = 1L, userId = 1L)
+                val mockQueueRequest = OrderQueueRequest(
+                    queueId = "ORD-2024-001",
+                    userId = 1L,
+                    items = request.items,
+                    deliveryAddress = request.deliveryAddress,
+                    usedCouponId = null,
+                    queuePosition = 1,
+                    status = QueueStatus.WAITING
+                )
 
-                every { mockOrderCommandUseCase.createOrder(request) } returns mockOrder
+                every { mockOrderCommandUseCase.createOrder(request) } returns mockQueueRequest
                 every { mockGetOrderQueryUseCase.getOrderWithItems(any()) } returns Pair(mockOrder, emptyList())
 
                 val result = sut.createOrder(request)

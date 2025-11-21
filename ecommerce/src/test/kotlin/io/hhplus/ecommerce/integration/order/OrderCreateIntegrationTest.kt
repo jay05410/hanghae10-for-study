@@ -3,6 +3,10 @@ package io.hhplus.ecommerce.integration.order
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 import io.hhplus.ecommerce.order.usecase.OrderCommandUseCase
 import io.hhplus.ecommerce.order.domain.constant.OrderStatus
+import io.hhplus.ecommerce.coupon.domain.constant.QueueStatus
+import io.hhplus.ecommerce.order.usecase.GetOrderQueryUseCase
+import io.hhplus.ecommerce.order.application.OrderQueueService
+import io.hhplus.ecommerce.order.application.OrderQueueWorker
 import io.hhplus.ecommerce.order.domain.repository.OrderRepository
 import io.hhplus.ecommerce.order.domain.repository.OrderItemRepository
 import io.hhplus.ecommerce.order.dto.CreateOrderRequest
@@ -19,21 +23,24 @@ import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldStartWith
 
 /**
- * 주문 생성 통합 테스트
+ * 주문 생성 통합 테스트 (Redis Queue 시스템)
  *
- * TestContainers MySQL을 사용하여 주문 생성 전체 플로우를 검증합니다.
- * - 주문 생성 (상품 + 수량 기반)
+ * TestContainers MySQL을 사용하여 개선된 주문 생성 전체 플로우를 검증합니다.
+ * - Queue 기반 주문 생성 (즉시 응답 + 백그라운드 처리)
  * - 주문 번호 형식 검증 (ORD-YYYYMMDD-XXX)
  * - OrderItem 생성
  * - 쿠폰 적용 주문
  */
 class OrderCreateIntegrationTest(
     private val orderCommandUseCase: OrderCommandUseCase,
+    private val getOrderQueryUseCase: GetOrderQueryUseCase,
     private val orderRepository: OrderRepository,
     private val orderItemRepository: OrderItemRepository,
     private val productCommandUseCase: ProductCommandUseCase,
     private val inventoryCommandUseCase: InventoryCommandUseCase,
-    private val pointCommandUseCase: PointCommandUseCase
+    private val pointCommandUseCase: PointCommandUseCase,
+    private val orderQueueService: OrderQueueService,
+    private val orderQueueWorker: OrderQueueWorker
 ) : KotestIntegrationTestBase({
 
     // 테스트용 상품 ID를 저장할 변수
@@ -41,6 +48,9 @@ class OrderCreateIntegrationTest(
     lateinit var product2: Product
 
     beforeEach {
+        // Queue 데이터 정리 (테스트 격리)
+        orderQueueService.clearAllQueueData()
+
         // 모든 테스트 전에 상품과 재고 생성
         product1 = productCommandUseCase.createProduct(
             CreateProductRequest(
@@ -75,7 +85,22 @@ class OrderCreateIntegrationTest(
         pointCommandUseCase.chargePoint(8000L, 500000, "주문 테스트용 충전")
     }
 
-    describe("주문 생성") {
+    // Queue 기반 주문 생성 및 처리 완료 대기 헬퍼 함수
+    fun createOrderAndWait(request: CreateOrderRequest): io.hhplus.ecommerce.order.domain.entity.Order {
+        // 1. Queue에 주문 등록
+        val queueResponse = orderCommandUseCase.createOrder(request)
+        queueResponse.status shouldBe QueueStatus.WAITING
+
+        // 2. Queue 처리 (강제 실행으로 즉시 완료)
+        orderQueueWorker.forceProcessAllQueue()
+
+        // 3. 처리된 주문 조회
+        val orders = getOrderQueryUseCase.getOrdersByUser(request.userId)
+        orders shouldHaveSize 1
+        return orders.first()
+    }
+
+    describe("주문 생성 (Redis Queue)") {
         context("정상적인 주문 생성 요청일 때") {
             it("주문을 정상적으로 생성할 수 있다") {
                 // Given
@@ -105,7 +130,7 @@ class OrderCreateIntegrationTest(
                         deliveryMessage = "테스트 배송 메시지"
                     )
                 )
-                val order = orderCommandUseCase.createOrder(createOrderRequest)
+                val order = createOrderAndWait(createOrderRequest)
 
                 // Then
                 order shouldNotBe null
@@ -147,7 +172,7 @@ class OrderCreateIntegrationTest(
                         deliveryMessage = "테스트 배송 메시지"
                     )
                 )
-                val order = orderCommandUseCase.createOrder(createOrderRequest)
+                val order = createOrderAndWait(createOrderRequest)
 
                 // Then - 기본 검증
                 order.totalAmount shouldBe totalAmount
@@ -189,7 +214,7 @@ class OrderCreateIntegrationTest(
                         deliveryMessage = "테스트 배송 메시지"
                     )
                 )
-                val order = orderCommandUseCase.createOrder(createOrderRequest)
+                val order = createOrderAndWait(createOrderRequest)
 
                 // Then
                 val savedOrder = orderRepository.findById(order.id)
@@ -230,7 +255,7 @@ class OrderCreateIntegrationTest(
                         deliveryMessage = "테스트 배송 메시지"
                     )
                 )
-                val order = orderCommandUseCase.createOrder(createOrderRequest)
+                val order = createOrderAndWait(createOrderRequest)
 
                 // Then
                 val savedOrderItems = orderItemRepository.findByOrderId(order.id)
@@ -267,7 +292,7 @@ class OrderCreateIntegrationTest(
                         deliveryMessage = "테스트 배송 메시지"
                     )
                 )
-                val order = orderCommandUseCase.createOrder(createOrderRequest)
+                val order = createOrderAndWait(createOrderRequest)
 
                 // Then
                 order shouldNotBe null
@@ -292,7 +317,7 @@ class OrderCreateIntegrationTest(
                 )
 
                 // When
-                val order1 = orderCommandUseCase.createOrder(CreateOrderRequest(
+                val queueRequest1 = orderCommandUseCase.createOrder(CreateOrderRequest(
                     userId = userId,
                     items = items,
                     usedCouponId = null,
@@ -305,7 +330,7 @@ class OrderCreateIntegrationTest(
                         deliveryMessage = "테스트 배송 메시지"
                     )
                 ))
-                val order2 = orderCommandUseCase.createOrder(CreateOrderRequest(
+                val queueRequest2 = orderCommandUseCase.createOrder(CreateOrderRequest(
                     userId = userId,
                     items = items,
                     usedCouponId = null,
@@ -320,9 +345,9 @@ class OrderCreateIntegrationTest(
                 ))
 
                 // Then
-                order1.orderNumber shouldNotBe order2.orderNumber
-                order1.orderNumber shouldStartWith "ORD"
-                order2.orderNumber shouldStartWith "ORD"
+                queueRequest1.queueId shouldNotBe queueRequest2.queueId
+                queueRequest1.queueId shouldStartWith "ORD"
+                queueRequest2.queueId shouldStartWith "ORD"
             }
         }
     }
@@ -340,7 +365,7 @@ class OrderCreateIntegrationTest(
                         giftMessage = null
                     )
                 )
-                val order = orderCommandUseCase.createOrder(CreateOrderRequest(
+                val queueRequest = orderCommandUseCase.createOrder(CreateOrderRequest(
                     userId = userId,
                     items = items,
                     usedCouponId = null,
@@ -354,14 +379,16 @@ class OrderCreateIntegrationTest(
                     )
                 ))
 
-                // When
-                val foundOrder = orderRepository.findById(order.id)
+                // Queue 처리 대기 (Worker가 주문을 처리할 시간)
+                Thread.sleep(3000)
+
+                // When - 처리된 주문 조회
+                val userOrders = getOrderQueryUseCase.getOrdersByUser(userId)
 
                 // Then
-                foundOrder shouldNotBe null
-                foundOrder!!.id shouldBe order.id
-                foundOrder.userId shouldBe userId
-                foundOrder.orderNumber shouldBe order.orderNumber
+                userOrders shouldNotBe null
+                userOrders.size shouldBe 1
+                userOrders[0].userId shouldBe userId
             }
         }
     }
@@ -381,7 +408,7 @@ class OrderCreateIntegrationTest(
                 )
 
                 // When
-                val order = orderCommandUseCase.createOrder(CreateOrderRequest(
+                val queueRequest = orderCommandUseCase.createOrder(CreateOrderRequest(
                     userId = userId,
                     items = items,
                     usedCouponId = null,
@@ -396,7 +423,7 @@ class OrderCreateIntegrationTest(
                 ))
 
                 // Then
-                order.status shouldBe OrderStatus.PENDING
+                queueRequest.status shouldBe QueueStatus.WAITING
             }
         }
     }
