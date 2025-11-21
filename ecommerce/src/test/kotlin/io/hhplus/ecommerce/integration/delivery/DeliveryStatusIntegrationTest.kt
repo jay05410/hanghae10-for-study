@@ -22,8 +22,7 @@ import io.kotest.matchers.shouldNotBe
  */
 class DeliveryStatusIntegrationTest(
     private val deliveryCommandUseCase: DeliveryCommandUseCase,
-    private val getDeliveryQueryUseCase: GetDeliveryQueryUseCase,
-    private val deliveryRepository: DeliveryRepository
+    private val getDeliveryQueryUseCase: GetDeliveryQueryUseCase
 ) : KotestIntegrationTestBase({
 
     describe("배송 생성") {

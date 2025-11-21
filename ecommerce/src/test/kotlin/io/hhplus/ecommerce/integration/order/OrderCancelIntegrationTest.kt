@@ -9,11 +9,14 @@ import io.hhplus.ecommerce.delivery.dto.DeliveryAddressRequest
 import io.hhplus.ecommerce.point.usecase.PointCommandUseCase
 import io.hhplus.ecommerce.point.usecase.GetPointQueryUseCase
 import io.hhplus.ecommerce.inventory.usecase.GetInventoryQueryUseCase
-import io.hhplus.ecommerce.product.domain.repository.ProductRepository
+import io.hhplus.ecommerce.product.usecase.ProductCommandUseCase
+import io.hhplus.ecommerce.product.usecase.GetProductQueryUseCase
 import io.hhplus.ecommerce.product.domain.entity.Product
 import io.hhplus.ecommerce.inventory.domain.entity.Inventory
-import io.hhplus.ecommerce.inventory.domain.repository.InventoryRepository
-import io.hhplus.ecommerce.delivery.application.DeliveryService
+import io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
+import io.hhplus.ecommerce.delivery.usecase.DeliveryCommandUseCase
+import io.hhplus.ecommerce.delivery.usecase.GetDeliveryQueryUseCase
+import io.hhplus.ecommerce.product.dto.CreateProductRequest
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -38,11 +41,10 @@ class OrderCancelIntegrationTest(
     private val pointCommandUseCase: PointCommandUseCase,
     private val getPointQueryUseCase: GetPointQueryUseCase,
     private val getInventoryQueryUseCase: GetInventoryQueryUseCase,
-    private val productRepository: ProductRepository,
-    private val inventoryRepository: InventoryRepository,
-    private val deliveryService: DeliveryService,
-    private val getOrderQueryUseCase: io.hhplus.ecommerce.order.usecase.GetOrderQueryUseCase,
-    private val orderQueueWorker: io.hhplus.ecommerce.order.application.OrderQueueWorker
+    private val productCommandUseCase: ProductCommandUseCase,
+    private val inventoryCommandUseCase: InventoryCommandUseCase,
+    private val deliveryCommandUseCase: DeliveryCommandUseCase,
+    private val getDeliveryQueryUseCase: GetDeliveryQueryUseCase
 ) : KotestIntegrationTestBase({
 
     describe("주문 취소") {
@@ -53,20 +55,21 @@ class OrderCancelIntegrationTest(
                 val orderQuantity = 3
 
                 // 상품 생성
-                val product = Product.create(
-                    name = "테스트 티",
-                    description = "취소 테스트용 상품",
-                    price = 10000L,
-                    categoryId = 1L
+                val savedProduct = productCommandUseCase.createProduct(
+                    CreateProductRequest(
+                        name = "테스트 티",
+                        description = "취소 테스트용 상품",
+                        price = 10000L,
+                        categoryId = 1L,
+                        createdBy = 1L
+                    )
                 )
-                val savedProduct = productRepository.save(product)
 
                 // 재고 생성
-                val inventory = Inventory.create(
+                val savedInventory = inventoryCommandUseCase.createInventory(
                     productId = savedProduct.id,
                     initialQuantity = 100
                 )
-                val savedInventory = inventoryRepository.save(inventory)
                 val initialStock = savedInventory.quantity
 
                 // 포인트 충전
@@ -97,18 +100,8 @@ class OrderCancelIntegrationTest(
                     )
                 )
 
-                // 주문 생성 (Queue 처리)
-                val queueRequest = orderCommandUseCase.createOrder(createOrderRequest)
-                queueRequest.status shouldBe io.hhplus.ecommerce.coupon.domain.constant.QueueStatus.WAITING
-
-                // Queue 처리 강제 실행
-                orderQueueWorker.forceProcessAllQueue()
-
-                // 주문 조회
-                Thread.sleep(200) // Queue 처리 대기
-                val orders = getOrderQueryUseCase.getOrdersByUser(userId)
-                orders shouldHaveSize 1
-                val createdOrder = orders.first()
+                // 주문 생성 (직접 처리)
+                val createdOrder = orderCommandUseCase.processOrderDirectly(createOrderRequest)
 
                 // 주문 후 재고 확인
                 val stockAfterOrder = getInventoryQueryUseCase.getAvailableQuantity(savedProduct.id)
@@ -142,19 +135,20 @@ class OrderCancelIntegrationTest(
                 // Given: 주문 생성 후 확정
                 val userId = 20002L
 
-                val product = Product.create(
-                    name = "배송 테스트 티",
-                    description = "배송 테스트용",
-                    price = 10000L,
-                    categoryId = 1L
+                val savedProduct = productCommandUseCase.createProduct(
+                    CreateProductRequest(
+                        name = "배송 테스트 티",
+                        description = "배송 테스트용",
+                        price = 10000L,
+                        categoryId = 1L,
+                        createdBy = 1L
+                    )
                 )
-                val savedProduct = productRepository.save(product)
 
-                val inventory = Inventory.create(
+                inventoryCommandUseCase.createInventory(
                     productId = savedProduct.id,
                     initialQuantity = 100
                 )
-                inventoryRepository.save(inventory)
 
                 pointCommandUseCase.chargePoint(userId, 100000, "테스트용 충전")
 
@@ -181,25 +175,15 @@ class OrderCancelIntegrationTest(
                     )
                 )
 
-                // 주문 생성 (Queue 처리)
-                val queueRequest = orderCommandUseCase.createOrder(createOrderRequest)
-                queueRequest.status shouldBe io.hhplus.ecommerce.coupon.domain.constant.QueueStatus.WAITING
-
-                // Queue 처리 강제 실행
-                orderQueueWorker.forceProcessAllQueue()
-
-                // 주문 조회
-                Thread.sleep(200) // Queue 처리 대기
-                val orders = getOrderQueryUseCase.getOrdersByUser(userId)
-                orders shouldHaveSize 1
-                val createdOrder = orders.first()
+                // 주문 생성 (직접 처리)
+                val createdOrder = orderCommandUseCase.processOrderDirectly(createOrderRequest)
 
                 // 주문 확정 (배송 시작)
                 orderCommandUseCase.confirmOrder(createdOrder.id)
 
                 // 배송 준비 시작 (이제 취소 불가)
-                val delivery = deliveryService.getDeliveryByOrderId(createdOrder.id)
-                delivery.let { deliveryService.startPreparing(it.id) }
+                val delivery = getDeliveryQueryUseCase.getDeliveryByOrderId(createdOrder.id)
+                deliveryCommandUseCase.startPreparing(delivery.id)
 
                 // When & Then: 배송 준비 중인 주문은 취소 뵦0가
                 val exception = runCatching {

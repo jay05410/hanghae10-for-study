@@ -1,10 +1,8 @@
 package io.hhplus.ecommerce.integration.order
 
 import io.hhplus.ecommerce.order.usecase.OrderCommandUseCase
-import io.hhplus.ecommerce.order.usecase.GetOrderQueryUseCase
 import io.hhplus.ecommerce.order.dto.CreateOrderRequest
 import io.hhplus.ecommerce.order.dto.CreateOrderItemRequest
-import io.hhplus.ecommerce.order.domain.repository.OrderRepository
 import io.hhplus.ecommerce.delivery.dto.DeliveryAddressRequest
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 import io.hhplus.ecommerce.product.usecase.ProductCommandUseCase
@@ -25,8 +23,6 @@ import java.util.concurrent.Executors
  */
 class OrderServiceConcurrencyIntegrationTest(
     private val orderCommandUseCase: OrderCommandUseCase,
-    private val getOrderQueryUseCase: GetOrderQueryUseCase,
-    private val orderRepository: OrderRepository,
     private val productCommandUseCase: ProductCommandUseCase,
     private val inventoryCommandUseCase: InventoryCommandUseCase,
     private val userCommandUseCase: UserCommandUseCase,

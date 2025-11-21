@@ -10,6 +10,7 @@ import io.hhplus.ecommerce.coupon.dto.UseCouponRequest
 import io.hhplus.ecommerce.coupon.domain.entity.Coupon
 import io.hhplus.ecommerce.coupon.domain.entity.CouponQueueRequest
 import io.hhplus.ecommerce.coupon.domain.entity.UserCoupon
+import io.hhplus.ecommerce.coupon.domain.constant.UserCouponStatus
 import io.hhplus.ecommerce.common.response.ApiResponse
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
@@ -191,8 +192,18 @@ class CouponControllerTest : DescribeSpec({
             it("userId를 GetCouponQueryUseCase에 전달하고 사용 가능한 쿠폰 목록을 ApiResponse로 반환") {
                 val userId = 1L
                 val expectedAvailableCoupons = listOf(
-                    mockk<UserCoupon>(relaxed = true),
-                    mockk<UserCoupon>(relaxed = true)
+                    UserCoupon(
+                        id = 1L,
+                        userId = userId,
+                        couponId = 1L,
+                        status = UserCouponStatus.ISSUED
+                    ),
+                    UserCoupon(
+                        id = 2L,
+                        userId = userId,
+                        couponId = 2L,
+                        status = UserCouponStatus.ISSUED
+                    )
                 )
 
                 every { mockGetCouponQueryUseCase.getAvailableUserCoupons(userId) } returns expectedAvailableCoupons

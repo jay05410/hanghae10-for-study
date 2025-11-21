@@ -222,12 +222,18 @@ class CouponServiceTest : DescribeSpec({
         context("사용 가능한 쿠폰들이 있는 경우") {
             it("발급된 쿠폰 중 사용 가능한 것들만 필터링하여 반환") {
                 val userId = 1L
-                val usableCoupon = mockk<UserCoupon> {
-                    every { isUsable() } returns true
-                }
-                val unusableCoupon = mockk<UserCoupon> {
-                    every { isUsable() } returns false
-                }
+                val usableCoupon = UserCoupon(
+                    id = 1L,
+                    userId = userId,
+                    couponId = 1L,
+                    status = UserCouponStatus.ISSUED
+                )
+                val unusableCoupon = UserCoupon(
+                    id = 2L,
+                    userId = userId,
+                    couponId = 2L,
+                    status = UserCouponStatus.USED
+                )
                 val issuedCoupons = listOf(usableCoupon, unusableCoupon)
 
                 every { mockUserCouponRepository.findByUserIdAndStatus(userId, UserCouponStatus.ISSUED) } returns issuedCoupons

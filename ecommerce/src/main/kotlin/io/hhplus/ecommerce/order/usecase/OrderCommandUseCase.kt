@@ -14,6 +14,7 @@ import io.hhplus.ecommerce.point.domain.vo.PointAmount
 import io.hhplus.ecommerce.order.exception.OrderException
 import io.hhplus.ecommerce.delivery.domain.constant.DeliveryStatus
 import io.hhplus.ecommerce.cart.application.CartService
+import io.hhplus.ecommerce.order.application.OrderQueueService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.PlatformTransactionManager
@@ -42,7 +43,7 @@ class OrderCommandUseCase(
     private val inventoryService: InventoryService,
     private val pointService: PointService,
     private val cartService: CartService,
-    private val orderQueueService: io.hhplus.ecommerce.order.application.OrderQueueService,
+    private val orderQueueService: OrderQueueService,
     transactionManager: PlatformTransactionManager
 ) {
     private val transactionTemplate = TransactionTemplate(transactionManager)
@@ -68,7 +69,7 @@ class OrderCommandUseCase(
     }
 
     /**
-     * 주문 요청을 직접 처리한다 (Queue를 거치지 않음 - 테스트 및 레거시 호환용)
+     * 주문 요청을 직접 처리한다
      *
      * @param request 주문 생성 요청 데이터
      * @return 생성되고 결제 처리가 완료된 주문

@@ -135,7 +135,7 @@ class ProductStatisticsServiceTest : DescribeSpec({
 
                 val result = sut.getProductStatistics(productId)
 
-                result.viewCount shouldBe (dbViewCount + redisViewCount)
+                result!!.viewCount shouldBe (dbViewCount + redisViewCount)
                 result.salesCount shouldBe (dbSalesCount + redisSalesCount)
                 verify(exactly = 1) { mockProductStatisticsRepository.findByProductId(productId) }
                 verify(exactly = 1) { mockProductStatisticsCacheService.getViewCount(productId) }

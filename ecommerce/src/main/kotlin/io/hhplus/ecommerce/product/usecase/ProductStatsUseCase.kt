@@ -40,6 +40,6 @@ class ProductStatsUseCase(
      */
     fun incrementSalesCount(productId: Long, quantity: Int, userId: Long): ProductStatistics {
         productStatisticsService.incrementSalesCount(productId, quantity)
-        return productStatisticsService.getProductStatistics(productId)
+        return productStatisticsService.getProductStatistics(productId)!!
     }
 }

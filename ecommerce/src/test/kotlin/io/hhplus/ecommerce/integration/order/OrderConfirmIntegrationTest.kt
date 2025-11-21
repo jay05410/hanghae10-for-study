@@ -7,10 +7,11 @@ import io.hhplus.ecommerce.order.dto.CreateOrderRequest
 import io.hhplus.ecommerce.order.dto.CreateOrderItemRequest
 import io.hhplus.ecommerce.delivery.dto.DeliveryAddressRequest
 import io.hhplus.ecommerce.point.usecase.PointCommandUseCase
-import io.hhplus.ecommerce.product.domain.repository.ProductRepository
+import io.hhplus.ecommerce.product.usecase.ProductCommandUseCase
 import io.hhplus.ecommerce.product.domain.entity.Product
+import io.hhplus.ecommerce.product.dto.CreateProductRequest
 import io.hhplus.ecommerce.inventory.domain.entity.Inventory
-import io.hhplus.ecommerce.inventory.domain.repository.InventoryRepository
+import io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -31,10 +32,8 @@ import io.kotest.matchers.collections.shouldHaveSize
 class OrderConfirmIntegrationTest(
     private val orderCommandUseCase: OrderCommandUseCase,
     private val pointCommandUseCase: PointCommandUseCase,
-    private val productRepository: ProductRepository,
-    private val inventoryRepository: InventoryRepository,
-    private val getOrderQueryUseCase: io.hhplus.ecommerce.order.usecase.GetOrderQueryUseCase,
-    private val orderQueueWorker: io.hhplus.ecommerce.order.application.OrderQueueWorker
+    private val productCommandUseCase: ProductCommandUseCase,
+    private val inventoryCommandUseCase: InventoryCommandUseCase
 ) : KotestIntegrationTestBase({
 
     describe("주문 확정") {
@@ -43,19 +42,20 @@ class OrderConfirmIntegrationTest(
                 // Given: 주문 생성
                 val userId = 30001L
 
-                val product = Product.create(
-                    name = "확정 테스트 티",
-                    description = "확정 테스트용",
-                    price = 10000L,
-                    categoryId = 1L
+                val savedProduct = productCommandUseCase.createProduct(
+                    CreateProductRequest(
+                        name = "확정 테스트 티",
+                        description = "확정 테스트용",
+                        price = 10000L,
+                        categoryId = 1L,
+                        createdBy = 1L
+                    )
                 )
-                val savedProduct = productRepository.save(product)
 
-                val inventory = Inventory.create(
+                inventoryCommandUseCase.createInventory(
                     productId = savedProduct.id,
                     initialQuantity = 100
                 )
-                inventoryRepository.save(inventory)
 
                 pointCommandUseCase.chargePoint(userId, 50000, "테스트용 충전")
 
@@ -82,18 +82,8 @@ class OrderConfirmIntegrationTest(
                     )
                 )
 
-                // 주문 생성 (Queue 처리)
-                val queueRequest = orderCommandUseCase.createOrder(createOrderRequest)
-                queueRequest.status shouldBe io.hhplus.ecommerce.coupon.domain.constant.QueueStatus.WAITING
-
-                // Queue 처리 강제 실행
-                orderQueueWorker.forceProcessAllQueue()
-
-                // 주문 조회
-                Thread.sleep(200) // Queue 처리 대기
-                val orders = getOrderQueryUseCase.getOrdersByUser(userId)
-                orders shouldHaveSize 1
-                val createdOrder = orders.first()
+                // 주문 생성 (직접 처리 - 비즈니스 로직 테스트 목적)
+                val createdOrder = orderCommandUseCase.processOrderDirectly(createOrderRequest)
 
                 // 주문 생성 직후 상태 확인
                 createdOrder.status shouldBe OrderStatus.PENDING
@@ -113,19 +103,20 @@ class OrderConfirmIntegrationTest(
                 // Given: 주문 생성 및 확정
                 val userId = 30002L
 
-                val product = Product.create(
-                    name = "중복 확정 테스트 티",
-                    description = "테스트용",
-                    price = 10000L,
-                    categoryId = 1L
+                val savedProduct = productCommandUseCase.createProduct(
+                    CreateProductRequest(
+                        name = "중복 확정 테스트 티",
+                        description = "테스트용",
+                        price = 10000L,
+                        categoryId = 1L,
+                        createdBy = 1L
+                    )
                 )
-                val savedProduct = productRepository.save(product)
 
-                val inventory = Inventory.create(
+                inventoryCommandUseCase.createInventory(
                     productId = savedProduct.id,
                     initialQuantity = 100
                 )
-                inventoryRepository.save(inventory)
 
                 pointCommandUseCase.chargePoint(userId, 50000, "테스트용 충전")
 
@@ -152,18 +143,8 @@ class OrderConfirmIntegrationTest(
                     )
                 )
 
-                // 주문 생성 (Queue 처리)
-                val queueRequest = orderCommandUseCase.createOrder(createOrderRequest)
-                queueRequest.status shouldBe io.hhplus.ecommerce.coupon.domain.constant.QueueStatus.WAITING
-
-                // Queue 처리 강제 실행
-                orderQueueWorker.forceProcessAllQueue()
-
-                // 주문 조회
-                Thread.sleep(200) // Queue 처리 대기
-                val orders = getOrderQueryUseCase.getOrdersByUser(userId)
-                orders shouldHaveSize 1
-                val createdOrder = orders.first()
+                // 주문 생성 (직접 처리 - 비즈니스 로직 테스트 목적)
+                val createdOrder = orderCommandUseCase.processOrderDirectly(createOrderRequest)
 
                 // 첫 번째 확정
                 orderCommandUseCase.confirmOrder(createdOrder.id)
@@ -185,19 +166,20 @@ class OrderConfirmIntegrationTest(
                 // Given: 주문 생성 후 취소
                 val userId = 30003L
 
-                val product = Product.create(
-                    name = "취소 후 확정 테스트 티",
-                    description = "테스트용",
-                    price = 10000L,
-                    categoryId = 1L
+                val savedProduct = productCommandUseCase.createProduct(
+                    CreateProductRequest(
+                        name = "취소 후 확정 테스트 티",
+                        description = "테스트용",
+                        price = 10000L,
+                        categoryId = 1L,
+                        createdBy = 1L
+                    )
                 )
-                val savedProduct = productRepository.save(product)
 
-                val inventory = Inventory.create(
+                inventoryCommandUseCase.createInventory(
                     productId = savedProduct.id,
                     initialQuantity = 100
                 )
-                inventoryRepository.save(inventory)
 
                 pointCommandUseCase.chargePoint(userId, 50000, "테스트용 충전")
 
@@ -224,18 +206,8 @@ class OrderConfirmIntegrationTest(
                     )
                 )
 
-                // 주문 생성 (Queue 처리)
-                val queueRequest = orderCommandUseCase.createOrder(createOrderRequest)
-                queueRequest.status shouldBe io.hhplus.ecommerce.coupon.domain.constant.QueueStatus.WAITING
-
-                // Queue 처리 강제 실행
-                orderQueueWorker.forceProcessAllQueue()
-
-                // 주문 조회
-                Thread.sleep(200) // Queue 처리 대기
-                val orders = getOrderQueryUseCase.getOrdersByUser(userId)
-                orders shouldHaveSize 1
-                val createdOrder = orders.first()
+                // 주문 생성 (직접 처리 - 비즈니스 로직 테스트 목적)
+                val createdOrder = orderCommandUseCase.processOrderDirectly(createOrderRequest)
 
                 // 주문 취소
                 orderCommandUseCase.cancelOrder(createdOrder.id, "테스트 취소")

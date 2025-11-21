@@ -34,8 +34,7 @@ class OrderListIntegrationTest(
     private val getOrderQueryUseCase: GetOrderQueryUseCase,
     private val pointCommandUseCase: PointCommandUseCase,
     private val productRepository: ProductRepository,
-    private val inventoryRepository: InventoryRepository,
-    private val orderQueueWorker: io.hhplus.ecommerce.order.application.OrderQueueWorker
+    private val inventoryRepository: InventoryRepository
 ) : KotestIntegrationTestBase({
 
     describe("사용자 주문 목록 조회") {
@@ -86,21 +85,16 @@ class OrderListIntegrationTest(
                     )
                 )
 
-                // 주문 생성 (각각 다른 사용자 ID로 생성하여 AlreadyInOrderQueue 방지)
-                val createdOrderIds = (1..orderCount).map { index ->
+                // 주문 생성 (각각 다른 사용자 ID로 생성)
+                val createdOrders = (1..orderCount).map { index ->
                     val modifiedRequest = createOrderRequest.copy(userId = userId + index.toLong())
 
                     // 해당 사용자에게 포인트 충전
                     pointCommandUseCase.chargePoint(userId + index.toLong(), 50000, "테스트용 충전")
 
-                    val queueRequest = orderCommandUseCase.createOrder(modifiedRequest)
-                    Thread.sleep(1)
-                    queueRequest.queueId
+                    // 직접 주문 처리
+                    orderCommandUseCase.processOrderDirectly(modifiedRequest)
                 }
-
-                // 모든 Queue 처리
-                orderQueueWorker.forceProcessAllQueue()
-                Thread.sleep(500) // Queue 처리 대기
 
                 // When: 다수 사용자의 주문 목록 조회
                 val allOrders = (1..orderCount).flatMap { index ->
@@ -176,14 +170,12 @@ class OrderListIntegrationTest(
 
                 // 대량 주문 생성 (각각 다른 사용자 ID로)
                 repeat(largeOrderCount) { index ->
-                    val modifiedRequest = createOrderRequest.copy(userId = userId + index.toLong())
-                    pointCommandUseCase.chargePoint(userId + index.toLong(), 40000, "테스트용 충전")
-                    orderCommandUseCase.createOrder(modifiedRequest)
+                    val currentUserId = userId + index.toLong() + 1 // 1부터 시작하도록 수정
+                    val modifiedRequest = createOrderRequest.copy(userId = currentUserId)
+                    pointCommandUseCase.chargePoint(currentUserId, 40000, "테스트용 충전")
+                    // 직접 주문 처리
+                    orderCommandUseCase.processOrderDirectly(modifiedRequest)
                 }
-
-                // Queue 처리
-                orderQueueWorker.forceProcessAllQueue()
-                Thread.sleep(1000) // Queue 처리 대기
 
                 // When: 다수 사용자 주문 조회 시간 측정
                 val startTime = System.currentTimeMillis()

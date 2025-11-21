@@ -7,6 +7,7 @@ import io.hhplus.ecommerce.product.dto.CreateProductRequest
 import io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
 import io.hhplus.ecommerce.inventory.usecase.InventoryReservationUseCase
 import io.hhplus.ecommerce.inventory.usecase.GetInventoryQueryUseCase
+import io.hhplus.ecommerce.product.usecase.ProductCommandUseCase
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.comparables.shouldBeGreaterThanOrEqualTo
@@ -26,7 +27,7 @@ class InventoryConcurrencyIntegrationTest(
     private val inventoryCommandUseCase: InventoryCommandUseCase,
     private val inventoryReservationUseCase: InventoryReservationUseCase,
     private val getInventoryQueryUseCase: GetInventoryQueryUseCase,
-    private val productCommandUseCase: io.hhplus.ecommerce.product.usecase.ProductCommandUseCase
+    private val productCommandUseCase: ProductCommandUseCase
 ) : KotestIntegrationTestBase({
 
     describe("재고 동시성 제어") {
