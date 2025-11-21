@@ -57,4 +57,13 @@ sealed class OrderException(
             "attemptedStatus" to attemptedStatus
         )
     )
+
+    /**
+     * 이미 주문 대기열에 등록된 사용자 예외
+     */
+    class AlreadyInOrderQueue(userId: Long) : OrderException(
+        errorCode = OrderErrorCode.ALREADY_IN_ORDER_QUEUE,
+        message = OrderErrorCode.ALREADY_IN_ORDER_QUEUE.withParams("userId" to userId),
+        data = mapOf("userId" to userId)
+    )
 }

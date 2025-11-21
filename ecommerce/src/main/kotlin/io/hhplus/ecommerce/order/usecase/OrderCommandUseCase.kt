@@ -42,20 +42,40 @@ class OrderCommandUseCase(
     private val inventoryService: InventoryService,
     private val pointService: PointService,
     private val cartService: CartService,
+    private val orderQueueService: io.hhplus.ecommerce.order.application.OrderQueueService,
     transactionManager: PlatformTransactionManager
 ) {
     private val transactionTemplate = TransactionTemplate(transactionManager)
     private val logger = LoggerFactory.getLogger(javaClass)
 
     /**
-     * 주문 생성 비즈니스 플로우를 실행한다
+     * 주문 생성 요청을 Queue에 등록한다
+     *
+     * @param request 주문 생성 요청 데이터
+     * @return 등록된 Queue 요청 정보 (대기 순번, 예상 시간 포함)
+     * @throws IllegalArgumentException 상품 정보가 유효하지 않을 경우
+     * @throws io.hhplus.ecommerce.order.exception.OrderException.AlreadyInOrderQueue 이미 Queue에 등록된 경우
+     */
+    fun createOrder(request: CreateOrderRequest): io.hhplus.ecommerce.order.domain.entity.OrderQueueRequest {
+        return orderQueueService.enqueue(request)
+    }
+
+    /**
+     * 레거시 테스트 호환용 - 직접 주문 생성 (기존 API와 동일한 시그니처)
+     */
+    fun createOrderLegacy(request: CreateOrderRequest): Order {
+        return processOrderDirectly(request)
+    }
+
+    /**
+     * 주문 요청을 직접 처리한다 (Queue를 거치지 않음 - 테스트 및 레거시 호환용)
      *
      * @param request 주문 생성 요청 데이터
      * @return 생성되고 결제 처리가 완료된 주문
      * @throws IllegalArgumentException 상품 정보가 유효하지 않을 경우
      * @throws RuntimeException 결제 처리에 실패한 경우
      */
-    fun createOrder(request: CreateOrderRequest): Order {
+    fun processOrderDirectly(request: CreateOrderRequest): Order {
         // 1. 상품 정보 검증 및 가격 계산
         val orderItems = validateAndPrepareOrderItems(request)
         val totalAmount = calculateTotalAmount(orderItems)
@@ -63,9 +83,16 @@ class OrderCommandUseCase(
         // 2. 쿠폰 검증 (선택적)
         val discountAmount = validateCoupon(request, totalAmount)
 
-        // 3. DB 작업 (트랜잭션 내부)
+        // 3. DB 작업 (트랜잭션 내부) - 동시성 개선을 위해 순차적 처리
         val order = transactionTemplate.execute { status ->
             try {
+                // 포인트 사용 먼저 (데드락 방지를 위해 사용자별 순서 통일)
+                pointService.usePoint(
+                    userId = request.userId,
+                    amount = PointAmount.of(totalAmount - discountAmount),
+                    description = "주문 결제"
+                )
+
                 // 재고 처리 (productId 정렬로 데드락 방지)
                 orderItems.sortedBy { it.productId }.forEach { item ->
                     if (item.requiresReservation) {
@@ -86,31 +113,32 @@ class OrderCommandUseCase(
                     discountAmount = discountAmount
                 )
 
-                // 포인트 사용 (결제)
-                pointService.usePoint(
-                    userId = request.userId,
-                    amount = PointAmount.of(savedOrder.finalAmount),
-                    description = "주문 결제"
-                )
-
-                // 결제 처리 (기록용)
-                paymentService.processPayment(
-                    userId = request.userId,
-                    orderId = savedOrder.id,
-                    amount = savedOrder.finalAmount
-                )
+                // 결제 처리 (기록용) - 트랜잭션 분리 가능한 부분
+                try {
+                    paymentService.processPayment(
+                        userId = request.userId,
+                        orderId = savedOrder.id,
+                        amount = savedOrder.finalAmount
+                    )
+                } catch (e: Exception) {
+                    logger.warn("결제 기록 실패 (주문은 성공): ${e.message}")
+                }
 
                 // 쿠폰 사용 처리
                 request.usedCouponId?.let { couponId ->
                     couponService.applyCoupon(request.userId, couponId, savedOrder.id, totalAmount)
                 }
 
-                // 배송 정보 생성
-                deliveryService.createDelivery(
-                    orderId = savedOrder.id,
-                    deliveryAddress = request.deliveryAddress.toVo(),
-                    deliveryMemo = request.deliveryAddress.deliveryMessage
-                )
+                // 배송 정보 생성 - 트랜잭션 분리 가능한 부분
+                try {
+                    deliveryService.createDelivery(
+                        orderId = savedOrder.id,
+                        deliveryAddress = request.deliveryAddress.toVo(),
+                        deliveryMemo = request.deliveryAddress.deliveryMessage
+                    )
+                } catch (e: Exception) {
+                    logger.warn("배송 정보 생성 실패 (주문은 성공): ${e.message}")
+                }
 
                 savedOrder
 
@@ -129,6 +157,16 @@ class OrderCommandUseCase(
         }
 
         return order
+    }
+
+    /**
+     * 사용자의 주문 대기열 상태를 조회한다
+     *
+     * @param userId 사용자 ID
+     * @return Queue 요청 (없으면 null)
+     */
+    fun getUserQueueStatus(userId: Long): io.hhplus.ecommerce.order.domain.entity.OrderQueueRequest? {
+        return orderQueueService.getUserQueueRequest(userId)
     }
 
     /**

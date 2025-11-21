@@ -27,5 +27,11 @@ enum class OrderErrorCode(
         code = "ORDER003",
         message = "잘못된 주문 상태 변경입니다. 주문번호: {orderNumber}, 현재: {currentStatus}, 시도: {attemptedStatus}",
         httpStatus = 409
+    ),
+
+    ALREADY_IN_ORDER_QUEUE(
+        code = "ORDER004",
+        message = "이미 주문 대기열에 등록된 사용자입니다. 사용자 ID: {userId}",
+        httpStatus = 409
     );
 }
