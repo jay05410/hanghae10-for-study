@@ -2,6 +2,8 @@ package io.hhplus.ecommerce.config
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator
+import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import org.springframework.context.annotation.Bean
@@ -19,10 +21,17 @@ class RedisConfig {
 
     @Bean
     fun redisObjectMapper(): ObjectMapper {
+        val typeValidator: PolymorphicTypeValidator = BasicPolymorphicTypeValidator.builder()
+            .allowIfBaseType(Any::class.java)
+            .allowIfSubType("io.hhplus.ecommerce")
+            .build()
+
         return ObjectMapper().apply {
             registerKotlinModule()
             registerModule(JavaTimeModule())
             disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+            // 패키지 이동 시 캐시 정합성 문제 방지를 위한 타입 검증 설정
+            activateDefaultTyping(typeValidator, ObjectMapper.DefaultTyping.NON_FINAL)
         }
     }
 
