@@ -9,6 +9,7 @@ spring_mockk = "4.0.2"
 
 redisson = "3.25.2"
 springdoc = "2.8.5"
+kotlin_logging = "3.0.5"
 
 # test
 junit = "5.9.3"
@@ -57,6 +58,9 @@ spring_mockk = { module = "com.ninja-squad:springmockk", version.ref = "spring_m
 # API 문서화
 springdoc_openapi_webmvc_ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
 springdoc_openapi_common = { module = "org.springdoc:springdoc-openapi-starter-common", version.ref = "springdoc" }
+
+# Kotlin Logging
+kotlin_logging = { module = "io.github.microutils:kotlin-logging-jvm", version.ref = "kotlin_logging" }
 
 [bundles]
 testcontainers_mysql = ["test_containers_mysql", "spring_boot_testcontainers", "test_containers_junit_jupiter","spring_boot_starter_test"]

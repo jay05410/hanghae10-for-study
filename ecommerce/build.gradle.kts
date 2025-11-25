@@ -53,6 +53,9 @@ dependencies {
     // Redis
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
 
+    // Kotlin Logging
+    implementation(libs.kotlin.logging)
+
     // Test Dependencies
     testImplementation(libs.spring.boot.starter.test)
     testImplementation(kotlin("test"))
