@@ -4,7 +4,7 @@ import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.extensions.spring.SpringExtension
 import io.kotest.matchers.longs.shouldBeGreaterThan
 import io.kotest.matchers.longs.shouldBeLessThan
-import org.slf4j.LoggerFactory
+import mu.KotlinLogging
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.context.ActiveProfiles
@@ -46,7 +46,7 @@ class IndexPerformanceComparisonTest(
 
     override fun extensions() = listOf(SpringExtension)
 
-    private val log = LoggerFactory.getLogger(IndexPerformanceComparisonTest::class.java)
+    private val log = KotlinLogging.logger {}
 
     init {
 

@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.common.queue
 
-import org.slf4j.LoggerFactory
+import mu.KotlinLogging
 
 /**
  * Queue Worker 추상 클래스
@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory
 abstract class BaseQueueWorker<T, R>(
     private val processor: QueueProcessor<T, R>
 ) {
-    private val logger = LoggerFactory.getLogger(javaClass)
+    private val logger = KotlinLogging.logger {}
 
     /**
      * Queue 처리 메인 로직 (배치 처리)

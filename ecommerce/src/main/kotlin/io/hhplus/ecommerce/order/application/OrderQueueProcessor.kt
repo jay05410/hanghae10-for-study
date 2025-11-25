@@ -5,7 +5,7 @@ import io.hhplus.ecommerce.order.domain.entity.Order
 import io.hhplus.ecommerce.order.domain.entity.OrderQueueRequest
 import io.hhplus.ecommerce.order.dto.CreateOrderRequest
 import io.hhplus.ecommerce.order.usecase.OrderCommandUseCase
-import org.slf4j.LoggerFactory
+import mu.KotlinLogging
 import org.springframework.stereotype.Component
 
 /**
@@ -17,7 +17,7 @@ class OrderQueueProcessor(
     private val orderCommandUseCase: OrderCommandUseCase
 ) : QueueProcessor<OrderQueueRequest, Order> {
 
-    private val logger = LoggerFactory.getLogger(javaClass)
+    private val logger = KotlinLogging.logger {}
 
     override fun dequeue(): OrderQueueRequest? {
         return orderQueueService.dequeue()

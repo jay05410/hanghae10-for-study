@@ -3,7 +3,7 @@ package io.hhplus.ecommerce.coupon.application
 import io.hhplus.ecommerce.common.queue.QueueProcessor
 import io.hhplus.ecommerce.coupon.domain.entity.CouponQueueRequest
 import io.hhplus.ecommerce.coupon.domain.entity.UserCoupon
-import org.slf4j.LoggerFactory
+import mu.KotlinLogging
 import org.springframework.stereotype.Component
 
 /**
@@ -15,7 +15,7 @@ class CouponQueueProcessor(
     private val couponService: CouponService
 ) : QueueProcessor<CouponQueueRequest, UserCoupon> {
 
-    private val logger = LoggerFactory.getLogger(javaClass)
+    private val logger = KotlinLogging.logger {}
     private var currentCouponId: Long? = null
 
     fun setCouponId(couponId: Long) {

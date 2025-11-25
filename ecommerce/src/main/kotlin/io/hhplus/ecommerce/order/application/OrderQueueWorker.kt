@@ -3,7 +3,7 @@ package io.hhplus.ecommerce.order.application
 import io.hhplus.ecommerce.common.queue.BaseQueueWorker
 import io.hhplus.ecommerce.order.domain.entity.Order
 import io.hhplus.ecommerce.order.domain.entity.OrderQueueRequest
-import org.slf4j.LoggerFactory
+import mu.KotlinLogging
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -23,7 +23,7 @@ class OrderQueueWorker(
     private val orderQueueService: OrderQueueService
 ) : BaseQueueWorker<OrderQueueRequest, Order>(orderQueueProcessor) {
 
-    private val logger = LoggerFactory.getLogger(javaClass)
+    private val logger = KotlinLogging.logger {}
 
     companion object {
         private const val PROCESS_INTERVAL_MS = 10L // 더 빠른 처리를 위해 10ms로 단축

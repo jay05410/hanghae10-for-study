@@ -4,7 +4,7 @@ import io.hhplus.ecommerce.common.queue.BaseQueueWorker
 import io.hhplus.ecommerce.coupon.domain.entity.CouponQueueRequest
 import io.hhplus.ecommerce.coupon.domain.entity.UserCoupon
 import io.hhplus.ecommerce.coupon.domain.repository.CouponRepository
-import org.slf4j.LoggerFactory
+import mu.KotlinLogging
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -24,7 +24,7 @@ class CouponQueueWorker(
     private val couponRepository: CouponRepository
 ) : BaseQueueWorker<CouponQueueRequest, UserCoupon>(couponQueueProcessor) {
 
-    private val logger = LoggerFactory.getLogger(javaClass)
+    private val logger = KotlinLogging.logger {}
 
     companion object {
         private const val PROCESS_INTERVAL_MS = 100L

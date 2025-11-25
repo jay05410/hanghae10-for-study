@@ -4,7 +4,7 @@ import io.hhplus.ecommerce.order.domain.constant.OrderStatus
 import io.hhplus.ecommerce.point.domain.constant.PointTransactionType
 import io.hhplus.ecommerce.product.domain.constant.ProductStatus
 import io.hhplus.ecommerce.user.domain.constant.LoginType
-import org.slf4j.LoggerFactory
+import mu.KotlinLogging
 import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.ApplicationRunner
 import org.springframework.context.annotation.DependsOn
@@ -38,7 +38,7 @@ class PerformanceDataLoader(
     private val jdbcTemplate: JdbcTemplate
 ) : ApplicationRunner {
 
-    private val log = LoggerFactory.getLogger(javaClass)
+    private val log = KotlinLogging.logger {}
     private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
     // 데이터 볼륨 설정 (조정 가능)

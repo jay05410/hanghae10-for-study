@@ -7,7 +7,7 @@ import io.hhplus.ecommerce.order.dto.CreateOrderRequest
 import io.hhplus.ecommerce.order.dto.CreateOrderItemRequest
 import io.hhplus.ecommerce.delivery.dto.DeliveryAddressRequest
 import io.kotest.matchers.ints.shouldBeGreaterThan
-import org.slf4j.LoggerFactory
+import mu.KotlinLogging
 import org.springframework.jdbc.core.JdbcTemplate
 import java.io.File
 import java.time.LocalDateTime
@@ -29,7 +29,7 @@ class OrderCreationPerformanceTest(
     private val jdbcTemplate: JdbcTemplate
 ) : KotestIntegrationTestBase({
 
-    val log = LoggerFactory.getLogger(OrderCreationPerformanceTest::class.java)
+    val log = KotlinLogging.logger {}
 
     describe("주문 생성 성능 측정") {
 

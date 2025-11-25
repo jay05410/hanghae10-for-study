@@ -5,7 +5,7 @@ import io.hhplus.ecommerce.support.ConcurrentTestHelper
 import io.hhplus.ecommerce.coupon.usecase.CouponCommandUseCase
 import io.hhplus.ecommerce.coupon.dto.IssueCouponRequest
 import io.kotest.matchers.ints.shouldBeGreaterThan
-import org.slf4j.LoggerFactory
+import mu.KotlinLogging
 import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -25,7 +25,7 @@ class CouponIssuancePerformanceTest(
     private val dataSetup: PerformanceTestDataSetup
 ) : KotestIntegrationTestBase({
 
-    val log = LoggerFactory.getLogger(CouponIssuancePerformanceTest::class.java)
+    val log = KotlinLogging.logger {}
 
     describe("쿠폰 발급 성능 측정") {
 

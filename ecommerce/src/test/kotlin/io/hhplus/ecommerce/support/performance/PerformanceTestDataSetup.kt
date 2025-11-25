@@ -13,7 +13,7 @@ import io.hhplus.ecommerce.coupon.domain.constant.DiscountType
 import io.hhplus.ecommerce.point.domain.entity.UserPoint
 import io.hhplus.ecommerce.point.domain.repository.UserPointRepository
 import io.hhplus.ecommerce.point.domain.vo.PointAmount
-import org.slf4j.LoggerFactory
+import mu.KotlinLogging
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -42,7 +42,7 @@ class PerformanceTestDataSetup(
     private val userPointRepository: UserPointRepository
 ) {
 
-    private val log = LoggerFactory.getLogger(PerformanceTestDataSetup::class.java)
+    private val log = KotlinLogging.logger {}
 
     companion object {
         const val TEST_USER_COUNT = 1000  // 대규모 테스트: 1,000명

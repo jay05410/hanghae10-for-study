@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.inventory.application
 
-import org.slf4j.LoggerFactory
+import mu.KotlinLogging
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 
@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component
 class StockReservationScheduler(
     private val stockReservationService: StockReservationService
 ) {
-    private val logger = LoggerFactory.getLogger(StockReservationScheduler::class.java)
+    private val logger = KotlinLogging.logger {}
 
     /**
      * 매분마다 만료된 예약을 확인하고 해제

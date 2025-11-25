@@ -3,8 +3,7 @@ package io.hhplus.ecommerce.common.exception
 import io.hhplus.ecommerce.common.response.ApiResponse
 import io.hhplus.ecommerce.common.response.ErrorResponse
 import jakarta.servlet.http.HttpServletRequest
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+import mu.KotlinLogging
 import org.slf4j.event.Level
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -23,7 +22,7 @@ import java.time.LocalDateTime
 class GlobalExceptionHandler {
 
     companion object {
-        private val log: Logger = LoggerFactory.getLogger(GlobalExceptionHandler::class.java)
+        private val log = KotlinLogging.logger {}
     }
 
     /**
@@ -141,7 +140,7 @@ class GlobalExceptionHandler {
      * @param context 로그 컨텍스트(선택)
      */
     private fun Exception.logError(
-        logger: Logger,
+        logger: mu.KLogger,
         level: Level,
         message: String? = null,
         context: Map<String, Any> = emptyMap()

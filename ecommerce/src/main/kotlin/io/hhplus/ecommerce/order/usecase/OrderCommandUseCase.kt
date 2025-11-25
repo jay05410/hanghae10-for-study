@@ -15,7 +15,7 @@ import io.hhplus.ecommerce.order.exception.OrderException
 import io.hhplus.ecommerce.delivery.domain.constant.DeliveryStatus
 import io.hhplus.ecommerce.cart.application.CartService
 import io.hhplus.ecommerce.order.application.OrderQueueService
-import org.slf4j.LoggerFactory
+import mu.KotlinLogging
 import org.springframework.stereotype.Component
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.annotation.Transactional
@@ -47,7 +47,7 @@ class OrderCommandUseCase(
     transactionManager: PlatformTransactionManager
 ) {
     private val transactionTemplate = TransactionTemplate(transactionManager)
-    private val logger = LoggerFactory.getLogger(javaClass)
+    private val logger = KotlinLogging.logger {}
 
     /**
      * 주문 생성 요청을 Queue에 등록한다

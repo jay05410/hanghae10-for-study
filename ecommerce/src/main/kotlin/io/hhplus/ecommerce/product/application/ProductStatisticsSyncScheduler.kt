@@ -2,7 +2,7 @@ package io.hhplus.ecommerce.product.application
 
 import io.hhplus.ecommerce.product.domain.entity.ProductStatistics
 import io.hhplus.ecommerce.product.domain.repository.ProductStatisticsRepository
-import org.slf4j.LoggerFactory
+import mu.KotlinLogging
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -20,7 +20,7 @@ class ProductStatisticsSyncScheduler(
     private val productStatisticsCacheService: ProductStatisticsCacheService,
     private val productStatisticsRepository: ProductStatisticsRepository
 ) {
-    private val logger = LoggerFactory.getLogger(javaClass)
+    private val logger = KotlinLogging.logger {}
 
     /**
      * 1분마다 Redis → DB 동기화

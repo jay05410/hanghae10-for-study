@@ -4,7 +4,7 @@ import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 import io.hhplus.ecommerce.support.ConcurrentTestHelper
 import io.hhplus.ecommerce.product.application.ProductStatisticsService
 import io.kotest.matchers.ints.shouldBeGreaterThan
-import org.slf4j.LoggerFactory
+import mu.KotlinLogging
 import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -23,7 +23,7 @@ class ProductStatisticsPerformanceTest(
     private val dataSetup: PerformanceTestDataSetup
 ) : KotestIntegrationTestBase({
 
-    val log = LoggerFactory.getLogger(ProductStatisticsPerformanceTest::class.java)
+    val log = KotlinLogging.logger {}
 
     describe("상품 통계(조회수) 성능 측정") {
 
