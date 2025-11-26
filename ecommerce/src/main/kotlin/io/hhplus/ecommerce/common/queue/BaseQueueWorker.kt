@@ -13,6 +13,10 @@ abstract class BaseQueueWorker<T, R>(
 ) {
     private val logger = KotlinLogging.logger {}
 
+    companion object {
+        private const val MAX_BATCH_SIZE = 50
+    }
+
     /**
      * Queue 처리 메인 로직 (배치 처리)
      *
@@ -20,8 +24,8 @@ abstract class BaseQueueWorker<T, R>(
      */
     fun processQueue() {
         try {
-            // 배치 처리: 한 번에 최대 50개까지 처리
-            repeat(50) {
+            // 배치 처리: 한 번에 최대 MAX_BATCH_SIZE개까지 처리
+            repeat(MAX_BATCH_SIZE) {
                 val item = processor.dequeue() ?: return@repeat
 
                 try {
