@@ -1,11 +1,8 @@
 package io.hhplus.ecommerce.product.application
 
-import io.hhplus.ecommerce.product.domain.entity.ProductStatistics
-import io.hhplus.ecommerce.product.domain.repository.ProductStatisticsRepository
 import mu.KotlinLogging
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 
 /**
  * 상품 통계 Redis → DB 동기화 스케줄러
@@ -18,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional
 @Component
 class ProductStatisticsSyncScheduler(
     private val productStatisticsCacheService: ProductStatisticsCacheService,
-    private val productStatisticsRepository: ProductStatisticsRepository
+    private val syncHelper: ProductStatisticsSyncHelper
 ) {
     private val logger = KotlinLogging.logger {}
 
@@ -42,7 +39,7 @@ class ProductStatisticsSyncScheduler(
                 val count = productStatisticsCacheService.getAndClearViewCount(productId)
 
                 if (count > 0) {
-                    syncViewCount(productId, count)
+                    syncHelper.syncViewCount(productId, count)
                     syncedViewCount++
                 }
             }
@@ -56,7 +53,7 @@ class ProductStatisticsSyncScheduler(
                 val count = productStatisticsCacheService.getAndClearSalesCount(productId)
 
                 if (count > 0) {
-                    syncSalesCount(productId, count)
+                    syncHelper.syncSalesCount(productId, count)
                     syncedSalesCount++
                 }
             }
@@ -65,48 +62,6 @@ class ProductStatisticsSyncScheduler(
 
         } catch (e: Exception) {
             logger.error("[ProductStatistics] Redis → DB 동기화 실패: ${e.message}", e)
-        }
-    }
-
-    @Transactional
-    protected fun syncViewCount(productId: Long, count: Long) {
-        try {
-            var statistics = productStatisticsRepository.findByProductId(productId)
-            if (statistics == null) {
-                statistics = ProductStatistics.create(productId)
-                productStatisticsRepository.save(statistics)
-            }
-
-            repeat(count.toInt()) {
-                statistics.incrementViewCount()
-            }
-            productStatisticsRepository.save(statistics)
-
-            logger.debug("[ProductStatistics] 조회수 동기화 성공: productId=$productId, count=$count")
-
-        } catch (e: Exception) {
-            logger.error("[ProductStatistics] 조회수 동기화 실패: productId=$productId, count=$count, error=${e.message}")
-            throw e
-        }
-    }
-
-    @Transactional
-    protected fun syncSalesCount(productId: Long, count: Long) {
-        try {
-            var statistics = productStatisticsRepository.findByProductId(productId)
-            if (statistics == null) {
-                statistics = ProductStatistics.create(productId)
-                productStatisticsRepository.save(statistics)
-            }
-
-            statistics.incrementSalesCount(count.toInt())
-            productStatisticsRepository.save(statistics)
-
-            logger.debug("[ProductStatistics] 판매량 동기화 성공: productId=$productId, count=$count")
-
-        } catch (e: Exception) {
-            logger.error("[ProductStatistics] 판매량 동기화 실패: productId=$productId, count=$count, error=${e.message}")
-            throw e
         }
     }
 
