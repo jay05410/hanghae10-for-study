@@ -56,6 +56,9 @@ dependencies {
     // Redisson for Distributed Lock
     implementation(libs.redisson.spring.boot.starter)
 
+    // Caffeine Cache
+    implementation(libs.caffeine)
+
     // Kotlin Logging
     implementation(libs.kotlin.logging)
 

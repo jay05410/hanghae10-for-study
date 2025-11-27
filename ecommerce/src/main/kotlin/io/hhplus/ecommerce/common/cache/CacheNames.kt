@@ -21,10 +21,14 @@ object CacheNames {
     const val COUPON_ACTIVE_LIST = "ecommerce:coupon:active_list"
 
     /**
-     * 상품 도메인 캐시 (향후 확장용)
+     * 상품 도메인 캐시
      */
     const val PRODUCT_INFO = "ecommerce:product:info"
     const val PRODUCT_STOCK = "ecommerce:product:stock"
+    const val PRODUCT_DETAIL = "ecommerce:product:detail"
+    const val PRODUCT_LIST = "ecommerce:product:list"
+    const val PRODUCT_CATEGORY_LIST = "ecommerce:product:category_list"
+    const val PRODUCT_POPULAR = "ecommerce:product:popular"
 
     /**
      * 사용자 도메인 캐시 (향후 확장용)
@@ -45,6 +49,10 @@ object CacheNames {
         COUPON_ACTIVE_LIST,
         PRODUCT_INFO,
         PRODUCT_STOCK,
+        PRODUCT_DETAIL,
+        PRODUCT_LIST,
+        PRODUCT_CATEGORY_LIST,
+        PRODUCT_POPULAR,
         USER_PROFILE,
         USER_COUPON_LIST,
         ORDER_INFO
