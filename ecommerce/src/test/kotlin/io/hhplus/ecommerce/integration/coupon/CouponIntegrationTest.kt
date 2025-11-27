@@ -4,6 +4,8 @@ import io.hhplus.ecommerce.coupon.domain.constant.DiscountType
 import io.hhplus.ecommerce.coupon.domain.entity.Coupon
 import io.hhplus.ecommerce.coupon.domain.repository.CouponRepository
 import io.hhplus.ecommerce.coupon.application.CouponService
+import io.hhplus.ecommerce.coupon.usecase.CouponUseCase
+import io.hhplus.ecommerce.coupon.dto.IssueCouponRequest
 import io.hhplus.ecommerce.coupon.exception.CouponException
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 import io.kotest.assertions.throwables.shouldThrow
@@ -23,7 +25,8 @@ import java.time.LocalDateTime
  */
 class CouponIntegrationTest(
     private val couponService: CouponService,
-    private val couponRepository: CouponRepository
+    private val couponRepository: CouponRepository,
+    private val couponUseCase: CouponUseCase
 ) : KotestIntegrationTestBase({
         describe("쿠폰 발급 비즈니스 로직") {
             context("유효한 쿠폰 발급 요청 시") {
@@ -42,10 +45,7 @@ class CouponIntegrationTest(
                     val userId = 1L
 
                     // When: 쿠폰 발급
-                    val userCoupon = couponService.issueCoupon(
-                        userId = userId,
-                        couponId = savedCoupon.id
-                    )
+                    val userCoupon = couponService.issueCoupon(savedCoupon, userId)
 
                     // Then: 쿠폰 발급 확인
                     userCoupon.userId shouldBe userId
@@ -67,7 +67,7 @@ class CouponIntegrationTest(
 
                     // When & Then: 존재하지 않는 쿠폰 발급 시 예외 발생
                     val exception = shouldThrow<CouponException.CouponNotFound> {
-                        couponService.issueCoupon(userId, nonExistentCouponId)
+                        couponUseCase.issueCoupon(userId, IssueCouponRequest(nonExistentCouponId))
                     }
 
                     exception.data["couponId"] shouldBe nonExistentCouponId
@@ -90,11 +90,11 @@ class CouponIntegrationTest(
                     val userId = 3L
 
                     // When: 첫 번째 쿠폰 발급
-                    couponService.issueCoupon(userId, savedCoupon.id)
+                    couponService.issueCoupon(savedCoupon, userId)
 
                     // Then: 두 번째 쿠폰 발급 시도 시 예외 발생
                     val exception = shouldThrow<CouponException.AlreadyIssuedCoupon> {
-                        couponService.issueCoupon(userId, savedCoupon.id)
+                        couponService.issueCoupon(savedCoupon, userId)
                     }
 
                     exception.data["userId"] shouldBe userId
@@ -117,11 +117,11 @@ class CouponIntegrationTest(
                     val savedCoupon = couponRepository.save(coupon)
 
                     // 첫 번째 사용자가 쿠폰 발급받음 (품절)
-                    couponService.issueCoupon(1L, savedCoupon.id)
+                    couponService.issueCoupon(savedCoupon, 1L)
 
                     // When & Then: 두 번째 사용자 발급 시도 시 예외 발생
                     val exception = shouldThrow<CouponException.CouponSoldOut> {
-                        couponService.issueCoupon(2L, savedCoupon.id)
+                        couponService.issueCoupon(savedCoupon, 2L)
                     }
 
                     exception.data["couponName"] shouldBe "한정 쿠폰"

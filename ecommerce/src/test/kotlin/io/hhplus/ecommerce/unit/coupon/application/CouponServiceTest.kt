@@ -49,12 +49,12 @@ class CouponServiceTest : DescribeSpec({
                 }
                 val coupons = listOf(availableCoupon, unavailableCoupon)
 
-                every { mockCouponRepository.findAvailableCoupons() } returns coupons
+                every { mockCouponRepository.findAll() } returns coupons
 
                 val result = sut.getAvailableCoupons()
 
                 result shouldBe listOf(availableCoupon)
-                verify(exactly = 1) { mockCouponRepository.findAvailableCoupons() }
+                verify(exactly = 1) { mockCouponRepository.findAll() }
                 verify(exactly = 1) { availableCoupon.isAvailableForIssue() }
                 verify(exactly = 1) { unavailableCoupon.isAvailableForIssue() }
             }
@@ -62,48 +62,20 @@ class CouponServiceTest : DescribeSpec({
 
         context("발급 가능한 쿠폰이 없는 경우") {
             it("빈 리스트를 반환") {
-                every { mockCouponRepository.findAvailableCoupons() } returns emptyList()
+                every { mockCouponRepository.findAll() } returns emptyList()
 
                 val result = sut.getAvailableCoupons()
 
                 result shouldBe emptyList()
-                verify(exactly = 1) { mockCouponRepository.findAvailableCoupons() }
+                verify(exactly = 1) { mockCouponRepository.findAll() }
             }
         }
     }
 
-    describe("getCouponByName") {
-        context("존재하는 쿠폰명으로 조회") {
-            it("Repository에 조회를 지시하고 쿠폰을 반환") {
-                val couponName = "할인쿠폰"
-                val expectedCoupon = mockk<Coupon>()
-
-                every { mockCouponRepository.findByName(couponName) } returns expectedCoupon
-
-                val result = sut.getCouponByName(couponName)
-
-                result shouldBe expectedCoupon
-                verify(exactly = 1) { mockCouponRepository.findByName(couponName) }
-            }
-        }
-
-        context("존재하지 않는 쿠폰명으로 조회") {
-            it("null을 반환") {
-                val couponName = "없는쿠폰"
-
-                every { mockCouponRepository.findByName(couponName) } returns null
-
-                val result = sut.getCouponByName(couponName)
-
-                result shouldBe null
-                verify(exactly = 1) { mockCouponRepository.findByName(couponName) }
-            }
-        }
-    }
 
     describe("issueCoupon") {
         context("정상적인 쿠폰 발급") {
-            it("쿠폰을 검증하고 발급한 후 이력을 기록") {
+            it("쿠폰을 발급하고 사용자 쿠폰을 생성") {
                 val userId = 1L
                 val couponId = 1L
                 val mockCoupon = mockk<Coupon>(relaxed = true) {
@@ -114,92 +86,24 @@ class CouponServiceTest : DescribeSpec({
                 val mockUserCoupon = mockk<UserCoupon>()
 
                 every { mockCoupon.issue() } just runs
-                every { mockCouponRepository.findByIdWithLock(couponId) } returns mockCoupon
-                every { mockUserCouponRepository.findByUserIdAndCouponId(userId, couponId) } returns null
                 every { mockCouponRepository.save(mockCoupon) } returns mockCoupon
                 every { mockUserCouponRepository.save(any()) } returns mockUserCoupon
-                every { mockCouponIssueHistoryService.recordIssue(couponId, userId, "할인쿠폰") } returns mockk()
 
                 mockkObject(UserCoupon.Companion)
                 every { UserCoupon.create(userId, couponId) } returns mockUserCoupon
 
-                val result = sut.issueCoupon(userId, couponId)
+                val result = sut.issueCoupon(mockCoupon, userId)
 
                 result shouldBe mockUserCoupon
                 verifyOrder {
-                    mockCouponRepository.findByIdWithLock(couponId)
-                    mockCoupon.isAvailableForIssue()
-                    mockUserCouponRepository.findByUserIdAndCouponId(userId, couponId)
                     mockCoupon.issue()
                     mockCouponRepository.save(mockCoupon)
                     UserCoupon.create(userId, couponId)
                     mockUserCouponRepository.save(mockUserCoupon)
-                    mockCouponIssueHistoryService.recordIssue(couponId, userId, "할인쿠폰")
                 }
             }
         }
 
-        context("존재하지 않는 쿠폰 발급 시도") {
-            it("CouponException.CouponNotFound를 발생") {
-                val userId = 1L
-                val couponId = 999L
-
-                every { mockCouponRepository.findByIdWithLock(couponId) } returns null
-
-                shouldThrow<CouponException.CouponNotFound> {
-                    sut.issueCoupon(userId, couponId)
-                }
-
-                verify(exactly = 1) { mockCouponRepository.findByIdWithLock(couponId) }
-                verify(exactly = 0) { mockUserCouponRepository.save(any()) }
-                verify(exactly = 0) { mockCouponIssueHistoryService.recordIssue(any(), any(), any()) }
-            }
-        }
-
-        context("발급 불가능한 쿠폰 발급 시도") {
-            it("CouponException.CouponSoldOut을 발생") {
-                val userId = 1L
-                val couponId = 1L
-                val mockCoupon = mockk<Coupon> {
-                    every { name } returns "품절쿠폰"
-                    every { getRemainingQuantity() } returns 0
-                    every { isAvailableForIssue() } returns false
-                }
-
-                every { mockCouponRepository.findByIdWithLock(couponId) } returns mockCoupon
-
-                shouldThrow<CouponException.CouponSoldOut> {
-                    sut.issueCoupon(userId, couponId)
-                }
-
-                verify(exactly = 1) { mockCouponRepository.findByIdWithLock(couponId) }
-                verify(exactly = 1) { mockCoupon.isAvailableForIssue() }
-                verify(exactly = 0) { mockUserCouponRepository.save(any()) }
-            }
-        }
-
-        context("이미 발급받은 쿠폰 재발급 시도") {
-            it("CouponException.AlreadyIssuedCoupon을 발생") {
-                val userId = 1L
-                val couponId = 1L
-                val mockCoupon = mockk<Coupon> {
-                    every { name } returns "이미발급쿠폰"
-                    every { isAvailableForIssue() } returns true
-                }
-                val existingUserCoupon = mockk<UserCoupon>()
-
-                every { mockCouponRepository.findByIdWithLock(couponId) } returns mockCoupon
-                every { mockUserCouponRepository.findByUserIdAndCouponId(userId, couponId) } returns existingUserCoupon
-
-                shouldThrow<CouponException.AlreadyIssuedCoupon> {
-                    sut.issueCoupon(userId, couponId)
-                }
-
-                verify(exactly = 1) { mockCouponRepository.findByIdWithLock(couponId) }
-                verify(exactly = 1) { mockUserCouponRepository.findByUserIdAndCouponId(userId, couponId) }
-                verify(exactly = 0) { mockUserCouponRepository.save(any()) }
-            }
-        }
     }
 
     describe("getUserCoupons") {

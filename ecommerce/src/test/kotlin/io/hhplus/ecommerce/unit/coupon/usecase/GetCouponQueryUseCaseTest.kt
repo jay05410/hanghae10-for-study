@@ -1,7 +1,7 @@
 package io.hhplus.ecommerce.unit.coupon.usecase
 
 import io.hhplus.ecommerce.coupon.application.CouponService
-import io.hhplus.ecommerce.coupon.usecase.GetCouponQueryUseCase
+import io.hhplus.ecommerce.coupon.usecase.CouponUseCase
 import io.hhplus.ecommerce.coupon.domain.entity.Coupon
 import io.hhplus.ecommerce.coupon.domain.entity.UserCoupon
 import io.kotest.core.spec.style.DescribeSpec
@@ -9,7 +9,7 @@ import io.kotest.matchers.shouldBe
 import io.mockk.*
 
 /**
- * GetCouponQueryUseCase 단위 테스트
+ * CouponUseCase 단위 테스트 (조회 기능)
  *
  * 책임: 쿠폰 조회 비즈니스 흐름 검증
  * - 다양한 쿠폰 조회 로직의 서비스 위임 검증
@@ -20,9 +20,9 @@ import io.mockk.*
  * 2. 서비스 결과가 그대로 반환되는가?
  * 3. 다양한 조회 메서드가 올바른 서비스 메서드를 호출하는가?
  */
-class GetCouponQueryUseCaseTest : DescribeSpec({
+class CouponUseCaseQueryTest : DescribeSpec({
     val mockCouponService = mockk<CouponService>()
-    val sut = GetCouponQueryUseCase(mockCouponService)
+    val sut = CouponUseCase(mockCouponService, mockk(), mockk())
 
     beforeEach {
         clearMocks(mockCouponService)

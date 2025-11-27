@@ -1,14 +1,14 @@
 package io.hhplus.ecommerce.unit.coupon.usecase
 
 import io.hhplus.ecommerce.coupon.application.CouponService
-import io.hhplus.ecommerce.coupon.usecase.ValidateCouponUseCase
+import io.hhplus.ecommerce.coupon.usecase.CouponUseCase
 import io.hhplus.ecommerce.coupon.dto.UseCouponRequest
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.*
 
 /**
- * ValidateCouponUseCase 단위 테스트
+ * CouponUseCase 단위 테스트 (검증 기능)
  *
  * 책임: 쿠폰 사용 검증 비즈니스 흐름 검증
  * - 쿠폰 사용 가능성 검증 로직의 서비스 위임 검증
@@ -19,9 +19,9 @@ import io.mockk.*
  * 2. 서비스 결과가 그대로 반환되는가?
  * 3. 다양한 요청 데이터에 대한 처리가 올바른가?
  */
-class ValidateCouponUseCaseTest : DescribeSpec({
+class CouponUseCaseValidateTest : DescribeSpec({
     val mockCouponService = mockk<CouponService>()
-    val sut = ValidateCouponUseCase(mockCouponService)
+    val sut = CouponUseCase(mockCouponService, mockk(), mockk())
 
     beforeEach {
         clearMocks(mockCouponService)
@@ -39,7 +39,7 @@ class ValidateCouponUseCaseTest : DescribeSpec({
 
                 every { mockCouponService.validateCouponUsage(userId, request.userCouponId, request.orderAmount) } returns expectedDiscountAmount
 
-                val result = sut.execute(userId, request)
+                val result = sut.validateCoupon(userId, request)
 
                 result shouldBe expectedDiscountAmount
                 verify(exactly = 1) { mockCouponService.validateCouponUsage(userId, request.userCouponId, request.orderAmount) }
@@ -57,7 +57,7 @@ class ValidateCouponUseCaseTest : DescribeSpec({
 
                 every { mockCouponService.validateCouponUsage(userId, request.userCouponId, request.orderAmount) } returns expectedDiscountAmount
 
-                val result = sut.execute(userId, request)
+                val result = sut.validateCoupon(userId, request)
 
                 result shouldBe expectedDiscountAmount
                 verify(exactly = 1) { mockCouponService.validateCouponUsage(userId, request.userCouponId, request.orderAmount) }
@@ -79,7 +79,7 @@ class ValidateCouponUseCaseTest : DescribeSpec({
 
                     every { mockCouponService.validateCouponUsage(userId, userCouponId, orderAmount) } returns discountAmounts[index]
 
-                    val result = sut.execute(userId, request)
+                    val result = sut.validateCoupon(userId, request)
 
                     result shouldBe discountAmounts[index]
                     verify(exactly = 1) { mockCouponService.validateCouponUsage(userId, userCouponId, orderAmount) }
@@ -105,7 +105,7 @@ class ValidateCouponUseCaseTest : DescribeSpec({
 
                     every { mockCouponService.validateCouponUsage(userId, userCouponId, orderAmount) } returns expectedDiscountAmount
 
-                    val result = sut.execute(userId, request)
+                    val result = sut.validateCoupon(userId, request)
 
                     result shouldBe expectedDiscountAmount
                     verify(exactly = 1) { mockCouponService.validateCouponUsage(userId, userCouponId, orderAmount) }
@@ -125,7 +125,7 @@ class ValidateCouponUseCaseTest : DescribeSpec({
 
                 every { mockCouponService.validateCouponUsage(userId, request.userCouponId, request.orderAmount) } returns expectedDiscountAmount
 
-                val result = sut.execute(userId, request)
+                val result = sut.validateCoupon(userId, request)
 
                 result shouldBe expectedDiscountAmount
                 verify(exactly = 1) { mockCouponService.validateCouponUsage(userId, request.userCouponId, request.orderAmount) }
@@ -143,7 +143,7 @@ class ValidateCouponUseCaseTest : DescribeSpec({
 
                 every { mockCouponService.validateCouponUsage(userId, request.userCouponId, request.orderAmount) } returns expectedDiscountAmount
 
-                val result = sut.execute(userId, request)
+                val result = sut.validateCoupon(userId, request)
 
                 result shouldBe expectedDiscountAmount
                 verify(exactly = 1) { mockCouponService.validateCouponUsage(userId, request.userCouponId, request.orderAmount) }
@@ -161,8 +161,8 @@ class ValidateCouponUseCaseTest : DescribeSpec({
                 every { mockCouponService.validateCouponUsage(userId, 1L, 30000L) } returns expectedDiscountAmount1
                 every { mockCouponService.validateCouponUsage(userId, 2L, 60000L) } returns expectedDiscountAmount2
 
-                val result1 = sut.execute(userId, request1)
-                val result2 = sut.execute(userId, request2)
+                val result1 = sut.validateCoupon(userId, request1)
+                val result2 = sut.validateCoupon(userId, request2)
 
                 result1 shouldBe expectedDiscountAmount1
                 result2 shouldBe expectedDiscountAmount2
