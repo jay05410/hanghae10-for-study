@@ -18,7 +18,10 @@ import org.springframework.transaction.annotation.Transactional
  * 책임:
  * - 사용자 포인트 생성 및 조회
  * - 포인트 적립 및 사용 처리
- * - 동시성 제어를 통한 안전한 포인트 관리
+ *
+ * 주의:
+ * - 동시성 제어는 UseCase 레벨에서 분산락으로 처리
+ * - Service는 순수한 비즈니스 로직만 담당
  */
 @Service
 @Transactional
@@ -49,11 +52,15 @@ class PointService(
     /**
      * 포인트 적립 (구매 시 자동 적립)
      *
+     * @param userId 사용자 ID
+     * @param amount 적립할 포인트 금액
+     * @param description 적립 설명
+     * @return 적립 완료된 사용자 포인트 정보
      * @throws PointException.PointNotFound 사용자 포인트 정보가 없는 경우
      * @throws PointException.MaxBalanceExceeded 최대 잔액 초과 시
      */
     fun earnPoint(userId: Long, amount: PointAmount, description: String? = null): UserPoint {
-        val userPoint = userPointRepository.findByUserIdWithLock(userId)
+        val userPoint = userPointRepository.findByUserId(userId)
             ?: throw PointException.PointNotFound(userId)
 
         userPoint.earn(amount)
@@ -63,12 +70,16 @@ class PointService(
     /**
      * 포인트 사용 (할인 적용)
      *
+     * @param userId 사용자 ID
+     * @param amount 사용할 포인트 금액
+     * @param description 사용 설명
+     * @return 사용 완료된 사용자 포인트 정보
      * @throws PointException.PointNotFound 사용자 포인트 정보가 없는 경우
      * @throws PointException.InsufficientBalance 잔액 부족 시
      * @throws PointException.InvalidAmount 사용 금액이 0 이하인 경우
      */
     fun usePoint(userId: Long, amount: PointAmount, description: String? = null): UserPoint {
-        val userPoint = userPointRepository.findByUserIdWithLock(userId)
+        val userPoint = userPointRepository.findByUserId(userId)
             ?: throw PointException.PointNotFound(userId)
 
         userPoint.use(amount)
@@ -78,12 +89,15 @@ class PointService(
     /**
      * 포인트 소멸 (만료 처리)
      *
+     * @param userId 사용자 ID
+     * @param amount 소멸할 포인트 금액
+     * @return 소멸 완료된 사용자 포인트 정보
      * @throws PointException.PointNotFound 사용자 포인트 정보가 없는 경우
      * @throws PointException.InsufficientBalance 소멸 가능한 포인트 부족 시
      * @throws PointException.InvalidAmount 소멸 금액이 0 이하인 경우
      */
     fun expirePoint(userId: Long, amount: PointAmount): UserPoint {
-        val userPoint = userPointRepository.findByUserIdWithLock(userId)
+        val userPoint = userPointRepository.findByUserId(userId)
             ?: throw PointException.PointNotFound(userId)
 
         userPoint.expire(amount)
