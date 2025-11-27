@@ -53,4 +53,33 @@ interface ProductJpaRepository : JpaRepository<ProductJpaEntity, Long> {
      */
     @Query("SELECT p FROM ProductJpaEntity p WHERE p.deletedAt IS NULL")
     fun findActiveProducts(): List<ProductJpaEntity>
+
+    /**
+     * 커서 기반 활성 상품 목록 조회 (페이징)
+     */
+    @Query("""
+        SELECT p FROM ProductJpaEntity p
+        WHERE p.deletedAt IS NULL
+        AND (:lastId IS NULL OR p.id > :lastId)
+        ORDER BY p.id ASC
+        LIMIT :size
+    """)
+    fun findActiveProductsWithCursor(@Param("lastId") lastId: Long?, @Param("size") size: Int): List<ProductJpaEntity>
+
+    /**
+     * 커서 기반 카테고리별 상품 목록 조회 (페이징)
+     */
+    @Query("""
+        SELECT p FROM ProductJpaEntity p
+        WHERE p.categoryId = :categoryId
+        AND p.deletedAt IS NULL
+        AND (:lastId IS NULL OR p.id > :lastId)
+        ORDER BY p.id ASC
+        LIMIT :size
+    """)
+    fun findCategoryProductsWithCursor(
+        @Param("categoryId") categoryId: Long,
+        @Param("lastId") lastId: Long?,
+        @Param("size") size: Int
+    ): List<ProductJpaEntity>
 }

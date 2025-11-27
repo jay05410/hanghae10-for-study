@@ -3,6 +3,10 @@ package io.hhplus.ecommerce.product.application
 import io.hhplus.ecommerce.product.domain.entity.Product
 import io.hhplus.ecommerce.product.domain.repository.ProductRepository
 import io.hhplus.ecommerce.product.exception.ProductException
+import io.hhplus.ecommerce.common.cache.CacheNames
+import io.hhplus.ecommerce.common.response.Cursor
+import org.springframework.cache.annotation.Cacheable
+import org.springframework.cache.annotation.CacheEvict
 import org.springframework.stereotype.Service
 
 /**
@@ -28,13 +32,25 @@ class ProductService(
 ) {
 
     /**
-     * 상품 목록 조회 (페이징)
+     * 상품 목록 조회 (커서 기반 페이징) - Redis 캐시 적용
+     * TTL: 5분 (상품 목록 일관성 유지)
      */
-    fun getProducts(page: Int): List<Product> {
-        // TODO: 실제 페이징 로직 구현
-        return productRepository.findAllByIsActive()
+    @Cacheable(value = [CacheNames.PRODUCT_LIST], key = "'cursor:' + (#lastId ?: 'first') + ':' + #size", cacheManager = "redisCacheManager")
+    fun getProductsWithCursor(lastId: Long?, size: Int): Cursor<Product> {
+        val products = productRepository.findActiveProductsWithCursor(lastId, size + 1) // 다음 페이지 존재 확인을 위해 +1
+
+        val hasNext = products.size > size
+        val contents = if (hasNext) products.take(size) else products
+        val nextLastId = if (hasNext && contents.isNotEmpty()) contents.last().id else null
+
+        return Cursor.from(contents, nextLastId)
     }
 
+    /**
+     * 상품 상세 조회 - 로컬 캐시 적용
+     * TTL: 10분 (빠른 응답, 서버별 독립적 캐시)
+     */
+    @Cacheable(value = [CacheNames.PRODUCT_DETAIL], key = "#productId")
     fun getProduct(productId: Long): Product {
         return productRepository.findByIdAndIsActive(productId)
             ?: throw ProductException.ProductNotFound(productId)
@@ -127,9 +143,17 @@ class ProductService(
     }
 
     /**
-     * 카테고리별 상품 조회
+     * 카테고리별 상품 조회 (커서 기반 페이징) - Redis 캐시 적용
+     * TTL: 5분 (카테고리별 목록 일관성 유지)
      */
-    fun getProductsByCategory(categoryId: Long): List<Product> {
-        return productRepository.findByCategoryIdAndIsActive(categoryId)
+    @Cacheable(value = [CacheNames.PRODUCT_CATEGORY_LIST], key = "#categoryId + ':cursor:' + (#lastId ?: 'first') + ':' + #size", cacheManager = "redisCacheManager")
+    fun getProductsByCategoryWithCursor(categoryId: Long, lastId: Long?, size: Int): Cursor<Product> {
+        val products = productRepository.findCategoryProductsWithCursor(categoryId, lastId, size + 1)
+
+        val hasNext = products.size > size
+        val contents = if (hasNext) products.take(size) else products
+        val nextLastId = if (hasNext && contents.isNotEmpty()) contents.last().id else null
+
+        return Cursor.from(contents, nextLastId)
     }
 }

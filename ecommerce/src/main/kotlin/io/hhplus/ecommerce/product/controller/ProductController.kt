@@ -3,6 +3,7 @@ package io.hhplus.ecommerce.product.controller
 import io.hhplus.ecommerce.product.usecase.*
 import io.hhplus.ecommerce.product.dto.*
 import io.hhplus.ecommerce.common.response.ApiResponse
+import io.hhplus.ecommerce.common.response.Cursor
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -30,20 +31,28 @@ class ProductController(
     private val productStatsUseCase: ProductStatsUseCase
 ) {
 
-    @Operation(summary = "상품 목록 조회", description = "페이지네이션 또는 카테고리별 상품 목록을 조회합니다.")
+    @Operation(summary = "상품 목록 조회", description = "커서 기반 페이징으로 상품 목록을 조회합니다.")
     @GetMapping
     fun getProducts(
-        @Parameter(description = "페이지 번호", example = "1")
-        @RequestParam(defaultValue = "1") page: Int,
+        @Parameter(description = "마지막 상품 ID (커서)", example = "100")
+        @RequestParam(required = false) lastId: Long?,
+        @Parameter(description = "조회할 상품 수", example = "20")
+        @RequestParam(defaultValue = "20") size: Int,
         @Parameter(description = "카테고리 ID (선택)")
         @RequestParam(required = false) categoryId: Long?
-    ): ApiResponse<List<ProductResponse>> {
-        val products = if (categoryId != null) {
-            getProductQueryUseCase.getProductsByCategory(categoryId)
+    ): ApiResponse<Cursor<ProductResponse>> {
+        val productsCursor = if (categoryId != null) {
+            getProductQueryUseCase.getProductsByCategory(categoryId, lastId, size)
         } else {
-            getProductQueryUseCase.getProducts(page)
+            getProductQueryUseCase.getProducts(lastId, size)
         }
-        return ApiResponse.success(products.map { it.toResponse() })
+
+        val responsesCursor = Cursor.from(
+            productsCursor.contents.map { it.toResponse() },
+            productsCursor.lastId
+        )
+
+        return ApiResponse.success(responsesCursor)
     }
 
     @Operation(summary = "상품 상세 조회", description = "상품 ID로 단일 상품을 조회하고 조회수를 증가시킵니다.")
