@@ -10,6 +10,7 @@ import io.hhplus.ecommerce.coupon.domain.entity.UserCoupon
 import io.hhplus.ecommerce.coupon.dto.IssueCouponRequest
 import io.hhplus.ecommerce.coupon.dto.UseCouponRequest
 import io.hhplus.ecommerce.coupon.exception.CouponException
+import io.hhplus.ecommerce.common.lock.DistributedLockKeys
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Component
 
@@ -45,7 +46,7 @@ class CouponUseCase(
      * @throws CouponException.CouponNotAvailable 쿠폰 발급이 불가능한 경우
      * @throws CouponException.QueueFull 대기열이 가득 찬 경우
      */
-    @DistributedLock(key = "coupon:issue:#{#request.couponId}")
+    @DistributedLock(key = DistributedLockKeys.Coupon.ISSUE)
     fun issueCoupon(userId: Long, request: IssueCouponRequest): CouponQueueRequest {
         val coupon = couponService.getCoupon(request.couponId)
             ?: throw CouponException.CouponNotFound(request.couponId)

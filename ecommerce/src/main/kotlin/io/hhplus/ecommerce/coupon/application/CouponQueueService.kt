@@ -8,6 +8,7 @@ import io.hhplus.ecommerce.coupon.domain.entity.Coupon
 import io.hhplus.ecommerce.coupon.domain.entity.CouponQueueRequest
 import io.hhplus.ecommerce.coupon.domain.constant.QueueStatus
 import io.hhplus.ecommerce.coupon.exception.CouponException
+import io.hhplus.ecommerce.common.lock.DistributedLockKeys
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Service
 
@@ -60,7 +61,7 @@ class CouponQueueService(
      * @throws CouponException.AlreadyInQueue 이미 Queue에 등록된 경우
      * @throws CouponException.QueueFull 큐가 가득 찬 경우
      */
-    @DistributedLock(key = "coupon:enqueue:#{#coupon.id}")
+    @DistributedLock(key = DistributedLockKeys.Coupon.ENQUEUE)
     fun enqueueWithSizeLimit(userId: Long, coupon: Coupon): CouponQueueRequest {
         val userMappingKey = getUserMappingKey(userId, coupon.id)
         val queueKey = getQueueKey(coupon.id)

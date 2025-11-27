@@ -70,6 +70,12 @@ class CouponService(
      */
     @Transactional
     fun issueCoupon(coupon: Coupon, userId: Long): UserCoupon {
+        // 방어적 검증: 데이터 무결성 보장 (Queue 검증을 통과했지만 추가 안전장치)
+        val existingUserCoupon = userCouponRepository.findByUserIdAndCouponId(userId, coupon.id)
+        if (existingUserCoupon != null) {
+            throw CouponException.AlreadyIssuedCoupon(userId, coupon.name)
+        }
+
         // 쿠폰 재고 차감
         coupon.issue()
         couponRepository.save(coupon)
