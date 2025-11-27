@@ -96,7 +96,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus,hikaricp  # 노출할 엔드포인트
+        include: health,info,metrics,prometheus,hikaricp,caches  # 노출할 엔드포인트
       base-path: /actuator  # Actuator 엔드포인트 기본 경로
   endpoint:
     health:
@@ -105,6 +105,8 @@ management:
     metrics:
       enabled: true
     prometheus:
+      enabled: true
+    caches:
       enabled: true
   metrics:
     export:
