@@ -123,4 +123,22 @@ sealed class CouponException(
             "couponName" to couponName
         )
     )
+
+    /**
+     * 쿠폰 발급 대기열이 가득 찬 예외
+     */
+    class QueueFull(couponName: String) : CouponException(
+        errorCode = CouponErrorCode.QUEUE_FULL,
+        message = CouponErrorCode.QUEUE_FULL.withParams("couponName" to couponName),
+        data = mapOf("couponName" to couponName)
+    )
+
+    /**
+     * 쿠폰 발급 불가능 예외
+     */
+    class CouponNotAvailable(couponName: String) : CouponException(
+        errorCode = CouponErrorCode.COUPON_NOT_AVAILABLE,
+        message = CouponErrorCode.COUPON_NOT_AVAILABLE.withParams("couponName" to couponName),
+        data = mapOf("couponName" to couponName)
+    )
 }

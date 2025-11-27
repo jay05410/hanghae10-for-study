@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.coupon.controller
 
-import io.hhplus.ecommerce.coupon.usecase.*
+import io.hhplus.ecommerce.coupon.usecase.CouponUseCase
 import io.hhplus.ecommerce.coupon.dto.*
 import io.hhplus.ecommerce.common.response.ApiResponse
 import org.springframework.web.bind.annotation.*
@@ -25,10 +25,7 @@ import io.swagger.v3.oas.annotations.tags.Tag
 @RestController
 @RequestMapping("/api/v1/coupons")
 class CouponController(
-    private val getCouponQueryUseCase: GetCouponQueryUseCase,
-    private val couponCommandUseCase: CouponCommandUseCase,
-    private val validateCouponUseCase: ValidateCouponUseCase,
-    private val couponQueueQueryUseCase: CouponQueueQueryUseCase
+    private val couponUseCase: CouponUseCase
 ) {
 
     /**
@@ -39,7 +36,7 @@ class CouponController(
     @Operation(summary = "사용 가능한 쿠폰 목록 조회", description = "현재 발급 가능한 모든 쿠폰 목록을 조회합니다.")
     @GetMapping
     fun getAvailableCoupons(): ApiResponse<List<CouponResponse>> {
-        val coupons = getCouponQueryUseCase.getAvailableCoupons()
+        val coupons = couponUseCase.getAvailableCoupons()
         return ApiResponse.success(coupons.map { it.toResponse() })
     }
 
@@ -61,7 +58,7 @@ class CouponController(
         @Parameter(description = "쿠폰 발급 요청 정보", required = true)
         @RequestBody request: IssueCouponRequest
     ): ApiResponse<CouponQueueResponse> {
-        val queueRequest = couponCommandUseCase.issueCoupon(userId, request)
+        val queueRequest = couponUseCase.issueCoupon(userId, request)
         return ApiResponse.success(queueRequest.toResponse())
     }
 
@@ -77,7 +74,7 @@ class CouponController(
         @Parameter(description = "사용자 ID", required = true, example = "1")
         @PathVariable userId: Long
     ): ApiResponse<List<UserCouponResponse>> {
-        val userCoupons = getCouponQueryUseCase.getUserCoupons(userId)
+        val userCoupons = couponUseCase.getUserCoupons(userId)
         return ApiResponse.success(userCoupons.map { it.toResponse() })
     }
 
@@ -90,7 +87,7 @@ class CouponController(
         @Parameter(description = "사용자 ID", required = true, example = "1")
         @PathVariable userId: Long
     ): ApiResponse<List<UserCouponResponse>> {
-        val userCoupons = getCouponQueryUseCase.getUserCoupons(userId, onlyAvailable = true)
+        val userCoupons = couponUseCase.getUserCoupons(userId, onlyAvailable = true)
         return ApiResponse.success(userCoupons.map { it.toResponse() })
     }
 
@@ -109,7 +106,7 @@ class CouponController(
         @Parameter(description = "쿠폰 사용 요청 정보", required = true)
         @RequestBody request: UseCouponRequest
     ): ApiResponse<Long> {
-        val discountAmount = validateCouponUseCase.execute(userId, request)
+        val discountAmount = couponUseCase.validateCoupon(userId, request)
         return ApiResponse.success(discountAmount)
     }
 
@@ -125,7 +122,7 @@ class CouponController(
         @Parameter(description = "Queue ID", required = true, example = "550e8400-e29b-41d4-a716-446655440000")
         @PathVariable queueId: String
     ): ApiResponse<CouponQueueResponse?> {
-        val queueRequest = couponQueueQueryUseCase.getQueueStatus(queueId)
+        val queueRequest = couponUseCase.getQueueStatus(queueId)
         return ApiResponse.success(queueRequest?.toResponse())
     }
 
@@ -147,7 +144,7 @@ class CouponController(
         @Parameter(description = "쿠폰 ID", required = true, example = "1")
         @PathVariable couponId: Long
     ): ApiResponse<CouponQueueResponse?> {
-        val queueRequest = couponQueueQueryUseCase.getUserQueueRequest(userId, couponId)
+        val queueRequest = couponUseCase.getUserQueueRequest(userId, couponId)
         return ApiResponse.success(queueRequest?.toResponse())
     }
 
@@ -163,7 +160,7 @@ class CouponController(
         @Parameter(description = "쿠폰 ID", required = true, example = "1")
         @PathVariable couponId: Long
     ): ApiResponse<Long> {
-        val queueSize = couponQueueQueryUseCase.getQueueSize(couponId)
+        val queueSize = couponUseCase.getQueueSize(couponId)
         return ApiResponse.success(queueSize)
     }
 }

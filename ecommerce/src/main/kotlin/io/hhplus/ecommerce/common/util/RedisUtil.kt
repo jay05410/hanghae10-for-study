@@ -79,4 +79,48 @@ object RedisUtil {
     fun getValue(redisTemplate: RedisTemplate<String, Any>, key: String): String? {
         return redisTemplate.opsForValue().get(key) as? String
     }
+
+    /**
+     * 큐 크기 제한과 함께 원자적으로 아이템을 큐에 추가
+     * Lua 스크립트를 사용하여 크기 체크와 LPUSH를 원자적으로 실행
+     *
+     * @param redisTemplate Redis 템플릿
+     * @param queueKey 큐 키
+     * @param item 추가할 아이템
+     * @param maxSize 최대 허용 크기
+     * @return true: 성공적으로 추가됨, false: 큐가 가득참
+     */
+    fun enqueueWithSizeCheck(
+        redisTemplate: RedisTemplate<String, Any>,
+        queueKey: String,
+        item: String,
+        maxSize: Int
+    ): Boolean {
+        val luaScript = """
+            local queue_key = KEYS[1]
+            local item = ARGV[1]
+            local max_size = tonumber(ARGV[2])
+
+            local current_size = redis.call('LLEN', queue_key)
+            if current_size < max_size then
+                redis.call('LPUSH', queue_key, item)
+                return 1
+            else
+                return 0
+            end
+        """.trimIndent()
+
+        val result = redisTemplate.execute<Long?> { connection ->
+            connection.eval(
+                luaScript.toByteArray(),
+                org.springframework.data.redis.connection.ReturnType.INTEGER,
+                1,
+                queueKey.toByteArray(),
+                item.toByteArray(),
+                maxSize.toString().toByteArray()
+            ) as? Long
+        }
+
+        return result == 1L
+    }
 }
