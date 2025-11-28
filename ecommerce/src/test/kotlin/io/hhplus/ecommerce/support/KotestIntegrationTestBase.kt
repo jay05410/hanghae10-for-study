@@ -9,8 +9,10 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.MySQLContainer
+import org.testcontainers.containers.GenericContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import org.testcontainers.utility.DockerImageName
 
 /**
  * Kotest 통합 테스트를 위한 공통 베이스 클래스
@@ -84,6 +86,14 @@ abstract class KotestIntegrationTestBase(body: DescribeSpec.() -> Unit = {}) : D
                 start() // 명시적으로 시작
             }
 
+        @Container
+        @JvmStatic
+        protected val redisContainer = GenericContainer(DockerImageName.parse("redis:7.0-alpine"))
+            .withExposedPorts(6379)
+            .apply {
+                start() // 명시적으로 시작
+            }
+
         /**
          * Spring Boot의 DataSource 설정을 TestContainer로 오버라이드
          */
@@ -107,6 +117,11 @@ abstract class KotestIntegrationTestBase(body: DescribeSpec.() -> Unit = {}) : D
             registry.add("spring.jpa.properties.hibernate.id.new_generator_mappings") { "false" }
             registry.add("spring.jpa.properties.hibernate.id.optimizer.pooled.prefer_lo") { "true" }
 
+            // Redis TestContainer 설정
+            registry.add("spring.data.redis.host") { redisContainer.host }
+            registry.add("spring.data.redis.port") { redisContainer.getMappedPort(6379) }
+            registry.add("spring.data.redis.password") { "" }
+
             // MySQL 특화 JPA 설정
             registry.add("spring.jpa.properties.hibernate.connection.characterEncoding") { "utf8mb4" }
             registry.add("spring.jpa.properties.hibernate.connection.CharSet") { "utf8mb4" }
@@ -119,6 +134,10 @@ abstract class KotestIntegrationTestBase(body: DescribeSpec.() -> Unit = {}) : D
 
             // SQL 초기화 비활성화 (DDL 생성과 충돌 방지)
             registry.add("spring.sql.init.mode") { "never" }
+
+            // Redis 설정
+            registry.add("spring.data.redis.host") { redisContainer.host }
+            registry.add("spring.data.redis.port") { redisContainer.getMappedPort(6379) }
 
             // TestContainers 최적화
             registry.add("logging.level.org.testcontainers") { "INFO" }
