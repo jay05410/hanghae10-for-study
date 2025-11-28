@@ -4,6 +4,9 @@ import io.hhplus.ecommerce.point.application.PointService
 import io.hhplus.ecommerce.point.application.PointHistoryService
 import io.hhplus.ecommerce.point.domain.entity.UserPoint
 import io.hhplus.ecommerce.point.domain.vo.PointAmount
+import io.hhplus.ecommerce.common.annotation.DistributedLock
+import io.hhplus.ecommerce.common.lock.DistributedLockKeys
+import mu.KotlinLogging
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
@@ -25,9 +28,10 @@ class PointCommandUseCase(
     private val pointService: PointService,
     private val pointHistoryService: PointHistoryService
 ) {
+    private val logger = KotlinLogging.logger {}
 
     /**
-     * 사용자에게 포인트를 충전하고 이력을 기록한다
+     * 사용자에게 포인트를 충전하고 이력을 기록한다 (재시도 로직 포함)
      *
      * @param userId 인증된 사용자 ID
      * @param amount 충전할 포인트 금액 (양수)
@@ -35,12 +39,26 @@ class PointCommandUseCase(
      * @param orderId 주문 ID (구매 적립인 경우)
      * @return 충전 처리가 완료된 사용자 포인트 정보
      * @throws IllegalArgumentException 충전 금액이 잘못된 경우
-     * @throws RuntimeException 포인트 충전 처리에 실패한 경우
+     * @throws RuntimeException 최대 재시도 후에도 실패한 경우
+     */
+    @DistributedLock(key = DistributedLockKeys.Point.CHARGE, waitTime = 10L, leaseTime = 60L)
+    fun chargePoint(userId: Long, amount: Long, description: String? = null, orderId: Long? = null): UserPoint {
+        return processPointOperationWithRetry(
+            operation = "충전",
+            userId = userId,
+            amount = amount,
+            description = description,
+            orderId = orderId
+        ) { pointAmount ->
+            chargePointCore(userId, pointAmount, description, orderId)
+        }
+    }
+
+    /**
+     * 포인트 충전 핵심 로직
      */
     @Transactional
-    fun chargePoint(userId: Long, amount: Long, description: String? = null, orderId: Long? = null): UserPoint {
-        val pointAmount = PointAmount.of(amount)
-
+    private fun chargePointCore(userId: Long, pointAmount: PointAmount, description: String?, orderId: Long?): UserPoint {
         // 사용자 포인트가 없는 경우 새로 생성
         val existingUserPoint = pointService.getUserPoint(userId)
         if (existingUserPoint == null) {
@@ -68,7 +86,7 @@ class PointCommandUseCase(
     }
 
     /**
-     * 사용자의 포인트를 사용하고 이력을 기록한다
+     * 사용자의 포인트를 사용하고 이력을 기록한다 (재시도 로직 포함)
      *
      * @param userId 인증된 사용자 ID
      * @param amount 사용할 포인트 금액 (양수)
@@ -76,12 +94,26 @@ class PointCommandUseCase(
      * @param orderId 주문 ID (주문 할인인 경우)
      * @return 사용 처리가 완료된 사용자 포인트 정보
      * @throws IllegalArgumentException 사용 금액이 잘못되거나 잔액이 부족한 경우
-     * @throws RuntimeException 포인트 사용 처리에 실패한 경우
+     * @throws RuntimeException 최대 재시도 후에도 실패한 경우
+     */
+    @DistributedLock(key = DistributedLockKeys.Point.USE, waitTime = 10L, leaseTime = 60L)
+    fun usePoint(userId: Long, amount: Long, description: String? = null, orderId: Long? = null): UserPoint {
+        return processPointOperationWithRetry(
+            operation = "사용",
+            userId = userId,
+            amount = amount,
+            description = description,
+            orderId = orderId
+        ) { pointAmount ->
+            usePointCore(userId, pointAmount, description, orderId)
+        }
+    }
+
+    /**
+     * 포인트 사용 핵심 로직
      */
     @Transactional
-    fun usePoint(userId: Long, amount: Long, description: String? = null, orderId: Long? = null): UserPoint {
-        val pointAmount = PointAmount.of(amount)
-
+    private fun usePointCore(userId: Long, pointAmount: PointAmount, description: String?, orderId: Long?): UserPoint {
         // 사용 전 잔액 조회
         val userPointBefore = pointService.getUserPoint(userId)
             ?: throw IllegalArgumentException("사용자 포인트 정보가 없습니다: $userId")
@@ -114,7 +146,7 @@ class PointCommandUseCase(
      * @throws PointException.InsufficientBalance 잔액 부족 시
      * @throws PointException.InvalidAmount 차감 금액이 0 이하인 경우
      */
-    @Transactional
+    @DistributedLock(key = DistributedLockKeys.Point.DEDUCT, waitTime = 5L, leaseTime = 30L)
     fun deductPoint(userId: Long, amount: PointAmount, description: String? = null): UserPoint {
         return pointService.usePoint(userId, amount, description)
     }
@@ -140,7 +172,7 @@ class PointCommandUseCase(
      * @throws PointException.PointNotFound 사용자 포인트 정보가 없는 경우
      * @throws PointException.MaxBalanceExceeded 최대 잔액 초과 시
      */
-    @Transactional
+    @DistributedLock(key = DistributedLockKeys.Point.EARN, waitTime = 5L, leaseTime = 30L)
     fun earnPoint(userId: Long, amount: PointAmount, description: String? = null): UserPoint {
         return pointService.earnPoint(userId, amount, description)
     }
@@ -155,8 +187,75 @@ class PointCommandUseCase(
      * @throws PointException.InsufficientBalance 소멸 가능한 포인트 부족 시
      * @throws PointException.InvalidAmount 소멸 금액이 0 이하인 경우
      */
-    @Transactional
+    @DistributedLock(key = DistributedLockKeys.Point.EXPIRE, waitTime = 5L, leaseTime = 30L)
     fun expirePoint(userId: Long, amount: PointAmount): UserPoint {
         return pointService.expirePoint(userId, amount)
+    }
+
+    /**
+     * 재시도 로직이 포함된 포인트 연산 처리
+     *
+     * @param operation 연산 타입 (로그용)
+     * @param userId 사용자 ID
+     * @param amount 포인트 금액
+     * @param description 설명
+     * @param orderId 주문 ID
+     * @param maxRetries 최대 재시도 횟수
+     * @param baseDelayMs 기본 지연 시간
+     * @param processor 실제 처리 로직
+     */
+    private fun processPointOperationWithRetry(
+        operation: String,
+        userId: Long,
+        amount: Long,
+        description: String?,
+        orderId: Long?,
+        maxRetries: Int = 3,
+        baseDelayMs: Long = 100L,
+        processor: (PointAmount) -> UserPoint
+    ): UserPoint {
+        val pointAmount = PointAmount.of(amount)
+        var lastException: Exception? = null
+
+        repeat(maxRetries + 1) { attempt ->
+            try {
+                return processor(pointAmount)
+            } catch (e: Exception) {
+                // 비즈니스 예외는 재시도하지 않고 즉시 전파
+                if (isBusinessException(e)) {
+                    logger.debug("포인트 $operation 비즈니스 예외 (재시도 안함): ${e.message} - userId: $userId")
+                    throw e
+                }
+
+                lastException = e
+
+                if (attempt < maxRetries) {
+                    val delayMs = baseDelayMs * (1L shl attempt) // 지수 백오프
+                    logger.warn("포인트 $operation 실패 (재시도 ${attempt + 1}/$maxRetries): ${e.message} - userId: $userId")
+
+                    try {
+                        Thread.sleep(delayMs)
+                    } catch (ie: InterruptedException) {
+                        Thread.currentThread().interrupt()
+                        throw ie
+                    }
+                } else {
+                    logger.error("포인트 $operation 최종 실패 (최대 재시도 초과): ${e.message} - userId: $userId", e)
+                }
+            }
+        }
+
+        throw RuntimeException("포인트 $operation 실패: 최대 재시도 횟수($maxRetries)를 초과했습니다 - userId: $userId", lastException)
+    }
+
+    /**
+     * 비즈니스 예외 여부 판단 (재시도하지 않아야 할 예외들)
+     */
+    private fun isBusinessException(exception: Exception): Boolean {
+        return when (exception) {
+            is io.hhplus.ecommerce.point.exception.PointException -> true
+            is IllegalArgumentException -> true
+            else -> false
+        }
     }
 }

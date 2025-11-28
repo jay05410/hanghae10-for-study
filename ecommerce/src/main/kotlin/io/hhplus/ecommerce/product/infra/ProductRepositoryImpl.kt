@@ -44,4 +44,10 @@ class ProductRepositoryImpl(
 
     override fun findByNameContaining(keyword: String): List<Product> =
         jpaRepository.findByNameContaining(keyword).toDomain(mapper)
+
+    override fun findActiveProductsWithCursor(lastId: Long?, size: Int): List<Product> =
+        jpaRepository.findActiveProductsWithCursor(lastId, size).toDomain(mapper)
+
+    override fun findCategoryProductsWithCursor(categoryId: Long, lastId: Long?, size: Int): List<Product> =
+        jpaRepository.findCategoryProductsWithCursor(categoryId, lastId, size).toDomain(mapper)
 }

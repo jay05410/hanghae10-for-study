@@ -57,5 +57,17 @@ enum class CouponErrorCode(
         code = "COUPON008",
         message = "이미 쿠폰 발급 대기열에 등록되어 있습니다. 사용자 ID: {userId}, 쿠폰: {couponName}",
         httpStatus = 409
+    ),
+
+    QUEUE_FULL(
+        code = "COUPON009",
+        message = "쿠폰 발급 대기열이 가득 찼습니다. 쿠폰: {couponName}",
+        httpStatus = 429
+    ),
+
+    COUPON_NOT_AVAILABLE(
+        code = "COUPON010",
+        message = "현재 발급 불가능한 쿠폰입니다. 쿠폰: {couponName}",
+        httpStatus = 400
     );
 }

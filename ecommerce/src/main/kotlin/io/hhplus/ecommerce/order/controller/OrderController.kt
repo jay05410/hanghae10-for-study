@@ -35,36 +35,24 @@ class OrderController(
 ) {
 
     /**
-     * 새로운 주문을 대기열에 등록한다
+     * 새로운 주문을 생성한다 (직접 처리)
      *
      * @param request 주문 생성 요청 데이터
-     * @return 대기열 등록 정보를 포함한 API 응답
+     * @return 생성된 주문 정보를 포함한 API 응답
      */
-    @Operation(summary = "주문 대기열 등록", description = "새로운 주문 요청을 대기열에 등록합니다.")
+    @Operation(summary = "주문 생성", description = "새로운 주문을 직접 생성하고 처리합니다.")
     @PostMapping
     fun createOrder(
         @Parameter(description = "주문 생성 요청 정보", required = true)
         @RequestBody request: CreateOrderRequest
-    ): ApiResponse<OrderQueueResponse> {
-        val queueRequest = orderCommandUseCase.createOrder(request)
-        return ApiResponse.success(queueRequest.toResponse())
+    ): ApiResponse<OrderResponse> {
+        val order = orderCommandUseCase.createOrder(request)
+        val orderWithItems = getOrderQueryUseCase.getOrderWithItems(order.id)
+        return ApiResponse.success(orderWithItems?.let { (_, items) ->
+            order.toResponse(items)
+        } ?: order.toResponse())
     }
 
-    /**
-     * 사용자의 주문 대기열 상태를 조회한다
-     *
-     * @param userId 사용자 ID
-     * @return 대기열 상태 정보를 포함한 API 응답
-     */
-    @Operation(summary = "주문 대기열 상태 조회", description = "사용자의 주문 대기열 상태를 조회합니다.")
-    @GetMapping("/queue/status")
-    fun getQueueStatus(
-        @Parameter(description = "사용자 ID", required = true, example = "1")
-        @RequestParam userId: Long
-    ): ApiResponse<OrderQueueResponse?> {
-        val queueRequest = orderCommandUseCase.getUserQueueStatus(userId)
-        return ApiResponse.success(queueRequest?.toResponse())
-    }
 
     /**
      * 주문 ID로 단일 주문을 조회한다

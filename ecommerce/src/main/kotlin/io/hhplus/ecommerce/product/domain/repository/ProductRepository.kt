@@ -18,4 +18,8 @@ interface ProductRepository {
     fun findByStatus(status: ProductStatus): List<Product>
     fun findByCategoryIdAndIsActive(categoryId: Long): List<Product>
     fun findByNameContaining(keyword: String): List<Product>
+
+    // 커서 기반 페이징
+    fun findActiveProductsWithCursor(lastId: Long?, size: Int): List<Product>
+    fun findCategoryProductsWithCursor(categoryId: Long, lastId: Long?, size: Int): List<Product>
 }

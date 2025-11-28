@@ -14,21 +14,14 @@ import java.time.LocalDateTime
  *
  * 역할:
  * - Spring Data JPA를 사용한 데이터베이스 접근
- * - 기본 CRUD 및 쿼리 메서드 제공
+ * - 소프트 딜리트 필터 자동 적용 (@Filter 사용)
  */
 @Repository
 interface CouponJpaRepository : JpaRepository<CouponJpaEntity, Long> {
 
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT c FROM CouponJpaEntity c WHERE c.id = :id")
-    fun findByIdWithLock(@Param("id") id: Long): CouponJpaEntity?
-
     fun findByName(name: String): CouponJpaEntity?
 
     fun findByCode(code: String): CouponJpaEntity?
-
-    @Query("SELECT c FROM CouponJpaEntity c WHERE c.deletedAt IS NULL")
-    fun findAllActive(): List<CouponJpaEntity>
 
     @Query("SELECT c FROM CouponJpaEntity c WHERE c.validFrom >= :startDate AND c.validTo <= :endDate")
     fun findByValidDateRange(

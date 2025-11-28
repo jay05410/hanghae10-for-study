@@ -7,9 +7,10 @@ spring_cloud_dependencies = "2023.0.0"
 spring_io_dependency_management = "1.1.0"
 spring_mockk = "4.0.2"
 
-redisson = "3.25.2"
+redisson = "3.52.0"
 springdoc = "2.8.5"
 kotlin_logging = "3.0.5"
+caffeine = "3.1.8"
 
 # test
 junit = "5.9.3"
@@ -61,6 +62,12 @@ springdoc_openapi_common = { module = "org.springdoc:springdoc-openapi-starter-c
 
 # Kotlin Logging
 kotlin_logging = { module = "io.github.microutils:kotlin-logging-jvm", version.ref = "kotlin_logging" }
+
+# Redisson for Distributed Lock
+redisson_spring_boot_starter = { module = "org.redisson:redisson-spring-boot-starter", version.ref = "redisson" }
+
+# Caffeine Cache
+caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "caffeine" }
 
 [bundles]
 testcontainers_mysql = ["test_containers_mysql", "spring_boot_testcontainers", "test_containers_junit_jupiter","spring_boot_starter_test"]

@@ -14,13 +14,16 @@ import org.springframework.transaction.annotation.Transactional
  *
  * 역할:
  * - 결제 도메인의 핵심 비즈니스 로직 처리
- * - 다양한 결제 수단 및 방식 관리
  * - 결제 상태 및 이력 관리
  *
  * 책임:
  * - 결제 요청 처리 및 결과 관리
  * - 결제 성공/실패 상태 처리
  * - 사용자별 결제 내역 조회
+ *
+ * 주의:
+ * - 동시성 제어는 UseCase 레벨에서 처리
+ * - Service는 순수한 비즈니스 로직만 담당
  */
 @Service
 class PaymentService(
@@ -28,9 +31,20 @@ class PaymentService(
     private val snowflakeGenerator: SnowflakeGenerator
 ) {
 
+    /**
+     * 결제 처리 - 순수한 비즈니스 로직
+     *
+     * @param userId 사용자 ID
+     * @param orderId 주문 ID
+     * @param amount 결제 금액
+     * @param paymentMethod 결제 수단 (기본값: BALANCE)
+     * @return 처리 완료된 결제 엔티티
+     * @throws PaymentException.DuplicatePayment 중복 결제 시
+     * @throws PaymentException.UnsupportedPaymentMethod 지원하지 않는 결제 수단
+     */
     @Transactional
     fun processPayment(userId: Long, orderId: Long, amount: Long, paymentMethod: PaymentMethod = PaymentMethod.BALANCE): Payment {
-        // 중복 결제 검증 - 먼저 읽기 전용으로 확인
+        // 중복 결제 검증 (UseCase에서 분산락 적용으로 이중 보장)
         val existingPayment = paymentRepository.findByOrderId(orderId).firstOrNull()
         if (existingPayment != null) {
             throw PaymentException.DuplicatePayment("주문 ID ${orderId}는 이미 결제 처리되었습니다. 기존 결제 ID: ${existingPayment.id}")
@@ -83,20 +97,26 @@ class PaymentService(
             }
             throw PaymentException.DuplicatePayment("주문 ID ${orderId}에 대한 동시 결제 요청이 처리 중입니다. 잠시 후 다시 시도해주세요.")
         } catch (e: Exception) {
-            // 결제 실패 처리 - 저장된 결제가 있을 경우에만 실패 상태로 변경
-            try {
-                val existingPaymentForFailure = paymentRepository.findByOrderId(orderId).firstOrNull()
-                if (existingPaymentForFailure != null) {
-                    existingPaymentForFailure.fail(e.message ?: "결제 처리 중 오류가 발생했습니다")
-                    paymentRepository.save(existingPaymentForFailure)
-                }
-            } catch (ignored: Exception) {
-                // 실패 상태 업데이트 중 오류는 무시
-            }
+            // 결제 실패 처리
+            handlePaymentFailure(orderId, e.message ?: "결제 처리 중 오류가 발생했습니다")
             throw e
         }
     }
 
+    /**
+     * 결제 실패 처리 - 저장된 결제 엔티티가 있을 경우 상태 업데이트
+     */
+    private fun handlePaymentFailure(orderId: Long, reason: String) {
+        try {
+            val existingPayment = paymentRepository.findByOrderId(orderId).firstOrNull()
+            existingPayment?.let { payment ->
+                payment.fail(reason)
+                paymentRepository.save(payment)
+            }
+        } catch (ignored: Exception) {
+            // 실패 상태 업데이트 중 오류는 무시 (이미 실패한 트랜잭션이므로)
+        }
+    }
 
     fun getPayment(paymentId: Long): Payment? {
         return paymentRepository.findById(paymentId)

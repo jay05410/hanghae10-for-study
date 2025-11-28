@@ -6,7 +6,6 @@ interface UserPointRepository {
     fun save(userPoint: UserPoint): UserPoint
     fun findById(id: Long): UserPoint?
     fun findByUserId(userId: Long): UserPoint?
-    fun findByUserIdWithLock(userId: Long): UserPoint?
     fun delete(userPoint: UserPoint)
 
     // FETCH JOIN 메서드들

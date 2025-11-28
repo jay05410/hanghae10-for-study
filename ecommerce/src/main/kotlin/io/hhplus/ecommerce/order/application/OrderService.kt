@@ -6,7 +6,7 @@ import io.hhplus.ecommerce.order.domain.repository.OrderRepository
 import io.hhplus.ecommerce.order.domain.repository.OrderItemRepository
 import io.hhplus.ecommerce.order.dto.OrderItemData
 import io.hhplus.ecommerce.common.util.SnowflakeGenerator
-import io.hhplus.ecommerce.product.application.ProductStatisticsService
+import io.hhplus.ecommerce.product.application.EventBasedStatisticsService
 import io.hhplus.ecommerce.common.outbox.OutboxEventService
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -31,7 +31,7 @@ class OrderService(
     private val orderRepository: OrderRepository,
     private val orderItemRepository: OrderItemRepository,
     private val snowflakeGenerator: SnowflakeGenerator,
-    private val productStatisticsService: ProductStatisticsService,
+    private val eventBasedStatisticsService: EventBasedStatisticsService,
     private val outboxEventService: OutboxEventService,
     private val objectMapper: ObjectMapper
 ) {
@@ -199,12 +199,13 @@ class OrderService(
 
         order.confirm()
 
-        // 주문 완료 시 판매량 증가
+        // 주문 완료 시 판매 이벤트 발생
         val orderItems = orderItemRepository.findByOrderId(orderId)
         orderItems.forEach { orderItem ->
-            productStatisticsService.incrementSalesCount(
+            eventBasedStatisticsService.recordSalesEvent(
                 productId = orderItem.productId,
-                quantity = orderItem.quantity
+                quantity = orderItem.quantity,
+                orderId = orderId
             )
         }
 

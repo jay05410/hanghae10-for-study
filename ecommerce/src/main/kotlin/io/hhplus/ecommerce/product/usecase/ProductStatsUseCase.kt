@@ -1,45 +1,82 @@
 package io.hhplus.ecommerce.product.usecase
 
-import io.hhplus.ecommerce.product.application.ProductStatisticsService
-import io.hhplus.ecommerce.product.domain.entity.ProductStatistics
+import io.hhplus.ecommerce.product.application.EventBasedStatisticsService
+import io.hhplus.ecommerce.product.domain.vo.ProductStatsVO
 import org.springframework.stereotype.Component
 
 /**
- * 상품 통계 UseCase
+ * 상품 통계 UseCase - 이벤트 기반 단방향 통계
  *
  * 역할:
- * - 상품 관련 통계 업데이트 작업을 통합 관리
- * - 조회수 증가, 판매량 증가 기능 제공
+ * - 상품 관련 통계 이벤트 발생 및 처리
+ * - Write-back 없는 단방향 이벤트 플로우
  *
- * 책임:
- * - 상품 통계 업데이트 요청 검증 및 실행
- * - 통계 데이터 무결성 보장
+ * 특징:
+ * - 이벤트 발생 → Redis 로그 저장 → 배치 집계 → DB 벨크 업데이트
+ * - 실시간 인기상품 조회: Redis 로그에서 직접 계산
  */
 @Component
 class ProductStatsUseCase(
-    private val productStatisticsService: ProductStatisticsService
+    private val eventBasedStatisticsService: EventBasedStatisticsService
 ) {
 
     /**
-     * 상품 조회시 해당 상품의 조회수를 증가시킨다
+     * 상품 조회 이벤트 발생
      *
      * @param productId 조회된 상품 ID
      * @param userId 상품을 조회한 사용자 ID
+     * @return 최근 10분간 실시간 조회수
      */
-    fun incrementViewCount(productId: Long, userId: Long) {
-        productStatisticsService.incrementViewCount(productId)
+    fun incrementViewCount(productId: Long, userId: Long): Long {
+        return eventBasedStatisticsService.recordViewEvent(productId, userId)
     }
 
     /**
-     * 상품 판매량을 증가시킵니다.
+     * 상품 판매 이벤트 발생
      *
      * @param productId 상품 ID
      * @param quantity 판매 수량
-     * @param userId 판매 요청자 ID
-     * @return 업데이트된 상품 통계 정보 (Redis + DB 합산)
+     * @param orderId 주문 ID
+     * @return 업데이트된 실시간 통계 정보
      */
-    fun incrementSalesCount(productId: Long, quantity: Int, userId: Long): ProductStatistics {
-        productStatisticsService.incrementSalesCount(productId, quantity)
-        return productStatisticsService.getProductStatistics(productId)!!
+    fun incrementSalesCount(productId: Long, quantity: Int, orderId: Long): ProductStatsVO {
+        val totalSalesCount = eventBasedStatisticsService.recordSalesEvent(productId, quantity, orderId)
+        val (viewCount, salesCount, wishCount) = eventBasedStatisticsService.getRealTimeStats(productId)
+
+        return ProductStatsVO.create(
+            productId = productId,
+            viewCount = viewCount,
+            salesCount = salesCount,
+            hotScore = calculateHotScore(viewCount, salesCount, wishCount)
+        )
+    }
+
+    /**
+     * 상품 찜 이벤트 발생
+     *
+     * @param productId 상품 ID
+     * @param userId 사용자 ID
+     * @return 업데이트된 찜 개수
+     */
+    fun addWish(productId: Long, userId: Long): Long {
+        return eventBasedStatisticsService.recordWishEvent(productId, userId)
+    }
+
+    /**
+     * 상품 찜 해제 이벤트 발생
+     *
+     * @param productId 상품 ID
+     * @param userId 사용자 ID
+     * @return 업데이트된 찜 개수
+     */
+    fun removeWish(productId: Long, userId: Long): Long {
+        return eventBasedStatisticsService.recordUnwishEvent(productId, userId)
+    }
+
+    /**
+     * 인기도 점수 계산
+     */
+    private fun calculateHotScore(viewCount: Long, salesCount: Long, wishCount: Long): Double {
+        return salesCount * 0.4 + viewCount * 0.3 + wishCount * 0.3
     }
 }
