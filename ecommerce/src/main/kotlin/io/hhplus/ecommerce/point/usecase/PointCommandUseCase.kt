@@ -41,7 +41,7 @@ class PointCommandUseCase(
      * @throws IllegalArgumentException 충전 금액이 잘못된 경우
      * @throws RuntimeException 최대 재시도 후에도 실패한 경우
      */
-    @DistributedLock(key = DistributedLockKeys.Point.CHARGE, waitTime = 10L, leaseTime = 60L)
+    @DistributedLock(key = DistributedLockKeys.Point.CHARGE, waitTime = 120L, leaseTime = 60L)
     fun chargePoint(userId: Long, amount: Long, description: String? = null, orderId: Long? = null): UserPoint {
         return processPointOperationWithRetry(
             operation = "충전",
@@ -96,7 +96,7 @@ class PointCommandUseCase(
      * @throws IllegalArgumentException 사용 금액이 잘못되거나 잔액이 부족한 경우
      * @throws RuntimeException 최대 재시도 후에도 실패한 경우
      */
-    @DistributedLock(key = DistributedLockKeys.Point.USE, waitTime = 10L, leaseTime = 60L)
+    @DistributedLock(key = DistributedLockKeys.Point.USE, waitTime = 120L, leaseTime = 60L)
     fun usePoint(userId: Long, amount: Long, description: String? = null, orderId: Long? = null): UserPoint {
         return processPointOperationWithRetry(
             operation = "사용",
@@ -146,7 +146,7 @@ class PointCommandUseCase(
      * @throws PointException.InsufficientBalance 잔액 부족 시
      * @throws PointException.InvalidAmount 차감 금액이 0 이하인 경우
      */
-    @DistributedLock(key = DistributedLockKeys.Point.DEDUCT, waitTime = 5L, leaseTime = 30L)
+    @DistributedLock(key = DistributedLockKeys.Point.DEDUCT, waitTime = 120L, leaseTime = 30L)
     fun deductPoint(userId: Long, amount: PointAmount, description: String? = null): UserPoint {
         return pointService.usePoint(userId, amount, description)
     }
@@ -172,7 +172,7 @@ class PointCommandUseCase(
      * @throws PointException.PointNotFound 사용자 포인트 정보가 없는 경우
      * @throws PointException.MaxBalanceExceeded 최대 잔액 초과 시
      */
-    @DistributedLock(key = DistributedLockKeys.Point.EARN, waitTime = 5L, leaseTime = 30L)
+    @DistributedLock(key = DistributedLockKeys.Point.EARN, waitTime = 120L, leaseTime = 30L)
     fun earnPoint(userId: Long, amount: PointAmount, description: String? = null): UserPoint {
         return pointService.earnPoint(userId, amount, description)
     }

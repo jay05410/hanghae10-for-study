@@ -11,6 +11,10 @@ import org.springframework.context.annotation.Primary
 import org.springframework.data.redis.cache.RedisCacheConfiguration
 import org.springframework.data.redis.cache.RedisCacheManager
 import org.springframework.data.redis.connection.RedisConnectionFactory
+import org.springframework.data.redis.serializer.RedisSerializationContext
+import org.springframework.data.redis.serializer.StringRedisSerializer
+import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer
+import org.springframework.scheduling.annotation.EnableScheduling
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 
@@ -30,6 +34,7 @@ import java.util.concurrent.TimeUnit
  */
 @Configuration
 @EnableCaching
+@EnableScheduling
 class CacheConfig {
 
     /**
@@ -52,11 +57,11 @@ class CacheConfig {
                 .recordStats()  // 통계 수집 활성화
         )
 
-        // 개별 캐시 설정 (필요시 캐시별 다른 설정 적용)
-        cacheManager.setCacheSpecification(mapOf(
-            CacheNames.PRODUCT_DETAIL to "maximumSize=500,expireAfterWrite=10m",
-            CacheNames.COUPON_INFO to "maximumSize=200,expireAfterWrite=5m",
-            CacheNames.COUPON_ACTIVE_LIST to "maximumSize=100,expireAfterWrite=5m"
+        // 개별 캐시 이름 설정
+        cacheManager.setCacheNames(listOf(
+            CacheNames.PRODUCT_DETAIL,
+            CacheNames.COUPON_INFO,
+            CacheNames.COUPON_ACTIVE_LIST
         ))
 
         return cacheManager
@@ -74,8 +79,8 @@ class CacheConfig {
         val defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
             .entryTtl(Duration.ofMinutes(10))  // 기본 10분 TTL
             .disableCachingNullValues()  // null 값 캐싱 비활성화
-            .serializeKeysWith(RedisCacheConfiguration.SerializationPair.fromSerializer(org.springframework.data.redis.serializer.StringRedisSerializer()))
-            .serializeValuesWith(RedisCacheConfiguration.SerializationPair.fromSerializer(org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer()))
+            .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(StringRedisSerializer()))
+            .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(GenericJackson2JsonRedisSerializer()))
 
         // 캐시별 개별 TTL 설정
         val cacheConfigurations = mapOf(

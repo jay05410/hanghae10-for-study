@@ -37,14 +37,15 @@ spring:
           max-active: 8
           max-idle: 8
           min-idle: 0
-      timeout: 1000ms
+      timeout: 10000ms
 
 logging:
   level:
     org.springframework: WARN
     org.testcontainers: WARN
     com.github.gavlyukovskiy.cloud.sleuth: OFF
-    io.hhplus.ecommerce: WARN
+    io.hhplus.ecommerce: DEBUG
+    io.hhplus.ecommerce.common.aop.DistributedLockAop: DEBUG
     org.hibernate: WARN
     com.zaxxer.hikari: WARN
 

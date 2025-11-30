@@ -40,9 +40,9 @@ class RedisConfig {
             .setAddress(address)
             .setConnectionPoolSize(64)
             .setConnectionMinimumIdleSize(10)
-            .setIdleConnectionTimeout(10000)
+            .setIdleConnectionTimeout(30000)
             .setConnectTimeout(10000)
-            .setTimeout(3000)
+            .setTimeout(10000)
             .setRetryAttempts(3)
             .setRetryInterval(1500)
 

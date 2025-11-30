@@ -36,26 +36,46 @@ class DistributedLockAop(
         val lockKey = generateLockKey(distributedLock.key, joinPoint)
         val rLock = redissonClient.getLock(lockKey)
 
-        try {
-            val acquired = rLock.tryLock(
-                distributedLock.waitTime,
-                distributedLock.leaseTime,
-                distributedLock.timeUnit
-            )
+        var retryCount = 0
+        val maxRetries = 3
 
-            if (!acquired) {
-                throw IllegalStateException("분산락 획득에 실패했습니다. key: $lockKey")
-            }
+        while (retryCount <= maxRetries) {
+            try {
+                log.debug("분산락 획득 시도: {} (waitTime: {}s, leaseTime: {}s, retry: {})",
+                    lockKey, distributedLock.waitTime, distributedLock.leaseTime, retryCount)
 
-            log.debug("분산락 획득 성공: {}", lockKey)
-            return joinPoint.proceed()
+                val acquired = rLock.tryLock(
+                    distributedLock.waitTime,
+                    distributedLock.leaseTime,
+                    distributedLock.timeUnit
+                )
 
-        } finally {
-            if (rLock.isHeldByCurrentThread()) {
-                rLock.unlock()
-                log.debug("분산락 해제 성공: {}", lockKey)
+                if (!acquired) {
+                    if (retryCount < maxRetries) {
+                        retryCount++
+                        log.warn("분산락 획득에 실패했습니다. 재시도합니다. key: {} (retry: {}/{})",
+                            lockKey, retryCount, maxRetries)
+                        Thread.sleep((100 * retryCount).toLong()) // 백오프
+                        continue
+                    } else {
+                        log.error("분산락 획득에 최종 실패했습니다. key: {} (waitTime: {}s 초과)",
+                            lockKey, distributedLock.waitTime)
+                        throw IllegalStateException("분산락 획득에 실패했습니다. key: $lockKey")
+                    }
+                }
+
+                log.debug("분산락 획득 성공: {} (retry: {})", lockKey, retryCount)
+                return joinPoint.proceed()
+
+            } finally {
+                if (rLock.isHeldByCurrentThread()) {
+                    rLock.unlock()
+                    log.debug("분산락 해제 성공: {}", lockKey)
+                }
             }
         }
+
+        throw IllegalStateException("분산락 획득에 실패했습니다. key: $lockKey")
     }
 
     private fun generateLockKey(keyExpression: String, joinPoint: ProceedingJoinPoint): String {

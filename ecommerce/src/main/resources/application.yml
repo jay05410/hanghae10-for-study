@@ -102,12 +102,6 @@ management:
     health:
       show-details: always  # 헬스 체크 상세 정보 표시
       show-components: always
-    metrics:
-      enabled: true
-    prometheus:
-      enabled: true
-    caches:
-      enabled: true
   metrics:
     export:
       prometheus:
@@ -115,13 +109,18 @@ management:
     distribution:
       percentiles-histogram:
         http.server.requests: true  # HTTP 요청 히스토그램
+        cache.gets: true  # 캐시 조회 히스토그램
+        cache.puts: true  # 캐시 저장 히스토그램
+      percentiles:
+        http.server.requests: 0.5, 0.95, 0.99  # HTTP 요청 백분위수
+        cache.gets: 0.5, 0.95, 0.99  # 캐시 조회 백분위수
     tags:
-      application: ${spring.application.name}  # 모든 메트릭에 애플리케이션 이름 태그 추가
-  # HikariCP 메트릭 활성화
-  hikari:
-    minimumIdle: 5
-    maximumPoolSize: 20
-    connectionTimeout: 30000
-    idleTimeout: 600000
-    maxLifetime: 1800000
+      application: ${spring.application.name}
+      cache-enabled: "true"  # 캐시 활성화 표시
+    cache:
+      metric-names:
+        evictions: cache.evictions
+        gets: cache.gets
+        puts: cache.puts
+        size: cache.size
 

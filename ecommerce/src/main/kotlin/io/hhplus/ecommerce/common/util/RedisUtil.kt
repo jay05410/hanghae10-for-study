@@ -1,6 +1,7 @@
 package io.hhplus.ecommerce.common.util
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.springframework.data.redis.connection.ReturnType
 import org.springframework.data.redis.core.RedisTemplate
 import java.util.concurrent.TimeUnit
 
@@ -113,7 +114,7 @@ object RedisUtil {
         val result = redisTemplate.execute<Long?> { connection ->
             connection.eval(
                 luaScript.toByteArray(),
-                org.springframework.data.redis.connection.ReturnType.INTEGER,
+                ReturnType.INTEGER,
                 1,
                 queueKey.toByteArray(),
                 item.toByteArray(),
