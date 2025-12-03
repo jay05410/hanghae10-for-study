@@ -83,7 +83,7 @@ class OrderCreateIntegrationTest(
         pointCommandUseCase.chargePoint(request.userId, 500000, "테스트용 충전")
 
         // 직접 주문 처리
-        return orderCommandUseCase.processOrderDirectly(request)
+        return orderCommandUseCase.processOrder(request)
     }
 
     describe("주문 생성 (Redis Queue)") {

@@ -1,6 +1,7 @@
 package io.hhplus.ecommerce.coupon.application
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import io.hhplus.ecommerce.common.cache.RedisKeyNames
 import io.hhplus.ecommerce.common.util.RedisUtil
 import io.hhplus.ecommerce.common.util.SnowflakeGenerator
 import io.hhplus.ecommerce.coupon.domain.entity.Coupon
@@ -17,22 +18,14 @@ import org.springframework.stereotype.Service
  * - Redis를 사용한 쿠폰 발급 Queue 관리
  * - 대기열 등록, 조회, 처리 상태 업데이트
  *
+ * Redis 키:
+ * - 모든 키는 RedisKeyNames.CouponQueue에서 중앙 관리
+ *
  * Redis 자료구조:
- * 1. Queue (List): "coupon:queue:waiting:{couponId}"
- *    - 대기 중인 queueId 목록 (FIFO)
- *    - LPUSH로 추가, RPOP으로 꺼냄
- *
- * 2. Request Data (String): "coupon:queue:request:{queueId}"
- *    - JSON 직렬화된 CouponQueueRequest 전체 데이터
- *    - TTL: 1시간 (처리 완료 후 자동 삭제)
- *
- * 3. User Mapping (String): "coupon:queue:user:{userId}:{couponId}"
- *    - userId+couponId → queueId 매핑 (중복 방지)
- *    - TTL: 1시간
- *
- * 4. Queue Position Counter (String): "coupon:queue:position:{couponId}"
- *    - 쿠폰별 Queue 순번 카운터
- *    - INCR로 자동 증가
+ * 1. Queue (List): 대기 중인 queueId 목록 (FIFO)
+ * 2. Request Data (String): JSON 직렬화된 CouponQueueRequest
+ * 3. User Mapping (String): userId+couponId → queueId 매핑
+ * 4. Queue Position Counter (String): 쿠폰별 순번 카운터
  */
 @Service
 class CouponQueueService(
@@ -42,10 +35,6 @@ class CouponQueueService(
 ) {
 
     companion object {
-        private const val QUEUE_KEY_PREFIX = "coupon:queue:waiting"
-        private const val REQUEST_KEY_PREFIX = "coupon:queue:request"
-        private const val USER_MAPPING_KEY_PREFIX = "coupon:queue:user"
-        private const val POSITION_COUNTER_KEY_PREFIX = "coupon:queue:position"
         private const val DEFAULT_TTL_HOURS = 1L
     }
 
@@ -233,10 +222,13 @@ class CouponQueueService(
     }
 
 
-    // Redis Key 생성 메서드들
-    private fun getQueueKey(couponId: Long): String = "$QUEUE_KEY_PREFIX:$couponId"
-    private fun getRequestKey(queueId: String): String = "$REQUEST_KEY_PREFIX:$queueId"
+    // Redis Key 생성 - RedisKeyNames.CouponQueue 사용
+    private fun getQueueKey(couponId: Long): String =
+        RedisKeyNames.CouponQueue.waitingKey(couponId)
+    private fun getRequestKey(queueId: String): String =
+        RedisKeyNames.CouponQueue.requestKey(queueId)
     private fun getUserMappingKey(userId: Long, couponId: Long): String =
-        "$USER_MAPPING_KEY_PREFIX:$userId:$couponId"
-    private fun getPositionCounterKey(couponId: Long): String = "$POSITION_COUNTER_KEY_PREFIX:$couponId"
+        RedisKeyNames.CouponQueue.userMappingKey(userId, couponId)
+    private fun getPositionCounterKey(couponId: Long): String =
+        RedisKeyNames.CouponQueue.positionCounterKey(couponId)
 }

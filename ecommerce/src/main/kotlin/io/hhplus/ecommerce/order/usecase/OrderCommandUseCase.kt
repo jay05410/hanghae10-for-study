@@ -19,7 +19,6 @@ import io.hhplus.ecommerce.cart.application.CartService
 import io.hhplus.ecommerce.common.lock.DistributedLockKeys
 import mu.KotlinLogging
 import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 
 /**
  * 주문 명령 UseCase
@@ -47,14 +46,17 @@ class OrderCommandUseCase(
     private val logger = KotlinLogging.logger {}
 
     /**
-     * 주문 생성 요청을 직접 처리한다 (재시도 로직 포함)
+     * 주문 생성 요청을 처리한다 (재시도 로직 포함)
+     *
+     * 동시성 제어:
+     * - 분산락은 processOrderDirectly에서 적용 (재시도 시마다 락 재획득)
+     * - 재시도 로직은 락 외부에서 처리하여 락 보유 시간 최소화
      *
      * @param request 주문 생성 요청 데이터
      * @return 생성되고 결제 처리가 완료된 주문
      * @throws IllegalArgumentException 상품 정보가 유효하지 않을 경우
      * @throws RuntimeException 최대 재시도 후에도 실패한 경우
      */
-    @DistributedLock(key = DistributedLockKeys.Order.PROCESS, waitTime = 10L, leaseTime = 60L)
     fun createOrder(request: CreateOrderRequest): Order {
         return processOrderWithRetry(request)
     }
@@ -76,7 +78,7 @@ class OrderCommandUseCase(
 
         repeat(maxRetries + 1) { attempt ->
             try {
-                return processOrderDirectly(request)
+                return processOrder(request)
             } catch (e: Exception) {
                 lastException = e
 
@@ -102,14 +104,19 @@ class OrderCommandUseCase(
     /**
      * 주문 요청을 직접 처리한다
      *
+     * 동시성 제어:
+     * - 사용자별 분산락으로 동시 주문 방지
+     * - waitTime: 10초 (락 획득 대기)
+     * - leaseTime: 60초 (주문 처리 최대 시간)
+     *
      * @param request 주문 생성 요청 데이터
      * @return 생성되고 결제 처리가 완료된 주문
      * @throws IllegalArgumentException 상품 정보가 유효하지 않을 경우
      * @throws RuntimeException 결제 처리에 실패한 경우
      */
-    @DistributedLock(key = DistributedLockKeys.Order.PROCESS)
+    @DistributedLock(key = DistributedLockKeys.Order.PROCESS, waitTime = 10L, leaseTime = 60L)
     @DistributedTransaction
-    fun processOrderDirectly(request: CreateOrderRequest): Order {
+    fun processOrder(request: CreateOrderRequest): Order {
         // 1. 상품 정보 검증 및 가격 계산
         val orderItems = validateAndPrepareOrderItems(request)
         val totalAmount = calculateTotalAmount(orderItems)

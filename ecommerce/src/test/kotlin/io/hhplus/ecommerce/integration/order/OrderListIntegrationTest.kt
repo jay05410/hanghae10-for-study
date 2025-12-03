@@ -13,7 +13,6 @@ import io.hhplus.ecommerce.inventory.domain.entity.Inventory
 import io.hhplus.ecommerce.inventory.domain.repository.InventoryRepository
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.collections.shouldBeSortedWith
 
 /**
  * 사용자 주문 목록 조회 통합 테스트
@@ -93,7 +92,7 @@ class OrderListIntegrationTest(
                     pointCommandUseCase.chargePoint(userId + index.toLong(), 50000, "테스트용 충전")
 
                     // 직접 주문 처리
-                    orderCommandUseCase.processOrderDirectly(modifiedRequest)
+                    orderCommandUseCase.processOrder(modifiedRequest)
                 }
 
                 // When: 다수 사용자의 주문 목록 조회
@@ -174,7 +173,7 @@ class OrderListIntegrationTest(
                     val modifiedRequest = createOrderRequest.copy(userId = currentUserId)
                     pointCommandUseCase.chargePoint(currentUserId, 40000, "테스트용 충전")
                     // 직접 주문 처리
-                    orderCommandUseCase.processOrderDirectly(modifiedRequest)
+                    orderCommandUseCase.processOrder(modifiedRequest)
                 }
 
                 // When: 다수 사용자 주문 조회 시간 측정
