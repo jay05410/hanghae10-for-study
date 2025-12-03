@@ -1,6 +1,8 @@
 package io.hhplus.ecommerce.common.config
 
 import io.hhplus.ecommerce.common.cache.CacheNames
+import io.hhplus.ecommerce.common.cache.CacheInvalidationListener
+import io.hhplus.ecommerce.common.cache.CacheInvalidationPublisher
 import com.github.benmanes.caffeine.cache.Caffeine
 import org.springframework.cache.CacheManager
 import org.springframework.cache.annotation.EnableCaching
@@ -11,6 +13,8 @@ import org.springframework.context.annotation.Primary
 import org.springframework.data.redis.cache.RedisCacheConfiguration
 import org.springframework.data.redis.cache.RedisCacheManager
 import org.springframework.data.redis.connection.RedisConnectionFactory
+import org.springframework.data.redis.listener.PatternTopic
+import org.springframework.data.redis.listener.RedisMessageListenerContainer
 import org.springframework.data.redis.serializer.RedisSerializationContext
 import org.springframework.data.redis.serializer.StringRedisSerializer
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer
@@ -90,8 +94,8 @@ class CacheConfig {
             // 카테고리별 상품 목록: 5분 TTL (카테고리별 결과 일관성)
             CacheNames.PRODUCT_CATEGORY_LIST to defaultConfig.entryTtl(Duration.ofMinutes(5)),
 
-            // 인기상품 목록: 30초 TTL (실시간성 중요)
-            CacheNames.PRODUCT_POPULAR to defaultConfig.entryTtl(Duration.ofSeconds(30))
+            // 인기상품 목록: 1시간 TTL + 스케줄러 사전 갱신으로 Cache Stampede 방지
+            CacheNames.PRODUCT_POPULAR to defaultConfig.entryTtl(Duration.ofHours(1))
         )
 
         return RedisCacheManager.builder(redisConnectionFactory)
@@ -99,5 +103,31 @@ class CacheConfig {
             .withInitialCacheConfigurations(cacheConfigurations)
             .transactionAware()  // 트랜잭션 연동
             .build()
+    }
+
+    /**
+     * Redis Pub/Sub 메시지 리스너 컨테이너
+     *
+     * 역할:
+     * - 캐시 무효화 이벤트를 구독하여 로컬 캐시 동기화
+     * - 분산 환경에서 서버간 로컬 캐시 일관성 유지
+     *
+     * 동작:
+     * - 다른 서버에서 캐시 변경 시 → Redis Pub/Sub으로 이벤트 발행
+     * - 이 컨테이너가 이벤트 수신 → CacheInvalidationListener 호출
+     * - 로컬 Caffeine 캐시에서 해당 엔트리 삭제
+     */
+    @Bean
+    fun redisMessageListenerContainer(
+        connectionFactory: RedisConnectionFactory,
+        cacheInvalidationListener: CacheInvalidationListener
+    ): RedisMessageListenerContainer {
+        return RedisMessageListenerContainer().apply {
+            setConnectionFactory(connectionFactory)
+            addMessageListener(
+                cacheInvalidationListener,
+                PatternTopic(CacheInvalidationPublisher.CACHE_INVALIDATION_CHANNEL)
+            )
+        }
     }
 }
