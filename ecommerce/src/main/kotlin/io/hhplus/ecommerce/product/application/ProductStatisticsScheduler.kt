@@ -160,7 +160,7 @@ class ProductStatisticsScheduler(
      * 청크 단위 벌크 업데이트
      */
     @Transactional
-    private fun bulkUpdateStatistics(chunk: List<Map.Entry<Long, AggregatedStats>>) {
+    internal fun bulkUpdateStatistics(chunk: List<Map.Entry<Long, AggregatedStats>>) {
         try {
             chunk.forEach { (productId, aggregatedStats) ->
                 val statistics = productPermanentStatisticsRepository.findByProductId(productId)
@@ -231,7 +231,7 @@ class ProductStatisticsScheduler(
     /**
      * 집계된 통계 데이터 클래스
      */
-    private data class AggregatedStats(
+    internal data class AggregatedStats(
         var viewCount: Long = 0,
         var salesCount: Long = 0,
         var wishCount: Long = 0
