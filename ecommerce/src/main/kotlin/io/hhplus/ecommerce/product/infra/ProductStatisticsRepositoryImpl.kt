@@ -1,49 +1,50 @@
 package io.hhplus.ecommerce.product.infra
 
-import io.hhplus.ecommerce.product.domain.entity.ProductStatistics
-import io.hhplus.ecommerce.product.domain.repository.ProductStatisticsRepository
+import io.hhplus.ecommerce.product.domain.entity.ProductPermanentStatistics
+import io.hhplus.ecommerce.product.domain.repository.ProductPermanentStatisticsRepository
+import io.hhplus.ecommerce.product.infra.mapper.ProductStatisticsMapper
 import io.hhplus.ecommerce.product.infra.persistence.repository.ProductStatisticsJpaRepository
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Repository
-import org.springframework.transaction.annotation.Transactional
 
+/**
+ * 상품 영구 통계 레포지토리 구현체
+ *
+ * 책임:
+ * - JPA 엔티티 ↔ 도메인 엔티티 매핑
+ * - 영구 증분 데이터의 RDB 영속성 관리
+ * - 매퍼를 통한 계층 분리 유지
+ */
 @Repository
-class ProductStatisticsRepositoryImpl(
-    private val productStatisticsJpaRepository: ProductStatisticsJpaRepository
-) : ProductStatisticsRepository {
+class ProductPermanentStatisticsRepositoryImpl(
+    private val productStatisticsJpaRepository: ProductStatisticsJpaRepository,
+    private val statisticsMapper: ProductStatisticsMapper
+) : ProductPermanentStatisticsRepository {
 
-    override fun findByProductId(productId: Long): ProductStatistics? {
+    override fun findByProductId(productId: Long): ProductPermanentStatistics? {
         return productStatisticsJpaRepository.findByProductId(productId)
+            ?.let { statisticsMapper.toDomain(it) }
     }
 
-    override fun findTopPopularProducts(limit: Int): List<ProductStatistics> {
+    override fun save(statistics: ProductPermanentStatistics): ProductPermanentStatistics {
+        // 기존 JPA 엔티티 조회 또는 신규 생성
+        val existingJpaEntity = productStatisticsJpaRepository.findByProductId(statistics.productId)
+
+        val jpaEntity = if (existingJpaEntity != null) {
+            // 기존 엔티티 업데이트 (Version 유지)
+            statisticsMapper.updateJpaEntity(existingJpaEntity, statistics)
+        } else {
+            // 신규 엔티티 생성
+            statisticsMapper.toJpaEntity(statistics)
+        }
+
+        val savedJpaEntity = productStatisticsJpaRepository.save(jpaEntity)
+        return statisticsMapper.toDomain(savedJpaEntity)
+    }
+
+    override fun findTopProductsByPermanentPopularity(limit: Int): List<ProductPermanentStatistics> {
         val pageable = PageRequest.of(0, limit)
-        return productStatisticsJpaRepository.findAll(pageable).content
-    }
-
-    override fun save(productStatistics: ProductStatistics): ProductStatistics {
-        return productStatisticsJpaRepository.save(productStatistics)
-    }
-
-    @Transactional
-    override fun bulkUpdateViewCounts(updates: Map<Long, Long>) {
-        updates.forEach { (productId, viewCount) ->
-            val statistics = findByProductId(productId)
-                ?: ProductStatistics.create(productId)
-
-            statistics.addViewCount(viewCount)
-            save(statistics)
-        }
-    }
-
-    @Transactional
-    override fun bulkUpdateSalesCounts(updates: Map<Long, Long>) {
-        updates.forEach { (productId, salesCount) ->
-            val statistics = findByProductId(productId)
-                ?: ProductStatistics.create(productId)
-
-            statistics.addSalesCount(salesCount)
-            save(statistics)
-        }
+        val jpaEntities = productStatisticsJpaRepository.findTopByPermanentPopularity(pageable)
+        return statisticsMapper.toDomainList(jpaEntities)
     }
 }

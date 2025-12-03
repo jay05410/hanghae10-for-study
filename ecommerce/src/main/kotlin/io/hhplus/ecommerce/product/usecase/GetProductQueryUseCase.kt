@@ -2,6 +2,7 @@ package io.hhplus.ecommerce.product.usecase
 
 import io.hhplus.ecommerce.product.application.ProductService
 import io.hhplus.ecommerce.product.application.EventBasedStatisticsService
+import io.hhplus.ecommerce.product.domain.calculator.PopularityCalculator
 import io.hhplus.ecommerce.product.domain.entity.Product
 import io.hhplus.ecommerce.product.domain.vo.ProductStatsVO
 import io.hhplus.ecommerce.common.cache.CacheNames
@@ -10,17 +11,20 @@ import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Component
 
 /**
- * 상품 조회 통합 유스케이스 - 애플리케이션 계층
+ * 상품 기본 조회 UseCase - 애플리케이션 계층
  *
  * 역할:
- * - 상품 관련 다양한 조회 작업 통합 처리
- * - 상품 정보 조회 및 비즈니스 로직 수행
+ * - 상품 기본 정보 조회 (ID, 목록, 카테고리별)
+ * - 순수한 상품 데이터 조회 담당
  * - CQRS Query 패턴 구현
  *
  * 책임:
- * - 다양한 상품 조회 사용 사례 통합 처리
- * - 상품 데이터 반환 및 전달
- * - 읽기 전용 작업 처리
+ * - 상품 CRUD 조회 작업
+ * - 커서 기반 페이징 처리
+ * - 캐싱된 인기 상품 조회 (통계 계산 결과 활용)
+ *
+ * 분리된 책임:
+ * - 통계 기반 정렬은 ProductStatisticsQueryUseCase에서 처리
  */
 @Component
 class GetProductQueryUseCase(
@@ -74,7 +78,7 @@ class GetProductQueryUseCase(
             productId = productId,
             viewCount = viewCount,
             salesCount = salesCount,
-            hotScore = salesCount * 0.4 + viewCount * 0.3 + wishCount * 0.3
+            hotScore = PopularityCalculator.calculateScore(salesCount, viewCount, wishCount)
         )
     }
 
@@ -91,7 +95,7 @@ class GetProductQueryUseCase(
                 productId = productId,
                 viewCount = viewCount,
                 salesCount = salesCount,
-                hotScore = salesCount * 0.4 + viewCount * 0.3 + wishCount * 0.3
+                hotScore = PopularityCalculator.calculateScore(salesCount, viewCount, wishCount)
             )
         }
     }
@@ -116,4 +120,5 @@ class GetProductQueryUseCase(
             productService.getProduct(productId)
         }
     }
+
 }

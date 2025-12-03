@@ -1,7 +1,9 @@
 package io.hhplus.ecommerce.product.application
 
 import io.hhplus.ecommerce.common.cache.RedisKeyNames
+import io.hhplus.ecommerce.product.domain.calculator.PopularityCalculator
 import io.hhplus.ecommerce.product.domain.event.ProductStatisticsEvent
+import io.hhplus.ecommerce.product.domain.vo.ProductStatsVO
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Service
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -16,10 +18,17 @@ import java.time.ZoneOffset
  * 2. 별도 스케줄러가 로그를 청크 단위로 읽어서 → DB 벌크 업데이트
  * 3. 실시간 집계는 Redis 로그에서 직접 계산
  *
+ * 데이터 동기화 전략:
+ * - Redis: 실시간 조회용 캐시 (최대 15분 TTL)
+ * - DB: 영구 저장 및 히스토리 분석용 (30분마다 배치 업데이트)
+ * - 데이터 불일치: Redis가 최신, DB는 지연 반영 (허용 범위: 최대 30분)
+ * - 장애 복구: Redis 손실 시 DB에서 복구 가능 (일부 실시간 데이터 손실 허용)
+ *
  * 장점:
  * - Write-back 제거로 로직 단방향화
  * - 이벤트 손실 없이 안정적 저장
  * - 실시간성과 성능 양립
+ * - 명확한 데이터 소스 역할 분리
  *
  * Redis 키:
  * - 모든 키는 RedisKeyNames.Stats에서 중앙 관리
@@ -78,9 +87,9 @@ class EventBasedStatisticsService(
      * @param productId 상품 ID
      * @param quantity 판매 수량
      * @param orderId 주문 ID
-     * @return 실시간 총 판매량
+     * @return 업데이트된 실시간 통계 정보
      */
-    fun recordSalesEvent(productId: Long, quantity: Int, orderId: Long): Long {
+    fun recordSalesEvent(productId: Long, quantity: Int, orderId: Long): ProductStatsVO {
         val event = ProductStatisticsEvent.ProductSold(
             pId = productId,
             quantity = quantity,
@@ -92,7 +101,17 @@ class EventBasedStatisticsService(
 
         // 2. 실시간 판매량 누적 (영구 저장)
         val salesKey = RedisKeyNames.Stats.salesKey(productId)
-        return redisTemplate.opsForValue().increment(salesKey, quantity.toLong()) ?: quantity.toLong()
+        redisTemplate.opsForValue().increment(salesKey, quantity.toLong())
+
+        // 3. 실시간 통계 조회 및 VO 반환
+        val (viewCount, salesCount, wishCount) = getRealTimeStats(productId)
+
+        return ProductStatsVO.create(
+            productId = productId,
+            viewCount = viewCount,
+            salesCount = salesCount,
+            hotScore = PopularityCalculator.calculateScore(salesCount, viewCount, wishCount)
+        )
     }
 
     /**

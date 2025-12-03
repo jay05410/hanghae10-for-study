@@ -22,4 +22,7 @@ interface ProductRepository {
     // 커서 기반 페이징
     fun findActiveProductsWithCursor(lastId: Long?, size: Int): List<Product>
     fun findCategoryProductsWithCursor(categoryId: Long, lastId: Long?, size: Int): List<Product>
+
+    // 통계 정렬용 전체 목록 조회
+    fun findActiveProductsByCategory(categoryId: Long): List<Product>
 }

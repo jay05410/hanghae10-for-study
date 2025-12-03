@@ -1,6 +1,7 @@
 package io.hhplus.ecommerce.product.controller
 
 import io.hhplus.ecommerce.product.usecase.*
+import io.hhplus.ecommerce.product.application.EventBasedStatisticsService
 import io.hhplus.ecommerce.product.dto.*
 import io.hhplus.ecommerce.common.response.ApiResponse
 import io.hhplus.ecommerce.common.response.Cursor
@@ -28,7 +29,8 @@ import org.springframework.web.bind.annotation.*
 class ProductController(
     private val getProductQueryUseCase: GetProductQueryUseCase,
     private val productCommandUseCase: ProductCommandUseCase,
-    private val productStatsUseCase: ProductStatsUseCase
+    private val productStatisticsQueryUseCase: ProductStatisticsQueryUseCase,
+    private val eventBasedStatisticsService: EventBasedStatisticsService
 ) {
 
     @Operation(summary = "상품 목록 조회", description = "커서 기반 페이징으로 상품 목록을 조회합니다.")
@@ -63,7 +65,7 @@ class ProductController(
         @Parameter(description = "사용자 ID", example = "1")
         @RequestHeader("User-Id", defaultValue = "1") userId: Long
     ): ApiResponse<ProductResponse> {
-        productStatsUseCase.incrementViewCount(productId, userId)
+        eventBasedStatisticsService.recordViewEvent(productId, userId)
         val product = getProductQueryUseCase.getProduct(productId)
         return ApiResponse.success(product.toResponse())
     }
@@ -97,6 +99,38 @@ class ProductController(
         @RequestParam(defaultValue = "10") limit: Int
     ): ApiResponse<List<ProductResponse>> {
         val products = getProductQueryUseCase.getPopularProducts(limit)
+        return ApiResponse.success(products.map { it.toResponse() })
+    }
+
+    @Operation(
+        summary = "정렬 기준별 상품 목록 조회",
+        description = "다양한 정렬 기준(인기순, 조회순, 찜순, 판매순)에 따른 상품 목록을 조회합니다."
+    )
+    @GetMapping("/sorted")
+    fun getProductsBySortCriteria(
+        @Parameter(description = "정렬 기준", example = "POPULAR")
+        @RequestParam sortBy: ProductSortCriteria,
+        @Parameter(description = "조회할 상품 수", example = "20")
+        @RequestParam(defaultValue = "20") limit: Int
+    ): ApiResponse<List<ProductResponse>> {
+        val products = productStatisticsQueryUseCase.getProductsBySortCriteria(sortBy, limit)
+        return ApiResponse.success(products.map { it.toResponse() })
+    }
+
+    @Operation(
+        summary = "카테고리별 정렬 상품 조회",
+        description = "특정 카테고리에서 정렬 기준에 따른 상품 목록을 조회합니다."
+    )
+    @GetMapping("/categories/{categoryId}/sorted")
+    fun getProductsByCategoryAndSortCriteria(
+        @Parameter(description = "카테고리 ID", required = true)
+        @PathVariable categoryId: Long,
+        @Parameter(description = "정렬 기준", example = "POPULAR")
+        @RequestParam sortBy: ProductSortCriteria,
+        @Parameter(description = "조회할 상품 수", example = "20")
+        @RequestParam(defaultValue = "20") limit: Int
+    ): ApiResponse<List<ProductResponse>> {
+        val products = productStatisticsQueryUseCase.getProductsByCategoryAndSortCriteria(categoryId, sortBy, limit)
         return ApiResponse.success(products.map { it.toResponse() })
     }
 

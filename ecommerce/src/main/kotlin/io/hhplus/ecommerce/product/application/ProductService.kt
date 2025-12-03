@@ -156,4 +156,14 @@ class ProductService(
 
         return Cursor.from(contents, nextLastId)
     }
+
+    /**
+     * 특정 카테고리의 모든 활성 상품 조회 (통계 기반 정렬용)
+     *
+     * 통계 UseCase에서 카테고리별 정렬을 위해 사용
+     * 캐시 없이 실시간 데이터 조회 (통계와 함께 정렬하므로)
+     */
+    fun getActiveProductsByCategory(categoryId: Long): List<Product> {
+        return productRepository.findActiveProductsByCategory(categoryId)
+    }
 }
