@@ -1,14 +1,12 @@
 package io.hhplus.ecommerce.coupon.application
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import io.hhplus.ecommerce.common.annotation.DistributedLock
 import io.hhplus.ecommerce.common.util.RedisUtil
 import io.hhplus.ecommerce.common.util.SnowflakeGenerator
 import io.hhplus.ecommerce.coupon.domain.entity.Coupon
 import io.hhplus.ecommerce.coupon.domain.entity.CouponQueueRequest
 import io.hhplus.ecommerce.coupon.domain.constant.QueueStatus
 import io.hhplus.ecommerce.coupon.exception.CouponException
-import io.hhplus.ecommerce.common.lock.DistributedLockKeys
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Service
 
@@ -53,7 +51,11 @@ class CouponQueueService(
 
 
     /**
-     * 쿠폰 발급 요청을 Queue에 등록 (큐 크기 제한 포함, 원자적 처리)
+     * 쿠폰 발급 요청을 Queue에 등록 (큐 크기 제한 포함)
+     *
+     * 동시성 제어:
+     * - 분산락은 CouponUseCase에서 적용 (UseCase 레이어 책임)
+     * - 이 메서드는 순수한 큐 관리 로직만 담당
      *
      * @param userId 사용자 ID
      * @param coupon 쿠폰 정보
@@ -61,7 +63,6 @@ class CouponQueueService(
      * @throws CouponException.AlreadyInQueue 이미 Queue에 등록된 경우
      * @throws CouponException.QueueFull 큐가 가득 찬 경우
      */
-    @DistributedLock(key = DistributedLockKeys.Coupon.ENQUEUE)
     fun enqueueWithSizeLimit(userId: Long, coupon: Coupon): CouponQueueRequest {
         val userMappingKey = getUserMappingKey(userId, coupon.id)
         val queueKey = getQueueKey(coupon.id)

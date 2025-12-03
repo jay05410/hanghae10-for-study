@@ -25,7 +25,8 @@ class UserCouponMapper {
             issuedAt = entity.issuedAt,
             usedAt = entity.usedAt,
             usedOrderId = entity.usedOrderId,
-            status = entity.status
+            status = entity.status,
+            version = entity.version
         )
     }
 
@@ -40,7 +41,8 @@ class UserCouponMapper {
             issuedAt = domain.issuedAt,
             usedAt = domain.usedAt,
             usedOrderId = domain.usedOrderId,
-            status = domain.status
+            status = domain.status,
+            version = domain.version
         )
     }
 
