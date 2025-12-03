@@ -50,4 +50,7 @@ class ProductRepositoryImpl(
 
     override fun findCategoryProductsWithCursor(categoryId: Long, lastId: Long?, size: Int): List<Product> =
         jpaRepository.findCategoryProductsWithCursor(categoryId, lastId, size).toDomain(mapper)
+
+    override fun findActiveProductsByCategory(categoryId: Long): List<Product> =
+        jpaRepository.findByCategoryIdAndIsActive(categoryId).toDomain(mapper)
 }

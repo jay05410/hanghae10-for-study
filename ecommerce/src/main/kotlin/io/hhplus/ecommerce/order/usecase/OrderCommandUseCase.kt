@@ -6,7 +6,7 @@ import io.hhplus.ecommerce.order.domain.entity.Order
 import io.hhplus.ecommerce.order.application.OrderService
 import io.hhplus.ecommerce.order.dto.CreateOrderRequest
 import io.hhplus.ecommerce.order.dto.OrderItemData
-import io.hhplus.ecommerce.product.application.ProductService
+import io.hhplus.ecommerce.product.application.ProductQueryService
 import io.hhplus.ecommerce.coupon.application.CouponService
 import io.hhplus.ecommerce.payment.application.PaymentService
 import io.hhplus.ecommerce.delivery.application.DeliveryService
@@ -35,7 +35,7 @@ import org.springframework.stereotype.Component
 @Component
 class OrderCommandUseCase(
     private val orderService: OrderService,
-    private val productService: ProductService,
+    private val productQueryService: ProductQueryService,
     private val couponService: CouponService,
     private val paymentService: PaymentService,
     private val deliveryService: DeliveryService,
@@ -220,7 +220,7 @@ class OrderCommandUseCase(
      */
     private fun validateAndPrepareOrderItems(request: CreateOrderRequest): List<OrderItemData> {
         return request.items.map { item ->
-            val product = productService.getProduct(item.productId)
+            val product = productQueryService.getProduct(item.productId)
             OrderItemData(
                 productId = item.productId,
                 productName = product.name,

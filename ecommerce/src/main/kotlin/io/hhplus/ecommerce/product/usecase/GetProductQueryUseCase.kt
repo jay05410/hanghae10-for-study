@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.product.usecase
 
-import io.hhplus.ecommerce.product.application.ProductService
+import io.hhplus.ecommerce.product.application.ProductQueryService
 import io.hhplus.ecommerce.product.application.EventBasedStatisticsService
 import io.hhplus.ecommerce.product.domain.calculator.PopularityCalculator
 import io.hhplus.ecommerce.product.domain.entity.Product
@@ -28,7 +28,7 @@ import org.springframework.stereotype.Component
  */
 @Component
 class GetProductQueryUseCase(
-    private val productService: ProductService,
+    private val productQueryService: ProductQueryService,
     private val eventBasedStatisticsService: EventBasedStatisticsService
 ) {
 
@@ -40,7 +40,7 @@ class GetProductQueryUseCase(
      * @return 커서 기반 상품 목록
      */
     fun getProducts(lastId: Long?, size: Int): Cursor<Product> {
-        return productService.getProductsWithCursor(lastId, size)
+        return productQueryService.getProductsWithCursor(lastId, size)
     }
 
     /**
@@ -51,7 +51,7 @@ class GetProductQueryUseCase(
      * @throws IllegalArgumentException 상품을 찾을 수 없는 경우
      */
     fun getProduct(productId: Long): Product {
-        return productService.getProduct(productId)
+        return productQueryService.getProduct(productId)
     }
 
     /**
@@ -63,7 +63,7 @@ class GetProductQueryUseCase(
      * @return 해당 카테고리에 속하는 커서 기반 상품 목록
      */
     fun getProductsByCategory(categoryId: Long, lastId: Long?, size: Int): Cursor<Product> {
-        return productService.getProductsByCategoryWithCursor(categoryId, lastId, size)
+        return productQueryService.getProductsByCategoryWithCursor(categoryId, lastId, size)
     }
 
     /**
@@ -117,7 +117,7 @@ class GetProductQueryUseCase(
 
         // 2단계: 상품 상세 정보 조회 (각각 로컬 캐시 적용됨)
         return popularProductIds.map { (productId, _) ->
-            productService.getProduct(productId)
+            productQueryService.getProduct(productId)
         }
     }
 

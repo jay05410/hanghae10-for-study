@@ -1,6 +1,7 @@
 package io.hhplus.ecommerce.product.usecase
 
-import io.hhplus.ecommerce.product.application.ProductService
+import io.hhplus.ecommerce.product.application.ProductCommandService
+import io.hhplus.ecommerce.product.application.ProductQueryService
 import io.hhplus.ecommerce.product.domain.entity.Product
 import io.hhplus.ecommerce.product.dto.CreateProductRequest
 import io.hhplus.ecommerce.product.dto.UpdateProductRequest
@@ -22,7 +23,8 @@ import org.springframework.stereotype.Component
  */
 @Component
 class ProductCommandUseCase(
-    private val productService: ProductService
+    private val productCommandService: ProductCommandService,
+    private val productQueryService: ProductQueryService
 ) {
 
     /**
@@ -39,7 +41,7 @@ class ProductCommandUseCase(
         CacheEvict(value = [CacheNames.PRODUCT_POPULAR], allEntries = true, cacheManager = "redisCacheManager")
     ])
     fun createProduct(request: CreateProductRequest): Product {
-        return productService.createProduct(
+        return productCommandService.createProduct(
             name = request.name,
             description = request.description,
             price = request.price,
@@ -63,15 +65,11 @@ class ProductCommandUseCase(
         CacheEvict(value = [CacheNames.PRODUCT_POPULAR], allEntries = true, cacheManager = "redisCacheManager")
     ])
     fun updateProduct(productId: Long, request: UpdateProductRequest): Product {
-        val product = productService.getProduct(productId)
-
-        // 상품 정보 업데이트
-        product.updateInfo(
+        return productCommandService.updateProductInfo(
+            productId = productId,
             name = request.name,
             description = request.description,
             price = request.price
         )
-
-        return productService.updateProduct(product)
     }
 }

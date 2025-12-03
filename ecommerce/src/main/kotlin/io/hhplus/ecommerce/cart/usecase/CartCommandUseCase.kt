@@ -3,7 +3,7 @@ package io.hhplus.ecommerce.cart.usecase
 import io.hhplus.ecommerce.cart.application.CartService
 import io.hhplus.ecommerce.cart.domain.entity.Cart
 import io.hhplus.ecommerce.cart.dto.AddToCartRequest
-import io.hhplus.ecommerce.product.application.ProductService
+import io.hhplus.ecommerce.product.application.ProductQueryService
 import org.springframework.stereotype.Component
 
 /**
@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component
 @Component
 class CartCommandUseCase(
     private val cartService: CartService,
-    private val productService: ProductService
+    private val productQueryService: ProductQueryService
 ) {
 
     /**
@@ -33,7 +33,7 @@ class CartCommandUseCase(
      */
     fun addToCart(userId: Long, request: AddToCartRequest): Cart {
         // 1. 상품 존재 여부 검증
-        productService.getProduct(request.productId)
+        productQueryService.getProduct(request.productId)
 
         // 2. 장바구니에 상품 추가
         return cartService.addToCart(

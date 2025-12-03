@@ -1,7 +1,7 @@
 package io.hhplus.ecommerce.product.usecase
 
 import io.hhplus.ecommerce.product.application.EventBasedStatisticsService
-import io.hhplus.ecommerce.product.application.ProductService
+import io.hhplus.ecommerce.product.application.ProductQueryService
 import io.hhplus.ecommerce.product.domain.calculator.PopularityCalculator
 import io.hhplus.ecommerce.product.domain.entity.Product
 import org.springframework.stereotype.Component
@@ -21,7 +21,7 @@ import org.springframework.stereotype.Component
  */
 @Component
 class ProductStatisticsQueryUseCase(
-    private val productService: ProductService,
+    private val productQueryService: ProductQueryService,
     private val eventBasedStatisticsService: EventBasedStatisticsService
 ) {
 
@@ -68,7 +68,7 @@ class ProductStatisticsQueryUseCase(
         limit: Int = 20
     ): List<Product> {
         // 1. 해당 카테고리의 활성 상품 조회
-        val categoryProducts = productService.getActiveProductsByCategory(categoryId)
+        val categoryProducts = productQueryService.getActiveProductsByCategory(categoryId)
 
         // 2. 정렬 기준에 따른 필터링 및 정렬
         return when (sortBy) {
@@ -118,7 +118,7 @@ class ProductStatisticsQueryUseCase(
 
         return popularProductIds.mapNotNull { (productId, _) ->
             try {
-                productService.getProduct(productId)
+                productQueryService.getProduct(productId)
             } catch (e: Exception) {
                 null // 상품이 삭제된 경우 무시
             }
@@ -149,7 +149,7 @@ class ProductStatisticsQueryUseCase(
             .take(limit)
             .mapNotNull { (productId, _) ->
                 try {
-                    productService.getProduct(productId)
+                    productQueryService.getProduct(productId)
                 } catch (e: Exception) {
                     null
                 }
@@ -178,7 +178,7 @@ class ProductStatisticsQueryUseCase(
             .take(limit)
             .mapNotNull { (productId, _) ->
                 try {
-                    productService.getProduct(productId)
+                    productQueryService.getProduct(productId)
                 } catch (e: Exception) {
                     null
                 }
@@ -207,7 +207,7 @@ class ProductStatisticsQueryUseCase(
             .take(limit)
             .mapNotNull { (productId, _) ->
                 try {
-                    productService.getProduct(productId)
+                    productQueryService.getProduct(productId)
                 } catch (e: Exception) {
                     null
                 }
