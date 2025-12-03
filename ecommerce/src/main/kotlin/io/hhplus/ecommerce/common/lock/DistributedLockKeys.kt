@@ -1,72 +1,92 @@
 package io.hhplus.ecommerce.common.lock
 
 /**
- * 애플리케이션 전체에서 사용되는 분산락 키 컨벤션
+ * 분산락 키 중앙 관리
  *
  * 네이밍 규칙:
- * - 형식: "{domain}:{operation}:{resource}:#{#{#parameter}}"
- * - 예시: "coupon:issue:user:#{#userId}", "order:create:user:#{#userId}"
+ * - 형식: "ecom:lock:{domain}:{operation}:#{parameter}"
+ * - 예시: "ecom:lock:cpn:issue:#{#request.couponId}"
  *
- * 이유:
- * - 분산락 키 충돌 방지
- * - 일관된 네이밍으로 관리 용이
- * - 도메인별 그룹화로 디버깅 편리
- * - SpEL 표현식 표준화
+ * 축약어 매핑:
+ * - ecom = ecommerce
+ * - cpn = coupon, pt = point, ord = order, pay = payment, inv = inventory
+ *
+ * SpEL 표현식:
+ * - #{#변수명} 형식으로 동적 키 생성
+ * - AOP에서 파라미터 값으로 치환됨
+ *
+ * @see docs/REDIS_KEY_STRATEGY.md 상세 문서
  */
 object DistributedLockKeys {
 
+    /** 서비스 프리픽스 */
+    private const val PREFIX = "ecom:lock"
+
     /**
-     * 쿠폰 도메인 분산락 키
+     * 쿠폰 도메인 분산락 (cpn = coupon)
      */
     object Coupon {
-        const val ISSUE = "coupon:issue:#{#request.couponId}"
-        const val ENQUEUE = "coupon:enqueue:#{#coupon.id}"
-        const val USE = "coupon:use:user:#{#userId}"
-        const val VALIDATE = "coupon:validate:user:#{#userId}"
+        private const val DOMAIN = "$PREFIX:cpn"
+
+        const val ISSUE = "$DOMAIN:issue:#{#request.couponId}"
+        const val ENQUEUE = "$DOMAIN:enqueue:#{#coupon.id}"
+        const val USE = "$DOMAIN:use:#{#userId}"
+        const val VALIDATE = "$DOMAIN:validate:#{#userId}"
     }
 
     /**
-     * 포인트 도메인 분산락 키
+     * 포인트 도메인 분산락 (pt = point)
      */
     object Point {
-        const val CHARGE = "point:charge:user:#{#userId}"
-        const val USE = "point:use:user:#{#userId}"
-        const val EARN = "point:earn:user:#{#userId}"
-        const val DEDUCT = "point:deduct:user:#{#userId}"
-        const val EXPIRE = "point:expire:user:#{#userId}"
+        private const val DOMAIN = "$PREFIX:pt"
+
+        const val CHARGE = "$DOMAIN:charge:#{#userId}"
+        const val USE = "$DOMAIN:use:#{#userId}"
+        const val EARN = "$DOMAIN:earn:#{#userId}"
+        const val DEDUCT = "$DOMAIN:deduct:#{#userId}"
+        const val EXPIRE = "$DOMAIN:expire:#{#userId}"
     }
 
     /**
-     * 주문 도메인 분산락 키
+     * 주문 도메인 분산락 (ord = order)
      */
     object Order {
-        const val CREATE = "order:create:user:#{#userId}"
-        const val CANCEL = "order:cancel:#{#orderId}"
-        const val CONFIRM = "order:confirm:#{#orderId}"
-        const val PROCESS = "order:process:user:#{#request.userId}"
+        private const val DOMAIN = "$PREFIX:ord"
+
+        const val CREATE = "$DOMAIN:create:#{#userId}"
+        const val CANCEL = "$DOMAIN:cancel:#{#orderId}"
+        const val CONFIRM = "$DOMAIN:confirm:#{#orderId}"
+        const val PROCESS = "$DOMAIN:process:#{#request.userId}"
     }
 
     /**
-     * 결제 도메인 분산락 키
+     * 결제 도메인 분산락 (pay = payment)
      */
     object Payment {
-        const val PROCESS = "payment:process:order:#{#orderId}"
-        const val DUPLICATE_PREVENTION = "payment:order:#{#orderId}"
+        private const val DOMAIN = "$PREFIX:pay"
+
+        const val PROCESS = "$DOMAIN:process:#{#orderId}"
+        const val DUPLICATE_PREVENTION = "$DOMAIN:dup:#{#orderId}"
     }
 
     /**
-     * 재고 도메인 분산락 키
+     * 재고 도메인 분산락 (inv = inventory)
      */
     object Inventory {
-        const val DEDUCT = "inventory:deduct:product:#{#productId}"
-        const val RESERVE = "inventory:reserve:product:#{#productId}"
-        const val CONFIRM_RESERVATION = "inventory:confirm:product:#{#productId}"
-        const val CANCEL_RESERVATION = "inventory:cancel:product:#{#productId}"
-        const val RESTOCK = "inventory:restock:product:#{#productId}"
+        private const val DOMAIN = "$PREFIX:inv"
+
+        const val DEDUCT = "$DOMAIN:deduct:#{#productId}"
+        const val RESERVE = "$DOMAIN:reserve:#{#productId}"
+        const val CONFIRM_RESERVATION = "$DOMAIN:confirm:#{#productId}"
+        const val CANCEL_RESERVATION = "$DOMAIN:cancel:#{#productId}"
+        const val RESTOCK = "$DOMAIN:restock:#{#productId}"
     }
 
     /**
-     * 모든 분산락 키 목록 (모니터링용)
+     * 모든 분산락 키 패턴 목록 (모니터링용)
+     *
+     * Redis CLI 사용 예:
+     * redis-cli --scan --pattern "ecom:lock:*"
      */
     val ALL_LOCK_KEYS = listOf(
         // Coupon

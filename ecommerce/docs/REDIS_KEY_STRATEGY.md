@@ -59,29 +59,36 @@
 | waiting | `wait` | 대기 |
 | user | `usr` | 사용자 |
 
-### 1.3 키 예시
+### 1.3 키 예시 (실제 적용됨)
 
 ```
-# 실시간 통계
+# 실시간 통계 (RedisKeyNames.Stats)
 ecom:stat:rt:view:{productId}:{minute}     # 상품별 분 단위 조회수
 ecom:stat:rt:sales:{productId}             # 상품별 누적 판매량
 ecom:stat:rt:wish:{productId}              # 상품별 찜 수
 ecom:stat:pop:win:{windowId}               # 10분 윈도우별 인기 상품
+ecom:stat:log:{hour}                       # 이벤트 로그 (시간별)
 
-# 캐시
+# Spring Cache (CacheNames)
 ecom:cache:prod:dtl:{productId}            # 상품 상세 캐시
 ecom:cache:prod:list:{cursor}              # 상품 목록 캐시
 ecom:cache:prod:pop:{limit}                # 인기 상품 캐시
+ecom:cache:prod:cat:{categoryId}           # 카테고리별 상품
+ecom:cache:cpn:info:{couponId}             # 쿠폰 정보 캐시
+ecom:cache:cpn:active                      # 활성 쿠폰 목록
 
-# 쿠폰 큐
+# 쿠폰 큐 (RedisKeyNames.CouponQueue)
 ecom:cpn:queue:wait:{couponId}             # 쿠폰 대기열
 ecom:cpn:queue:req:{queueId}               # 큐 요청 데이터
 ecom:cpn:queue:usr:{userId}:{couponId}     # 사용자-쿠폰 매핑
+ecom:cpn:queue:pos:{couponId}              # 순번 카운터
 
-# 분산락
-ecom:lock:ord:process:{userId}             # 주문 처리 락
-ecom:lock:pt:charge:{userId}               # 포인트 충전 락
-ecom:lock:cpn:issue:{couponId}             # 쿠폰 발급 락
+# 분산락 (DistributedLockKeys) - SpEL 표현식 포함
+ecom:lock:ord:process:#{#request.userId}   # 주문 처리 락
+ecom:lock:pt:charge:#{#userId}             # 포인트 충전 락
+ecom:lock:cpn:issue:#{#request.couponId}   # 쿠폰 발급 락
+ecom:lock:pay:process:#{#orderId}          # 결제 처리 락
+ecom:lock:inv:deduct:#{#productId}         # 재고 차감 락
 ```
 
 ---

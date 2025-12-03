@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.product.application
 
+import io.hhplus.ecommerce.common.cache.RedisKeyNames
 import io.hhplus.ecommerce.product.domain.entity.ProductStatistics
 import io.hhplus.ecommerce.product.domain.event.ProductStatisticsEvent
 import io.hhplus.ecommerce.product.domain.repository.ProductStatisticsRepository
@@ -33,7 +34,6 @@ class EventBatchProcessor(
     private val logger = KotlinLogging.logger {}
 
     companion object {
-        private const val EVENT_LOG_PREFIX = "stats:events"
         private const val CHUNK_SIZE = 100
     }
 
@@ -74,7 +74,7 @@ class EventBatchProcessor(
      * @return 처리된 이벤트 수
      */
     private fun processEventsForHour(hour: Long): Int {
-        val logKey = "$EVENT_LOG_PREFIX:$hour"
+        val logKey = RedisKeyNames.Stats.eventLogKey(hour)
 
         // Redis에서 해당 시간의 모든 이벤트 읽어오기
         val eventLogs = redisTemplate.opsForList().range(logKey, 0, -1) ?: return 0

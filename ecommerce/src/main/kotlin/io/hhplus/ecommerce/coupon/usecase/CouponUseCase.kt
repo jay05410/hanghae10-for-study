@@ -1,6 +1,7 @@
 package io.hhplus.ecommerce.coupon.usecase
 
 import io.hhplus.ecommerce.common.annotation.DistributedLock
+import io.hhplus.ecommerce.common.cache.RedisKeyNames
 import io.hhplus.ecommerce.common.util.RedisUtil
 import io.hhplus.ecommerce.coupon.application.CouponQueueService
 import io.hhplus.ecommerce.coupon.application.CouponService
@@ -113,7 +114,7 @@ class CouponUseCase(
      * @return 대기 중인 요청 수
      */
     fun getQueueSize(couponId: Long): Long {
-        return RedisUtil.getQueueSize(redisTemplate, "coupon:queue:waiting:$couponId")
+        return RedisUtil.getQueueSize(redisTemplate, RedisKeyNames.CouponQueue.waitingKey(couponId))
     }
 
     // ========== 쿠폰 조회 기능 ==========
