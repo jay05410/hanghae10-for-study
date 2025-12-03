@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.product.application
 
+import io.hhplus.ecommerce.common.cache.RedisKeyNames
 import io.hhplus.ecommerce.product.domain.event.ProductStatisticsEvent
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Service
@@ -19,18 +20,15 @@ import java.time.ZoneOffset
  * - Write-back 제거로 로직 단방향화
  * - 이벤트 손실 없이 안정적 저장
  * - 실시간성과 성능 양립
+ *
+ * Redis 키:
+ * - 모든 키는 RedisKeyNames.Stats에서 중앙 관리
  */
 @Service
 class EventBasedStatisticsService(
     private val redisTemplate: RedisTemplate<String, Any>,
     private val objectMapper: ObjectMapper
 ) {
-    companion object {
-        private const val EVENT_LOG_PREFIX = "stats:events"
-        private const val REALTIME_VIEW_PREFIX = "stats:realtime:view"
-        private const val REALTIME_SALES_PREFIX = "stats:realtime:sales"
-        private const val REALTIME_WISH_PREFIX = "stats:realtime:wish"
-    }
 
     /**
      * 조회 이벤트 기록
@@ -50,12 +48,28 @@ class EventBasedStatisticsService(
 
         // 2. 실시간 집계용 타임스탬프 기록
         val minute = getCurrentMinute()
-        val realtimeKey = "$REALTIME_VIEW_PREFIX:$productId:$minute"
+        val realtimeKey = RedisKeyNames.Stats.viewKey(productId, minute)
         redisTemplate.opsForSet().add(realtimeKey, "${event.timestamp}:${userId ?: "anonymous"}")
         redisTemplate.expire(realtimeKey, java.time.Duration.ofMinutes(15))
 
-        // 3. 최근 10분 조회수 반환
+        // 3. 인기 상품 Sorted Set 업데이트 (O(log N) 연산)
+        updatePopularProductsScore(productId)
+
+        // 4. 최근 10분 조회수 반환
         return getLast10MinuteViews(productId)
+    }
+
+    /**
+     * 인기 상품 점수 업데이트
+     * 10분 단위 윈도우로 관리하여 실시간성 유지
+     */
+    private fun updatePopularProductsScore(productId: Long) {
+        val windowId = System.currentTimeMillis() / (10 * 60 * 1000)
+        val windowKey = RedisKeyNames.Stats.popularWindowKey(windowId)
+
+        // 현재 윈도우의 Sorted Set에 점수 증가
+        redisTemplate.opsForZSet().incrementScore(windowKey, productId.toString(), 1.0)
+        redisTemplate.expire(windowKey, java.time.Duration.ofMinutes(15))
     }
 
     /**
@@ -77,7 +91,7 @@ class EventBasedStatisticsService(
         storeEventLog(event)
 
         // 2. 실시간 판매량 누적 (영구 저장)
-        val salesKey = "$REALTIME_SALES_PREFIX:$productId"
+        val salesKey = RedisKeyNames.Stats.salesKey(productId)
         return redisTemplate.opsForValue().increment(salesKey, quantity.toLong()) ?: quantity.toLong()
     }
 
@@ -98,7 +112,7 @@ class EventBasedStatisticsService(
         storeEventLog(event)
 
         // 2. 실시간 찜 개수 관리 (Set으로 중복 방지)
-        val wishKey = "$REALTIME_WISH_PREFIX:$productId"
+        val wishKey = RedisKeyNames.Stats.wishKey(productId)
         redisTemplate.opsForSet().add(wishKey, userId.toString())
 
         return redisTemplate.opsForSet().size(wishKey) ?: 0L
@@ -117,7 +131,7 @@ class EventBasedStatisticsService(
         storeEventLog(event)
 
         // 2. 실시간 찜 개수에서 제거
-        val wishKey = "$REALTIME_WISH_PREFIX:$productId"
+        val wishKey = RedisKeyNames.Stats.wishKey(productId)
         redisTemplate.opsForSet().remove(wishKey, userId.toString())
 
         return redisTemplate.opsForSet().size(wishKey) ?: 0L
@@ -133,7 +147,7 @@ class EventBasedStatisticsService(
         // 최근 10분간의 조회수 합산
         for (i in 0..9) {
             val minute = currentMinute - i
-            val realtimeKey = "$REALTIME_VIEW_PREFIX:$productId:$minute"
+            val realtimeKey = RedisKeyNames.Stats.viewKey(productId, minute)
             val viewCount = redisTemplate.opsForSet().size(realtimeKey) ?: 0L
             totalViews += viewCount
         }
@@ -150,36 +164,58 @@ class EventBasedStatisticsService(
     fun getRealTimeStats(productId: Long): Triple<Long, Long, Long> {
         val viewCount = getLast10MinuteViews(productId)
 
-        val salesKey = "$REALTIME_SALES_PREFIX:$productId"
+        val salesKey = RedisKeyNames.Stats.salesKey(productId)
         val salesCount = redisTemplate.opsForValue().get(salesKey)?.toString()?.toLong() ?: 0L
 
-        val wishKey = "$REALTIME_WISH_PREFIX:$productId"
+        val wishKey = RedisKeyNames.Stats.wishKey(productId)
         val wishCount = redisTemplate.opsForSet().size(wishKey) ?: 0L
 
         return Triple(viewCount, salesCount, wishCount)
     }
 
     /**
-     * 실시간 인기 상품 조회 (최근 10분 기준)
+     * 실시간 인기 상품 조회 (최근 10분 기준) - Sorted Set 기반
+     *
+     * 성능 개선:
+     * - 기존: 1~1000 상품 순회 * 10개 Redis 키 = 최대 10,000번 Redis 호출
+     * - 개선: ZUNIONSTORE + ZREVRANGE = O(N*log(N)) + O(log(N)+M)
      *
      * @param limit 조회할 상품 수
      * @return 인기순 상품 ID와 조회수 목록
      */
     fun getRealTimePopularProducts(limit: Int): List<Pair<Long, Long>> {
-        // 활성 상품 목록에서 실시간 조회수 계산
-        val productStats = mutableMapOf<Long, Long>()
+        val currentWindowId = System.currentTimeMillis() / (10 * 60 * 1000)
 
-        // Redis SCAN을 통해 활성 상품 찾기 (예시로 1-1000 범위)
-        for (productId in 1L..1000L) {
-            val viewCount = getLast10MinuteViews(productId)
-            if (viewCount > 0) {
-                productStats[productId] = viewCount
+        // 현재 윈도우와 이전 윈도우 키 (최근 ~20분 데이터)
+        val currentWindowKey = RedisKeyNames.Stats.popularWindowKey(currentWindowId)
+        val previousWindowKey = RedisKeyNames.Stats.popularWindowKey(currentWindowId - 1)
+
+        // 두 윈도우를 합산한 결과 조회 (ZUNIONSTORE 대신 두 Set 병합)
+        val result = mutableMapOf<Long, Double>()
+
+        // 현재 윈도우에서 상위 상품 조회
+        redisTemplate.opsForZSet()
+            .reverseRangeWithScores(currentWindowKey, 0, (limit * 2).toLong() - 1)
+            ?.forEach { tuple ->
+                val productId = tuple.value?.toString()?.toLongOrNull() ?: return@forEach
+                val score = tuple.score ?: 0.0
+                result[productId] = result.getOrDefault(productId, 0.0) + score
             }
-        }
 
-        return productStats.toList()
-            .sortedByDescending { it.second }
+        // 이전 윈도우에서 상위 상품 조회 (합산)
+        redisTemplate.opsForZSet()
+            .reverseRangeWithScores(previousWindowKey, 0, (limit * 2).toLong() - 1)
+            ?.forEach { tuple ->
+                val productId = tuple.value?.toString()?.toLongOrNull() ?: return@forEach
+                val score = tuple.score ?: 0.0
+                result[productId] = result.getOrDefault(productId, 0.0) + score
+            }
+
+        // 합산 점수로 정렬 후 상위 limit개 반환
+        return result.entries
+            .sortedByDescending { it.value }
             .take(limit)
+            .map { it.key to it.value.toLong() }
     }
 
     /**
@@ -187,7 +223,7 @@ class EventBasedStatisticsService(
      */
     private fun storeEventLog(event: ProductStatisticsEvent) {
         val eventJson = objectMapper.writeValueAsString(event)
-        val logKey = "$EVENT_LOG_PREFIX:${getCurrentHour()}"
+        val logKey = RedisKeyNames.Stats.eventLogKey(getCurrentHour())
 
         // 시간별로 로그 분리하여 저장 (처리 효율성을 위해)
         redisTemplate.opsForList().rightPush(logKey, eventJson)
