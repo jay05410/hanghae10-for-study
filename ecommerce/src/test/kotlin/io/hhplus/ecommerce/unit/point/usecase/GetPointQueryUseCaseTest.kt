@@ -1,21 +1,19 @@
 package io.hhplus.ecommerce.unit.point.usecase
 
-import io.hhplus.ecommerce.point.usecase.GetPointQueryUseCase
+import io.hhplus.ecommerce.point.application.usecase.GetPointQueryUseCase
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.assertions.throwables.shouldThrow
 import io.mockk.*
-import io.hhplus.ecommerce.point.application.PointService
-import io.hhplus.ecommerce.point.application.PointHistoryService
+import io.hhplus.ecommerce.point.domain.service.PointDomainService
 import io.hhplus.ecommerce.point.domain.entity.UserPoint
 import io.hhplus.ecommerce.point.domain.entity.PointHistory
 import io.hhplus.ecommerce.point.domain.vo.Balance
 
 class GetPointQueryUseCaseTest : DescribeSpec({
 
-    val pointService = mockk<PointService>()
-    val pointHistoryService = mockk<PointHistoryService>()
-    val getPointQueryUseCase = GetPointQueryUseCase(pointService, pointHistoryService)
+    val pointDomainService = mockk<PointDomainService>()
+    val getPointQueryUseCase = GetPointQueryUseCase(pointDomainService)
 
     describe("GetPointQueryUseCase") {
 
@@ -32,27 +30,27 @@ class GetPointQueryUseCaseTest : DescribeSpec({
                     every { balance } returns Balance.of(1000L)
                 }
 
-                every { pointService.getUserPoint(userId) } returns mockUserPoint
+                every { pointDomainService.getUserPoint(userId) } returns mockUserPoint
 
                 // When
                 val result = getPointQueryUseCase.getUserPoint(userId)
 
                 // Then
                 result shouldBe mockUserPoint
-                verify { pointService.getUserPoint(userId) }
+                verify { pointDomainService.getUserPoint(userId) }
             }
 
             it("should throw exception when user point not exists") {
                 // Given
                 val userId = 999L
 
-                every { pointService.getUserPoint(userId) } returns null
+                every { pointDomainService.getUserPoint(userId) } returns null
 
                 // When & Then
                 shouldThrow<IllegalArgumentException> {
                     getPointQueryUseCase.getUserPoint(userId)
                 }
-                verify { pointService.getUserPoint(userId) }
+                verify { pointDomainService.getUserPoint(userId) }
             }
         }
 
@@ -65,14 +63,14 @@ class GetPointQueryUseCaseTest : DescribeSpec({
                     mockk<PointHistory> { every { id } returns 2L }
                 )
 
-                every { pointHistoryService.getPointHistories(userId) } returns mockHistories
+                every { pointDomainService.getPointHistories(userId) } returns mockHistories
 
                 // When
                 val result = getPointQueryUseCase.getPointHistories(userId)
 
                 // Then
                 result shouldBe mockHistories
-                verify { pointHistoryService.getPointHistories(userId) }
+                verify { pointDomainService.getPointHistories(userId) }
             }
 
             it("should return empty list when no histories") {
@@ -80,14 +78,14 @@ class GetPointQueryUseCaseTest : DescribeSpec({
                 val userId = 2L
                 val emptyHistories = emptyList<PointHistory>()
 
-                every { pointHistoryService.getPointHistories(userId) } returns emptyHistories
+                every { pointDomainService.getPointHistories(userId) } returns emptyHistories
 
                 // When
                 val result = getPointQueryUseCase.getPointHistories(userId)
 
                 // Then
                 result shouldBe emptyHistories
-                verify { pointHistoryService.getPointHistories(userId) }
+                verify { pointDomainService.getPointHistories(userId) }
             }
         }
 
@@ -98,16 +96,16 @@ class GetPointQueryUseCaseTest : DescribeSpec({
                 val mockUserPoint = mockk<UserPoint>()
                 val mockHistories = listOf(mockk<PointHistory>())
 
-                every { pointService.getUserPoint(userId) } returns mockUserPoint
-                every { pointHistoryService.getPointHistories(userId) } returns mockHistories
+                every { pointDomainService.getUserPoint(userId) } returns mockUserPoint
+                every { pointDomainService.getPointHistories(userId) } returns mockHistories
 
                 // When
                 getPointQueryUseCase.getUserPoint(userId)
                 getPointQueryUseCase.getPointHistories(userId)
 
                 // Then
-                verify(exactly = 1) { pointService.getUserPoint(userId) }
-                verify(exactly = 1) { pointHistoryService.getPointHistories(userId) }
+                verify(exactly = 1) { pointDomainService.getUserPoint(userId) }
+                verify(exactly = 1) { pointDomainService.getPointHistories(userId) }
             }
         }
     }

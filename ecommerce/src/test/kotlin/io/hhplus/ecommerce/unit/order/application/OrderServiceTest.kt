@@ -8,7 +8,7 @@ import io.hhplus.ecommerce.order.domain.repository.OrderItemRepository
 import io.hhplus.ecommerce.order.domain.constant.OrderStatus
 import io.hhplus.ecommerce.order.dto.OrderItemData
 import io.hhplus.ecommerce.common.util.SnowflakeGenerator
-import io.hhplus.ecommerce.product.application.EventBasedStatisticsService
+import io.hhplus.ecommerce.product.application.port.out.ProductStatisticsPort
 import io.hhplus.ecommerce.common.outbox.OutboxEventService
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.hhplus.ecommerce.common.util.IdPrefix
@@ -35,7 +35,7 @@ class OrderServiceTest : DescribeSpec() {
     private val mockOrderRepository = mockk<OrderRepository>()
     private val mockOrderItemRepository = mockk<OrderItemRepository>()
     private val mockSnowflakeGenerator = mockk<SnowflakeGenerator>()
-    private val mockEventBasedStatisticsService = mockk<EventBasedStatisticsService>(relaxed = true)
+    private val mockProductStatisticsPort = mockk<ProductStatisticsPort>(relaxed = true)
     private val mockOutboxEventService = mockk<OutboxEventService>(relaxed = true)
     private val mockObjectMapper = mockk<ObjectMapper>(relaxed = true)
 
@@ -43,7 +43,7 @@ class OrderServiceTest : DescribeSpec() {
         orderRepository = mockOrderRepository,
         orderItemRepository = mockOrderItemRepository,
         snowflakeGenerator = mockSnowflakeGenerator,
-        eventBasedStatisticsService = mockEventBasedStatisticsService,
+        productStatisticsPort = mockProductStatisticsPort,
         outboxEventService = mockOutboxEventService,
         objectMapper = mockObjectMapper
     )
@@ -89,7 +89,7 @@ class OrderServiceTest : DescribeSpec() {
                 mockOrderRepository,
                 mockOrderItemRepository,
                 mockSnowflakeGenerator,
-                mockEventBasedStatisticsService,
+                mockProductStatisticsPort,
                 mockOutboxEventService,
                 mockObjectMapper
             )

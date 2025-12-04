@@ -2,7 +2,7 @@ package io.hhplus.ecommerce.integration.point
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 import io.hhplus.ecommerce.support.config.IntegrationTestFixtures
-import io.hhplus.ecommerce.point.usecase.PointCommandUseCase
+import io.hhplus.ecommerce.point.application.usecase.ChargePointUseCase
 import io.hhplus.ecommerce.point.domain.vo.PointAmount
 import io.kotest.matchers.shouldNotBe
 import mu.KotlinLogging
@@ -11,7 +11,7 @@ import mu.KotlinLogging
  * 분산락이 실제로 작동하는지 확인하는 간단한 테스트
  */
 class PointDistributedLockTest(
-    private val pointCommandUseCase: PointCommandUseCase
+    private val chargePointUseCase: ChargePointUseCase
 ) : KotestIntegrationTestBase({
 
     val logger = KotlinLogging.logger {}
@@ -24,11 +24,10 @@ class PointDistributedLockTest(
                 logger.info("테스트 시작 - userId: $userId")
 
                 // 사용자 포인트 생성
-                pointCommandUseCase.createUserPoint(userId)
                 logger.info("사용자 포인트 생성 완료")
 
                 // When
-                val result = pointCommandUseCase.earnPoint(userId, PointAmount(1000L))
+                val result = chargePointUseCase.execute(userId, 1000L)
                 logger.info("포인트 적립 완료 - 결과: ${result.balance}")
 
                 // Then

@@ -7,7 +7,7 @@ import io.hhplus.ecommerce.payment.domain.constant.PaymentMethod
 import io.hhplus.ecommerce.payment.domain.model.PaymentContext
 import io.hhplus.ecommerce.payment.domain.model.PaymentResult
 import io.hhplus.ecommerce.payment.domain.model.RefundResult
-import io.hhplus.ecommerce.point.application.PointService
+import io.hhplus.ecommerce.point.domain.service.PointDomainService
 import io.hhplus.ecommerce.point.domain.vo.PointAmount
 import io.hhplus.ecommerce.point.exception.PointException
 import mu.KotlinLogging
@@ -30,7 +30,7 @@ import org.springframework.stereotype.Component
  */
 @Component
 class BalancePaymentExecutor(
-    private val pointService: PointService,
+    private val pointDomainService: PointDomainService,
     private val snowflakeGenerator: SnowflakeGenerator
 ) : PaymentExecutorPort {
 
@@ -40,7 +40,7 @@ class BalancePaymentExecutor(
 
     override fun canExecute(context: PaymentContext): Boolean {
         return try {
-            val userPoint = pointService.getUserPoint(context.userId)
+            val userPoint = pointDomainService.getUserPoint(context.userId)
             userPoint != null && userPoint.balance.value >= context.amount
         } catch (e: Exception) {
             logger.warn("포인트 잔액 확인 실패: userId=${context.userId}, error=${e.message}")
@@ -50,12 +50,9 @@ class BalancePaymentExecutor(
 
     override fun execute(context: PaymentContext): PaymentResult {
         return try {
-            val description = context.description ?: "주문 결제 (주문번호: ${context.orderId})"
-
-            pointService.usePoint(
+            pointDomainService.usePoint(
                 userId = context.userId,
-                amount = PointAmount.of(context.amount),
-                description = description
+                amount = PointAmount.of(context.amount)
             )
 
             val transactionId = snowflakeGenerator.generateNumberWithPrefix(IdPrefix.TRANSACTION)
@@ -80,12 +77,9 @@ class BalancePaymentExecutor(
 
     override fun refund(context: PaymentContext): RefundResult {
         return try {
-            val description = context.description ?: "주문 취소 환불 (주문번호: ${context.orderId})"
-
-            pointService.earnPoint(
+            pointDomainService.earnPoint(
                 userId = context.userId,
-                amount = PointAmount.of(context.amount),
-                description = description
+                amount = PointAmount.of(context.amount)
             )
 
             logger.info("포인트 환불 완료: userId=${context.userId}, amount=${context.amount}, orderId=${context.orderId}")

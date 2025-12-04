@@ -1,8 +1,9 @@
 package io.hhplus.ecommerce.integration.point
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
-import io.hhplus.ecommerce.point.usecase.PointCommandUseCase
-import io.hhplus.ecommerce.point.usecase.GetPointQueryUseCase
+import io.hhplus.ecommerce.point.application.usecase.ChargePointUseCase
+import io.hhplus.ecommerce.point.application.usecase.UsePointUseCase
+import io.hhplus.ecommerce.point.application.usecase.GetPointQueryUseCase
 import io.hhplus.ecommerce.point.domain.constant.PointTransactionType
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.collections.shouldBeSortedWith
@@ -23,7 +24,8 @@ import io.kotest.matchers.shouldBe
  * 4. 거래 타입별 필터링 (선택)
  */
 class PointHistoryIntegrationTest(
-    private val pointCommandUseCase: PointCommandUseCase,
+    private val chargePointUseCase: ChargePointUseCase,
+    private val usePointUseCase: UsePointUseCase,
     private val getPointQueryUseCase: GetPointQueryUseCase
 ) : KotestIntegrationTestBase({
 
@@ -34,13 +36,13 @@ class PointHistoryIntegrationTest(
                 val userId = 4000L
 
                 // 충전 3회
-                pointCommandUseCase.chargePoint(userId, 10000)
-                pointCommandUseCase.chargePoint(userId, 20000)
-                pointCommandUseCase.chargePoint(userId, 30000)
+                chargePointUseCase.execute(userId, 10000)
+                chargePointUseCase.execute(userId, 20000)
+                chargePointUseCase.execute(userId, 30000)
 
                 // 사용 2회
-                pointCommandUseCase.usePoint(userId, 5000)
-                pointCommandUseCase.usePoint(userId, 10000)
+                usePointUseCase.execute(userId, 5000)
+                usePointUseCase.execute(userId, 10000)
 
                 // When: 히스토리 조회
                 val histories = getPointQueryUseCase.getPointHistories(userId)
@@ -68,11 +70,11 @@ class PointHistoryIntegrationTest(
                 val transactionCount = 100
 
                 repeat(transactionCount / 2) {
-                    pointCommandUseCase.chargePoint(userId, 1000)
+                    chargePointUseCase.execute(userId, 1000)
                 }
 
                 repeat(transactionCount / 2) {
-                    pointCommandUseCase.usePoint(userId, 500)
+                    usePointUseCase.execute(userId, 500)
                 }
 
                 // When: 조회 시간 측정
@@ -109,7 +111,7 @@ class PointHistoryIntegrationTest(
                 val userId = 4003L
 
                 repeat(5) {
-                    pointCommandUseCase.chargePoint(userId, ((it + 1) * 1000).toLong())
+                    chargePointUseCase.execute(userId, ((it + 1) * 1000).toLong())
                     Thread.sleep(1)
                 }
 
@@ -133,12 +135,12 @@ class PointHistoryIntegrationTest(
                 // Given: 충전 후 사용
                 val userId = 4004L
 
-                pointCommandUseCase.chargePoint(userId, 50000)
+                chargePointUseCase.execute(userId, 50000)
                 Thread.sleep(1)
 
                 // 사용만 3회
                 repeat(3) {
-                    pointCommandUseCase.usePoint(userId, ((it + 1) * 1000).toLong())
+                    usePointUseCase.execute(userId, ((it + 1) * 1000).toLong())
                     Thread.sleep(1)
                 }
 
@@ -162,13 +164,13 @@ class PointHistoryIntegrationTest(
                 // Given
                 val userId = 4005L
 
-                pointCommandUseCase.chargePoint(userId, 10000)
+                chargePointUseCase.execute(userId, 10000)
                 Thread.sleep(1)
-                pointCommandUseCase.usePoint(userId, 3000)
+                usePointUseCase.execute(userId, 3000)
                 Thread.sleep(1)
-                pointCommandUseCase.chargePoint(userId, 5000)
+                chargePointUseCase.execute(userId, 5000)
                 Thread.sleep(1)
-                pointCommandUseCase.usePoint(userId, 2000)
+                usePointUseCase.execute(userId, 2000)
 
                 // When
                 val histories = getPointQueryUseCase.getPointHistories(userId)

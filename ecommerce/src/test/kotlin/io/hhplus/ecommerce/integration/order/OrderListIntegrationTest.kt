@@ -6,7 +6,7 @@ import io.hhplus.ecommerce.order.usecase.OrderCommandUseCase
 import io.hhplus.ecommerce.order.dto.CreateOrderRequest
 import io.hhplus.ecommerce.order.dto.CreateOrderItemRequest
 import io.hhplus.ecommerce.delivery.dto.DeliveryAddressRequest
-import io.hhplus.ecommerce.point.usecase.PointCommandUseCase
+import io.hhplus.ecommerce.point.application.usecase.ChargePointUseCase
 import io.hhplus.ecommerce.product.domain.repository.ProductRepository
 import io.hhplus.ecommerce.product.domain.entity.Product
 import io.hhplus.ecommerce.inventory.domain.entity.Inventory
@@ -31,7 +31,7 @@ import io.kotest.matchers.shouldBe
 class OrderListIntegrationTest(
     private val orderCommandUseCase: OrderCommandUseCase,
     private val getOrderQueryUseCase: GetOrderQueryUseCase,
-    private val pointCommandUseCase: PointCommandUseCase,
+    private val chargePointUseCase: ChargePointUseCase,
     private val productRepository: ProductRepository,
     private val inventoryRepository: InventoryRepository
 ) : KotestIntegrationTestBase({
@@ -58,7 +58,7 @@ class OrderListIntegrationTest(
                 inventoryRepository.save(inventory)
 
                 // 충분한 포인트 충전
-                pointCommandUseCase.chargePoint(userId, 500000, "테스트용 충전")
+                chargePointUseCase.execute(userId, 500000, "테스트용 충전")
 
                 // 주문 10개 생성
                 val orderItems = listOf(
@@ -89,7 +89,7 @@ class OrderListIntegrationTest(
                     val modifiedRequest = createOrderRequest.copy(userId = userId + index.toLong())
 
                     // 해당 사용자에게 포인트 충전
-                    pointCommandUseCase.chargePoint(userId + index.toLong(), 50000, "테스트용 충전")
+                    chargePointUseCase.execute(userId + index.toLong(), 50000, "테스트용 충전")
 
                     // 직접 주문 처리
                     orderCommandUseCase.processOrder(modifiedRequest)
@@ -142,7 +142,7 @@ class OrderListIntegrationTest(
                 )
                 inventoryRepository.save(inventory)
 
-                pointCommandUseCase.chargePoint(userId, 2000000, "테스트용 충전")
+                chargePointUseCase.execute(userId, 2000000, "테스트용 충전")
 
                 val orderItems = listOf(
                     CreateOrderItemRequest(
@@ -171,7 +171,7 @@ class OrderListIntegrationTest(
                 repeat(largeOrderCount) { index ->
                     val currentUserId = userId + index.toLong() + 1 // 1부터 시작하도록 수정
                     val modifiedRequest = createOrderRequest.copy(userId = currentUserId)
-                    pointCommandUseCase.chargePoint(currentUserId, 40000, "테스트용 충전")
+                    chargePointUseCase.execute(currentUserId, 40000, "테스트용 충전")
                     // 직접 주문 처리
                     orderCommandUseCase.processOrder(modifiedRequest)
                 }

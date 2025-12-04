@@ -5,7 +5,7 @@ import io.hhplus.ecommerce.payment.domain.constant.PaymentMethod
 import io.hhplus.ecommerce.payment.presentation.dto.ProcessPaymentRequest
 import io.hhplus.ecommerce.payment.exception.PaymentException
 import io.hhplus.ecommerce.payment.application.usecase.ProcessPaymentUseCase
-import io.hhplus.ecommerce.point.usecase.PointCommandUseCase
+import io.hhplus.ecommerce.point.application.usecase.ChargePointUseCase
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
@@ -22,14 +22,14 @@ import kotlinx.coroutines.runBlocking
  */
 class PaymentDuplicatePreventionTest(
     private val processPaymentUseCase: ProcessPaymentUseCase,
-    private val pointCommandUseCase: PointCommandUseCase
+    private val chargePointUseCase: ChargePointUseCase
 ) : KotestIntegrationTestBase({
 
     // 테스트에 사용할 사용자별로 충분한 포인트 충전 (각 테스트 전에 실행)
     beforeEach {
         val testUserIds = listOf(50001L, 50002L, 50003L)
         testUserIds.forEach { userId ->
-            pointCommandUseCase.chargePoint(userId, 1_000_000L, "테스트 포인트 충전")
+            chargePointUseCase.execute(userId, 1_000_000L, "테스트 포인트 충전")
         }
     }
 

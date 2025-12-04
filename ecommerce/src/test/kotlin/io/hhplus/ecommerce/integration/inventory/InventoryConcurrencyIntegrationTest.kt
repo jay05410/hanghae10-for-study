@@ -3,11 +3,11 @@ package io.hhplus.ecommerce.integration.inventory
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 
 import io.hhplus.ecommerce.support.config.IntegrationTestFixtures
-import io.hhplus.ecommerce.product.dto.CreateProductRequest
+import io.hhplus.ecommerce.product.presentation.dto.CreateProductRequest
 import io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
 import io.hhplus.ecommerce.inventory.usecase.InventoryReservationUseCase
 import io.hhplus.ecommerce.inventory.usecase.GetInventoryQueryUseCase
-import io.hhplus.ecommerce.product.usecase.ProductCommandUseCase
+import io.hhplus.ecommerce.product.application.usecase.ProductCommandUseCase
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.comparables.shouldBeGreaterThanOrEqualTo

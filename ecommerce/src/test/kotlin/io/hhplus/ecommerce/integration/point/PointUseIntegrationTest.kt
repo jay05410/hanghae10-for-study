@@ -4,9 +4,9 @@ import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 
 import io.hhplus.ecommerce.point.exception.PointException
 import io.hhplus.ecommerce.support.config.IntegrationTestFixtures
-import io.hhplus.ecommerce.point.usecase.PointCommandUseCase
-import io.hhplus.ecommerce.point.usecase.GetPointQueryUseCase
-import io.hhplus.ecommerce.point.usecase.PointHistoryUseCase
+import io.hhplus.ecommerce.point.application.usecase.ChargePointUseCase
+import io.hhplus.ecommerce.point.application.usecase.UsePointUseCase
+import io.hhplus.ecommerce.point.application.usecase.GetPointQueryUseCase
 import io.hhplus.ecommerce.point.domain.constant.PointTransactionType
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
@@ -22,9 +22,9 @@ import io.kotest.matchers.shouldNotBe
  * - 최소 사용 단위 검증 (100원)
  */
 class PointUseIntegrationTest(
-    private val pointCommandUseCase: PointCommandUseCase,
-    private val getPointQueryUseCase: GetPointQueryUseCase,
-    private val pointHistoryUseCase: PointHistoryUseCase
+    private val chargePointUseCase: ChargePointUseCase,
+    private val usePointUseCase: UsePointUseCase,
+    private val getPointQueryUseCase: GetPointQueryUseCase
 ) : KotestIntegrationTestBase({
 
     describe("포인트 사용") {
@@ -36,8 +36,8 @@ class PointUseIntegrationTest(
                 val useAmount = 3_000L
 
                 // When - 초기 적립 후 사용
-                pointCommandUseCase.chargePoint(userId, initialAmount, "초기 적립")
-                val updatedUserPoint = pointCommandUseCase.usePoint(
+                chargePointUseCase.execute(userId, initialAmount, "초기 적립")
+                val updatedUserPoint = usePointUseCase.execute(
                     userId = userId,
                     amount = useAmount,
                     description = "주문 결제"
@@ -52,7 +52,7 @@ class PointUseIntegrationTest(
                 savedUserPoint.balance.value shouldBe 7_000L
 
                 // 포인트 이력 확인
-                val histories = pointHistoryUseCase.getPointHistory(userId)
+                val histories = getPointQueryUseCase.getPointHistories(userId)
                 histories.size shouldBe 2  // 충전 1회 + 사용 1회
                 val useHistory = histories.first { it.transactionType == PointTransactionType.USE }
                 useHistory.amount shouldBe -3_000L // USE는 음수로 저장
@@ -69,11 +69,11 @@ class PointUseIntegrationTest(
                 val useAmount = 6_000L // 잔액보다 많은 금액
 
                 // 사용자 포인트 생성 및 초기 적립
-                pointCommandUseCase.chargePoint(userId, initialAmount, "초기 적립")
+                chargePointUseCase.execute(userId, initialAmount, "초기 적립")
 
                 // When & Then
                 shouldThrow<PointException.InsufficientBalance> {
-                    pointCommandUseCase.usePoint(userId, useAmount, "테스트 사용")
+                    usePointUseCase.execute(userId, useAmount, "테스트 사용")
                 }
 
                 // 잔액이 변경되지 않았는지 확인
@@ -89,10 +89,10 @@ class PointUseIntegrationTest(
                 val initialAmount = 8_000L
 
                 // 사용자 포인트 생성 및 초기 적립
-                pointCommandUseCase.chargePoint(userId, initialAmount, "초기 적립")
+                chargePointUseCase.execute(userId, initialAmount, "초기 적립")
 
                 // When - 전액 사용
-                pointCommandUseCase.usePoint(userId, initialAmount)
+                usePointUseCase.execute(userId, initialAmount)
 
                 // Then
                 val userPoint = getPointQueryUseCase.getUserPoint(userId)
@@ -109,20 +109,20 @@ class PointUseIntegrationTest(
                 val secondUse = 2_000L
 
                 // 사용자 포인트 생성 및 초기 적립
-                pointCommandUseCase.chargePoint(userId, initialAmount, "초기 적립")
+                chargePointUseCase.execute(userId, initialAmount, "초기 적립")
 
                 // When - 첫 번째 사용
-                pointCommandUseCase.usePoint(userId, firstUse, "첫 번째 사용")
+                usePointUseCase.execute(userId, firstUse, "첫 번째 사용")
 
                 // When - 두 번째 사용
-                pointCommandUseCase.usePoint(userId, secondUse, "두 번째 사용")
+                usePointUseCase.execute(userId, secondUse, "두 번째 사용")
 
                 // Then
                 val finalUserPoint = getPointQueryUseCase.getUserPoint(userId)
                 finalUserPoint.balance.value shouldBe 5_000L // 10,000 - 3,000 - 2,000
 
                 // 포인트 이력 확인 (최신순)
-                val histories = pointHistoryUseCase.getPointHistory(userId)
+                val histories = getPointQueryUseCase.getPointHistories(userId)
                 histories.size shouldBe 3  // 충전 1회 + 사용 2회
                 val useHistories = histories.filter { it.transactionType == PointTransactionType.USE }
                 useHistories.size shouldBe 2
@@ -138,16 +138,16 @@ class PointUseIntegrationTest(
                 val initialAmount = 10_000L
 
                 // 사용자 포인트 생성 및 초기 적립
-                pointCommandUseCase.chargePoint(userId, initialAmount, "초기 적립")
+                chargePointUseCase.execute(userId, initialAmount, "초기 적립")
 
                 // When & Then - 0원 사용 시도
                 shouldThrow<PointException.InvalidAmount> {
-                    pointCommandUseCase.usePoint(userId, 0)
+                    usePointUseCase.execute(userId, 0)
                 }
 
                 // When & Then - 음수 사용 시도
                 shouldThrow<IllegalArgumentException> {
-                    pointCommandUseCase.usePoint(userId, -1000)
+                    usePointUseCase.execute(userId, -1000)
                 }
             }
         }
@@ -161,10 +161,10 @@ class PointUseIntegrationTest(
                 val orderId = 12345L
 
                 // 사용자 포인트 생성 및 초기 적립
-                pointCommandUseCase.chargePoint(userId, initialAmount, "초기 적립")
+                chargePointUseCase.execute(userId, initialAmount, "초기 적립")
 
                 // When
-                pointCommandUseCase.usePoint(
+                usePointUseCase.execute(
                     userId = userId,
                     amount = useAmount,
                     description = "주문 결제",
@@ -172,7 +172,7 @@ class PointUseIntegrationTest(
                 )
 
                 // Then
-                val histories = pointHistoryUseCase.getPointHistory(userId)
+                val histories = getPointQueryUseCase.getPointHistories(userId)
                 histories.size shouldBe 2  // 충전 1회 + 사용 1회
                 val useHistory = histories.first { it.transactionType == PointTransactionType.USE }
                 useHistory.orderId shouldBe orderId
@@ -191,10 +191,10 @@ class PointUseIntegrationTest(
                 val secondUse = 2_000L
 
                 // When - 적립 → 사용 → 적립 → 사용
-                pointCommandUseCase.chargePoint(userId, firstEarn, "첫 번째 적립")
-                pointCommandUseCase.usePoint(userId, firstUse, "첫 번째 사용")
-                pointCommandUseCase.chargePoint(userId, secondEarn, "두 번째 적립")
-                pointCommandUseCase.usePoint(userId, secondUse, "두 번째 사용")
+                chargePointUseCase.execute(userId, firstEarn, "첫 번째 적립")
+                usePointUseCase.execute(userId, firstUse, "첫 번째 사용")
+                chargePointUseCase.execute(userId, secondEarn, "두 번째 적립")
+                usePointUseCase.execute(userId, secondUse, "두 번째 사용")
 
                 // Then
                 val userPoint = getPointQueryUseCase.getUserPoint(userId)

@@ -6,9 +6,9 @@ import io.hhplus.ecommerce.order.usecase.OrderCommandUseCase
 import io.hhplus.ecommerce.order.dto.CreateOrderRequest
 import io.hhplus.ecommerce.order.dto.CreateOrderItemRequest
 import io.hhplus.ecommerce.delivery.dto.DeliveryAddressRequest
-import io.hhplus.ecommerce.point.usecase.PointCommandUseCase
-import io.hhplus.ecommerce.product.usecase.ProductCommandUseCase
-import io.hhplus.ecommerce.product.dto.CreateProductRequest
+import io.hhplus.ecommerce.point.application.usecase.ChargePointUseCase
+import io.hhplus.ecommerce.product.application.usecase.ProductCommandUseCase
+import io.hhplus.ecommerce.product.presentation.dto.CreateProductRequest
 import io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -28,7 +28,7 @@ import io.kotest.matchers.string.shouldContain
  */
 class OrderConfirmIntegrationTest(
     private val orderCommandUseCase: OrderCommandUseCase,
-    private val pointCommandUseCase: PointCommandUseCase,
+    private val chargePointUseCase: ChargePointUseCase,
     private val productCommandUseCase: ProductCommandUseCase,
     private val inventoryCommandUseCase: InventoryCommandUseCase
 ) : KotestIntegrationTestBase({
@@ -54,7 +54,7 @@ class OrderConfirmIntegrationTest(
                     initialQuantity = 100
                 )
 
-                pointCommandUseCase.chargePoint(userId, 50000, "테스트용 충전")
+                chargePointUseCase.execute(userId, 50000, "테스트용 충전")
 
                 val orderItems = listOf(
                     CreateOrderItemRequest(
@@ -115,7 +115,7 @@ class OrderConfirmIntegrationTest(
                     initialQuantity = 100
                 )
 
-                pointCommandUseCase.chargePoint(userId, 50000, "테스트용 충전")
+                chargePointUseCase.execute(userId, 50000, "테스트용 충전")
 
                 val orderItems = listOf(
                     CreateOrderItemRequest(
@@ -178,7 +178,7 @@ class OrderConfirmIntegrationTest(
                     initialQuantity = 100
                 )
 
-                pointCommandUseCase.chargePoint(userId, 50000, "테스트용 충전")
+                chargePointUseCase.execute(userId, 50000, "테스트용 충전")
 
                 val orderItems = listOf(
                     CreateOrderItemRequest(

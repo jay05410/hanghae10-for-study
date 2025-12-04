@@ -2,9 +2,8 @@ package io.hhplus.ecommerce.integration.point
 
 import io.hhplus.ecommerce.point.exception.PointException
 import io.hhplus.ecommerce.support.config.IntegrationTestFixtures
-import io.hhplus.ecommerce.point.usecase.PointCommandUseCase
-import io.hhplus.ecommerce.point.usecase.GetPointQueryUseCase
-import io.hhplus.ecommerce.point.usecase.PointHistoryUseCase
+import io.hhplus.ecommerce.point.application.usecase.ChargePointUseCase
+import io.hhplus.ecommerce.point.application.usecase.GetPointQueryUseCase
 import io.hhplus.ecommerce.point.domain.constant.PointTransactionType
 import io.hhplus.ecommerce.point.domain.vo.Balance
 import io.hhplus.ecommerce.point.domain.vo.PointAmount
@@ -19,9 +18,8 @@ import io.kotest.matchers.shouldNotBe
  * TestContainers MySQL을 사용하여 포인트 적립 전체 플로우를 검증합니다.
  */
 class PointChargeIntegrationTest(
-    private val pointCommandUseCase: PointCommandUseCase,
-    private val getPointQueryUseCase: GetPointQueryUseCase,
-    private val pointHistoryUseCase: PointHistoryUseCase
+    private val chargePointUseCase: ChargePointUseCase,
+    private val getPointQueryUseCase: GetPointQueryUseCase
 ) : KotestIntegrationTestBase({
 
     describe("포인트 충전(적립)") {
@@ -32,10 +30,9 @@ class PointChargeIntegrationTest(
                 val earnAmount = PointAmount(5000)
 
                 // 사용자 포인트 생성
-                pointCommandUseCase.createUserPoint(userId)
 
                 // When
-                val updatedUserPoint = pointCommandUseCase.chargePoint(
+                val updatedUserPoint = chargePointUseCase.execute(
                     userId = userId,
                     amount = earnAmount.value,
                     description = "구매 적립"
@@ -51,7 +48,7 @@ class PointChargeIntegrationTest(
                 savedUserPoint!!.balance.value shouldBe earnAmount.value
 
                 // 포인트 이력 확인
-                val histories = pointHistoryUseCase.getPointHistory(userId)
+                val histories = getPointQueryUseCase.getPointHistories(userId)
                 histories.size shouldBe 1
                 histories[0].transactionType shouldBe PointTransactionType.EARN
                 histories[0].amount shouldBe earnAmount.value
@@ -68,13 +65,12 @@ class PointChargeIntegrationTest(
                 val secondEarn = PointAmount(2000)
 
                 // 사용자 포인트 생성
-                pointCommandUseCase.createUserPoint(userId)
 
                 // When - 첫 번째 적립
-                pointCommandUseCase.chargePoint(userId, firstEarn.value, "첫 번째 적립")
+                chargePointUseCase.execute(userId, firstEarn.value, "첫 번째 적립")
 
                 // When - 두 번째 적립
-                pointCommandUseCase.chargePoint(userId, secondEarn.value, "두 번째 적립")
+                chargePointUseCase.execute(userId, secondEarn.value, "두 번째 적립")
 
                 // Then
                 val finalUserPoint = getPointQueryUseCase.getUserPoint(userId)
@@ -82,7 +78,7 @@ class PointChargeIntegrationTest(
                 finalUserPoint!!.balance.value shouldBe 5000L // 3000 + 2000
 
                 // 포인트 이력 확인 (최신순)
-                val histories = pointHistoryUseCase.getPointHistory(userId)
+                val histories = getPointQueryUseCase.getPointHistories(userId)
                 histories.size shouldBe 2
                 histories[0].amount shouldBe 2000L // 최신
                 histories[1].amount shouldBe 3000L // 과거
@@ -95,14 +91,13 @@ class PointChargeIntegrationTest(
                 val userId = IntegrationTestFixtures.createTestUserId(3)
 
                 // 사용자 포인트 생성
-                pointCommandUseCase.createUserPoint(userId)
 
                 // 9,900,000원 적립
-                pointCommandUseCase.chargePoint(userId, 9_900_000L, "초기 적립")
+                chargePointUseCase.execute(userId, 9_900_000L, "초기 적립")
 
                 // When & Then - 150,000원 추가 적립 시도 (10,000,000 초과)
                 shouldThrow<PointException.MaxBalanceExceeded> {
-                    pointCommandUseCase.chargePoint(userId, 150_000L, "초과 시도")
+                    chargePointUseCase.execute(userId, 150_000L, "초과 시도")
                 }
 
                 // 잔액이 변경되지 않았는지 확인
@@ -117,10 +112,9 @@ class PointChargeIntegrationTest(
                 val userId = IntegrationTestFixtures.createTestUserId(4)
 
                 // 사용자 포인트 생성
-                pointCommandUseCase.createUserPoint(userId)
 
                 // When - 10,000,000원 적립
-                pointCommandUseCase.chargePoint(userId, 10_000_000L, "최대 한도 적립")
+                chargePointUseCase.execute(userId, 10_000_000L, "최대 한도 적립")
 
                 // Then
                 val userPoint = getPointQueryUseCase.getUserPoint(userId)
@@ -139,10 +133,9 @@ class PointChargeIntegrationTest(
                 val earnAmount = PointAmount((purchaseAmount * earnRate).toLong()) // 5,000원
 
                 // 사용자 포인트 생성
-                pointCommandUseCase.createUserPoint(userId)
 
                 // When - 구매 적립
-                pointCommandUseCase.chargePoint(
+                chargePointUseCase.execute(
                     userId = userId,
                     amount = earnAmount.value,
                     description = "구매 적립 5%",
@@ -155,7 +148,7 @@ class PointChargeIntegrationTest(
                 userPoint!!.balance.value shouldBe 5_000L
 
                 // 포인트 이력 확인
-                val histories = pointHistoryUseCase.getPointHistory(userId)
+                val histories = getPointQueryUseCase.getPointHistories(userId)
                 histories.size shouldBe 1
                 histories[0].orderId shouldBe 12345L
                 histories[0].description shouldBe "구매 적립 5%"

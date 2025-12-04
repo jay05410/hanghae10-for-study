@@ -6,14 +6,15 @@ import io.hhplus.ecommerce.order.usecase.OrderCommandUseCase
 import io.hhplus.ecommerce.order.dto.CreateOrderRequest
 import io.hhplus.ecommerce.order.dto.CreateOrderItemRequest
 import io.hhplus.ecommerce.delivery.dto.DeliveryAddressRequest
-import io.hhplus.ecommerce.point.usecase.PointCommandUseCase
-import io.hhplus.ecommerce.point.usecase.GetPointQueryUseCase
+import io.hhplus.ecommerce.point.application.usecase.ChargePointUseCase
+import io.hhplus.ecommerce.point.application.usecase.UsePointUseCase
+import io.hhplus.ecommerce.point.application.usecase.GetPointQueryUseCase
 import io.hhplus.ecommerce.inventory.usecase.GetInventoryQueryUseCase
-import io.hhplus.ecommerce.product.usecase.ProductCommandUseCase
+import io.hhplus.ecommerce.product.application.usecase.ProductCommandUseCase
 import io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
 import io.hhplus.ecommerce.delivery.usecase.DeliveryCommandUseCase
 import io.hhplus.ecommerce.delivery.usecase.GetDeliveryQueryUseCase
-import io.hhplus.ecommerce.product.dto.CreateProductRequest
+import io.hhplus.ecommerce.product.presentation.dto.CreateProductRequest
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -34,7 +35,7 @@ import io.kotest.matchers.string.shouldContain
  */
 class OrderCancelIntegrationTest(
     private val orderCommandUseCase: OrderCommandUseCase,
-    private val pointCommandUseCase: PointCommandUseCase,
+    private val chargePointUseCase: ChargePointUseCase,
     private val getPointQueryUseCase: GetPointQueryUseCase,
     private val getInventoryQueryUseCase: GetInventoryQueryUseCase,
     private val productCommandUseCase: ProductCommandUseCase,
@@ -69,7 +70,7 @@ class OrderCancelIntegrationTest(
                 val initialStock = savedInventory.quantity
 
                 // 포인트 충전
-                pointCommandUseCase.chargePoint(userId, 200000, "테스트용 충전")
+                chargePointUseCase.execute(userId, 200000, "테스트용 충전")
                 val initialBalance = getPointQueryUseCase.getUserPoint(userId).balance.value
 
                 // 주문 생성 (재고 차감 + 포인트 사용)
@@ -146,7 +147,7 @@ class OrderCancelIntegrationTest(
                     initialQuantity = 100
                 )
 
-                pointCommandUseCase.chargePoint(userId, 100000, "테스트용 충전")
+                chargePointUseCase.execute(userId, 100000, "테스트용 충전")
 
                 val orderItems = listOf(
                     CreateOrderItemRequest(

@@ -1,8 +1,9 @@
 package io.hhplus.ecommerce.unit.point.application
 
-import io.hhplus.ecommerce.point.application.PointService
+import io.hhplus.ecommerce.point.domain.service.PointDomainService
 import io.hhplus.ecommerce.point.domain.entity.UserPoint
 import io.hhplus.ecommerce.point.domain.repository.UserPointRepository
+import io.hhplus.ecommerce.point.domain.repository.PointHistoryRepository
 import io.hhplus.ecommerce.point.domain.vo.PointAmount
 import io.hhplus.ecommerce.point.domain.vo.Balance
 import io.hhplus.ecommerce.point.exception.PointException
@@ -13,15 +14,16 @@ import io.mockk.*
 import java.time.LocalDateTime
 
 /**
- * PointService 단위 테스트
+ * PointDomainService 단위 테스트
  *
- * 책임: 포인트 서비스의 핵심 비즈니스 로직 검증
+ * 책임: 포인트 도메인 서비스의 핵심 비즈니스 로직 검증
  * - 포인트 적립, 사용, 조회 기능 검증
  * - Repository와의 상호작용 검증
  */
 class PointServiceTest : DescribeSpec({
     val mockUserPointRepository = mockk<UserPointRepository>()
-    val sut = PointService(mockUserPointRepository)
+    val mockPointHistoryRepository = mockk<PointHistoryRepository>()
+    val sut = PointDomainService(mockUserPointRepository, mockPointHistoryRepository)
 
     fun createMockUserPoint(
         id: Long = 1L,
@@ -36,7 +38,7 @@ class PointServiceTest : DescribeSpec({
     }
 
     beforeEach {
-        clearMocks(mockUserPointRepository)
+        clearMocks(mockUserPointRepository, mockPointHistoryRepository)
     }
 
     describe("getUserPoint") {

@@ -7,9 +7,9 @@ import io.hhplus.ecommerce.cart.usecase.GetCartUseCase
 import io.hhplus.ecommerce.cart.domain.repository.CartRepository
 import io.hhplus.ecommerce.cart.dto.AddToCartRequest
 import io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
-import io.hhplus.ecommerce.product.dto.CreateProductRequest
+import io.hhplus.ecommerce.product.presentation.dto.CreateProductRequest
 import io.hhplus.ecommerce.product.domain.entity.Product
-import io.hhplus.ecommerce.product.usecase.ProductCommandUseCase
+import io.hhplus.ecommerce.product.application.usecase.ProductCommandUseCase
 import io.hhplus.ecommerce.support.config.IntegrationTestFixtures
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe

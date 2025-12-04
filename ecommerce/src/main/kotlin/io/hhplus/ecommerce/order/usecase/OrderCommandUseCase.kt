@@ -6,13 +6,13 @@ import io.hhplus.ecommerce.order.domain.entity.Order
 import io.hhplus.ecommerce.order.application.OrderService
 import io.hhplus.ecommerce.order.dto.CreateOrderRequest
 import io.hhplus.ecommerce.order.dto.OrderItemData
-import io.hhplus.ecommerce.product.application.ProductQueryService
+import io.hhplus.ecommerce.product.domain.service.ProductDomainService
 import io.hhplus.ecommerce.coupon.application.CouponService
 import io.hhplus.ecommerce.payment.application.usecase.ProcessPaymentUseCase
 import io.hhplus.ecommerce.payment.presentation.dto.ProcessPaymentRequest
 import io.hhplus.ecommerce.delivery.application.DeliveryService
 import io.hhplus.ecommerce.inventory.application.InventoryService
-import io.hhplus.ecommerce.point.application.PointService
+import io.hhplus.ecommerce.point.domain.service.PointDomainService
 import io.hhplus.ecommerce.point.domain.vo.PointAmount
 import io.hhplus.ecommerce.order.exception.OrderException
 import io.hhplus.ecommerce.delivery.domain.constant.DeliveryStatus
@@ -36,12 +36,12 @@ import org.springframework.stereotype.Component
 @Component
 class OrderCommandUseCase(
     private val orderService: OrderService,
-    private val productQueryService: ProductQueryService,
+    private val productDomainService: ProductDomainService,
     private val couponService: CouponService,
     private val processPaymentUseCase: ProcessPaymentUseCase,
     private val deliveryService: DeliveryService,
     private val inventoryService: InventoryService,
-    private val pointService: PointService,
+    private val pointDomainService: PointDomainService,
     private val cartService: CartService
 ) {
     private val logger = KotlinLogging.logger {}
@@ -144,10 +144,9 @@ class OrderCommandUseCase(
         discountAmount: Long
     ): Order {
         // 포인트 사용 (데드락 방지를 위해 사용자별 순서 통일)
-        pointService.usePoint(
+        pointDomainService.usePoint(
             userId = request.userId,
-            amount = PointAmount.of(totalAmount - discountAmount),
-            description = "주문 결제"
+            amount = PointAmount.of(totalAmount - discountAmount)
         )
 
         // 재고 처리 (productId 정렬로 데드락 방지)
@@ -223,7 +222,7 @@ class OrderCommandUseCase(
      */
     private fun validateAndPrepareOrderItems(request: CreateOrderRequest): List<OrderItemData> {
         return request.items.map { item ->
-            val product = productQueryService.getProduct(item.productId)
+            val product = productDomainService.getProduct(item.productId)
             OrderItemData(
                 productId = item.productId,
                 productName = product.name,
@@ -296,10 +295,9 @@ class OrderCommandUseCase(
         }
 
         // 5. 포인트 환불
-        pointService.earnPoint(
+        pointDomainService.earnPoint(
             userId = cancelledOrder.userId,
-            amount = PointAmount.of(cancelledOrder.finalAmount),
-            description = "주문 취소 환불"
+            amount = PointAmount.of(cancelledOrder.finalAmount)
         )
 
         return cancelledOrder
