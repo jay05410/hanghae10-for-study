@@ -33,5 +33,11 @@ enum class OrderErrorCode(
         code = "ORDER004",
         message = "이미 주문 대기열에 등록된 사용자입니다. 사용자 ID: {userId}",
         httpStatus = 409
+    ),
+
+    ORDER_CANCELLATION_NOT_ALLOWED_BY_DELIVERY(
+        code = "ORDER005",
+        message = "배송 준비가 시작되어 주문을 취소할 수 없습니다. 주문 ID: {orderId}, 배송상태: {deliveryStatus}",
+        httpStatus = 409
     );
 }

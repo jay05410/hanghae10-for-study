@@ -1,10 +1,10 @@
 package io.hhplus.ecommerce.unit.cart.controller
 
-import io.hhplus.ecommerce.cart.controller.CartController
-import io.hhplus.ecommerce.cart.dto.AddToCartRequest
+import io.hhplus.ecommerce.cart.presentation.controller.CartController
+import io.hhplus.ecommerce.cart.presentation.dto.AddToCartRequest
 import io.hhplus.ecommerce.cart.domain.entity.Cart
-import io.hhplus.ecommerce.cart.usecase.GetCartUseCase
-import io.hhplus.ecommerce.cart.usecase.CartCommandUseCase
+import io.hhplus.ecommerce.cart.application.usecase.GetCartQueryUseCase
+import io.hhplus.ecommerce.cart.application.usecase.CartCommandUseCase
 import io.hhplus.ecommerce.common.response.ApiResponse
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
@@ -26,33 +26,33 @@ import io.mockk.*
  * 5. 다양한 요청 형태에 대한 처리가 올바른가?
  */
 class CartControllerTest : DescribeSpec({
-    val mockGetCartUseCase = mockk<GetCartUseCase>()
+    val mockGetCartQueryUseCase = mockk<GetCartQueryUseCase>()
     val mockCartCommandUseCase = mockk<CartCommandUseCase>()
 
     val sut = CartController(
-        getCartUseCase = mockGetCartUseCase,
+        getCartQueryUseCase = mockGetCartQueryUseCase,
         cartCommandUseCase = mockCartCommandUseCase
     )
 
     beforeEach {
         clearMocks(
-            mockGetCartUseCase,
+            mockGetCartQueryUseCase,
             mockCartCommandUseCase
         )
     }
 
     describe("getCart") {
         context("GET /api/v1/cart?userId={userId} 요청") {
-            it("GetCartUseCase를 호출하고 ApiResponse로 감싸서 반환") {
+            it("GetCartQueryUseCase를 호출하고 ApiResponse로 감싸서 반환") {
                 val userId = 1L
                 val mockCart = mockk<Cart>(relaxed = true)
 
-                every { mockGetCartUseCase.execute(userId) } returns mockCart
+                every { mockGetCartQueryUseCase.execute(userId) } returns mockCart
 
                 val result = sut.getCart(userId)
 
                 result.success shouldBe true
-                verify(exactly = 1) { mockGetCartUseCase.execute(userId) }
+                verify(exactly = 1) { mockGetCartQueryUseCase.execute(userId) }
             }
         }
 
@@ -60,12 +60,12 @@ class CartControllerTest : DescribeSpec({
             it("UseCase에서 반환된 null을 ApiResponse로 감싸서 반환") {
                 val userId = 999L
 
-                every { mockGetCartUseCase.execute(userId) } returns null
+                every { mockGetCartQueryUseCase.execute(userId) } returns null
 
                 val result = sut.getCart(userId)
 
                 result.success shouldBe true
-                verify(exactly = 1) { mockGetCartUseCase.execute(userId) }
+                verify(exactly = 1) { mockGetCartQueryUseCase.execute(userId) }
             }
         }
 
@@ -75,13 +75,13 @@ class CartControllerTest : DescribeSpec({
 
                 userIds.forEach { userId ->
                     val mockCart = mockk<Cart>(relaxed = true)
-                    every { mockGetCartUseCase.execute(userId) } returns mockCart
+                    every { mockGetCartQueryUseCase.execute(userId) } returns mockCart
 
                     val result = sut.getCart(userId)
 
                     result.success shouldBe true
-                    verify(exactly = 1) { mockGetCartUseCase.execute(userId) }
-                    clearMocks(mockGetCartUseCase)
+                    verify(exactly = 1) { mockGetCartQueryUseCase.execute(userId) }
+                    clearMocks(mockGetCartQueryUseCase)
                 }
             }
         }
@@ -279,13 +279,13 @@ class CartControllerTest : DescribeSpec({
         context("모든 엔드포인트") {
             it("적절한 UseCase만 호출하고 다른 UseCase는 호출하지 않음") {
                 // getCart 테스트
-                every { mockGetCartUseCase.execute(1L) } returns mockk(relaxed = true)
+                every { mockGetCartQueryUseCase.execute(1L) } returns mockk(relaxed = true)
                 sut.getCart(1L)
-                verify(exactly = 1) { mockGetCartUseCase.execute(1L) }
+                verify(exactly = 1) { mockGetCartQueryUseCase.execute(1L) }
                 verify(exactly = 0) { mockCartCommandUseCase.addToCart(any(), any()) }
                 verify(exactly = 0) { mockCartCommandUseCase.updateCartItem(any(), any(), any()) }
 
-                clearMocks(mockGetCartUseCase, mockCartCommandUseCase)
+                clearMocks(mockGetCartQueryUseCase, mockCartCommandUseCase)
 
                 // addToCart 테스트
                 val addRequest = AddToCartRequest(
@@ -297,16 +297,16 @@ class CartControllerTest : DescribeSpec({
                 every { mockCartCommandUseCase.addToCart(1L, addRequest) } returns mockk(relaxed = true)
                 sut.addToCart(1L, addRequest)
                 verify(exactly = 1) { mockCartCommandUseCase.addToCart(1L, addRequest) }
-                verify(exactly = 0) { mockGetCartUseCase.execute(any()) }
+                verify(exactly = 0) { mockGetCartQueryUseCase.execute(any()) }
                 verify(exactly = 0) { mockCartCommandUseCase.updateCartItem(any(), any(), any()) }
 
-                clearMocks(mockGetCartUseCase, mockCartCommandUseCase)
+                clearMocks(mockGetCartQueryUseCase, mockCartCommandUseCase)
 
                 // updateCartItem 테스트
                 every { mockCartCommandUseCase.updateCartItem(1L, 1L, 1) } returns mockk(relaxed = true)
                 sut.updateCartItem(1L, 1L, 1)
                 verify(exactly = 1) { mockCartCommandUseCase.updateCartItem(1L, 1L, 1) }
-                verify(exactly = 0) { mockGetCartUseCase.execute(any()) }
+                verify(exactly = 0) { mockGetCartQueryUseCase.execute(any()) }
                 verify(exactly = 0) { mockCartCommandUseCase.addToCart(any(), any()) }
             }
         }

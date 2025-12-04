@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.support.config
 
-import io.hhplus.ecommerce.order.dto.OrderItemData
+import io.hhplus.ecommerce.order.domain.model.OrderItemData
 import java.time.LocalDateTime
 
 /**

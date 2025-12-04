@@ -151,6 +151,7 @@ Temporary Items
 .gradle
 **/build/
 **/out/
+!**/src/**/out/
 !src/**/build/
 
 # Ignore Gradle GUI config

@@ -2,18 +2,20 @@ package io.hhplus.ecommerce.integration.order
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 import io.hhplus.ecommerce.order.domain.constant.OrderStatus
-import io.hhplus.ecommerce.order.usecase.OrderCommandUseCase
-import io.hhplus.ecommerce.order.dto.CreateOrderRequest
-import io.hhplus.ecommerce.order.dto.CreateOrderItemRequest
-import io.hhplus.ecommerce.delivery.dto.DeliveryAddressRequest
-import io.hhplus.ecommerce.point.usecase.PointCommandUseCase
-import io.hhplus.ecommerce.point.usecase.GetPointQueryUseCase
-import io.hhplus.ecommerce.inventory.usecase.GetInventoryQueryUseCase
-import io.hhplus.ecommerce.product.usecase.ProductCommandUseCase
-import io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
-import io.hhplus.ecommerce.delivery.usecase.DeliveryCommandUseCase
-import io.hhplus.ecommerce.delivery.usecase.GetDeliveryQueryUseCase
-import io.hhplus.ecommerce.product.dto.CreateProductRequest
+import io.hhplus.ecommerce.order.application.usecase.OrderCommandUseCase
+import io.hhplus.ecommerce.order.presentation.dto.CreateOrderRequest
+import io.hhplus.ecommerce.order.presentation.dto.CreateOrderItemRequest
+import io.hhplus.ecommerce.delivery.presentation.dto.DeliveryAddressRequest
+import io.hhplus.ecommerce.point.application.usecase.ChargePointUseCase
+import io.hhplus.ecommerce.point.application.usecase.UsePointUseCase
+import io.hhplus.ecommerce.point.application.usecase.GetPointQueryUseCase
+import io.hhplus.ecommerce.inventory.application.usecase.GetInventoryQueryUseCase
+import io.hhplus.ecommerce.product.application.usecase.ProductCommandUseCase
+import io.hhplus.ecommerce.inventory.application.usecase.InventoryCommandUseCase
+import io.hhplus.ecommerce.delivery.application.usecase.DeliveryCommandUseCase
+import io.hhplus.ecommerce.delivery.application.usecase.GetDeliveryQueryUseCase
+import io.hhplus.ecommerce.product.presentation.dto.CreateProductRequest
+import io.hhplus.ecommerce.common.outbox.OutboxEventProcessor
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -34,13 +36,14 @@ import io.kotest.matchers.string.shouldContain
  */
 class OrderCancelIntegrationTest(
     private val orderCommandUseCase: OrderCommandUseCase,
-    private val pointCommandUseCase: PointCommandUseCase,
+    private val chargePointUseCase: ChargePointUseCase,
     private val getPointQueryUseCase: GetPointQueryUseCase,
     private val getInventoryQueryUseCase: GetInventoryQueryUseCase,
     private val productCommandUseCase: ProductCommandUseCase,
     private val inventoryCommandUseCase: InventoryCommandUseCase,
     private val deliveryCommandUseCase: DeliveryCommandUseCase,
-    private val getDeliveryQueryUseCase: GetDeliveryQueryUseCase
+    private val getDeliveryQueryUseCase: GetDeliveryQueryUseCase,
+    private val outboxEventProcessor: OutboxEventProcessor
 ) : KotestIntegrationTestBase({
 
     describe("주문 취소") {
@@ -69,7 +72,7 @@ class OrderCancelIntegrationTest(
                 val initialStock = savedInventory.quantity
 
                 // 포인트 충전
-                pointCommandUseCase.chargePoint(userId, 200000, "테스트용 충전")
+                chargePointUseCase.execute(userId, 200000, "테스트용 충전")
                 val initialBalance = getPointQueryUseCase.getUserPoint(userId).balance.value
 
                 // 주문 생성 (재고 차감 + 포인트 사용)
@@ -97,7 +100,10 @@ class OrderCancelIntegrationTest(
                 )
 
                 // 주문 생성 (직접 처리)
-                val createdOrder = orderCommandUseCase.processOrder(createOrderRequest)
+                val createdOrder = orderCommandUseCase.createOrder(createOrderRequest)
+
+                // Saga 이벤트 처리: OrderCreated → PaymentCompleted → 재고/포인트 처리
+                repeat(3) { outboxEventProcessor.processEvents() }
 
                 // 주문 후 재고 확인
                 val stockAfterOrder = getInventoryQueryUseCase.getAvailableQuantity(savedProduct.id)
@@ -113,6 +119,9 @@ class OrderCancelIntegrationTest(
                     reason = "단순 변심"
                 )
 
+                // Saga 이벤트 처리: OrderCancelled → 재고 복구/포인트 환불
+                repeat(2) { outboxEventProcessor.processEvents() }
+
                 // Then: 주문 상태 확인
                 cancelledOrder.status shouldBe OrderStatus.CANCELLED
 
@@ -126,9 +135,9 @@ class OrderCancelIntegrationTest(
             }
         }
 
-        context("이미 배송 시작된 주문을 취소하려 할 때") {
+        context("배송 준비가 시작된 주문을 취소하려 할 때") {
             it("취소할 수 없어야 한다") {
-                // Given: 주문 생성 후 확정
+                // Given: 주문 생성 후 배송 준비 시작
                 val userId = 20002L
 
                 val savedProduct = productCommandUseCase.createProduct(
@@ -146,7 +155,7 @@ class OrderCancelIntegrationTest(
                     initialQuantity = 100
                 )
 
-                pointCommandUseCase.chargePoint(userId, 100000, "테스트용 충전")
+                chargePointUseCase.execute(userId, 100000, "테스트용 충전")
 
                 val orderItems = listOf(
                     CreateOrderItemRequest(
@@ -172,24 +181,24 @@ class OrderCancelIntegrationTest(
                 )
 
                 // 주문 생성 (직접 처리)
-                val createdOrder = orderCommandUseCase.processOrder(createOrderRequest)
+                val createdOrder = orderCommandUseCase.createOrder(createOrderRequest)
 
-                // 주문 확정 (배송 시작)
-                orderCommandUseCase.confirmOrder(createdOrder.id)
+                // Saga 이벤트 처리: OrderCreated → PaymentCompleted → 배송 생성
+                repeat(3) { outboxEventProcessor.processEvents() }
 
-                // 배송 준비 시작 (이제 취소 불가)
+                // 배송 준비 시작 (PREPARING 상태 - 이후 취소 불가)
                 val delivery = getDeliveryQueryUseCase.getDeliveryByOrderId(createdOrder.id)
                 deliveryCommandUseCase.startPreparing(delivery.id)
 
-                // When & Then: 배송 준비 중인 주문은 취소 뵦0가
+                // When & Then: 배송 준비 시작 후에는 취소 불가
                 val exception = runCatching {
                     orderCommandUseCase.cancelOrder(createdOrder.id, "취소 시도")
                 }.exceptionOrNull()
 
                 exception shouldNotBe null
-                // 예외 타입 검증 (프로젝트의 예외 클래스에 맞게 수정)
-                exception!!.message shouldContain "취소할 수 없는 주문 상태입니다"
-                exception.message shouldContain "CONFIRMED"
+                // 예외 타입 검증: 배송 상태로 인한 취소 불가
+                exception!!.message shouldContain "배송 준비가 시작되어"
+                exception.message shouldContain "PREPARING"
             }
         }
 

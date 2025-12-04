@@ -1,17 +1,17 @@
 package io.hhplus.ecommerce.integration.order
 
-import io.hhplus.ecommerce.order.usecase.OrderCommandUseCase
-import io.hhplus.ecommerce.order.dto.CreateOrderRequest
-import io.hhplus.ecommerce.order.dto.CreateOrderItemRequest
-import io.hhplus.ecommerce.delivery.dto.DeliveryAddressRequest
+import io.hhplus.ecommerce.order.application.usecase.OrderCommandUseCase
+import io.hhplus.ecommerce.order.presentation.dto.CreateOrderRequest
+import io.hhplus.ecommerce.order.presentation.dto.CreateOrderItemRequest
+import io.hhplus.ecommerce.delivery.presentation.dto.DeliveryAddressRequest
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
-import io.hhplus.ecommerce.product.usecase.ProductCommandUseCase
-import io.hhplus.ecommerce.product.dto.CreateProductRequest
+import io.hhplus.ecommerce.product.application.usecase.ProductCommandUseCase
+import io.hhplus.ecommerce.product.presentation.dto.CreateProductRequest
 import io.hhplus.ecommerce.product.domain.entity.Product
-import io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
-import io.hhplus.ecommerce.user.usecase.UserCommandUseCase
+import io.hhplus.ecommerce.inventory.application.usecase.InventoryCommandUseCase
+import io.hhplus.ecommerce.user.application.usecase.UserCommandUseCase
 import io.hhplus.ecommerce.user.domain.constant.LoginType
-import io.hhplus.ecommerce.point.usecase.PointCommandUseCase
+import io.hhplus.ecommerce.point.application.usecase.ChargePointUseCase
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.string.shouldNotBeEmpty
@@ -26,7 +26,7 @@ class OrderServiceConcurrencyIntegrationTest(
     private val productCommandUseCase: ProductCommandUseCase,
     private val inventoryCommandUseCase: InventoryCommandUseCase,
     private val userCommandUseCase: UserCommandUseCase,
-    private val pointCommandUseCase: PointCommandUseCase
+    private val chargePointUseCase: ChargePointUseCase
 ) : KotestIntegrationTestBase({
 
     // 테스트용 데이터
@@ -60,11 +60,11 @@ class OrderServiceConcurrencyIntegrationTest(
                     phone = "010-0000-${String.format("%04d", index)}",
                     providerId = null
                 )
-                pointCommandUseCase.chargePoint(userId, 100000)
+                chargePointUseCase.execute(userId, 100000)
             } catch (e: Exception) {
                 // 사용자가 이미 존재할 경우 무시하지만 포인트는 충전
                 try {
-                    pointCommandUseCase.chargePoint(userId, 100000)
+                    chargePointUseCase.execute(userId, 100000)
                 } catch (pointE: Exception) {
                     // 포인트 충전도 실패하면 무시
                 }

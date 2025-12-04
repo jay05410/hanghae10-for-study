@@ -1,8 +1,9 @@
 package io.hhplus.ecommerce.unit.point.application
 
-import io.hhplus.ecommerce.point.application.PointHistoryService
+import io.hhplus.ecommerce.point.domain.service.PointDomainService
 import io.hhplus.ecommerce.point.domain.entity.PointHistory
 import io.hhplus.ecommerce.point.domain.repository.PointHistoryRepository
+import io.hhplus.ecommerce.point.domain.repository.UserPointRepository
 import io.hhplus.ecommerce.point.domain.vo.Balance
 import io.hhplus.ecommerce.point.domain.vo.PointAmount
 import io.kotest.core.spec.style.DescribeSpec
@@ -10,9 +11,9 @@ import io.kotest.matchers.shouldBe
 import io.mockk.*
 
 /**
- * PointHistoryService 단위 테스트
+ * PointDomainService 단위 테스트 (이력 기록 기능)
  *
- * 책임: 포인트 이력 관리 서비스의 핵심 기능 검증
+ * 책임: 포인트 이력 관리 기능의 핵심 기능 검증
  * - 적립/사용 이력 기록 기능의 Repository 호출 검증
  * - 이력 조회 기능의 Repository 호출 검증
  * - 도메인 객체 생성 메서드 호출 검증
@@ -24,7 +25,8 @@ import io.mockk.*
  */
 class PointHistoryServiceTest : DescribeSpec({
     val mockPointHistoryRepository = mockk<PointHistoryRepository>()
-    val sut = PointHistoryService(mockPointHistoryRepository)
+    val mockUserPointRepository = mockk<UserPointRepository>()
+    val sut = PointDomainService(mockUserPointRepository, mockPointHistoryRepository)
 
     beforeEach {
         clearMocks(mockPointHistoryRepository)

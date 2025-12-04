@@ -1,8 +1,8 @@
 package io.hhplus.ecommerce.unit.product.usecase
 
-import io.hhplus.ecommerce.product.usecase.GetProductQueryUseCase
-import io.hhplus.ecommerce.product.application.ProductQueryService
-import io.hhplus.ecommerce.product.application.EventBasedStatisticsService
+import io.hhplus.ecommerce.product.application.usecase.GetProductQueryUseCase
+import io.hhplus.ecommerce.product.domain.service.ProductDomainService
+import io.hhplus.ecommerce.product.application.port.out.ProductStatisticsPort
 import io.hhplus.ecommerce.product.domain.entity.Product
 import io.hhplus.ecommerce.product.domain.vo.ProductStatsVO
 import io.hhplus.ecommerce.common.response.Cursor
@@ -14,22 +14,22 @@ import io.mockk.*
  * GetProductQueryUseCase 단위 테스트
  *
  * 책임: 상품 조회 유스케이스의 비즈니스 로직 검증
- * - ProductQueryService와의 올바른 상호작용 확인
- * - EventBasedStatisticsService와의 연동 확인
+ * - ProductDomainService와의 올바른 상호작용 확인
+ * - ProductStatisticsPort와의 연동 확인
  * - 커서 기반 페이징 로직 검증
  * - 예외 처리 검증
  *
  * 검증 목표:
- * 1. UseCase가 적절한 Service 메서드를 호출하는가?
+ * 1. UseCase가 적절한 DomainService 메서드를 호출하는가?
  * 2. 파라미터를 올바르게 전달하는가?
  * 3. 결과를 올바르게 반환하는가?
- * 4. 예외가 Service에서 UseCase로 전파되는가?
+ * 4. 예외가 DomainService에서 UseCase로 전파되는가?
  */
 class GetProductQueryUseCaseTest : DescribeSpec({
 
-    val mockProductQueryService = mockk<ProductQueryService>()
-    val mockEventBasedStatisticsService = mockk<EventBasedStatisticsService>()
-    val sut = GetProductQueryUseCase(mockProductQueryService, mockEventBasedStatisticsService)
+    val mockProductDomainService = mockk<ProductDomainService>()
+    val mockProductStatisticsPort = mockk<ProductStatisticsPort>()
+    val sut = GetProductQueryUseCase(mockProductDomainService, mockProductStatisticsPort)
 
     beforeEach {
         clearAllMocks()
@@ -37,71 +37,71 @@ class GetProductQueryUseCaseTest : DescribeSpec({
 
     describe("getProducts") {
         context("커서 기반 페이징으로 상품 목록을 조회할 때") {
-            it("ProductQueryService의 getProductsWithCursor를 호출한다") {
+            it("ProductDomainService의 getProductsWithCursor를 호출한다") {
                 // given
                 val lastId = 10L
                 val size = 20
                 val expectedCursor = mockk<Cursor<Product>>()
-                every { mockProductQueryService.getProductsWithCursor(lastId, size) } returns expectedCursor
+                every { mockProductDomainService.getProductsWithCursor(lastId, size) } returns expectedCursor
 
                 // when
                 val result = sut.getProducts(lastId, size)
 
                 // then
                 result shouldBe expectedCursor
-                verify(exactly = 1) { mockProductQueryService.getProductsWithCursor(lastId, size) }
+                verify(exactly = 1) { mockProductDomainService.getProductsWithCursor(lastId, size) }
             }
         }
     }
 
     describe("getProduct") {
         context("상품 ID로 특정 상품을 조회할 때") {
-            it("ProductQueryService의 getProduct를 호출한다") {
+            it("ProductDomainService의 getProduct를 호출한다") {
                 // given
                 val productId = 1L
                 val expectedProduct = mockk<Product>()
-                every { mockProductQueryService.getProduct(productId) } returns expectedProduct
+                every { mockProductDomainService.getProduct(productId) } returns expectedProduct
 
                 // when
                 val result = sut.getProduct(productId)
 
                 // then
                 result shouldBe expectedProduct
-                verify(exactly = 1) { mockProductQueryService.getProduct(productId) }
+                verify(exactly = 1) { mockProductDomainService.getProduct(productId) }
             }
         }
     }
 
     describe("getProductsByCategory") {
         context("카테고리별 상품 목록을 조회할 때") {
-            it("ProductQueryService의 getProductsByCategoryWithCursor를 호출한다") {
+            it("ProductDomainService의 getProductsByCategoryWithCursor를 호출한다") {
                 // given
                 val categoryId = 1L
                 val lastId = 5L
                 val size = 15
                 val expectedCursor = mockk<Cursor<Product>>()
-                every { mockProductQueryService.getProductsByCategoryWithCursor(categoryId, lastId, size) } returns expectedCursor
+                every { mockProductDomainService.getProductsByCategoryWithCursor(categoryId, lastId, size) } returns expectedCursor
 
                 // when
                 val result = sut.getProductsByCategory(categoryId, lastId, size)
 
                 // then
                 result shouldBe expectedCursor
-                verify(exactly = 1) { mockProductQueryService.getProductsByCategoryWithCursor(categoryId, lastId, size) }
+                verify(exactly = 1) { mockProductDomainService.getProductsByCategoryWithCursor(categoryId, lastId, size) }
             }
         }
     }
 
     describe("getProductStatistics") {
         context("상품 통계를 조회할 때") {
-            it("EventBasedStatisticsService에서 통계를 가져와 ProductStatsVO를 생성한다") {
+            it("ProductStatisticsPort에서 통계를 가져와 ProductStatsVO를 생성한다") {
                 // given
                 val productId = 1L
                 val viewCount = 100L
                 val salesCount = 50L
                 val wishCount = 25L
 
-                every { mockEventBasedStatisticsService.getRealTimeStats(productId) } returns Triple(viewCount, salesCount, wishCount)
+                every { mockProductStatisticsPort.getRealTimeStats(productId) } returns Triple(viewCount, salesCount, wishCount)
 
                 // when
                 val result = sut.getProductStatistics(productId)
@@ -110,14 +110,14 @@ class GetProductQueryUseCaseTest : DescribeSpec({
                 result.productId shouldBe productId
                 result.viewCount shouldBe viewCount
                 result.salesCount shouldBe salesCount
-                verify(exactly = 1) { mockEventBasedStatisticsService.getRealTimeStats(productId) }
+                verify(exactly = 1) { mockProductStatisticsPort.getRealTimeStats(productId) }
             }
         }
     }
 
     describe("getPopularStatistics") {
         context("인기 상품 통계 목록을 조회할 때") {
-            it("EventBasedStatisticsService에서 인기 상품을 가져와 ProductStatsVO 목록을 생성한다") {
+            it("ProductStatisticsPort에서 인기 상품을 가져와 ProductStatsVO 목록을 생성한다") {
                 // given
                 val limit = 10
                 val popularProducts = listOf(
@@ -126,10 +126,10 @@ class GetProductQueryUseCaseTest : DescribeSpec({
                     3L to 60L
                 )
 
-                every { mockEventBasedStatisticsService.getRealTimePopularProducts(limit) } returns popularProducts
-                every { mockEventBasedStatisticsService.getRealTimeStats(1L) } returns Triple(100L, 50L, 25L)
-                every { mockEventBasedStatisticsService.getRealTimeStats(2L) } returns Triple(80L, 40L, 20L)
-                every { mockEventBasedStatisticsService.getRealTimeStats(3L) } returns Triple(60L, 30L, 15L)
+                every { mockProductStatisticsPort.getRealTimePopularProducts(limit) } returns popularProducts
+                every { mockProductStatisticsPort.getRealTimeStats(1L) } returns Triple(100L, 50L, 25L)
+                every { mockProductStatisticsPort.getRealTimeStats(2L) } returns Triple(80L, 40L, 20L)
+                every { mockProductStatisticsPort.getRealTimeStats(3L) } returns Triple(60L, 30L, 15L)
 
                 // when
                 val result = sut.getPopularStatistics(limit)
@@ -138,17 +138,17 @@ class GetProductQueryUseCaseTest : DescribeSpec({
                 result.size shouldBe 3
                 result[0].productId shouldBe 1L
                 result[0].viewCount shouldBe 100L
-                verify(exactly = 1) { mockEventBasedStatisticsService.getRealTimePopularProducts(limit) }
-                verify(exactly = 1) { mockEventBasedStatisticsService.getRealTimeStats(1L) }
-                verify(exactly = 1) { mockEventBasedStatisticsService.getRealTimeStats(2L) }
-                verify(exactly = 1) { mockEventBasedStatisticsService.getRealTimeStats(3L) }
+                verify(exactly = 1) { mockProductStatisticsPort.getRealTimePopularProducts(limit) }
+                verify(exactly = 1) { mockProductStatisticsPort.getRealTimeStats(1L) }
+                verify(exactly = 1) { mockProductStatisticsPort.getRealTimeStats(2L) }
+                verify(exactly = 1) { mockProductStatisticsPort.getRealTimeStats(3L) }
             }
         }
     }
 
     describe("getPopularProducts") {
         context("인기 상품 목록을 조회할 때 (캐시 적용)") {
-            it("EventBasedStatisticsService와 ProductQueryService를 연동하여 상품 목록을 반환한다") {
+            it("ProductStatisticsPort와 ProductDomainService를 연동하여 상품 목록을 반환한다") {
                 // given
                 val limit = 5
                 val popularProductIds = listOf(
@@ -158,9 +158,9 @@ class GetProductQueryUseCaseTest : DescribeSpec({
                 val product1 = mockk<Product>()
                 val product2 = mockk<Product>()
 
-                every { mockEventBasedStatisticsService.getRealTimePopularProducts(limit) } returns popularProductIds
-                every { mockProductQueryService.getProduct(1L) } returns product1
-                every { mockProductQueryService.getProduct(2L) } returns product2
+                every { mockProductStatisticsPort.getRealTimePopularProducts(limit) } returns popularProductIds
+                every { mockProductDomainService.getProduct(1L) } returns product1
+                every { mockProductDomainService.getProduct(2L) } returns product2
 
                 // when
                 val result = sut.getPopularProducts(limit)
@@ -168,9 +168,9 @@ class GetProductQueryUseCaseTest : DescribeSpec({
                 // then
                 result.size shouldBe 2
                 result shouldBe listOf(product1, product2)
-                verify(exactly = 1) { mockEventBasedStatisticsService.getRealTimePopularProducts(limit) }
-                verify(exactly = 1) { mockProductQueryService.getProduct(1L) }
-                verify(exactly = 1) { mockProductQueryService.getProduct(2L) }
+                verify(exactly = 1) { mockProductStatisticsPort.getRealTimePopularProducts(limit) }
+                verify(exactly = 1) { mockProductDomainService.getProduct(1L) }
+                verify(exactly = 1) { mockProductDomainService.getProduct(2L) }
             }
         }
 
@@ -180,15 +180,15 @@ class GetProductQueryUseCaseTest : DescribeSpec({
                 val popularProductIds = listOf(1L to 100L)
                 val product = mockk<Product>()
 
-                every { mockEventBasedStatisticsService.getRealTimePopularProducts(10) } returns popularProductIds
-                every { mockProductQueryService.getProduct(1L) } returns product
+                every { mockProductStatisticsPort.getRealTimePopularProducts(10) } returns popularProductIds
+                every { mockProductDomainService.getProduct(1L) } returns product
 
                 // when
                 val result = sut.getPopularProducts()
 
                 // then
                 result.size shouldBe 1
-                verify(exactly = 1) { mockEventBasedStatisticsService.getRealTimePopularProducts(10) }
+                verify(exactly = 1) { mockProductStatisticsPort.getRealTimePopularProducts(10) }
             }
         }
     }

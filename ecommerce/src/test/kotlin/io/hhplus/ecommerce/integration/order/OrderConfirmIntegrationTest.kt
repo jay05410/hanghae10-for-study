@@ -2,14 +2,14 @@ package io.hhplus.ecommerce.integration.order
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 import io.hhplus.ecommerce.order.domain.constant.OrderStatus
-import io.hhplus.ecommerce.order.usecase.OrderCommandUseCase
-import io.hhplus.ecommerce.order.dto.CreateOrderRequest
-import io.hhplus.ecommerce.order.dto.CreateOrderItemRequest
-import io.hhplus.ecommerce.delivery.dto.DeliveryAddressRequest
-import io.hhplus.ecommerce.point.usecase.PointCommandUseCase
-import io.hhplus.ecommerce.product.usecase.ProductCommandUseCase
-import io.hhplus.ecommerce.product.dto.CreateProductRequest
-import io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
+import io.hhplus.ecommerce.order.application.usecase.OrderCommandUseCase
+import io.hhplus.ecommerce.order.presentation.dto.CreateOrderRequest
+import io.hhplus.ecommerce.order.presentation.dto.CreateOrderItemRequest
+import io.hhplus.ecommerce.delivery.presentation.dto.DeliveryAddressRequest
+import io.hhplus.ecommerce.point.application.usecase.ChargePointUseCase
+import io.hhplus.ecommerce.product.application.usecase.ProductCommandUseCase
+import io.hhplus.ecommerce.product.presentation.dto.CreateProductRequest
+import io.hhplus.ecommerce.inventory.application.usecase.InventoryCommandUseCase
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -28,7 +28,7 @@ import io.kotest.matchers.string.shouldContain
  */
 class OrderConfirmIntegrationTest(
     private val orderCommandUseCase: OrderCommandUseCase,
-    private val pointCommandUseCase: PointCommandUseCase,
+    private val chargePointUseCase: ChargePointUseCase,
     private val productCommandUseCase: ProductCommandUseCase,
     private val inventoryCommandUseCase: InventoryCommandUseCase
 ) : KotestIntegrationTestBase({
@@ -54,7 +54,7 @@ class OrderConfirmIntegrationTest(
                     initialQuantity = 100
                 )
 
-                pointCommandUseCase.chargePoint(userId, 50000, "테스트용 충전")
+                chargePointUseCase.execute(userId, 50000, "테스트용 충전")
 
                 val orderItems = listOf(
                     CreateOrderItemRequest(
@@ -80,7 +80,7 @@ class OrderConfirmIntegrationTest(
                 )
 
                 // 주문 생성 (직접 처리 - 비즈니스 로직 테스트 목적)
-                val createdOrder = orderCommandUseCase.processOrder(createOrderRequest)
+                val createdOrder = orderCommandUseCase.createOrder(createOrderRequest)
 
                 // 주문 생성 직후 상태 확인
                 createdOrder.status shouldBe OrderStatus.PENDING
@@ -115,7 +115,7 @@ class OrderConfirmIntegrationTest(
                     initialQuantity = 100
                 )
 
-                pointCommandUseCase.chargePoint(userId, 50000, "테스트용 충전")
+                chargePointUseCase.execute(userId, 50000, "테스트용 충전")
 
                 val orderItems = listOf(
                     CreateOrderItemRequest(
@@ -141,7 +141,7 @@ class OrderConfirmIntegrationTest(
                 )
 
                 // 주문 생성 (직접 처리 - 비즈니스 로직 테스트 목적)
-                val createdOrder = orderCommandUseCase.processOrder(createOrderRequest)
+                val createdOrder = orderCommandUseCase.createOrder(createOrderRequest)
 
                 // 첫 번째 확정
                 orderCommandUseCase.confirmOrder(createdOrder.id)
@@ -178,7 +178,7 @@ class OrderConfirmIntegrationTest(
                     initialQuantity = 100
                 )
 
-                pointCommandUseCase.chargePoint(userId, 50000, "테스트용 충전")
+                chargePointUseCase.execute(userId, 50000, "테스트용 충전")
 
                 val orderItems = listOf(
                     CreateOrderItemRequest(
@@ -204,7 +204,7 @@ class OrderConfirmIntegrationTest(
                 )
 
                 // 주문 생성 (직접 처리 - 비즈니스 로직 테스트 목적)
-                val createdOrder = orderCommandUseCase.processOrder(createOrderRequest)
+                val createdOrder = orderCommandUseCase.createOrder(createOrderRequest)
 
                 // 주문 취소
                 orderCommandUseCase.cancelOrder(createdOrder.id, "테스트 취소")

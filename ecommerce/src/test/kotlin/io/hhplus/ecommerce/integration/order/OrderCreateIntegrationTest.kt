@@ -1,19 +1,19 @@
 package io.hhplus.ecommerce.integration.order
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
-import io.hhplus.ecommerce.order.usecase.OrderCommandUseCase
+import io.hhplus.ecommerce.order.application.usecase.OrderCommandUseCase
 import io.hhplus.ecommerce.order.domain.constant.OrderStatus
-import io.hhplus.ecommerce.order.usecase.GetOrderQueryUseCase
+import io.hhplus.ecommerce.order.application.usecase.GetOrderQueryUseCase
 import io.hhplus.ecommerce.order.domain.repository.OrderRepository
 import io.hhplus.ecommerce.order.domain.repository.OrderItemRepository
-import io.hhplus.ecommerce.order.dto.CreateOrderRequest
-import io.hhplus.ecommerce.order.dto.CreateOrderItemRequest
-import io.hhplus.ecommerce.delivery.dto.DeliveryAddressRequest
-import io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
-import io.hhplus.ecommerce.point.usecase.PointCommandUseCase
-import io.hhplus.ecommerce.product.dto.CreateProductRequest
+import io.hhplus.ecommerce.order.presentation.dto.CreateOrderRequest
+import io.hhplus.ecommerce.order.presentation.dto.CreateOrderItemRequest
+import io.hhplus.ecommerce.delivery.presentation.dto.DeliveryAddressRequest
+import io.hhplus.ecommerce.inventory.application.usecase.InventoryCommandUseCase
+import io.hhplus.ecommerce.point.application.usecase.ChargePointUseCase
+import io.hhplus.ecommerce.product.presentation.dto.CreateProductRequest
 import io.hhplus.ecommerce.product.domain.entity.Product
-import io.hhplus.ecommerce.product.usecase.ProductCommandUseCase
+import io.hhplus.ecommerce.product.application.usecase.ProductCommandUseCase
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -35,7 +35,7 @@ class OrderCreateIntegrationTest(
     private val orderItemRepository: OrderItemRepository,
     private val productCommandUseCase: ProductCommandUseCase,
     private val inventoryCommandUseCase: InventoryCommandUseCase,
-    private val pointCommandUseCase: PointCommandUseCase
+    private val chargePointUseCase: ChargePointUseCase
 ) : KotestIntegrationTestBase({
 
     // 테스트용 상품 ID를 저장할 변수
@@ -67,23 +67,23 @@ class OrderCreateIntegrationTest(
         inventoryCommandUseCase.createInventory(product2.id, 1000)
 
         // 포인트 충전 (주문에 필요)
-        pointCommandUseCase.chargePoint(1000L, 500000, "주문 테스트용 충전")
-        pointCommandUseCase.chargePoint(2000L, 500000, "주문 테스트용 충전")
-        pointCommandUseCase.chargePoint(3000L, 500000, "주문 테스트용 충전")
-        pointCommandUseCase.chargePoint(4000L, 500000, "주문 테스트용 충전")
-        pointCommandUseCase.chargePoint(5000L, 500000, "주문 테스트용 충전")
-        pointCommandUseCase.chargePoint(6000L, 500000, "주문 테스트용 충전")
-        pointCommandUseCase.chargePoint(7000L, 500000, "주문 테스트용 충전")
-        pointCommandUseCase.chargePoint(8000L, 500000, "주문 테스트용 충전")
+        chargePointUseCase.execute(1000L, 500000, "주문 테스트용 충전")
+        chargePointUseCase.execute(2000L, 500000, "주문 테스트용 충전")
+        chargePointUseCase.execute(3000L, 500000, "주문 테스트용 충전")
+        chargePointUseCase.execute(4000L, 500000, "주문 테스트용 충전")
+        chargePointUseCase.execute(5000L, 500000, "주문 테스트용 충전")
+        chargePointUseCase.execute(6000L, 500000, "주문 테스트용 충전")
+        chargePointUseCase.execute(7000L, 500000, "주문 테스트용 충전")
+        chargePointUseCase.execute(8000L, 500000, "주문 테스트용 충전")
     }
 
     // 주문 직접 생성 헬퍼 함수 (테스트용)
     fun createOrderDirectly(request: CreateOrderRequest): io.hhplus.ecommerce.order.domain.entity.Order {
         // 사용자 포인트 충전 (주문에 충분한 포인트 제공)
-        pointCommandUseCase.chargePoint(request.userId, 500000, "테스트용 충전")
+        chargePointUseCase.execute(request.userId, 500000, "테스트용 충전")
 
         // 직접 주문 처리
-        return orderCommandUseCase.processOrder(request)
+        return orderCommandUseCase.createOrder(request)
     }
 
     describe("주문 생성 (Redis Queue)") {

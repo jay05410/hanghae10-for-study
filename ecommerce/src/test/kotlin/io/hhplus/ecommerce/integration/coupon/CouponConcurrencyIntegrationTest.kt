@@ -2,8 +2,8 @@ package io.hhplus.ecommerce.integration.coupon
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 
-import io.hhplus.ecommerce.coupon.usecase.CouponUseCase
-import io.hhplus.ecommerce.coupon.dto.IssueCouponRequest
+import io.hhplus.ecommerce.coupon.application.usecase.CouponCommandUseCase
+import io.hhplus.ecommerce.coupon.presentation.dto.IssueCouponRequest
 import io.hhplus.ecommerce.coupon.domain.constant.DiscountType
 import io.hhplus.ecommerce.coupon.domain.entity.Coupon
 import io.hhplus.ecommerce.coupon.domain.repository.CouponRepository
@@ -19,7 +19,7 @@ import org.springframework.data.redis.core.RedisTemplate
  * 선착순 쿠폰 발급 시 동시성 제어를 검증합니다.
  */
 class CouponConcurrencyIntegrationTest(
-    private val couponUseCase: CouponUseCase,
+    private val couponCommandUseCase: CouponCommandUseCase,
     private val couponRepository: CouponRepository,
     private val redisTemplate: RedisTemplate<String, Any>
 ) : KotestIntegrationTestBase({
@@ -58,7 +58,7 @@ class CouponConcurrencyIntegrationTest(
                 repeat(threadCount) { index ->
                     executor.submit {
                         try {
-                            couponUseCase.issueCoupon(userId = 1000L + index, request = IssueCouponRequest(savedCoupon.id))
+                            couponCommandUseCase.issueCoupon(userId = 1000L + index, request = IssueCouponRequest(savedCoupon.id))
                             successCount.incrementAndGet()
                         } catch (e: Exception) {
                             failCount.incrementAndGet()

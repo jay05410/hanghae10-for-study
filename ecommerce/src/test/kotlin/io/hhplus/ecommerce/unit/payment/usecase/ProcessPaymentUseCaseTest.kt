@@ -1,10 +1,16 @@
 package io.hhplus.ecommerce.unit.payment.usecase
 
-import io.hhplus.ecommerce.payment.application.PaymentService
-import io.hhplus.ecommerce.payment.usecase.ProcessPaymentUseCase
-import io.hhplus.ecommerce.payment.domain.entity.Payment
-import io.hhplus.ecommerce.payment.dto.ProcessPaymentRequest
+import io.hhplus.ecommerce.payment.application.port.out.PaymentExecutorPort
 import io.hhplus.ecommerce.payment.domain.constant.PaymentMethod
+import io.hhplus.ecommerce.payment.domain.constant.PaymentStatus
+import io.hhplus.ecommerce.payment.domain.entity.Payment
+import io.hhplus.ecommerce.payment.domain.model.PaymentContext
+import io.hhplus.ecommerce.payment.domain.model.PaymentResult
+import io.hhplus.ecommerce.payment.domain.service.PaymentDomainService
+import io.hhplus.ecommerce.payment.presentation.dto.ProcessPaymentRequest
+import io.hhplus.ecommerce.payment.exception.PaymentException
+import io.hhplus.ecommerce.payment.application.usecase.ProcessPaymentUseCase
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.*
@@ -12,141 +18,171 @@ import io.mockk.*
 /**
  * ProcessPaymentUseCase 단위 테스트
  *
- * 책임: 결제 처리 비즈니스 흐름 검증
- * - 결제 처리 로직의 서비스 위임 검증
- * - 요청 DTO에서 파라미터 추출 및 전달 검증
- *
- * 검증 목표:
- * 1. PaymentService에 올바른 파라미터가 전달되는가?
- * 2. ProcessPaymentRequest의 모든 필드가 정확히 전달되는가?
- * 3. 서비스 결과가 그대로 반환되는가?
+ * 책임: 결제 처리 오케스트레이션 검증
+ * - 결제 흐름 (검증 → 생성 → 실행 → 결과 처리)
+ * - PaymentDomainService와 PaymentExecutorPort 협력 검증
  */
 class ProcessPaymentUseCaseTest : DescribeSpec({
-    val mockPaymentService = mockk<PaymentService>()
-    val sut = ProcessPaymentUseCase(mockPaymentService)
+    val mockPaymentDomainService = mockk<PaymentDomainService>()
+    val mockBalanceExecutor = mockk<PaymentExecutorPort>()
 
     beforeEach {
-        clearMocks(mockPaymentService)
+        clearMocks(mockPaymentDomainService, mockBalanceExecutor)
+        every { mockBalanceExecutor.supportedMethod() } returns PaymentMethod.BALANCE
     }
+
+    fun createSut(): ProcessPaymentUseCase {
+        return ProcessPaymentUseCase(
+            paymentDomainService = mockPaymentDomainService,
+            executors = listOf(mockBalanceExecutor)
+        )
+    }
+
+    fun createTestPayment(
+        id: Long = 1L,
+        paymentNumber: String = "PAY-001",
+        userId: Long = 1L,
+        orderId: Long = 1L,
+        amount: Long = 10000L,
+        status: PaymentStatus = PaymentStatus.PENDING
+    ): Payment = Payment(
+        id = id,
+        paymentNumber = paymentNumber,
+        userId = userId,
+        orderId = orderId,
+        amount = amount,
+        paymentMethod = PaymentMethod.BALANCE,
+        status = status
+    )
 
     describe("execute") {
         context("정상적인 결제 처리 요청") {
-            it("PaymentService에 처리를 위임하고 결과를 반환") {
+            it("전체 결제 흐름이 순차적으로 실행") {
                 val request = ProcessPaymentRequest(
                     userId = 1L,
                     orderId = 1L,
                     amount = 10000L,
                     paymentMethod = PaymentMethod.BALANCE
                 )
-                val expectedPayment = mockk<Payment>()
+                val pendingPayment = createTestPayment(status = PaymentStatus.PENDING)
+                val processingPayment = createTestPayment(status = PaymentStatus.PROCESSING)
+                val completedPayment = createTestPayment(status = PaymentStatus.COMPLETED)
 
-                every { mockPaymentService.processPayment(1L, 1L, 10000L, PaymentMethod.BALANCE) } returns expectedPayment
+                every { mockPaymentDomainService.validateNoDuplicatePayment(1L) } just runs
+                every { mockPaymentDomainService.createPayment(1L, 1L, 10000L, PaymentMethod.BALANCE) } returns pendingPayment
+                every { mockBalanceExecutor.canExecute(any()) } returns true
+                every { mockPaymentDomainService.markAsProcessing(pendingPayment) } returns processingPayment
+                every { mockBalanceExecutor.execute(any()) } returns PaymentResult.success()
+                every { mockPaymentDomainService.handlePaymentResult(processingPayment, any()) } returns completedPayment
 
+                val sut = createSut()
                 val result = sut.execute(request)
 
-                result shouldBe expectedPayment
-                verify(exactly = 1) { mockPaymentService.processPayment(1L, 1L, 10000L, PaymentMethod.BALANCE) }
-            }
-        }
-
-        context("다른 결제 방법으로 요청") {
-            it("요청된 결제 방법이 정확히 서비스에 전달") {
-                val request = ProcessPaymentRequest(
-                    userId = 2L,
-                    orderId = 5L,
-                    amount = 50000L,
-                    paymentMethod = PaymentMethod.CARD
-                )
-                val expectedPayment = mockk<Payment>()
-
-                every { mockPaymentService.processPayment(2L, 5L, 50000L, PaymentMethod.CARD) } returns expectedPayment
-
-                val result = sut.execute(request)
-
-                result shouldBe expectedPayment
-                verify(exactly = 1) { mockPaymentService.processPayment(2L, 5L, 50000L, PaymentMethod.CARD) }
-            }
-        }
-
-        context("다양한 파라미터 조합") {
-            it("모든 파라미터가 정확히 서비스에 전달되는지 확인") {
-                data class TestCase(
-                    val userId: Long,
-                    val orderId: Long,
-                    val amount: Long,
-                    val paymentMethod: PaymentMethod
-                )
-
-                val testCases = listOf(
-                    TestCase(1L, 1L, 10000L, PaymentMethod.BALANCE),
-                    TestCase(100L, 200L, 75000L, PaymentMethod.CARD),
-                    TestCase(999L, 888L, 150000L, PaymentMethod.BALANCE)
-                )
-
-                testCases.forEach { testCase ->
-                    val request = ProcessPaymentRequest(
-                        userId = testCase.userId,
-                        orderId = testCase.orderId,
-                        amount = testCase.amount,
-                        paymentMethod = testCase.paymentMethod
-                    )
-                    val expectedPayment = mockk<Payment>()
-
-                    every { mockPaymentService.processPayment(testCase.userId, testCase.orderId, testCase.amount, testCase.paymentMethod) } returns expectedPayment
-
-                    val result = sut.execute(request)
-
-                    result shouldBe expectedPayment
-                    verify(exactly = 1) { mockPaymentService.processPayment(testCase.userId, testCase.orderId, testCase.amount, testCase.paymentMethod) }
-                    clearMocks(mockPaymentService)
+                result shouldBe completedPayment
+                verifyOrder {
+                    mockPaymentDomainService.validateNoDuplicatePayment(1L)
+                    mockPaymentDomainService.createPayment(1L, 1L, 10000L, PaymentMethod.BALANCE)
+                    mockBalanceExecutor.canExecute(any())
+                    mockPaymentDomainService.markAsProcessing(pendingPayment)
+                    mockBalanceExecutor.execute(any())
+                    mockPaymentDomainService.handlePaymentResult(processingPayment, any())
                 }
             }
         }
 
-        context("큰 금액 결제 처리") {
-            it("큰 금액도 정확히 전달되고 처리") {
+        context("중복 결제 시도") {
+            it("중복 검증 단계에서 예외 발생") {
                 val request = ProcessPaymentRequest(
                     userId = 1L,
                     orderId = 1L,
-                    amount = 1_000_000L,
+                    amount = 10000L,
                     paymentMethod = PaymentMethod.BALANCE
                 )
-                val expectedPayment = mockk<Payment>()
 
-                every { mockPaymentService.processPayment(1L, 1L, 1_000_000L, PaymentMethod.BALANCE) } returns expectedPayment
+                every { mockPaymentDomainService.validateNoDuplicatePayment(1L) } throws
+                        PaymentException.DuplicatePayment("이미 결제됨")
 
-                val result = sut.execute(request)
+                val sut = createSut()
 
-                result shouldBe expectedPayment
-                verify(exactly = 1) { mockPaymentService.processPayment(1L, 1L, 1_000_000L, PaymentMethod.BALANCE) }
+                shouldThrow<PaymentException.DuplicatePayment> {
+                    sut.execute(request)
+                }
+
+                verify(exactly = 0) { mockPaymentDomainService.createPayment(any(), any(), any(), any()) }
             }
         }
 
-        context("파라미터 순서 검증") {
-            it("userId, orderId, amount, paymentMethod 순서로 정확히 전달") {
-                val userId = 42L
-                val orderId = 24L
-                val amount = 84000L
-                val paymentMethod = PaymentMethod.BALANCE
+        context("결제 가능 조건 미충족") {
+            it("실패 처리 후 예외 발생") {
                 val request = ProcessPaymentRequest(
-                    userId = userId,
-                    orderId = orderId,
-                    amount = amount,
-                    paymentMethod = paymentMethod
+                    userId = 1L,
+                    orderId = 1L,
+                    amount = 10000L,
+                    paymentMethod = PaymentMethod.BALANCE
                 )
-                val expectedPayment = mockk<Payment>()
+                val pendingPayment = createTestPayment(status = PaymentStatus.PENDING)
 
-                every { mockPaymentService.processPayment(userId, orderId, amount, paymentMethod) } returns expectedPayment
+                every { mockPaymentDomainService.validateNoDuplicatePayment(1L) } just runs
+                every { mockPaymentDomainService.createPayment(1L, 1L, 10000L, PaymentMethod.BALANCE) } returns pendingPayment
+                every { mockBalanceExecutor.canExecute(any()) } returns false
+                every { mockPaymentDomainService.markAsFailed(pendingPayment, any()) } just runs
 
-                val result = sut.execute(request)
+                val sut = createSut()
 
-                result shouldBe expectedPayment
-                verify(exactly = 1) { mockPaymentService.processPayment(
-                    userId,          // 첫 번째 파라미터
-                    orderId,         // 두 번째 파라미터
-                    amount,          // 세 번째 파라미터
-                    paymentMethod    // 네 번째 파라미터
-                ) }
+                shouldThrow<PaymentException.PaymentProcessingError> {
+                    sut.execute(request)
+                }
+
+                verify(exactly = 1) { mockPaymentDomainService.markAsFailed(pendingPayment, any()) }
+                verify(exactly = 0) { mockBalanceExecutor.execute(any()) }
+            }
+        }
+
+        context("지원하지 않는 결제 수단") {
+            it("UnsupportedPaymentMethod 예외 발생") {
+                val request = ProcessPaymentRequest(
+                    userId = 1L,
+                    orderId = 1L,
+                    amount = 10000L,
+                    paymentMethod = PaymentMethod.CARD
+                )
+                val pendingPayment = createTestPayment(status = PaymentStatus.PENDING)
+
+                every { mockPaymentDomainService.validateNoDuplicatePayment(1L) } just runs
+                every { mockPaymentDomainService.createPayment(1L, 1L, 10000L, PaymentMethod.CARD) } returns pendingPayment
+
+                val sut = createSut()
+
+                shouldThrow<PaymentException.UnsupportedPaymentMethod> {
+                    sut.execute(request)
+                }
+            }
+        }
+
+        context("Executor 실행 실패") {
+            it("결과 처리에서 예외 발생") {
+                val request = ProcessPaymentRequest(
+                    userId = 1L,
+                    orderId = 1L,
+                    amount = 10000L,
+                    paymentMethod = PaymentMethod.BALANCE
+                )
+                val pendingPayment = createTestPayment(status = PaymentStatus.PENDING)
+                val processingPayment = createTestPayment(status = PaymentStatus.PROCESSING)
+
+                every { mockPaymentDomainService.validateNoDuplicatePayment(1L) } just runs
+                every { mockPaymentDomainService.createPayment(1L, 1L, 10000L, PaymentMethod.BALANCE) } returns pendingPayment
+                every { mockBalanceExecutor.canExecute(any()) } returns true
+                every { mockPaymentDomainService.markAsProcessing(pendingPayment) } returns processingPayment
+                every { mockBalanceExecutor.execute(any()) } returns PaymentResult.failure("잔액 부족")
+                every { mockPaymentDomainService.handlePaymentResult(processingPayment, any()) } throws
+                        PaymentException.PaymentProcessingError("결제 실패")
+
+                val sut = createSut()
+
+                shouldThrow<PaymentException.PaymentProcessingError> {
+                    sut.execute(request)
+                }
             }
         }
     }

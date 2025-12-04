@@ -47,4 +47,10 @@ enum class DeliveryStatus {
      * 반품 가능한 상태인지 확인
      */
     fun canReturn(): Boolean = this == DELIVERED
+
+    /**
+     * 주문 취소 가능한 배송 상태인지 확인
+     * PENDING 상태에서만 취소 가능 (배송 준비 시작 전)
+     */
+    fun canBeCancelled(): Boolean = this == PENDING
 }

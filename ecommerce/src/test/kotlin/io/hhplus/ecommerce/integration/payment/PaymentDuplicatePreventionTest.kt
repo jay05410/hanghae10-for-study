@@ -1,28 +1,37 @@
 package io.hhplus.ecommerce.integration.payment
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
-import io.hhplus.ecommerce.payment.application.PaymentService
 import io.hhplus.ecommerce.payment.domain.constant.PaymentMethod
+import io.hhplus.ecommerce.payment.presentation.dto.ProcessPaymentRequest
 import io.hhplus.ecommerce.payment.exception.PaymentException
+import io.hhplus.ecommerce.payment.application.usecase.ProcessPaymentUseCase
+import io.hhplus.ecommerce.point.application.usecase.ChargePointUseCase
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.Executors
 
 /**
  * 결제 중복 방지 통합 테스트
  *
  * 목적:
  * - 동일한 주문 ID로 동시 결제 시도 시 중복 방지 검증
- * - 비관적 락을 통한 순차 처리 확인
+ * - 분산락을 통한 순차 처리 확인
  */
 class PaymentDuplicatePreventionTest(
-    private val paymentService: PaymentService
+    private val processPaymentUseCase: ProcessPaymentUseCase,
+    private val chargePointUseCase: ChargePointUseCase
 ) : KotestIntegrationTestBase({
+
+    // 테스트에 사용할 사용자별로 충분한 포인트 충전 (각 테스트 전에 실행)
+    beforeEach {
+        val testUserIds = listOf(50001L, 50002L, 50003L)
+        testUserIds.forEach { userId ->
+            chargePointUseCase.execute(userId, 1_000_000L, "테스트 포인트 충전")
+        }
+    }
 
     describe("결제 중복 방지") {
         context("동일한 주문 ID로 동시 결제를 시도할 때") {
@@ -38,11 +47,13 @@ class PaymentDuplicatePreventionTest(
                     val results = (1..threadCount).map { index ->
                         async {
                             runCatching {
-                                paymentService.processPayment(
-                                    userId = userId,
-                                    orderId = orderId,
-                                    amount = amount,
-                                    paymentMethod = PaymentMethod.BALANCE
+                                processPaymentUseCase.execute(
+                                    ProcessPaymentRequest(
+                                        userId = userId,
+                                        orderId = orderId,
+                                        amount = amount,
+                                        paymentMethod = PaymentMethod.BALANCE
+                                    )
                                 )
                             }
                         }
@@ -86,11 +97,13 @@ class PaymentDuplicatePreventionTest(
                 runBlocking {
                     val results = (1..threadCount).map { index ->
                         async {
-                            paymentService.processPayment(
-                                userId = userId,
-                                orderId = baseOrderId + index,
-                                amount = amount,
-                                paymentMethod = PaymentMethod.BALANCE
+                            processPaymentUseCase.execute(
+                                ProcessPaymentRequest(
+                                    userId = userId,
+                                    orderId = baseOrderId + index,
+                                    amount = amount,
+                                    paymentMethod = PaymentMethod.BALANCE
+                                )
                             )
                         }
                     }.awaitAll()
@@ -117,21 +130,25 @@ class PaymentDuplicatePreventionTest(
                 val orderId = 50020L
                 val amount = 10000L
 
-                val firstPayment = paymentService.processPayment(
-                    userId = userId,
-                    orderId = orderId,
-                    amount = amount,
-                    paymentMethod = PaymentMethod.BALANCE
+                val firstPayment = processPaymentUseCase.execute(
+                    ProcessPaymentRequest(
+                        userId = userId,
+                        orderId = orderId,
+                        amount = amount,
+                        paymentMethod = PaymentMethod.BALANCE
+                    )
                 )
                 firstPayment.status.name shouldBe "COMPLETED"
 
                 // When & Then: 동일한 주문으로 다시 결제 시도
                 val exception = shouldThrow<PaymentException.DuplicatePayment> {
-                    paymentService.processPayment(
-                        userId = userId,
-                        orderId = orderId,
-                        amount = amount,
-                        paymentMethod = PaymentMethod.BALANCE
+                    processPaymentUseCase.execute(
+                        ProcessPaymentRequest(
+                            userId = userId,
+                            orderId = orderId,
+                            amount = amount,
+                            paymentMethod = PaymentMethod.BALANCE
+                        )
                     )
                 }
 

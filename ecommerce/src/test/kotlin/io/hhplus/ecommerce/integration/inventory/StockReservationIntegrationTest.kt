@@ -3,9 +3,9 @@ package io.hhplus.ecommerce.integration.inventory
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 
 import io.hhplus.ecommerce.inventory.exception.InventoryException
-import io.hhplus.ecommerce.inventory.application.StockReservationService
+import io.hhplus.ecommerce.inventory.application.usecase.StockReservationCommandUseCase
+import io.hhplus.ecommerce.inventory.application.usecase.InventoryCommandUseCase
 import io.hhplus.ecommerce.inventory.domain.repository.StockReservationRepository
-import io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
 import io.hhplus.ecommerce.support.config.IntegrationTestFixtures
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
@@ -21,7 +21,7 @@ import io.kotest.matchers.shouldNotBe
  * - 예약 데이터 정리 (물리 삭제)
  */
 class StockReservationIntegrationTest(
-    private val stockReservationService: StockReservationService,
+    private val stockReservationCommandUseCase: StockReservationCommandUseCase,
     private val stockReservationRepository: StockReservationRepository,
     private val inventoryCommandUseCase: InventoryCommandUseCase
 ) : KotestIntegrationTestBase({
@@ -38,7 +38,7 @@ class StockReservationIntegrationTest(
                 inventoryCommandUseCase.createInventory(productId, initialStock)
 
                 // When
-                val reservation = stockReservationService.reserveStock(productId, userId, quantity)
+                val reservation = stockReservationCommandUseCase.reserveStock(productId, userId, quantity)
 
                 // Then
                 reservation shouldNotBe null
@@ -62,10 +62,10 @@ class StockReservationIntegrationTest(
                 val initialStock = 100
 
                 inventoryCommandUseCase.createInventory(productId, initialStock)
-                val reservation = stockReservationService.reserveStock(productId, userId, quantity)
+                val reservation = stockReservationCommandUseCase.reserveStock(productId, userId, quantity)
 
                 // When
-                val confirmedReservation = stockReservationService.confirmReservation(reservation.id, userId)
+                val confirmedReservation = stockReservationCommandUseCase.confirmReservation(reservation.id, userId)
 
                 // Then
                 confirmedReservation shouldNotBe null
@@ -82,10 +82,10 @@ class StockReservationIntegrationTest(
                 val initialStock = 100
 
                 inventoryCommandUseCase.createInventory(productId, initialStock)
-                val reservation = stockReservationService.reserveStock(productId, userId, quantity)
+                val reservation = stockReservationCommandUseCase.reserveStock(productId, userId, quantity)
 
                 // When
-                val cancelledReservation = stockReservationService.cancelReservation(reservation.id, userId)
+                val cancelledReservation = stockReservationCommandUseCase.cancelReservation(reservation.id, userId)
 
                 // Then
                 cancelledReservation shouldNotBe null
@@ -106,11 +106,11 @@ class StockReservationIntegrationTest(
                 inventoryCommandUseCase.createInventory(productId2, initialStock)
 
                 // 예약 생성 (1분 만료로 설정하고 시간을 조작하기 어려우므로 만료 로직만 테스트)
-                val reservation1 = stockReservationService.reserveStock(productId1, userId, quantity, 1)
-                val reservation2 = stockReservationService.reserveStock(productId2, userId + 1, quantity, 1)
+                val reservation1 = stockReservationCommandUseCase.reserveStock(productId1, userId, quantity, 1)
+                val reservation2 = stockReservationCommandUseCase.reserveStock(productId2, userId + 1, quantity, 1)
 
                 // When - 만료 처리 실행
-                val expiredCount = stockReservationService.expireReservations()
+                val expiredCount = stockReservationCommandUseCase.expireReservations()
 
                 // Then - 실제 만료된 예약이 있다면 처리됨 (시간 기반이므로 결과는 가변적)
                 expiredCount shouldBe 0 // 방금 생성된 예약이므로 만료되지 않음
@@ -126,13 +126,13 @@ class StockReservationIntegrationTest(
                 val initialStock = 100
 
                 inventoryCommandUseCase.createInventory(productId, initialStock)
-                val reservation = stockReservationService.reserveStock(productId, userId, quantity)
+                val reservation = stockReservationCommandUseCase.reserveStock(productId, userId, quantity)
 
                 // 예약을 확정하여 처리 완료 상태로 만듦
-                stockReservationService.confirmReservation(reservation.id, userId)
+                stockReservationCommandUseCase.confirmReservation(reservation.id, userId)
 
                 // When - 0일 이전 데이터 정리 (즉시 삭제)
-                val deletedCount = stockReservationService.cleanupOldReservations(0)
+                val deletedCount = stockReservationCommandUseCase.cleanupOldReservations(0)
 
                 // Then - 물리 삭제 처리됨
                 deletedCount shouldBe 1
@@ -152,11 +152,11 @@ class StockReservationIntegrationTest(
                 val initialStock = 100
 
                 inventoryCommandUseCase.createInventory(productId, initialStock)
-                stockReservationService.reserveStock(productId, userId, quantity)
+                stockReservationCommandUseCase.reserveStock(productId, userId, quantity)
 
                 // When & Then
                 shouldThrow<InventoryException.StockAlreadyReserved> {
-                    stockReservationService.reserveStock(productId, userId, quantity)
+                    stockReservationCommandUseCase.reserveStock(productId, userId, quantity)
                 }
             }
         }
@@ -173,7 +173,7 @@ class StockReservationIntegrationTest(
 
                 // When & Then
                 shouldThrow<InventoryException.InsufficientStock> {
-                    stockReservationService.reserveStock(productId, userId, quantity)
+                    stockReservationCommandUseCase.reserveStock(productId, userId, quantity)
                 }
             }
         }
@@ -186,7 +186,7 @@ class StockReservationIntegrationTest(
 
                 // When & Then
                 shouldThrow<InventoryException.ReservationNotFound> {
-                    stockReservationService.confirmReservation(nonExistentReservationId, userId)
+                    stockReservationCommandUseCase.confirmReservation(nonExistentReservationId, userId)
                 }
             }
 
@@ -197,7 +197,7 @@ class StockReservationIntegrationTest(
 
                 // When & Then
                 shouldThrow<InventoryException.ReservationNotFound> {
-                    stockReservationService.cancelReservation(nonExistentReservationId, userId)
+                    stockReservationCommandUseCase.cancelReservation(nonExistentReservationId, userId)
                 }
             }
         }
@@ -212,11 +212,11 @@ class StockReservationIntegrationTest(
                 val initialStock = 100
 
                 inventoryCommandUseCase.createInventory(productId, initialStock)
-                val reservation = stockReservationService.reserveStock(productId, userId, quantity)
+                val reservation = stockReservationCommandUseCase.reserveStock(productId, userId, quantity)
 
                 // When & Then
                 shouldThrow<InventoryException.ReservationAccessDenied> {
-                    stockReservationService.confirmReservation(reservation.id, otherUserId)
+                    stockReservationCommandUseCase.confirmReservation(reservation.id, otherUserId)
                 }
             }
         }

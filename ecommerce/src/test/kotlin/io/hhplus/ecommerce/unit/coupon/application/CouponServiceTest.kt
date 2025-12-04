@@ -1,41 +1,36 @@
 package io.hhplus.ecommerce.unit.coupon.application
 
-import io.hhplus.ecommerce.coupon.application.CouponIssueHistoryService
-import io.hhplus.ecommerce.coupon.application.CouponService
+import io.hhplus.ecommerce.coupon.domain.service.CouponDomainService
 import io.hhplus.ecommerce.coupon.domain.repository.CouponRepository
 import io.hhplus.ecommerce.coupon.domain.repository.UserCouponRepository
 import io.hhplus.ecommerce.coupon.exception.CouponException
 import io.hhplus.ecommerce.coupon.domain.constant.UserCouponStatus
 import io.hhplus.ecommerce.coupon.domain.entity.Coupon
 import io.hhplus.ecommerce.coupon.domain.entity.UserCoupon
-import io.hhplus.ecommerce.coupon.domain.entity.CouponIssueHistory
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.*
 
 /**
- * CouponService 단위 테스트
+ * CouponDomainService 단위 테스트
  *
  * 책임: 쿠폰 도메인 서비스의 핵심 비즈니스 로직 검증
  * - 쿠폰 조회, 발급, 사용, 검증 기능의 Repository 호출 검증
- * - CouponIssueHistoryService와의 상호작용 검증
  * - 도메인 객체와의 상호작용 검증
  *
  * 검증 목표:
- * 1. 각 메서드가 적절한 Repository 및 의존 서비스 메서드를 호출하는가?
+ * 1. 각 메서드가 적절한 Repository 메서드를 호출하는가?
  * 2. 도메인 객체의 비즈니스 메서드가 올바르게 호출되는가?
  * 3. 예외 상황에서 적절한 예외가 발생하는가?
- * 4. 쿠폰 발급/사용 이력 기록이 올바르게 수행되는가?
  */
-class CouponServiceTest : DescribeSpec({
+class CouponDomainServiceTest : DescribeSpec({
     val mockCouponRepository = mockk<CouponRepository>()
     val mockUserCouponRepository = mockk<UserCouponRepository>()
-    val mockCouponIssueHistoryService = mockk<CouponIssueHistoryService>()
-    val sut = CouponService(mockCouponRepository, mockUserCouponRepository, mockCouponIssueHistoryService)
+    val sut = CouponDomainService(mockCouponRepository, mockUserCouponRepository)
 
     beforeEach {
-        clearMocks(mockCouponRepository, mockUserCouponRepository, mockCouponIssueHistoryService)
+        clearMocks(mockCouponRepository, mockUserCouponRepository)
     }
 
     describe("getAvailableCoupons") {
@@ -146,7 +141,7 @@ class CouponServiceTest : DescribeSpec({
 
     describe("applyCoupon") {
         context("정상적인 쿠폰 사용") {
-            it("쿠폰을 검증하고 사용한 후 이력을 기록") {
+            it("쿠폰을 검증하고 사용 처리") {
                 val userId = 1L
                 val userCouponId = 1L
                 val orderId = 1L
@@ -169,7 +164,6 @@ class CouponServiceTest : DescribeSpec({
                 every { mockUserCouponRepository.findById(userCouponId) } returns mockUserCoupon
                 every { mockCouponRepository.findById(1L) } returns mockCoupon
                 every { mockUserCouponRepository.save(mockUserCoupon) } returns mockUserCoupon
-                every { mockCouponIssueHistoryService.recordUsage(any(), any(), any(), any(), any()) } returns mockk()
 
                 val result = sut.applyCoupon(userId, userCouponId, orderId, orderAmount)
 
@@ -182,7 +176,6 @@ class CouponServiceTest : DescribeSpec({
                     mockCoupon.calculateDiscountAmount(orderAmount)
                     mockUserCoupon.use(orderId)
                     mockUserCouponRepository.save(mockUserCoupon)
-                    mockCouponIssueHistoryService.recordUsage(1L, userId, "할인쿠폰", orderId, any())
                 }
             }
         }
@@ -409,41 +402,4 @@ class CouponServiceTest : DescribeSpec({
         }
     }
 
-    describe("getCouponIssueHistory") {
-        context("사용자의 쿠폰 발급 이력 조회") {
-            it("CouponIssueHistoryService에 조회를 위임하고 결과를 반환") {
-                val userId = 1L
-                val expectedHistory = listOf(mockk<CouponIssueHistory>())
-
-                every { mockCouponIssueHistoryService.getUserCouponHistory(userId) } returns expectedHistory
-
-                val result = sut.getCouponIssueHistory(userId)
-
-                result shouldBe expectedHistory
-                verify(exactly = 1) { mockCouponIssueHistoryService.getUserCouponHistory(userId) }
-            }
-        }
-    }
-
-    describe("getCouponIssueStatistics") {
-        context("쿠폰 발급 통계 조회") {
-            it("CouponIssueHistoryService에 조회를 위임하고 결과를 반환") {
-                val couponId = 1L
-                val expectedStats = CouponIssueHistoryService.CouponStatistics(
-                    couponId = couponId,
-                    totalIssued = 100,
-                    totalUsed = 80,
-                    totalExpired = 5,
-                    usageRate = 80.0
-                )
-
-                every { mockCouponIssueHistoryService.getCouponStatistics(couponId) } returns expectedStats
-
-                val result = sut.getCouponIssueStatistics(couponId)
-
-                result shouldBe expectedStats
-                verify(exactly = 1) { mockCouponIssueHistoryService.getCouponStatistics(couponId) }
-            }
-        }
-    }
 })

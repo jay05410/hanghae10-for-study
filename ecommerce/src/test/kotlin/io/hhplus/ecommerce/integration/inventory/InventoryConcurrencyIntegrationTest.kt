@@ -3,11 +3,11 @@ package io.hhplus.ecommerce.integration.inventory
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 
 import io.hhplus.ecommerce.support.config.IntegrationTestFixtures
-import io.hhplus.ecommerce.product.dto.CreateProductRequest
-import io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
-import io.hhplus.ecommerce.inventory.usecase.InventoryReservationUseCase
-import io.hhplus.ecommerce.inventory.usecase.GetInventoryQueryUseCase
-import io.hhplus.ecommerce.product.usecase.ProductCommandUseCase
+import io.hhplus.ecommerce.product.presentation.dto.CreateProductRequest
+import io.hhplus.ecommerce.inventory.application.usecase.InventoryCommandUseCase
+import io.hhplus.ecommerce.inventory.application.usecase.StockReservationCommandUseCase
+import io.hhplus.ecommerce.inventory.application.usecase.GetInventoryQueryUseCase
+import io.hhplus.ecommerce.product.application.usecase.ProductCommandUseCase
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.comparables.shouldBeGreaterThanOrEqualTo
@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger
  */
 class InventoryConcurrencyIntegrationTest(
     private val inventoryCommandUseCase: InventoryCommandUseCase,
-    private val inventoryReservationUseCase: InventoryReservationUseCase,
+    private val stockReservationCommandUseCase: StockReservationCommandUseCase,
     private val getInventoryQueryUseCase: GetInventoryQueryUseCase,
     private val productCommandUseCase: ProductCommandUseCase
 ) : KotestIntegrationTestBase({
@@ -166,7 +166,7 @@ class InventoryConcurrencyIntegrationTest(
                 repeat(threadCount) {
                     executor.submit {
                         try {
-                            inventoryReservationUseCase.reserveStock(productId, it.toLong(), reserveQuantity)
+                            stockReservationCommandUseCase.reserveStock(productId, it.toLong(), reserveQuantity)
                             successCount.incrementAndGet()
                         } catch (e: Exception) {
                             failCount.incrementAndGet()
@@ -230,7 +230,7 @@ class InventoryConcurrencyIntegrationTest(
                         try {
                             if (index % 2 == 0) {
                                 // 짝수: 예약
-                                inventoryReservationUseCase.reserveStock(productId, index.toLong(), reserveQuantity)
+                                stockReservationCommandUseCase.reserveStock(productId, index.toLong(), reserveQuantity)
                                 reserveSuccessCount.incrementAndGet()
                             } else {
                                 // 홀수: 차감
@@ -342,8 +342,8 @@ class InventoryConcurrencyIntegrationTest(
                     executor.submit {
                         try {
                             // 각 스레드가 예약을 시도한 후 바로 확정
-                            val reservation = inventoryReservationUseCase.reserveStock(productId, index.toLong(), reserveQuantity)
-                            inventoryReservationUseCase.confirmReservation(reservation.id, index.toLong())
+                            val reservation = stockReservationCommandUseCase.reserveStock(productId, index.toLong(), reserveQuantity)
+                            stockReservationCommandUseCase.confirmReservation(reservation.id, index.toLong())
                             successCount.incrementAndGet()
                         } catch (e: Exception) {
                             failCount.incrementAndGet()

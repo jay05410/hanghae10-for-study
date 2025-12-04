@@ -4,9 +4,9 @@ import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 
 import io.hhplus.ecommerce.point.exception.PointException
 import io.hhplus.ecommerce.support.config.IntegrationTestFixtures
-import io.hhplus.ecommerce.point.usecase.PointCommandUseCase
-import io.hhplus.ecommerce.point.usecase.GetPointQueryUseCase
-import io.hhplus.ecommerce.point.usecase.PointHistoryUseCase
+import io.hhplus.ecommerce.point.application.usecase.ChargePointUseCase
+import io.hhplus.ecommerce.point.application.usecase.GetPointQueryUseCase
+import io.hhplus.ecommerce.point.domain.service.PointDomainService
 import io.hhplus.ecommerce.point.domain.vo.PointAmount
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
@@ -22,9 +22,9 @@ import io.kotest.matchers.shouldNotBe
  * - 유효기간 만료에 따른 자동 소멸 (1년)
  */
 class PointExpireIntegrationTest(
-    private val pointCommandUseCase: PointCommandUseCase,
+    private val chargePointUseCase: ChargePointUseCase,
     private val getPointQueryUseCase: GetPointQueryUseCase,
-    private val pointHistoryUseCase: PointHistoryUseCase
+    private val pointDomainService: PointDomainService
 ) : KotestIntegrationTestBase({
 
     describe("포인트 소멸") {
@@ -36,12 +36,11 @@ class PointExpireIntegrationTest(
                 val expireAmount = PointAmount(3_000)
 
                 // 사용자 포인트 생성 및 초기 적립
-                pointCommandUseCase.createUserPoint(userId)
-                pointCommandUseCase.chargePoint(userId, initialAmount.value, "초기 적립")
+                chargePointUseCase.execute(userId, initialAmount.value, "초기 적립")
 
                 // When
                 val balanceBefore = getPointQueryUseCase.getUserPoint(userId)!!.balance
-                val updatedUserPoint = pointCommandUseCase.expirePoint(
+                val updatedUserPoint = pointDomainService.expirePoint(
                     userId = userId,
                     amount = expireAmount
                 )
@@ -77,12 +76,11 @@ class PointExpireIntegrationTest(
                 val expireAmount = PointAmount(6_000) // 잔액보다 많은 금액
 
                 // 사용자 포인트 생성 및 초기 적립
-                pointCommandUseCase.createUserPoint(userId)
-                pointCommandUseCase.chargePoint(userId, initialAmount.value, "초기 적립")
+                chargePointUseCase.execute(userId, initialAmount.value, "초기 적립")
 
                 // When & Then
                 shouldThrow<PointException.InsufficientBalance> {
-                    pointCommandUseCase.expirePoint(userId, expireAmount)
+                    pointDomainService.expirePoint(userId, expireAmount)
                 }
 
                 // 잔액이 변경되지 않았는지 확인
@@ -98,12 +96,11 @@ class PointExpireIntegrationTest(
                 val initialAmount = PointAmount(8_000)
 
                 // 사용자 포인트 생성 및 초기 적립
-                pointCommandUseCase.createUserPoint(userId)
-                pointCommandUseCase.chargePoint(userId, initialAmount.value, "초기 적립")
+                chargePointUseCase.execute(userId, initialAmount.value, "초기 적립")
 
                 // When - 전액 소멸
                 val balanceBefore = getPointQueryUseCase.getUserPoint(userId)!!.balance
-                val updatedUserPoint = pointCommandUseCase.expirePoint(userId, initialAmount)
+                val updatedUserPoint = pointDomainService.expirePoint(userId, initialAmount)
                 // 포인트 소멸 시 자동으로 이력 기록됨
 
                 // Then
@@ -122,14 +119,13 @@ class PointExpireIntegrationTest(
                 val secondExpire = PointAmount(2_000)
 
                 // 사용자 포인트 생성 및 초기 적립
-                pointCommandUseCase.createUserPoint(userId)
-                pointCommandUseCase.chargePoint(userId, initialAmount.value, "초기 적립")
+                chargePointUseCase.execute(userId, initialAmount.value, "초기 적립")
 
                 // When - 첫 번째 소멸
-                pointCommandUseCase.expirePoint(userId, firstExpire)
+                pointDomainService.expirePoint(userId, firstExpire)
 
                 // When - 두 번째 소멸
-                pointCommandUseCase.expirePoint(userId, secondExpire)
+                pointDomainService.expirePoint(userId, secondExpire)
 
                 // Then
                 val finalUserPoint = getPointQueryUseCase.getUserPoint(userId)
@@ -152,12 +148,11 @@ class PointExpireIntegrationTest(
                 val initialAmount = PointAmount(10_000)
 
                 // 사용자 포인트 생성 및 초기 적립
-                pointCommandUseCase.createUserPoint(userId)
-                pointCommandUseCase.chargePoint(userId, initialAmount.value, "초기 적립")
+                chargePointUseCase.execute(userId, initialAmount.value, "초기 적립")
 
                 // When & Then - 0원 소멸 시도
                 shouldThrow<PointException.InvalidAmount> {
-                    pointCommandUseCase.expirePoint(userId, PointAmount(0))
+                    pointDomainService.expirePoint(userId, PointAmount(0))
                 }
 
                 // When & Then - 음수 소멸 시도 (PointAmount 생성 시점에 검증)
@@ -175,12 +170,11 @@ class PointExpireIntegrationTest(
                 val expireAmount = PointAmount(5_000)
 
                 // 사용자 포인트 생성
-                pointCommandUseCase.createUserPoint(userId)
 
                 // When - 적립 후 소멸
-                pointCommandUseCase.chargePoint(userId, earnAmount.value, "초기 적립")
+                chargePointUseCase.execute(userId, earnAmount.value, "초기 적립")
                 val balanceBefore = getPointQueryUseCase.getUserPoint(userId)!!.balance
-                val updatedUserPoint = pointCommandUseCase.expirePoint(userId, expireAmount)
+                val updatedUserPoint = pointDomainService.expirePoint(userId, expireAmount)
                 // recordExpireHistoryUseCase.execute - 자동 처리됨(
 //                    userId, expireAmount, balanceBefore, updatedUserPoint.balance, 0L
 //                )
@@ -208,13 +202,12 @@ class PointExpireIntegrationTest(
                 val expireAmount = PointAmount(6_000) // 첫 번째(5,000) + 두 번째 일부(1,000)
 
                 // 사용자 포인트 생성 및 여러 번 적립
-                pointCommandUseCase.createUserPoint(userId)
-                pointCommandUseCase.chargePoint(userId, firstEarn.value, "첫 번째 적립")
-                pointCommandUseCase.chargePoint(userId, secondEarn.value, "두 번째 적립")
-                pointCommandUseCase.chargePoint(userId, thirdEarn.value, "세 번째 적립")
+                chargePointUseCase.execute(userId, firstEarn.value, "첫 번째 적립")
+                chargePointUseCase.execute(userId, secondEarn.value, "두 번째 적립")
+                chargePointUseCase.execute(userId, thirdEarn.value, "세 번째 적립")
 
                 // When - 6,000원 소멸 (FIFO: 첫 번째 5,000 + 두 번째 1,000)
-                pointCommandUseCase.expirePoint(userId, expireAmount)
+                pointDomainService.expirePoint(userId, expireAmount)
 
                 // Then
                 val userPoint = getPointQueryUseCase.getUserPoint(userId)

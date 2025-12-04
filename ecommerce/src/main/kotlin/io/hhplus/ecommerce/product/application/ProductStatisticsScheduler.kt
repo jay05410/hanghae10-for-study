@@ -5,7 +5,7 @@ import io.hhplus.ecommerce.common.cache.RedisKeyNames
 import io.hhplus.ecommerce.product.domain.entity.ProductPermanentStatistics
 import io.hhplus.ecommerce.product.domain.event.ProductStatisticsEvent
 import io.hhplus.ecommerce.product.domain.repository.ProductPermanentStatisticsRepository
-import io.hhplus.ecommerce.product.usecase.GetProductQueryUseCase
+import io.hhplus.ecommerce.product.application.usecase.GetProductQueryUseCase
 import com.fasterxml.jackson.databind.ObjectMapper
 import mu.KotlinLogging
 import org.springframework.cache.CacheManager

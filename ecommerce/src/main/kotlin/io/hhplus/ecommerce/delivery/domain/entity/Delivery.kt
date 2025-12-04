@@ -124,6 +124,12 @@ data class Delivery(
     fun canChangeAddress(): Boolean = status.canChangeAddress()
 
     /**
+     * 주문 취소 가능 여부 확인
+     * 배송 준비 시작 전(PENDING)에만 취소 가능
+     */
+    fun canBeCancelled(): Boolean = status.canBeCancelled()
+
+    /**
      * 반품 가능 여부 확인 (배송 완료 후 7일 이내)
      */
     fun canReturn(currentDate: LocalDateTime = LocalDateTime.now()): Boolean {

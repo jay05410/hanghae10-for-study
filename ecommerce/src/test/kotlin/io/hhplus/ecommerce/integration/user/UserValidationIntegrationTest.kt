@@ -2,8 +2,8 @@ package io.hhplus.ecommerce.integration.user
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 import io.hhplus.ecommerce.user.exception.UserException
-import io.hhplus.ecommerce.user.usecase.UserCommandUseCase
-import io.hhplus.ecommerce.user.usecase.GetUserQueryUseCase
+import io.hhplus.ecommerce.user.application.usecase.UserCommandUseCase
+import io.hhplus.ecommerce.user.application.usecase.GetUserQueryUseCase
 import io.hhplus.ecommerce.user.domain.constant.LoginType
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
