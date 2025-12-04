@@ -14,7 +14,6 @@ package io.hhplus.ecommerce.product.application.port.out
  * 구현체:
  * - RedisProductRankingAdapter: Redis Sorted Set 기반 랭킹 저장/조회
  *
- * @see docs/WEEK07_RANKING_ASYNC_DESIGN_PLAN.md
  */
 interface ProductRankingPort {
 

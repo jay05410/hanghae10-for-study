@@ -6,6 +6,7 @@ import io.hhplus.ecommerce.coupon.domain.entity.Coupon
 import io.hhplus.ecommerce.coupon.domain.entity.UserCoupon
 import io.hhplus.ecommerce.coupon.domain.repository.CouponRepository
 import io.hhplus.ecommerce.coupon.domain.repository.UserCouponRepository
+import io.hhplus.ecommerce.coupon.domain.vo.CouponCacheInfo
 import io.hhplus.ecommerce.coupon.exception.CouponException
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Component
@@ -34,9 +35,24 @@ class CouponDomainService(
 ) {
 
     /**
-     * 쿠폰 정보 조회 (캐시 적용)
+     * 쿠폰 캐시 정보 조회 (로컬 캐시 적용)
+     *
+     * 정적 정보만 캐싱 (totalQuantity 제외).
+     * 할인 계산, 유효성 검증 등에 사용.
+     *
+     * @see CouponCacheInfo 캐시용 VO
      */
     @Cacheable(value = [CacheNames.COUPON_INFO], key = "#couponId")
+    fun getCouponCacheInfo(couponId: Long): CouponCacheInfo? {
+        return couponRepository.findById(couponId)?.let { CouponCacheInfo.from(it) }
+    }
+
+    /**
+     * 쿠폰 엔티티 조회 (캐시 미적용)
+     *
+     * 선착순 발급, 수량 변경 등 동적 데이터가 필요한 경우 사용.
+     * totalQuantity가 필요하면 이 메서드 사용.
+     */
     fun getCoupon(couponId: Long): Coupon? {
         return couponRepository.findById(couponId)
     }
@@ -46,6 +62,14 @@ class CouponDomainService(
      */
     fun getCouponOrThrow(couponId: Long): Coupon {
         return couponRepository.findById(couponId)
+            ?: throw CouponException.CouponNotFound(couponId)
+    }
+
+    /**
+     * 쿠폰 캐시 정보 조회 (없으면 예외)
+     */
+    fun getCouponCacheInfoOrThrow(couponId: Long): CouponCacheInfo {
+        return getCouponCacheInfo(couponId)
             ?: throw CouponException.CouponNotFound(couponId)
     }
 

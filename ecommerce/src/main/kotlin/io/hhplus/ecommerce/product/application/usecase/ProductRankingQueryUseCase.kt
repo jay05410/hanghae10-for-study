@@ -25,7 +25,6 @@ import java.util.Locale
  * - ZREVRANK: 특정 상품 순위 조회 (O(log N))
  * - ZSCORE: 특정 상품 판매량 조회 (O(1))
  *
- * @see docs/WEEK07_RANKING_ASYNC_DESIGN_PLAN.md
  */
 @Component
 class ProductRankingQueryUseCase(

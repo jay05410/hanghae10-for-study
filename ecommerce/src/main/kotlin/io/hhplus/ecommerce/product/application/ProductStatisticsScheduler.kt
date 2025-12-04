@@ -29,7 +29,6 @@ import java.time.format.DateTimeFormatter
  * 2. 판매 랭킹 데이터 동기화 (Redis Sorted Set → DB)
  * 3. 인기 상품 캐시 갱신 (최신 데이터 반영)
  *
- * @see docs/WEEK07_RANKING_ASYNC_DESIGN_PLAN.md
  */
 @Component
 class ProductStatisticsScheduler(

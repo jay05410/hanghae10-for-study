@@ -99,17 +99,19 @@ object RedisKeyNames {
     /**
      * 선착순 쿠폰 발급 관련 키 (Coupon Issue)
      *
-     * 용도: 선착순 쿠폰 발급 (SET + ZSET)
-     * - issued: 발급된 유저 목록 (SET) - 중복 방지
-     * - queue: 발급 대기열 (ZSET) - 선착순 순서 보장
+     * 용도: 선착순 쿠폰 발급 (SET + ZSET 기반)
+     * - issued: 발급된 유저 목록 (SET) - SADD 원자성으로 중복 방지
+     * - queue: 발급 대기열 (ZSET) - timestamp score로 선착순 보장
      *
-     * @see docs/WEEK07_RANKING_ASYNC_DESIGN_PLAN.md
      */
     object CouponIssue {
         private const val DOMAIN = "$SVC:cpn:iss"
 
         const val ISSUED = "$DOMAIN:issued"
         const val QUEUE = "$DOMAIN:queue"
+        const val COUNTER = "$DOMAIN:cnt"
+        const val SOLDOUT = "$DOMAIN:soldout"
+        const val MAX_QTY = "$DOMAIN:max"
 
         /** 발급된 유저 SET 키: ecom:cpn:iss:issued:{couponId} */
         fun issuedKey(couponId: Long): String =
@@ -118,6 +120,18 @@ object RedisKeyNames {
         /** 발급 대기열 ZSET 키: ecom:cpn:iss:queue:{couponId} */
         fun queueKey(couponId: Long): String =
             "$QUEUE:$couponId"
+
+        /** 발급 카운터 STRING 키: ecom:cpn:iss:cnt:{couponId} */
+        fun counterKey(couponId: Long): String =
+            "$COUNTER:$couponId"
+
+        /** 매진 플래그 STRING 키: ecom:cpn:iss:soldout:{couponId} */
+        fun soldoutKey(couponId: Long): String =
+            "$SOLDOUT:$couponId"
+
+        /** 최대 발급 수량 STRING 키: ecom:cpn:iss:max:{couponId} */
+        fun maxQuantityKey(couponId: Long): String =
+            "$MAX_QTY:$couponId"
     }
 
     /**

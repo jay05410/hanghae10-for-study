@@ -16,11 +16,6 @@ import io.swagger.v3.oas.annotations.tags.Tag
  * - 쿠폰 관련 REST API 엔드포인트 제공
  * - HTTP 요청/응답 처리 및 데이터 변환
  * - 비즈니스 로직은 UseCase에 위임
- *
- * 책임:
- * - 요청 데이터 검증 및 응답 형식 통일
- * - 적절한 UseCase로 비즈니스 로직 위임
- * - HTTP 상태 코드 및 에러 처리
  */
 @Tag(name = "쿠폰", description = "쿠폰 발급 및 조회 API")
 @RestController
@@ -41,11 +36,11 @@ class CouponController(
     }
 
     /**
-     * 사용자의 쿠폰 발급 요청을 Queue에 등록한다
+     * 사용자의 쿠폰 발급 요청을 등록한다
      */
     @Operation(
-        summary = "쿠폰 발급 Queue 등록",
-        description = "사용자의 쿠폰 발급 요청을 Queue에 등록하고 대기 순번을 반환합니다. 실제 발급은 Worker가 백그라운드에서 처리합니다."
+        summary = "쿠폰 발급 요청",
+        description = "사용자의 쿠폰 발급 요청을 등록합니다. SADD 원자성으로 중복 발급을 방지합니다."
     )
     @PostMapping("/issue")
     fun issueCoupon(
@@ -53,9 +48,17 @@ class CouponController(
         @RequestParam userId: Long,
         @Parameter(description = "쿠폰 발급 요청 정보", required = true)
         @RequestBody request: IssueCouponRequest
-    ): ApiResponse<CouponQueueResponse> {
-        val queueRequest = couponCommandUseCase.issueCoupon(userId, request)
-        return ApiResponse.success(queueRequest.toResponse())
+    ): ApiResponse<CouponIssueStatusResponse> {
+        couponCommandUseCase.issueCoupon(userId, request)
+
+        // 발급 상태 조회
+        val status = CouponIssueStatusResponse(
+            couponId = request.couponId,
+            requested = true,
+            issuedCount = couponCommandUseCase.getIssuedCount(request.couponId),
+            pendingCount = couponCommandUseCase.getPendingCount(request.couponId)
+        )
+        return ApiResponse.success(status)
     }
 
     /**
@@ -100,46 +103,41 @@ class CouponController(
     }
 
     /**
-     * Queue ID로 쿠폰 발급 Queue 상태를 조회한다
+     * 특정 쿠폰의 발급 상태를 조회한다
      */
-    @Operation(summary = "Queue 상태 조회 (Queue ID)", description = "Queue ID로 쿠폰 발급 Queue의 상태를 조회합니다.")
-    @GetMapping("/queue/{queueId}")
-    fun getQueueStatus(
-        @Parameter(description = "Queue ID", required = true, example = "550e8400-e29b-41d4-a716-446655440000")
-        @PathVariable queueId: String
-    ): ApiResponse<CouponQueueResponse?> {
-        val queueRequest = getCouponQueryUseCase.getQueueStatus(queueId)
-        return ApiResponse.success(queueRequest?.toResponse())
-    }
-
-    /**
-     * 사용자의 특정 쿠폰에 대한 Queue 상태를 조회한다
-     */
-    @Operation(
-        summary = "Queue 상태 조회 (사용자+쿠폰)",
-        description = "사용자의 특정 쿠폰에 대한 Queue 상태를 조회합니다."
-    )
-    @GetMapping("/queue/user/{userId}/coupon/{couponId}")
-    fun getUserQueueStatus(
-        @Parameter(description = "사용자 ID", required = true, example = "1")
-        @PathVariable userId: Long,
+    @Operation(summary = "쿠폰 발급 상태 조회", description = "특정 쿠폰의 현재 발급 상태를 조회합니다.")
+    @GetMapping("/{couponId}/status")
+    fun getCouponIssueStatus(
         @Parameter(description = "쿠폰 ID", required = true, example = "1")
-        @PathVariable couponId: Long
-    ): ApiResponse<CouponQueueResponse?> {
-        val queueRequest = getCouponQueryUseCase.getUserQueueRequest(userId, couponId)
-        return ApiResponse.success(queueRequest?.toResponse())
+        @PathVariable couponId: Long,
+        @Parameter(description = "사용자 ID", required = false, example = "1")
+        @RequestParam(required = false) userId: Long?
+    ): ApiResponse<CouponIssueStatusResponse> {
+        val requested = if (userId != null) {
+            getCouponQueryUseCase.isUserRequested(couponId, userId)
+        } else {
+            false
+        }
+
+        val status = CouponIssueStatusResponse(
+            couponId = couponId,
+            requested = requested,
+            issuedCount = couponCommandUseCase.getIssuedCount(couponId),
+            pendingCount = couponCommandUseCase.getPendingCount(couponId)
+        )
+        return ApiResponse.success(status)
     }
 
     /**
      * 특정 쿠폰의 현재 대기열 크기를 조회한다
      */
-    @Operation(summary = "Queue 크기 조회", description = "특정 쿠폰의 현재 대기열 크기를 조회합니다.")
-    @GetMapping("/queue/coupon/{couponId}/size")
-    fun getQueueSize(
+    @Operation(summary = "대기열 크기 조회", description = "특정 쿠폰의 현재 대기 중인 발급 요청 수를 조회합니다.")
+    @GetMapping("/issue/coupon/{couponId}/pending")
+    fun getPendingCount(
         @Parameter(description = "쿠폰 ID", required = true, example = "1")
         @PathVariable couponId: Long
     ): ApiResponse<Long> {
-        val queueSize = couponCommandUseCase.getQueueSize(couponId)
-        return ApiResponse.success(queueSize)
+        val pendingCount = couponCommandUseCase.getPendingCount(couponId)
+        return ApiResponse.success(pendingCount)
     }
 }

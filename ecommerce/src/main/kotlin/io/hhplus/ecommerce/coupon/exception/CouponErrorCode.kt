@@ -53,15 +53,15 @@ enum class CouponErrorCode(
         httpStatus = 404
     ),
 
-    ALREADY_IN_QUEUE(
+    ALREADY_REQUESTED(
         code = "COUPON008",
-        message = "이미 쿠폰 발급 대기열에 등록되어 있습니다. 사용자 ID: {userId}, 쿠폰: {couponName}",
+        message = "이미 쿠폰 발급을 요청하였습니다. 사용자 ID: {userId}, 쿠폰: {couponName}",
         httpStatus = 409
     ),
 
-    QUEUE_FULL(
+    ISSUE_SOLD_OUT(
         code = "COUPON009",
-        message = "쿠폰 발급 대기열이 가득 찼습니다. 쿠폰: {couponName}",
+        message = "쿠폰이 모두 소진되었습니다. 쿠폰: {couponName}",
         httpStatus = 429
     ),
 

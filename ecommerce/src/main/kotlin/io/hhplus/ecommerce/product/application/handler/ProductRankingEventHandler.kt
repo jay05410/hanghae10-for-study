@@ -22,7 +22,6 @@ import org.springframework.stereotype.Component
  * - 랭킹 업데이트 실패해도 주문 프로세스에 영향 없음 (비핵심 기능)
  * - 실패 시 로깅만 수행하고 true 반환 (재시도 불필요)
  *
- * @see docs/WEEK07_RANKING_ASYNC_DESIGN_PLAN.md
  */
 @Component
 class ProductRankingEventHandler(

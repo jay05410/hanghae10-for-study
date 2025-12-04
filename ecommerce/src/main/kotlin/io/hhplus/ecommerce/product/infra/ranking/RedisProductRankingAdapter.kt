@@ -32,7 +32,6 @@ import java.util.Locale
  * - ZSCORE: O(1) - 특정 상품 판매량 조회
  * - ZREVRANK: O(log N) - 특정 상품 순위 조회
  *
- * @see docs/WEEK07_RANKING_ASYNC_DESIGN_PLAN.md
  */
 @Component
 class RedisProductRankingAdapter(

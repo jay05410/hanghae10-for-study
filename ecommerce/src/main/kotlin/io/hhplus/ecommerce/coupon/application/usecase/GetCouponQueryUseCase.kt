@@ -1,11 +1,10 @@
 package io.hhplus.ecommerce.coupon.application.usecase
 
 import io.hhplus.ecommerce.coupon.application.CouponIssueHistoryService
-import io.hhplus.ecommerce.coupon.application.CouponQueueService
+import io.hhplus.ecommerce.coupon.application.CouponIssueService
 import io.hhplus.ecommerce.coupon.domain.constant.UserCouponStatus
 import io.hhplus.ecommerce.coupon.domain.entity.Coupon
 import io.hhplus.ecommerce.coupon.domain.entity.CouponIssueHistory
-import io.hhplus.ecommerce.coupon.domain.entity.CouponQueueRequest
 import io.hhplus.ecommerce.coupon.domain.entity.UserCoupon
 import io.hhplus.ecommerce.coupon.domain.service.CouponDomainService
 import org.springframework.stereotype.Component
@@ -20,13 +19,13 @@ import org.springframework.stereotype.Component
  * 책임:
  * - 쿠폰 정보 조회
  * - 사용자 쿠폰 조회
- * - Queue 상태 조회
+ * - 발급 상태 조회
  * - 쿠폰 이력/통계 조회
  */
 @Component
 class GetCouponQueryUseCase(
     private val couponDomainService: CouponDomainService,
-    private val couponQueueService: CouponQueueService,
+    private val couponIssueService: CouponIssueService,
     private val couponIssueHistoryService: CouponIssueHistoryService
 ) {
 
@@ -62,20 +61,27 @@ class GetCouponQueryUseCase(
         return couponDomainService.getAvailableUserCoupons(userId)
     }
 
-    // ========== Queue 조회 기능 ==========
+    // ========== 발급 상태 조회 기능 ==========
 
     /**
-     * Queue ID로 요청 상태를 조회한다
+     * 특정 유저가 해당 쿠폰 발급을 이미 요청했는지 확인
      */
-    fun getQueueStatus(queueId: String): CouponQueueRequest? {
-        return couponQueueService.getQueueRequest(queueId)
+    fun isUserRequested(couponId: Long, userId: Long): Boolean {
+        return couponIssueService.isAlreadyIssued(couponId, userId)
     }
 
     /**
-     * 사용자의 특정 쿠폰에 대한 Queue 요청을 조회한다
+     * 현재 발급된 수량 조회
      */
-    fun getUserQueueRequest(userId: Long, couponId: Long): CouponQueueRequest? {
-        return couponQueueService.getUserQueueRequest(userId, couponId)
+    fun getIssuedCount(couponId: Long): Long {
+        return couponIssueService.getIssuedCount(couponId)
+    }
+
+    /**
+     * 대기열 크기 조회
+     */
+    fun getPendingCount(couponId: Long): Long {
+        return couponIssueService.getPendingCount(couponId)
     }
 
     // ========== 이력/통계 조회 기능 ==========

@@ -23,7 +23,7 @@ import io.mockk.*
  */
 class CouponCommandUseCaseValidateTest : DescribeSpec({
     val mockCouponDomainService = mockk<CouponDomainService>()
-    val sut = CouponCommandUseCase(mockCouponDomainService, mockk(), mockk(), mockk())
+    val sut = CouponCommandUseCase(mockCouponDomainService, mockk(relaxed = true), mockk(relaxed = true))
 
     beforeEach {
         clearMocks(mockCouponDomainService)
