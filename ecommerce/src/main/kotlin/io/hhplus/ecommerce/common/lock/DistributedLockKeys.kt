@@ -67,6 +67,7 @@ object DistributedLockKeys {
 
         const val PROCESS = "$DOMAIN:process:#{#orderId}"
         const val DUPLICATE_PREVENTION = "$DOMAIN:dup:#{#orderId}"
+        const val REFUND = "$DOMAIN:refund:#{#paymentId}"
     }
 
     /**
@@ -110,6 +111,7 @@ object DistributedLockKeys {
         // Payment
         Payment.PROCESS,
         Payment.DUPLICATE_PREVENTION,
+        Payment.REFUND,
 
         // Inventory
         Inventory.DEDUCT,
@@ -126,7 +128,7 @@ object DistributedLockKeys {
         "coupon" to listOf(Coupon.ISSUE, Coupon.USE, Coupon.VALIDATE),
         "point" to listOf(Point.CHARGE, Point.USE, Point.EARN, Point.DEDUCT, Point.EXPIRE),
         "order" to listOf(Order.CREATE, Order.CANCEL, Order.CONFIRM, Order.PROCESS),
-        "payment" to listOf(Payment.PROCESS, Payment.DUPLICATE_PREVENTION),
+        "payment" to listOf(Payment.PROCESS, Payment.DUPLICATE_PREVENTION, Payment.REFUND),
         "inventory" to listOf(Inventory.DEDUCT, Inventory.RESERVE, Inventory.CONFIRM_RESERVATION, Inventory.CANCEL_RESERVATION, Inventory.RESTOCK)
     )
 }

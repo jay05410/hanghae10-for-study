@@ -8,7 +8,8 @@ import io.hhplus.ecommerce.order.dto.CreateOrderRequest
 import io.hhplus.ecommerce.order.dto.OrderItemData
 import io.hhplus.ecommerce.product.application.ProductQueryService
 import io.hhplus.ecommerce.coupon.application.CouponService
-import io.hhplus.ecommerce.payment.application.PaymentService
+import io.hhplus.ecommerce.payment.application.usecase.ProcessPaymentUseCase
+import io.hhplus.ecommerce.payment.presentation.dto.ProcessPaymentRequest
 import io.hhplus.ecommerce.delivery.application.DeliveryService
 import io.hhplus.ecommerce.inventory.application.InventoryService
 import io.hhplus.ecommerce.point.application.PointService
@@ -37,7 +38,7 @@ class OrderCommandUseCase(
     private val orderService: OrderService,
     private val productQueryService: ProductQueryService,
     private val couponService: CouponService,
-    private val paymentService: PaymentService,
+    private val processPaymentUseCase: ProcessPaymentUseCase,
     private val deliveryService: DeliveryService,
     private val inventoryService: InventoryService,
     private val pointService: PointService,
@@ -185,10 +186,12 @@ class OrderCommandUseCase(
     ) {
         // 결제 처리 (기록용)
         try {
-            paymentService.processPayment(
-                userId = request.userId,
-                orderId = order.id,
-                amount = order.finalAmount
+            processPaymentUseCase.execute(
+                ProcessPaymentRequest(
+                    userId = request.userId,
+                    orderId = order.id,
+                    amount = order.finalAmount
+                )
             )
         } catch (e: Exception) {
             logger.warn("결제 기록 실패 (주문은 성공): ${e.message}")
