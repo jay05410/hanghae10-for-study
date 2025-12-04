@@ -27,7 +27,8 @@ data class UserCoupon(
     val issuedAt: LocalDateTime = LocalDateTime.now(),
     var usedAt: LocalDateTime? = null,
     var usedOrderId: Long? = null,
-    var status: UserCouponStatus = UserCouponStatus.ISSUED
+    var status: UserCouponStatus = UserCouponStatus.ISSUED,
+    val version: Int = 0
 ) {
     fun isUsable(): Boolean = status == UserCouponStatus.ISSUED
 

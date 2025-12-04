@@ -2,7 +2,7 @@ package io.hhplus.ecommerce.integration.coupon
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 
-import io.hhplus.ecommerce.coupon.usecase.CouponCommandUseCase
+import io.hhplus.ecommerce.coupon.usecase.CouponUseCase
 import io.hhplus.ecommerce.coupon.dto.IssueCouponRequest
 import io.hhplus.ecommerce.coupon.domain.constant.DiscountType
 import io.hhplus.ecommerce.coupon.domain.entity.Coupon
@@ -19,7 +19,7 @@ import org.springframework.data.redis.core.RedisTemplate
  * 선착순 쿠폰 발급 시 동시성 제어를 검증합니다.
  */
 class CouponConcurrencyIntegrationTest(
-    private val couponCommandUseCase: CouponCommandUseCase,
+    private val couponUseCase: CouponUseCase,
     private val couponRepository: CouponRepository,
     private val redisTemplate: RedisTemplate<String, Any>
 ) : KotestIntegrationTestBase({
@@ -58,7 +58,7 @@ class CouponConcurrencyIntegrationTest(
                 repeat(threadCount) { index ->
                     executor.submit {
                         try {
-                            couponCommandUseCase.issueCoupon(userId = 1000L + index, request = IssueCouponRequest(savedCoupon.id))
+                            couponUseCase.issueCoupon(userId = 1000L + index, request = IssueCouponRequest(savedCoupon.id))
                             successCount.incrementAndGet()
                         } catch (e: Exception) {
                             failCount.incrementAndGet()
@@ -71,11 +71,14 @@ class CouponConcurrencyIntegrationTest(
                 latch.await()
                 executor.shutdown()
 
-                // Then - 큐 크기 제한으로 10명만 큐 등록 성공, 10명은 실패
+                // Then - @DistributedLock으로 인한 동시성 제어 검증
                 (successCount.get() + failCount.get()) shouldBe 20 // 총 시도 수는 20개
                 successCount.get() shouldBe 10 // 큐에는 10명만 등록 성공
                 failCount.get() shouldBe 10 // 나머지 10명은 큐 등록 실패
-                // 동시성 제어 검증 완료 - Redis Lua 스크립트가 원자적으로 큐 크기를 제한함
+
+                // 분산락 효과 검증 - Race Condition 없이 정확히 10개만 큐에 등록됨
+                // @DistributedLock(key = "coupon:issue:#{#request.couponId}")가
+                // 동일 쿠폰에 대한 동시 접근을 직렬화하여 큐 크기 검증을 원자적으로 수행
             }
         }
     }

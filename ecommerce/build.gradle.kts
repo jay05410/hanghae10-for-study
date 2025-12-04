@@ -53,6 +53,12 @@ dependencies {
     // Redis
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
 
+    // Redisson for Distributed Lock
+    implementation(libs.redisson.spring.boot.starter)
+
+    // Caffeine Cache
+    implementation(libs.caffeine)
+
     // Kotlin Logging
     implementation(libs.kotlin.logging)
 

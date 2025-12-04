@@ -25,11 +25,13 @@ interface UserCouponJpaRepository : JpaRepository<UserCouponJpaEntity, Long> {
 
     fun findByUserIdAndCouponId(userId: Long, couponId: Long): UserCouponJpaEntity?
 
-    @Query("""
+    @Query(
+        """
         SELECT uc FROM UserCouponJpaEntity uc
         JOIN CouponJpaEntity c ON uc.couponId = c.id
         WHERE uc.userId = :userId AND c.code = :couponCode
-    """)
+    """
+    )
     fun findByUserIdAndCouponCode(
         @Param("userId") userId: Long,
         @Param("couponCode") couponCode: String

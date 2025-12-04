@@ -1,10 +1,12 @@
 package io.hhplus.ecommerce.order.usecase
 
+import io.hhplus.ecommerce.common.annotation.DistributedLock
+import io.hhplus.ecommerce.common.annotation.DistributedTransaction
 import io.hhplus.ecommerce.order.domain.entity.Order
 import io.hhplus.ecommerce.order.application.OrderService
 import io.hhplus.ecommerce.order.dto.CreateOrderRequest
 import io.hhplus.ecommerce.order.dto.OrderItemData
-import io.hhplus.ecommerce.product.application.ProductService
+import io.hhplus.ecommerce.product.application.ProductQueryService
 import io.hhplus.ecommerce.coupon.application.CouponService
 import io.hhplus.ecommerce.payment.application.PaymentService
 import io.hhplus.ecommerce.delivery.application.DeliveryService
@@ -14,12 +16,9 @@ import io.hhplus.ecommerce.point.domain.vo.PointAmount
 import io.hhplus.ecommerce.order.exception.OrderException
 import io.hhplus.ecommerce.delivery.domain.constant.DeliveryStatus
 import io.hhplus.ecommerce.cart.application.CartService
-import io.hhplus.ecommerce.order.application.OrderQueueService
+import io.hhplus.ecommerce.common.lock.DistributedLockKeys
 import mu.KotlinLogging
 import org.springframework.stereotype.Component
-import org.springframework.transaction.PlatformTransactionManager
-import org.springframework.transaction.annotation.Transactional
-import org.springframework.transaction.support.TransactionTemplate
 
 /**
  * 주문 명령 UseCase
@@ -36,47 +35,88 @@ import org.springframework.transaction.support.TransactionTemplate
 @Component
 class OrderCommandUseCase(
     private val orderService: OrderService,
-    private val productService: ProductService,
+    private val productQueryService: ProductQueryService,
     private val couponService: CouponService,
     private val paymentService: PaymentService,
     private val deliveryService: DeliveryService,
     private val inventoryService: InventoryService,
     private val pointService: PointService,
-    private val cartService: CartService,
-    private val orderQueueService: OrderQueueService,
-    transactionManager: PlatformTransactionManager
+    private val cartService: CartService
 ) {
-    private val transactionTemplate = TransactionTemplate(transactionManager)
     private val logger = KotlinLogging.logger {}
 
     /**
-     * 주문 생성 요청을 Queue에 등록한다
+     * 주문 생성 요청을 처리한다 (재시도 로직 포함)
+     *
+     * 동시성 제어:
+     * - 분산락은 processOrderDirectly에서 적용 (재시도 시마다 락 재획득)
+     * - 재시도 로직은 락 외부에서 처리하여 락 보유 시간 최소화
      *
      * @param request 주문 생성 요청 데이터
-     * @return 등록된 Queue 요청 정보 (대기 순번, 예상 시간 포함)
+     * @return 생성되고 결제 처리가 완료된 주문
      * @throws IllegalArgumentException 상품 정보가 유효하지 않을 경우
-     * @throws io.hhplus.ecommerce.order.exception.OrderException.AlreadyInOrderQueue 이미 Queue에 등록된 경우
+     * @throws RuntimeException 최대 재시도 후에도 실패한 경우
      */
-    fun createOrder(request: CreateOrderRequest): io.hhplus.ecommerce.order.domain.entity.OrderQueueRequest {
-        return orderQueueService.enqueue(request)
+    fun createOrder(request: CreateOrderRequest): Order {
+        return processOrderWithRetry(request)
     }
 
     /**
-     * 레거시 테스트 호환용 - 직접 주문 생성 (기존 API와 동일한 시그니처)
+     * 재시도 로직이 포함된 주문 처리
+     *
+     * @param request 주문 생성 요청 데이터
+     * @param maxRetries 최대 재시도 횟수
+     * @param baseDelayMs 기본 지연 시간 (밀리초)
+     * @return 처리 완료된 주문
      */
-    fun createOrderLegacy(request: CreateOrderRequest): Order {
-        return processOrderDirectly(request)
+    private fun processOrderWithRetry(
+        request: CreateOrderRequest,
+        maxRetries: Int = 3,
+        baseDelayMs: Long = 100L
+    ): Order {
+        var lastException: Exception? = null
+
+        repeat(maxRetries + 1) { attempt ->
+            try {
+                return processOrder(request)
+            } catch (e: Exception) {
+                lastException = e
+
+                if (attempt < maxRetries) {
+                    val delayMs = baseDelayMs * (1L shl attempt) // 지수 백오프
+                    logger.warn("주문 처리 실패 (재시도 ${attempt + 1}/${maxRetries}): ${e.message}")
+
+                    try {
+                        Thread.sleep(delayMs)
+                    } catch (ie: InterruptedException) {
+                        Thread.currentThread().interrupt()
+                        throw ie
+                    }
+                } else {
+                    logger.error("주문 처리 최종 실패 (최대 재시도 초과): ${e.message}", e)
+                }
+            }
+        }
+
+        throw RuntimeException("주문 처리 실패: 최대 재시도 횟수($maxRetries)를 초과했습니다", lastException)
     }
 
     /**
      * 주문 요청을 직접 처리한다
+     *
+     * 동시성 제어:
+     * - 사용자별 분산락으로 동시 주문 방지
+     * - waitTime: 10초 (락 획득 대기)
+     * - leaseTime: 60초 (주문 처리 최대 시간)
      *
      * @param request 주문 생성 요청 데이터
      * @return 생성되고 결제 처리가 완료된 주문
      * @throws IllegalArgumentException 상품 정보가 유효하지 않을 경우
      * @throws RuntimeException 결제 처리에 실패한 경우
      */
-    fun processOrderDirectly(request: CreateOrderRequest): Order {
+    @DistributedLock(key = DistributedLockKeys.Order.PROCESS, waitTime = 10L, leaseTime = 60L)
+    @DistributedTransaction
+    fun processOrder(request: CreateOrderRequest): Order {
         // 1. 상품 정보 검증 및 가격 계산
         val orderItems = validateAndPrepareOrderItems(request)
         val totalAmount = calculateTotalAmount(orderItems)
@@ -84,98 +124,103 @@ class OrderCommandUseCase(
         // 2. 쿠폰 검증 (선택적)
         val discountAmount = validateCoupon(request, totalAmount)
 
-        // 3. DB 작업 (트랜잭션 내부) - 동시성 개선을 위해 순차적 처리
-        val order = transactionTemplate.execute { status ->
-            try {
-                // 포인트 사용 먼저 (데드락 방지를 위해 사용자별 순서 통일)
-                pointService.usePoint(
-                    userId = request.userId,
-                    amount = PointAmount.of(totalAmount - discountAmount),
-                    description = "주문 결제"
-                )
+        // 3. 핵심 주문 처리 (분산락 + 트랜잭션 보장)
+        val order = processOrderCore(request, orderItems, totalAmount, discountAmount)
 
-                // 재고 처리 (productId 정렬로 데드락 방지)
-                orderItems.sortedBy { it.productId }.forEach { item ->
-                    if (item.requiresReservation) {
-                        // 선착순/한정판: 예약된 재고 확정
-                        inventoryService.confirmReservation(item.productId, item.quantity)
-                    } else {
-                        // 일반 상품: 바로 재고 차감
-                        inventoryService.deductStock(item.productId, item.quantity)
-                    }
-                }
+        // 4. 부가 처리 (실패해도 주문 성공 유지)
+        processOrderSideEffects(request, orderItems, order)
 
-                // 주문 생성
-                val savedOrder = orderService.createOrder(
-                    userId = request.userId,
-                    items = orderItems,
-                    usedCouponId = request.usedCouponId,
-                    totalAmount = totalAmount,
-                    discountAmount = discountAmount
-                )
+        return order
+    }
 
-                // 결제 처리 (기록용) - 트랜잭션 분리 가능한 부분
-                try {
-                    paymentService.processPayment(
-                        userId = request.userId,
-                        orderId = savedOrder.id,
-                        amount = savedOrder.finalAmount
-                    )
-                } catch (e: Exception) {
-                    logger.warn("결제 기록 실패 (주문은 성공): ${e.message}")
-                }
+    /**
+     * 주문 핵심 처리 로직 (트랜잭션 보장)
+     */
+    private fun processOrderCore(
+        request: CreateOrderRequest,
+        orderItems: List<OrderItemData>,
+        totalAmount: Long,
+        discountAmount: Long
+    ): Order {
+        // 포인트 사용 (데드락 방지를 위해 사용자별 순서 통일)
+        pointService.usePoint(
+            userId = request.userId,
+            amount = PointAmount.of(totalAmount - discountAmount),
+            description = "주문 결제"
+        )
 
-                // 쿠폰 사용 처리
-                request.usedCouponId?.let { couponId ->
-                    couponService.applyCoupon(request.userId, couponId, savedOrder.id, totalAmount)
-                }
-
-                // 배송 정보 생성 - 트랜잭션 분리 가능한 부분
-                try {
-                    deliveryService.createDelivery(
-                        orderId = savedOrder.id,
-                        deliveryAddress = request.deliveryAddress.toVo(),
-                        deliveryMemo = request.deliveryAddress.deliveryMessage
-                    )
-                } catch (e: Exception) {
-                    logger.warn("배송 정보 생성 실패 (주문은 성공): ${e.message}")
-                }
-
-                savedOrder
-
-            } catch (e: Exception) {
-                status.setRollbackOnly()
-                throw e
+        // 재고 처리 (productId 정렬로 데드락 방지)
+        orderItems.sortedBy { it.productId }.forEach { item ->
+            if (item.requiresReservation) {
+                inventoryService.confirmReservation(item.productId, item.quantity)
+            } else {
+                inventoryService.deductStock(item.productId, item.quantity)
             }
-        } ?: throw IllegalStateException("주문 생성 실패")
+        }
 
-        // 4. 장바구니 정리 (실패해도 주문 성공 유지)
+        // 주문 생성
+        val savedOrder = orderService.createOrder(
+            userId = request.userId,
+            items = orderItems,
+            usedCouponId = request.usedCouponId,
+            totalAmount = totalAmount,
+            discountAmount = discountAmount
+        )
+
+        // 쿠폰 사용 처리
+        request.usedCouponId?.let { couponId ->
+            couponService.applyCoupon(request.userId, couponId, savedOrder.id, totalAmount)
+        }
+
+        return savedOrder
+    }
+
+    /**
+     * 주문 부가 처리 (실패해도 주문 성공 유지)
+     */
+    private fun processOrderSideEffects(
+        request: CreateOrderRequest,
+        orderItems: List<OrderItemData>,
+        order: Order
+    ) {
+        // 결제 처리 (기록용)
+        try {
+            paymentService.processPayment(
+                userId = request.userId,
+                orderId = order.id,
+                amount = order.finalAmount
+            )
+        } catch (e: Exception) {
+            logger.warn("결제 기록 실패 (주문은 성공): ${e.message}")
+        }
+
+        // 배송 정보 생성
+        try {
+            deliveryService.createDelivery(
+                orderId = order.id,
+                deliveryAddress = request.deliveryAddress.toVo(),
+                deliveryMemo = request.deliveryAddress.deliveryMessage
+            )
+        } catch (e: Exception) {
+            logger.warn("배송 정보 생성 실패 (주문은 성공): ${e.message}")
+        }
+
+        // 장바구니 정리
         try {
             val orderedProductIds = orderItems.map { it.productId }
             cartService.removeOrderedItems(request.userId, orderedProductIds)
         } catch (e: Exception) {
             logger.warn("장바구니 정리 실패 (주문은 성공): ${e.message}")
         }
-
-        return order
     }
 
-    /**
-     * 사용자의 주문 대기열 상태를 조회한다
-     *
-     * @param userId 사용자 ID
-     * @return Queue 요청 (없으면 null)
-     */
-    fun getUserQueueStatus(userId: Long): io.hhplus.ecommerce.order.domain.entity.OrderQueueRequest? {
-        return orderQueueService.getUserQueueRequest(userId)
-    }
 
     /**
      * 상품 정보를 검증하고 주문 아이템 데이터를 준비한다
      */
     private fun validateAndPrepareOrderItems(request: CreateOrderRequest): List<OrderItemData> {
         return request.items.map { item ->
-            val product = productService.getProduct(item.productId)
+            val product = productQueryService.getProduct(item.productId)
             OrderItemData(
                 productId = item.productId,
                 productName = product.name,
@@ -216,7 +261,8 @@ class OrderCommandUseCase(
      * @throws IllegalArgumentException 주문을 찾을 수 없거나 취소 권한이 없는 경우
      * @throws RuntimeException 주문 취소 처리에 실패한 경우
      */
-    @Transactional
+    @DistributedLock(key = DistributedLockKeys.Order.CANCEL)
+    @DistributedTransaction
     fun cancelOrder(orderId: Long, reason: String?): Order {
         // 1. 배송 상태 확인 - 배송 준비 중 이후에는 취소 불가
         val delivery = deliveryService.getDeliveryByOrderId(orderId)
@@ -264,7 +310,8 @@ class OrderCommandUseCase(
      * @throws IllegalArgumentException 주문을 찾을 수 없거나 확정 권한이 없는 경우
      * @throws RuntimeException 주문 확정 처리에 실패한 경우
      */
-    @Transactional
+    @DistributedLock(key = DistributedLockKeys.Order.CONFIRM)
+    @DistributedTransaction
     fun confirmOrder(orderId: Long): Order {
         return orderService.confirmOrder(orderId)
     }

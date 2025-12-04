@@ -10,9 +10,6 @@ import io.hhplus.ecommerce.point.usecase.PointCommandUseCase
 import io.hhplus.ecommerce.point.usecase.GetPointQueryUseCase
 import io.hhplus.ecommerce.inventory.usecase.GetInventoryQueryUseCase
 import io.hhplus.ecommerce.product.usecase.ProductCommandUseCase
-import io.hhplus.ecommerce.product.usecase.GetProductQueryUseCase
-import io.hhplus.ecommerce.product.domain.entity.Product
-import io.hhplus.ecommerce.inventory.domain.entity.Inventory
 import io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
 import io.hhplus.ecommerce.delivery.usecase.DeliveryCommandUseCase
 import io.hhplus.ecommerce.delivery.usecase.GetDeliveryQueryUseCase
@@ -20,7 +17,6 @@ import io.hhplus.ecommerce.product.dto.CreateProductRequest
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
-import io.kotest.matchers.collections.shouldHaveSize
 
 /**
  * 주문 취소 통합 테스트
@@ -101,7 +97,7 @@ class OrderCancelIntegrationTest(
                 )
 
                 // 주문 생성 (직접 처리)
-                val createdOrder = orderCommandUseCase.processOrderDirectly(createOrderRequest)
+                val createdOrder = orderCommandUseCase.processOrder(createOrderRequest)
 
                 // 주문 후 재고 확인
                 val stockAfterOrder = getInventoryQueryUseCase.getAvailableQuantity(savedProduct.id)
@@ -176,7 +172,7 @@ class OrderCancelIntegrationTest(
                 )
 
                 // 주문 생성 (직접 처리)
-                val createdOrder = orderCommandUseCase.processOrderDirectly(createOrderRequest)
+                val createdOrder = orderCommandUseCase.processOrder(createOrderRequest)
 
                 // 주문 확정 (배송 시작)
                 orderCommandUseCase.confirmOrder(createdOrder.id)

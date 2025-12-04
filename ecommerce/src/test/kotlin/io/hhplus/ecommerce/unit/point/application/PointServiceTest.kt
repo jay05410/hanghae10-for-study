@@ -91,13 +91,13 @@ class PointServiceTest : DescribeSpec({
                 val amount = PointAmount(5000L)
                 val mockUserPoint = createMockUserPoint(userId = userId)
 
-                every { mockUserPointRepository.findByUserIdWithLock(userId) } returns mockUserPoint
+                every { mockUserPointRepository.findByUserId(userId) } returns mockUserPoint
                 every { mockUserPointRepository.save(mockUserPoint) } returns mockUserPoint
 
                 val result = sut.earnPoint(userId, amount)
 
                 result shouldBe mockUserPoint
-                verify(exactly = 1) { mockUserPointRepository.findByUserIdWithLock(userId) }
+                verify(exactly = 1) { mockUserPointRepository.findByUserId(userId) }
                 verify(exactly = 1) { mockUserPoint.earn(amount) }
                 verify(exactly = 1) { mockUserPointRepository.save(mockUserPoint) }
             }
@@ -108,13 +108,13 @@ class PointServiceTest : DescribeSpec({
                 val userId = 999L
                 val amount = PointAmount(5000L)
 
-                every { mockUserPointRepository.findByUserIdWithLock(userId) } returns null
+                every { mockUserPointRepository.findByUserId(userId) } returns null
 
                 shouldThrow<PointException.PointNotFound> {
                     sut.earnPoint(userId, amount)
                 }
 
-                verify(exactly = 1) { mockUserPointRepository.findByUserIdWithLock(userId) }
+                verify(exactly = 1) { mockUserPointRepository.findByUserId(userId) }
                 verify(exactly = 0) { mockUserPointRepository.save(any()) }
             }
         }
@@ -127,13 +127,13 @@ class PointServiceTest : DescribeSpec({
                 val amount = PointAmount(3000L)
                 val mockUserPoint = createMockUserPoint(userId = userId)
 
-                every { mockUserPointRepository.findByUserIdWithLock(userId) } returns mockUserPoint
+                every { mockUserPointRepository.findByUserId(userId) } returns mockUserPoint
                 every { mockUserPointRepository.save(mockUserPoint) } returns mockUserPoint
 
                 val result = sut.usePoint(userId, amount)
 
                 result shouldBe mockUserPoint
-                verify(exactly = 1) { mockUserPointRepository.findByUserIdWithLock(userId) }
+                verify(exactly = 1) { mockUserPointRepository.findByUserId(userId) }
                 verify(exactly = 1) { mockUserPoint.use(amount) }
                 verify(exactly = 1) { mockUserPointRepository.save(mockUserPoint) }
             }
@@ -144,13 +144,13 @@ class PointServiceTest : DescribeSpec({
                 val userId = 999L
                 val amount = PointAmount(3000L)
 
-                every { mockUserPointRepository.findByUserIdWithLock(userId) } returns null
+                every { mockUserPointRepository.findByUserId(userId) } returns null
 
                 shouldThrow<PointException.PointNotFound> {
                     sut.usePoint(userId, amount)
                 }
 
-                verify(exactly = 1) { mockUserPointRepository.findByUserIdWithLock(userId) }
+                verify(exactly = 1) { mockUserPointRepository.findByUserId(userId) }
                 verify(exactly = 0) { mockUserPointRepository.save(any()) }
             }
         }

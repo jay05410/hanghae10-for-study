@@ -49,5 +49,9 @@ class UserCouponJpaEntity(
 
     @Column(nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
-    var status: UserCouponStatus = UserCouponStatus.ISSUED
+    var status: UserCouponStatus = UserCouponStatus.ISSUED,
+
+    @Version
+    @Column(nullable = false)
+    var version: Int = 0
 ) : BaseJpaEntity()

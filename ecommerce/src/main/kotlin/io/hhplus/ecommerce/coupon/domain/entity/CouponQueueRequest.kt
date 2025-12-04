@@ -17,9 +17,11 @@ import java.time.LocalDateTime
  * - 처리 시간 초과 시 자동 만료됨 (기본 10분)
  *
  * Redis 저장 구조:
- * - Key: "coupon:queue:request:{queueId}"
+ * - Key: "ecom:cpn:queue:req:{queueId}" (RedisKeyNames.CouponQueue.REQUEST)
  * - Value: JSON 직렬화된 CouponQueueRequest
- * - Queue: "coupon:queue:waiting:{couponId}" (WAITING 상태 요청 목록)
+ * - Queue: "ecom:cpn:queue:wait:{couponId}" (RedisKeyNames.CouponQueue.WAITING)
+ *
+ * @see io.hhplus.ecommerce.common.cache.RedisKeyNames.CouponQueue
  */
 data class CouponQueueRequest(
     val queueId: String,

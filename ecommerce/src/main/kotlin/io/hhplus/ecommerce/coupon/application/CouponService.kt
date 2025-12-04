@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.coupon.application
 
+import io.hhplus.ecommerce.common.cache.CacheNames
 import io.hhplus.ecommerce.coupon.domain.repository.CouponRepository
 import io.hhplus.ecommerce.coupon.domain.repository.UserCouponRepository
 import io.hhplus.ecommerce.coupon.exception.CouponException
@@ -7,6 +8,7 @@ import io.hhplus.ecommerce.coupon.domain.constant.UserCouponStatus
 import io.hhplus.ecommerce.coupon.domain.entity.Coupon
 import io.hhplus.ecommerce.coupon.domain.entity.UserCoupon
 import io.hhplus.ecommerce.coupon.domain.entity.CouponIssueHistory
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -32,66 +34,59 @@ class CouponService(
 ) {
 
     /**
-     * 발급 가능한 쿼폰 목록 조회 (재고 있고 유효기간 내)
+     * 쿠폰 정보 조회 (캐시 적용)
+     *
+     * 캐싱 전략:
+     * - 쿠폰 기본 정보는 자주 변경되지 않으므로 캐시 적용
+     * - 동시 요청 시 DB 부하 감소
+     * - 캐시 키: 쿠폰 ID
+     *
+     * @param couponId 쿠폰 ID
+     * @return 쿠폰 정보 (없으면 null)
+     */
+    @Cacheable(value = [CacheNames.COUPON_INFO], key = "#couponId")
+    fun getCoupon(couponId: Long): Coupon? {
+        return couponRepository.findById(couponId)
+    }
+
+    /**
+     * 발급 가능한 쿠폰 목록 조회 (재고 있고 유효기간 내)
      */
     fun getAvailableCoupons(): List<Coupon> {
-        return couponRepository.findAvailableCoupons()
-            .filter { it.isAvailableForIssue() }  // 재고 & 유효기간 체크 (동적 조건)
+        return couponRepository.findAll()
+            .filter { it.isAvailableForIssue() }
     }
 
-    /**
-     * 쿼폰명으로 쿼폰을 조회한다
-     *
-     * @param name 조회할 쿼폰명
-     * @return 쿼폰 엔티티 (존재하지 않을 경우 null)
-     */
-    fun getCouponByName(name: String): Coupon? {
-        return couponRepository.findByName(name)
-    }
 
     /**
-     * 사용자에게 쿼폰을 발급한다
+     * 사용자 쿠폰을 발급한다 - 순수한 쿠폰 발급 로직
      *
-     * @param userId 쿼폰을 발급받을 사용자 ID
-     * @param couponId 발급할 쿼폰 ID
-     * @return 발급된 사용자 쿼폰
-     * @throws CouponException.CouponNotFound 쿼폰을 찾을 수 없는 경우
-     * @throws CouponException.CouponSoldOut 쿼폰이 품절된 경우
-     * @throws CouponException.AlreadyIssuedCoupon 이미 발급받은 쿼폰인 경우
+     * 주의: 이 메서드는 모든 검증이 완료된 후 호출되어야 함
+     *      (발급 가능 여부, 재고, 중복 발급 등)
+     *
+     * @param coupon 발급할 쿠폰 엔티티 (UseCase에서 조회된 것)
+     * @param userId 사용자 ID
+     * @return 발급된 사용자 쿠폰
      */
     @Transactional
-    fun issueCoupon(userId: Long, couponId: Long): UserCoupon {
-        val coupon = couponRepository.findByIdWithLock(couponId)
-            ?: throw CouponException.CouponNotFound(couponId)
-
-        if (!coupon.isAvailableForIssue()) {
-            throw CouponException.CouponSoldOut(coupon.name, coupon.getRemainingQuantity())
-        }
-
-        val existingUserCoupon = userCouponRepository.findByUserIdAndCouponId(userId, couponId)
+    fun issueCoupon(coupon: Coupon, userId: Long): UserCoupon {
+        // 방어적 검증: 데이터 무결성 보장 (Queue 검증을 통과했지만 추가 안전장치)
+        val existingUserCoupon = userCouponRepository.findByUserIdAndCouponId(userId, coupon.id)
         if (existingUserCoupon != null) {
             throw CouponException.AlreadyIssuedCoupon(userId, coupon.name)
         }
 
-        // 가변 모델이므로 issue() 메서드 호출 후 저장
+        // 쿠폰 재고 차감
         coupon.issue()
         couponRepository.save(coupon)
 
+        // 사용자 쿠폰 생성
         val userCoupon = UserCoupon.create(
             userId = userId,
             couponId = coupon.id
         )
 
-        val savedUserCoupon = userCouponRepository.save(userCoupon)
-
-        // 쿠폰 발급 이력 저장
-        couponIssueHistoryService.recordIssue(
-            couponId = coupon.id,
-            userId = userId,
-            couponName = coupon.name
-        )
-
-        return savedUserCoupon
+        return userCouponRepository.save(userCoupon)
     }
 
     /**
@@ -119,15 +114,15 @@ class CouponService(
     }
 
     /**
-     * 쿼폰을 사용하여 할인을 적용한다
+     * 쿠폰을 사용하여 할인을 적용한다
      *
      * @param userId 사용자 ID
-     * @param userCouponId 사용할 사용자 쿼폰 ID
+     * @param userCouponId 사용할 사용자 쿠폰 ID
      * @param orderId 주문 ID
      * @param orderAmount 주문 금액
      * @return 할인 금액
-     * @throws CouponException.UserCouponNotFound 사용자 쿼폰을 찾을 수 없는 경우
-     * @throws CouponException.AlreadyUsedCoupon 이미 사용된 쿼폰인 경우
+     * @throws CouponException.UserCouponNotFound 사용자 쿠폰을 찾을 수 없는 경우
+     * @throws CouponException.AlreadyUsedCoupon 이미 사용된 쿠폰인 경우
      * @throws CouponException.MinimumOrderAmountNotMet 최소 주문 금액 미달 시
      */
     @Transactional
@@ -169,14 +164,14 @@ class CouponService(
     }
 
     /**
-     * 쿼폰 사용 가능 여부를 검증하고 할인 금액을 계산한다
+     * 쿠폰 사용 가능 여부를 검증하고 할인 금액을 계산한다
      *
      * @param userId 사용자 ID
      * @param userCouponId 검증할 사용자 쿜폰 ID
      * @param orderAmount 주문 금액
      * @return 예상 할인 금액
-     * @throws CouponException.UserCouponNotFound 사용자 쿼폰을 찾을 수 없는 경우
-     * @throws CouponException.AlreadyUsedCoupon 이미 사용된 쿼폰인 경우
+     * @throws CouponException.UserCouponNotFound 사용자 쿠폰을 찾을 수 없는 경우
+     * @throws CouponException.AlreadyUsedCoupon 이미 사용된 쿠폰인 경우
      * @throws CouponException.MinimumOrderAmountNotMet 최소 주문 금액 미달 시
      */
     fun validateCouponUsage(userId: Long, userCouponId: Long, orderAmount: Long): Long {

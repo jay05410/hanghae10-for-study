@@ -1,9 +1,11 @@
 package io.hhplus.ecommerce.unit.product.usecase
 
-import io.hhplus.ecommerce.product.application.ProductService
-import io.hhplus.ecommerce.product.application.ProductStatisticsService
 import io.hhplus.ecommerce.product.usecase.GetProductQueryUseCase
+import io.hhplus.ecommerce.product.application.ProductQueryService
+import io.hhplus.ecommerce.product.application.EventBasedStatisticsService
 import io.hhplus.ecommerce.product.domain.entity.Product
+import io.hhplus.ecommerce.product.domain.vo.ProductStatsVO
+import io.hhplus.ecommerce.common.response.Cursor
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.*
@@ -11,300 +13,182 @@ import io.mockk.*
 /**
  * GetProductQueryUseCase 단위 테스트
  *
- * 책임: 상품 조회 요청을 ProductService로 위임하는 역할 검증
- * - 상품 목록 조회 기능의 ProductService 호출 검증
- * - 단일 상품 조회 기능의 ProductService 호출 검증
- * - 카테고리별 상품 조회 기능의 ProductService 호출 검증
- * - 파라미터 전달 및 결과 반환의 정확성 검증
+ * 책임: 상품 조회 유스케이스의 비즈니스 로직 검증
+ * - ProductQueryService와의 올바른 상호작용 확인
+ * - EventBasedStatisticsService와의 연동 확인
+ * - 커서 기반 페이징 로직 검증
+ * - 예외 처리 검증
  *
  * 검증 목표:
- * 1. getProducts 메서드가 올바른 page로 ProductService를 호출하는가?
- * 2. getProduct 메서드가 올바른 productId로 ProductService를 호출하는가?
- * 3. getProductsByCategory 메서드가 올바른 categoryId로 ProductService를 호출하는가?
- * 4. ProductService의 결과가 그대로 반환되는가?
- * 5. 다양한 입력값에 대한 정확한 처리가 이루어지는가?
+ * 1. UseCase가 적절한 Service 메서드를 호출하는가?
+ * 2. 파라미터를 올바르게 전달하는가?
+ * 3. 결과를 올바르게 반환하는가?
+ * 4. 예외가 Service에서 UseCase로 전파되는가?
  */
 class GetProductQueryUseCaseTest : DescribeSpec({
-    val mockProductService = mockk<ProductService>()
-    val mockProductStatisticsService = mockk<ProductStatisticsService>()
-    val sut = GetProductQueryUseCase(mockProductService, mockProductStatisticsService)
+
+    val mockProductQueryService = mockk<ProductQueryService>()
+    val mockEventBasedStatisticsService = mockk<EventBasedStatisticsService>()
+    val sut = GetProductQueryUseCase(mockProductQueryService, mockEventBasedStatisticsService)
 
     beforeEach {
-        clearMocks(mockProductService, mockProductStatisticsService)
+        clearAllMocks()
     }
 
     describe("getProducts") {
-        context("페이지 번호로 상품 목록 조회") {
-            it("ProductService.getProducts를 호출하고 결과를 반환") {
-                val page = 1
-                val mockProducts = listOf(mockk<Product>(), mockk<Product>(), mockk<Product>())
+        context("커서 기반 페이징으로 상품 목록을 조회할 때") {
+            it("ProductQueryService의 getProductsWithCursor를 호출한다") {
+                // given
+                val lastId = 10L
+                val size = 20
+                val expectedCursor = mockk<Cursor<Product>>()
+                every { mockProductQueryService.getProductsWithCursor(lastId, size) } returns expectedCursor
 
-                every { mockProductService.getProducts(page) } returns mockProducts
+                // when
+                val result = sut.getProducts(lastId, size)
 
-                val result = sut.getProducts(page)
-
-                result shouldBe mockProducts
-                verify(exactly = 1) { mockProductService.getProducts(page) }
-            }
-        }
-
-        context("다양한 페이지 번호로 조회") {
-            it("각 page가 정확히 ProductService에 전달") {
-                val pages = listOf(1, 2, 5, 10, 50)
-
-                pages.forEach { page ->
-                    val mockProducts = listOf(mockk<Product>())
-                    every { mockProductService.getProducts(page) } returns mockProducts
-
-                    val result = sut.getProducts(page)
-
-                    result shouldBe mockProducts
-                    verify(exactly = 1) { mockProductService.getProducts(page) }
-                    clearMocks(mockProductService)
-                }
-            }
-        }
-
-        context("상품이 없는 페이지 조회") {
-            it("ProductService.getProducts를 호출하고 빈 리스트를 반환") {
-                val page = 999
-
-                every { mockProductService.getProducts(page) } returns emptyList()
-
-                val result = sut.getProducts(page)
-
-                result shouldBe emptyList()
-                verify(exactly = 1) { mockProductService.getProducts(page) }
-            }
-        }
-
-        context("경계값 테스트") {
-            it("최소값과 큰 값의 page로 조회") {
-                val boundaryPages = listOf(1, Int.MAX_VALUE)
-
-                boundaryPages.forEach { page ->
-                    val mockProducts = listOf(mockk<Product>())
-                    every { mockProductService.getProducts(page) } returns mockProducts
-
-                    val result = sut.getProducts(page)
-
-                    result shouldBe mockProducts
-                    verify(exactly = 1) { mockProductService.getProducts(page) }
-                    clearMocks(mockProductService)
-                }
+                // then
+                result shouldBe expectedCursor
+                verify(exactly = 1) { mockProductQueryService.getProductsWithCursor(lastId, size) }
             }
         }
     }
 
     describe("getProduct") {
-        context("존재하는 상품 ID로 조회") {
-            it("ProductService.getProduct를 호출하고 결과를 반환") {
+        context("상품 ID로 특정 상품을 조회할 때") {
+            it("ProductQueryService의 getProduct를 호출한다") {
+                // given
                 val productId = 1L
-                val mockProduct = mockk<Product>()
+                val expectedProduct = mockk<Product>()
+                every { mockProductQueryService.getProduct(productId) } returns expectedProduct
 
-                every { mockProductService.getProduct(productId) } returns mockProduct
-
+                // when
                 val result = sut.getProduct(productId)
 
-                result shouldBe mockProduct
-                verify(exactly = 1) { mockProductService.getProduct(productId) }
-            }
-        }
-
-        context("다양한 상품 ID로 조회") {
-            it("각 productId가 정확히 ProductService에 전달") {
-                val productIds = listOf(1L, 100L, 999L, Long.MAX_VALUE)
-
-                productIds.forEach { productId ->
-                    val mockProduct = mockk<Product>()
-                    every { mockProductService.getProduct(productId) } returns mockProduct
-
-                    val result = sut.getProduct(productId)
-
-                    result shouldBe mockProduct
-                    verify(exactly = 1) { mockProductService.getProduct(productId) }
-                    clearMocks(mockProductService)
-                }
-            }
-        }
-
-        context("경계값 테스트") {
-            it("최소값과 최대값 productId로 조회") {
-                val boundaryProductIds = listOf(1L, Long.MAX_VALUE)
-
-                boundaryProductIds.forEach { productId ->
-                    val mockProduct = mockk<Product>()
-                    every { mockProductService.getProduct(productId) } returns mockProduct
-
-                    val result = sut.getProduct(productId)
-
-                    result shouldBe mockProduct
-                    verify(exactly = 1) { mockProductService.getProduct(productId) }
-                    clearMocks(mockProductService)
-                }
+                // then
+                result shouldBe expectedProduct
+                verify(exactly = 1) { mockProductQueryService.getProduct(productId) }
             }
         }
     }
 
     describe("getProductsByCategory") {
-        context("존재하는 카테고리 ID로 조회") {
-            it("ProductService.getProductsByCategory를 호출하고 결과를 반환") {
+        context("카테고리별 상품 목록을 조회할 때") {
+            it("ProductQueryService의 getProductsByCategoryWithCursor를 호출한다") {
+                // given
                 val categoryId = 1L
-                val mockProducts = listOf(mockk<Product>(), mockk<Product>())
+                val lastId = 5L
+                val size = 15
+                val expectedCursor = mockk<Cursor<Product>>()
+                every { mockProductQueryService.getProductsByCategoryWithCursor(categoryId, lastId, size) } returns expectedCursor
 
-                every { mockProductService.getProductsByCategory(categoryId) } returns mockProducts
+                // when
+                val result = sut.getProductsByCategory(categoryId, lastId, size)
 
-                val result = sut.getProductsByCategory(categoryId)
-
-                result shouldBe mockProducts
-                verify(exactly = 1) { mockProductService.getProductsByCategory(categoryId) }
-            }
-        }
-
-        context("상품이 없는 카테고리로 조회") {
-            it("ProductService.getProductsByCategory를 호출하고 빈 리스트를 반환") {
-                val categoryId = 999L
-
-                every { mockProductService.getProductsByCategory(categoryId) } returns emptyList()
-
-                val result = sut.getProductsByCategory(categoryId)
-
-                result shouldBe emptyList()
-                verify(exactly = 1) { mockProductService.getProductsByCategory(categoryId) }
-            }
-        }
-
-        context("다양한 카테고리 ID로 조회") {
-            it("각 categoryId가 정확히 ProductService에 전달") {
-                val categoryIds = listOf(1L, 5L, 10L, 99L, Long.MAX_VALUE)
-
-                categoryIds.forEach { categoryId ->
-                    val mockProducts = listOf(mockk<Product>())
-                    every { mockProductService.getProductsByCategory(categoryId) } returns mockProducts
-
-                    val result = sut.getProductsByCategory(categoryId)
-
-                    result shouldBe mockProducts
-                    verify(exactly = 1) { mockProductService.getProductsByCategory(categoryId) }
-                    clearMocks(mockProductService)
-                }
-            }
-        }
-
-        context("대량의 상품이 있는 카테고리") {
-            it("ProductService.getProductsByCategory를 호출하고 모든 상품을 반환") {
-                val categoryId = 1L
-                val mockProducts = (1..100).map { mockk<Product>() }
-
-                every { mockProductService.getProductsByCategory(categoryId) } returns mockProducts
-
-                val result = sut.getProductsByCategory(categoryId)
-
-                result shouldBe mockProducts
-                verify(exactly = 1) { mockProductService.getProductsByCategory(categoryId) }
+                // then
+                result shouldBe expectedCursor
+                verify(exactly = 1) { mockProductQueryService.getProductsByCategoryWithCursor(categoryId, lastId, size) }
             }
         }
     }
 
-    describe("메서드별 독립성 검증") {
-        context("각 메서드 호출 시 다른 메서드 호출되지 않음") {
-            it("getProducts 호출 시 다른 ProductService 메서드가 호출되지 않음") {
-                val page = 1
-                val mockProducts = listOf(mockk<Product>())
-
-                every { mockProductService.getProducts(page) } returns mockProducts
-                every { mockProductService.getProduct(any()) } returns mockk()
-                every { mockProductService.getProductsByCategory(any()) } returns mockProducts
-
-                sut.getProducts(page)
-
-                verify(exactly = 1) { mockProductService.getProducts(page) }
-                verify(exactly = 0) { mockProductService.getProduct(any()) }
-                verify(exactly = 0) { mockProductService.getProductsByCategory(any()) }
-            }
-        }
-
-        context("getProduct 호출 시 다른 메서드 호출되지 않음") {
-            it("getProduct만 호출하고 다른 ProductService 메서드는 호출하지 않음") {
+    describe("getProductStatistics") {
+        context("상품 통계를 조회할 때") {
+            it("EventBasedStatisticsService에서 통계를 가져와 ProductStatsVO를 생성한다") {
+                // given
                 val productId = 1L
-                val mockProduct = mockk<Product>()
-                val mockProducts = listOf(mockProduct)
+                val viewCount = 100L
+                val salesCount = 50L
+                val wishCount = 25L
 
-                every { mockProductService.getProduct(productId) } returns mockProduct
-                every { mockProductService.getProducts(any()) } returns mockProducts
-                every { mockProductService.getProductsByCategory(any()) } returns mockProducts
+                every { mockEventBasedStatisticsService.getRealTimeStats(productId) } returns Triple(viewCount, salesCount, wishCount)
 
-                sut.getProduct(productId)
+                // when
+                val result = sut.getProductStatistics(productId)
 
-                verify(exactly = 1) { mockProductService.getProduct(productId) }
-                verify(exactly = 0) { mockProductService.getProducts(any()) }
-                verify(exactly = 0) { mockProductService.getProductsByCategory(any()) }
-            }
-        }
-
-        context("getProductsByCategory 호출 시 다른 메서드 호출되지 않음") {
-            it("getProductsByCategory만 호출하고 다른 ProductService 메서드는 호출하지 않음") {
-                val categoryId = 1L
-                val mockProducts = listOf(mockk<Product>())
-
-                every { mockProductService.getProductsByCategory(categoryId) } returns mockProducts
-                every { mockProductService.getProducts(any()) } returns mockProducts
-                every { mockProductService.getProduct(any()) } returns mockk()
-
-                sut.getProductsByCategory(categoryId)
-
-                verify(exactly = 1) { mockProductService.getProductsByCategory(categoryId) }
-                verify(exactly = 0) { mockProductService.getProducts(any()) }
-                verify(exactly = 0) { mockProductService.getProduct(any()) }
+                // then
+                result.productId shouldBe productId
+                result.viewCount shouldBe viewCount
+                result.salesCount shouldBe salesCount
+                verify(exactly = 1) { mockEventBasedStatisticsService.getRealTimeStats(productId) }
             }
         }
     }
 
-    describe("위임 패턴 검증") {
-        context("UseCase의 역할") {
-            it("비즈니스 로직 없이 ProductService로 단순 위임") {
-                val page = 1
-                val mockProducts = listOf(mockk<Product>())
+    describe("getPopularStatistics") {
+        context("인기 상품 통계 목록을 조회할 때") {
+            it("EventBasedStatisticsService에서 인기 상품을 가져와 ProductStatsVO 목록을 생성한다") {
+                // given
+                val limit = 10
+                val popularProducts = listOf(
+                    1L to 100L,
+                    2L to 80L,
+                    3L to 60L
+                )
 
-                every { mockProductService.getProducts(page) } returns mockProducts
+                every { mockEventBasedStatisticsService.getRealTimePopularProducts(limit) } returns popularProducts
+                every { mockEventBasedStatisticsService.getRealTimeStats(1L) } returns Triple(100L, 50L, 25L)
+                every { mockEventBasedStatisticsService.getRealTimeStats(2L) } returns Triple(80L, 40L, 20L)
+                every { mockEventBasedStatisticsService.getRealTimeStats(3L) } returns Triple(60L, 30L, 15L)
 
-                val result = sut.getProducts(page)
+                // when
+                val result = sut.getPopularStatistics(limit)
 
-                // 결과가 ProductService에서 온 것과 동일한지 확인
-                result shouldBe mockProducts
+                // then
+                result.size shouldBe 3
+                result[0].productId shouldBe 1L
+                result[0].viewCount shouldBe 100L
+                verify(exactly = 1) { mockEventBasedStatisticsService.getRealTimePopularProducts(limit) }
+                verify(exactly = 1) { mockEventBasedStatisticsService.getRealTimeStats(1L) }
+                verify(exactly = 1) { mockEventBasedStatisticsService.getRealTimeStats(2L) }
+                verify(exactly = 1) { mockEventBasedStatisticsService.getRealTimeStats(3L) }
+            }
+        }
+    }
 
-                // ProductService가 정확히 한 번만 호출되었는지 확인
-                verify(exactly = 1) { mockProductService.getProducts(page) }
+    describe("getPopularProducts") {
+        context("인기 상품 목록을 조회할 때 (캐시 적용)") {
+            it("EventBasedStatisticsService와 ProductQueryService를 연동하여 상품 목록을 반환한다") {
+                // given
+                val limit = 5
+                val popularProductIds = listOf(
+                    1L to 100L,
+                    2L to 80L
+                )
+                val product1 = mockk<Product>()
+                val product2 = mockk<Product>()
+
+                every { mockEventBasedStatisticsService.getRealTimePopularProducts(limit) } returns popularProductIds
+                every { mockProductQueryService.getProduct(1L) } returns product1
+                every { mockProductQueryService.getProduct(2L) } returns product2
+
+                // when
+                val result = sut.getPopularProducts(limit)
+
+                // then
+                result.size shouldBe 2
+                result shouldBe listOf(product1, product2)
+                verify(exactly = 1) { mockEventBasedStatisticsService.getRealTimePopularProducts(limit) }
+                verify(exactly = 1) { mockProductQueryService.getProduct(1L) }
+                verify(exactly = 1) { mockProductQueryService.getProduct(2L) }
             }
         }
 
-        context("결과 변환 없음 확인") {
-            it("ProductService 결과를 변환 없이 그대로 반환") {
-                val productId = 1L
-                val mockProduct = mockk<Product>()
+        context("기본 limit으로 인기 상품을 조회할 때") {
+            it("기본값 10으로 조회한다") {
+                // given
+                val popularProductIds = listOf(1L to 100L)
+                val product = mockk<Product>()
 
-                every { mockProductService.getProduct(productId) } returns mockProduct
+                every { mockEventBasedStatisticsService.getRealTimePopularProducts(10) } returns popularProductIds
+                every { mockProductQueryService.getProduct(1L) } returns product
 
-                val result = sut.getProduct(productId)
+                // when
+                val result = sut.getPopularProducts()
 
-                // 참조가 동일한지 확인 (새로운 객체를 만들지 않았는지)
-                result shouldBe mockProduct
-                verify(exactly = 1) { mockProductService.getProduct(productId) }
-            }
-        }
-
-        context("카테고리 조회 결과 변환 없음 확인") {
-            it("ProductService의 카테고리별 조회 결과를 변환 없이 그대로 반환") {
-                val categoryId = 1L
-                val mockProducts = listOf(mockk<Product>(), mockk<Product>())
-
-                every { mockProductService.getProductsByCategory(categoryId) } returns mockProducts
-
-                val result = sut.getProductsByCategory(categoryId)
-
-                // 참조가 동일한지 확인 (새로운 객체를 만들지 않았는지)
-                result shouldBe mockProducts
-                verify(exactly = 1) { mockProductService.getProductsByCategory(categoryId) }
+                // then
+                result.size shouldBe 1
+                verify(exactly = 1) { mockEventBasedStatisticsService.getRealTimePopularProducts(10) }
             }
         }
     }

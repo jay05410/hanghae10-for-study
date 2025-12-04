@@ -87,7 +87,7 @@ class OrderServiceConcurrencyIntegrationTest(
                     giftMessage = null
                 )
 
-                // When: 동시에 여러 Queue 등록
+                // When: 동시에 여러 주문 직접 처리
                 repeat(threadCount) { index ->
                     val future = CompletableFuture.supplyAsync({
                         val userId = 1000L + index
@@ -104,19 +104,19 @@ class OrderServiceConcurrencyIntegrationTest(
                                 deliveryMessage = "동시성 테스트용 배송"
                             )
                         )
-                        val queueRequest = orderCommandUseCase.createOrder(createOrderRequest)
-                        queueRequest.queueId
+                        val order = orderCommandUseCase.createOrder(createOrderRequest)
+                        order.orderNumber
                     }, executor)
                     futures.add(future)
                 }
 
                 // 모든 작업 완료 대기
-                val queueIds = futures.map { it.get() }
+                val orderNumbers = futures.map { it.get() }
 
-                // Then: Queue 등록 검증
-                queueIds shouldHaveSize threadCount
-                queueIds.distinct() shouldHaveSize threadCount // 모든 Queue ID가 유니크해야 함
-                queueIds.all { it.isNotEmpty() } shouldBe true
+                // Then: 주문 생성 검증
+                orderNumbers shouldHaveSize threadCount
+                orderNumbers.distinct() shouldHaveSize threadCount // 모든 주문 번호가 유니크해야 함
+                orderNumbers.all { it.isNotEmpty() } shouldBe true
 
                 executor.shutdown()
             }
