@@ -1,11 +1,11 @@
 package io.hhplus.ecommerce.integration.order
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
-import io.hhplus.ecommerce.order.usecase.GetOrderQueryUseCase
-import io.hhplus.ecommerce.order.usecase.OrderCommandUseCase
-import io.hhplus.ecommerce.order.dto.CreateOrderRequest
-import io.hhplus.ecommerce.order.dto.CreateOrderItemRequest
-import io.hhplus.ecommerce.delivery.dto.DeliveryAddressRequest
+import io.hhplus.ecommerce.order.application.usecase.GetOrderQueryUseCase
+import io.hhplus.ecommerce.order.application.usecase.OrderCommandUseCase
+import io.hhplus.ecommerce.order.presentation.dto.CreateOrderRequest
+import io.hhplus.ecommerce.order.presentation.dto.CreateOrderItemRequest
+import io.hhplus.ecommerce.delivery.presentation.dto.DeliveryAddressRequest
 import io.hhplus.ecommerce.point.application.usecase.ChargePointUseCase
 import io.hhplus.ecommerce.product.domain.repository.ProductRepository
 import io.hhplus.ecommerce.product.domain.entity.Product

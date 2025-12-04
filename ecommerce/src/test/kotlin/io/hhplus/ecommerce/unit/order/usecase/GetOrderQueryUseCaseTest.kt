@@ -1,17 +1,17 @@
 package io.hhplus.ecommerce.unit.order.usecase
 
-import io.hhplus.ecommerce.order.usecase.GetOrderQueryUseCase
+import io.hhplus.ecommerce.order.application.usecase.GetOrderQueryUseCase
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.*
 import io.hhplus.ecommerce.order.domain.entity.Order
 import io.hhplus.ecommerce.order.domain.entity.OrderItem
-import io.hhplus.ecommerce.order.application.OrderService
+import io.hhplus.ecommerce.order.domain.service.OrderDomainService
 
 class GetOrderQueryUseCaseTest : DescribeSpec({
 
-    val orderService = mockk<OrderService>()
-    val getOrderQueryUseCase = GetOrderQueryUseCase(orderService)
+    val orderDomainService = mockk<OrderDomainService>()
+    val getOrderQueryUseCase = GetOrderQueryUseCase(orderDomainService)
 
     describe("GetOrderQueryUseCase") {
 
@@ -28,14 +28,14 @@ class GetOrderQueryUseCaseTest : DescribeSpec({
                     every { id } returns orderId
                 }
 
-                every { orderService.getOrder(orderId) } returns mockOrder
+                every { orderDomainService.getOrder(orderId) } returns mockOrder
 
                 // When
                 val result = getOrderQueryUseCase.getOrder(orderId)
 
                 // Then
                 result shouldBe mockOrder
-                verify { orderService.getOrder(orderId) }
+                verify { orderDomainService.getOrder(orderId) }
             }
         }
 
@@ -49,14 +49,14 @@ class GetOrderQueryUseCaseTest : DescribeSpec({
                     mockk<Order> { every { id } returns 2L }
                 )
 
-                every { orderService.getOrdersByUser(userId) } returns mockOrders
+                every { orderDomainService.getOrdersByUser(userId) } returns mockOrders
 
                 // When
                 val result = getOrderQueryUseCase.getOrdersByUser(userId)
 
                 // Then
                 result shouldBe mockOrders
-                verify { orderService.getOrdersByUser(userId) }
+                verify { orderDomainService.getOrdersByUser(userId) }
             }
         }
 
@@ -66,19 +66,19 @@ class GetOrderQueryUseCaseTest : DescribeSpec({
                 val userId = 999L
                 val emptyList = emptyList<Order>()
 
-                every { orderService.getOrdersByUser(userId) } returns emptyList
+                every { orderDomainService.getOrdersByUser(userId) } returns emptyList
 
                 // When
                 val result = getOrderQueryUseCase.getOrdersByUser(userId)
 
                 // Then
                 result shouldBe emptyList
-                verify { orderService.getOrdersByUser(userId) }
+                verify { orderDomainService.getOrdersByUser(userId) }
             }
         }
 
         context("서비스 호출 확인 시") {
-            it("should delegate to order service correctly") {
+            it("should delegate to order domain service correctly") {
                 // Given
                 val orderId = 555L
                 val userId = 777L
@@ -86,16 +86,16 @@ class GetOrderQueryUseCaseTest : DescribeSpec({
                 val mockOrder = mockk<Order>()
                 val mockOrders = listOf(mockOrder)
 
-                every { orderService.getOrder(orderId) } returns mockOrder
-                every { orderService.getOrdersByUser(userId) } returns mockOrders
+                every { orderDomainService.getOrder(orderId) } returns mockOrder
+                every { orderDomainService.getOrdersByUser(userId) } returns mockOrders
 
                 // When
                 getOrderQueryUseCase.getOrder(orderId)
                 getOrderQueryUseCase.getOrdersByUser(userId)
 
                 // Then
-                verify(exactly = 1) { orderService.getOrder(orderId) }
-                verify(exactly = 1) { orderService.getOrdersByUser(userId) }
+                verify(exactly = 1) { orderDomainService.getOrder(orderId) }
+                verify(exactly = 1) { orderDomainService.getOrdersByUser(userId) }
             }
         }
 
@@ -111,27 +111,27 @@ class GetOrderQueryUseCaseTest : DescribeSpec({
                     mockk<OrderItem> { every { id } returns 2L }
                 )
 
-                every { orderService.getOrderWithItems(orderId) } returns Pair(mockOrder, mockOrderItems)
+                every { orderDomainService.getOrderWithItems(orderId) } returns Pair(mockOrder, mockOrderItems)
 
                 // When
                 val result = getOrderQueryUseCase.getOrderWithItems(orderId)
 
                 // Then
                 result shouldBe Pair(mockOrder, mockOrderItems)
-                verify { orderService.getOrderWithItems(orderId) }
+                verify { orderDomainService.getOrderWithItems(orderId) }
             }
 
             it("should return null when order not found") {
                 // Given
                 val orderId = 999L
-                every { orderService.getOrderWithItems(orderId) } returns null
+                every { orderDomainService.getOrderWithItems(orderId) } returns null
 
                 // When
                 val result = getOrderQueryUseCase.getOrderWithItems(orderId)
 
                 // Then
                 result shouldBe null
-                verify { orderService.getOrderWithItems(orderId) }
+                verify { orderDomainService.getOrderWithItems(orderId) }
             }
         }
 
@@ -160,7 +160,7 @@ class GetOrderQueryUseCaseTest : DescribeSpec({
                     order2 to listOf(orderItem2)
                 )
 
-                every { orderService.getOrdersWithItemsByUser(userId) } returns expectedMap
+                every { orderDomainService.getOrdersWithItemsByUser(userId) } returns expectedMap
 
                 // When
                 val result = getOrderQueryUseCase.getOrdersWithItemsByUser(userId)
@@ -169,20 +169,20 @@ class GetOrderQueryUseCaseTest : DescribeSpec({
                 result.size shouldBe 2
                 result[order1] shouldBe listOf(orderItem1)
                 result[order2] shouldBe listOf(orderItem2)
-                verify { orderService.getOrdersWithItemsByUser(userId) }
+                verify { orderDomainService.getOrdersWithItemsByUser(userId) }
             }
 
             it("should return empty map when no orders") {
                 // Given
                 val userId = 999L
-                every { orderService.getOrdersWithItemsByUser(userId) } returns emptyMap()
+                every { orderDomainService.getOrdersWithItemsByUser(userId) } returns emptyMap()
 
                 // When
                 val result = getOrderQueryUseCase.getOrdersWithItemsByUser(userId)
 
                 // Then
                 result shouldBe emptyMap()
-                verify { orderService.getOrdersWithItemsByUser(userId) }
+                verify { orderDomainService.getOrdersWithItemsByUser(userId) }
             }
         }
     }

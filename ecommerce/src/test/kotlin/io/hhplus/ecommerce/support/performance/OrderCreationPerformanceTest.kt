@@ -2,10 +2,10 @@ package io.hhplus.ecommerce.support.performance
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 import io.hhplus.ecommerce.support.ConcurrentTestHelper
-import io.hhplus.ecommerce.order.usecase.OrderCommandUseCase
-import io.hhplus.ecommerce.order.dto.CreateOrderRequest
-import io.hhplus.ecommerce.order.dto.CreateOrderItemRequest
-import io.hhplus.ecommerce.delivery.dto.DeliveryAddressRequest
+import io.hhplus.ecommerce.order.application.usecase.OrderCommandUseCase
+import io.hhplus.ecommerce.order.presentation.dto.CreateOrderRequest
+import io.hhplus.ecommerce.order.presentation.dto.CreateOrderItemRequest
+import io.hhplus.ecommerce.delivery.presentation.dto.DeliveryAddressRequest
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import mu.KotlinLogging
 import org.springframework.jdbc.core.JdbcTemplate

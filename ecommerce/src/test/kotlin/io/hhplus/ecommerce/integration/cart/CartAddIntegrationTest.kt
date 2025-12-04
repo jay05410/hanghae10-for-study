@@ -2,10 +2,10 @@ package io.hhplus.ecommerce.integration.cart
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 
-import io.hhplus.ecommerce.cart.usecase.CartCommandUseCase
-import io.hhplus.ecommerce.cart.usecase.GetCartUseCase
+import io.hhplus.ecommerce.cart.application.usecase.CartCommandUseCase
+import io.hhplus.ecommerce.cart.application.usecase.GetCartQueryUseCase
 import io.hhplus.ecommerce.cart.domain.repository.CartRepository
-import io.hhplus.ecommerce.cart.dto.AddToCartRequest
+import io.hhplus.ecommerce.cart.presentation.dto.AddToCartRequest
 import io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
 import io.hhplus.ecommerce.product.presentation.dto.CreateProductRequest
 import io.hhplus.ecommerce.product.domain.entity.Product

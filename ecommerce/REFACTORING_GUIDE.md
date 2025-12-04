@@ -22,8 +22,8 @@
 | Coupon    | ⏳ 대기 | |
 | Cart      | ⏳ 대기 | |
 | Inventory | ⏳ 대기 | |
-| Delivery  | ⏳ 대기 | |
-| User      | ⏳ 대기 | |
+| Delivery  | ✅ 완료 | |
+| User      | ✅ 완료 | |
 
 ---
 
