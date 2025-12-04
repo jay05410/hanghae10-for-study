@@ -135,9 +135,9 @@ class OrderCancelIntegrationTest(
             }
         }
 
-        context("이미 배송 시작된 주문을 취소하려 할 때") {
+        context("배송 준비가 시작된 주문을 취소하려 할 때") {
             it("취소할 수 없어야 한다") {
-                // Given: 주문 생성 후 확정
+                // Given: 주문 생성 후 배송 준비 시작
                 val userId = 20002L
 
                 val savedProduct = productCommandUseCase.createProduct(
@@ -186,22 +186,19 @@ class OrderCancelIntegrationTest(
                 // Saga 이벤트 처리: OrderCreated → PaymentCompleted → 배송 생성
                 repeat(3) { outboxEventProcessor.processEvents() }
 
-                // 주문 확정 (배송 시작)
-                orderCommandUseCase.confirmOrder(createdOrder.id)
-
-                // 배송 준비 시작 (이제 취소 불가)
+                // 배송 준비 시작 (PREPARING 상태 - 이후 취소 불가)
                 val delivery = getDeliveryQueryUseCase.getDeliveryByOrderId(createdOrder.id)
                 deliveryCommandUseCase.startPreparing(delivery.id)
 
-                // When & Then: 배송 준비 중인 주문은 취소 불가
+                // When & Then: 배송 준비 시작 후에는 취소 불가
                 val exception = runCatching {
                     orderCommandUseCase.cancelOrder(createdOrder.id, "취소 시도")
                 }.exceptionOrNull()
 
                 exception shouldNotBe null
-                // 예외 타입 검증 (프로젝트의 예외 클래스에 맞게 수정)
-                exception!!.message shouldContain "취소할 수 없는 주문 상태입니다"
-                exception.message shouldContain "CONFIRMED"
+                // 예외 타입 검증: 배송 상태로 인한 취소 불가
+                exception!!.message shouldContain "배송 준비가 시작되어"
+                exception.message shouldContain "PREPARING"
             }
         }
 

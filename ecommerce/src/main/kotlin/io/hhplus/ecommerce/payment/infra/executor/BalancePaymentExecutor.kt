@@ -18,12 +18,15 @@ import org.springframework.stereotype.Component
  *
  * 역할:
  * - PaymentExecutorPort의 BALANCE 결제 수단 구현
- * - PointService와 협력하여 실제 포인트 차감/환불 수행
+ * - 결제 가능 여부 검증만 수행
  *
  * 책임:
  * - 포인트 잔액 검증
- * - 포인트 차감 실행
- * - 포인트 환불 실행
+ * - 결제 기록 생성 (실제 포인트 차감은 PointEventHandler가 담당)
+ *
+ * Saga 흐름:
+ * - PaymentEventHandler → BalancePaymentExecutor (검증 + 결제 기록)
+ * - PaymentCompleted → PointEventHandler (실제 포인트 차감)
  *
  * 트랜잭션:
  * - 호출하는 UseCase의 트랜잭션에 참여
@@ -48,24 +51,28 @@ class BalancePaymentExecutor(
         }
     }
 
+    /**
+     * 결제 실행 - 검증 및 결제 기록 생성
+     *
+     * 실제 포인트 차감은 PointEventHandler에서 PaymentCompleted 이벤트 처리 시 수행
+     * 여기서는 잔액 검증 후 결제 기록만 생성
+     */
     override fun execute(context: PaymentContext): PaymentResult {
         return try {
-            pointDomainService.usePoint(
-                userId = context.userId,
-                amount = PointAmount.of(context.amount)
-            )
+            // 잔액 검증
+            val userPoint = pointDomainService.getUserPoint(context.userId)
+            if (userPoint == null || userPoint.balance.value < context.amount) {
+                return PaymentResult.failure("포인트 잔액이 부족합니다")
+            }
 
             val transactionId = snowflakeGenerator.generateNumberWithPrefix(IdPrefix.TRANSACTION)
 
-            logger.info("포인트 결제 완료: userId=${context.userId}, amount=${context.amount}, orderId=${context.orderId}, txId=$transactionId")
+            logger.info("포인트 결제 승인: userId=${context.userId}, amount=${context.amount}, orderId=${context.orderId}, txId=$transactionId")
 
             PaymentResult.success(
                 externalTransactionId = transactionId,
-                message = "포인트 결제가 완료되었습니다"
+                message = "포인트 결제가 승인되었습니다"
             )
-        } catch (e: PointException.InsufficientBalance) {
-            logger.warn("포인트 잔액 부족: userId=${context.userId}, amount=${context.amount}")
-            PaymentResult.failure("포인트 잔액이 부족합니다")
         } catch (e: PointException.PointNotFound) {
             logger.warn("포인트 정보 없음: userId=${context.userId}")
             PaymentResult.failure("사용자 포인트 정보가 없습니다")
@@ -75,22 +82,19 @@ class BalancePaymentExecutor(
         }
     }
 
+    /**
+     * 환불 실행 - 환불 기록 생성
+     *
+     * 실제 포인트 환불은 PointEventHandler에서 OrderCancelled 이벤트 처리 시 수행
+     */
     override fun refund(context: PaymentContext): RefundResult {
         return try {
-            pointDomainService.earnPoint(
-                userId = context.userId,
-                amount = PointAmount.of(context.amount)
-            )
-
-            logger.info("포인트 환불 완료: userId=${context.userId}, amount=${context.amount}, orderId=${context.orderId}")
+            logger.info("포인트 환불 승인: userId=${context.userId}, amount=${context.amount}, orderId=${context.orderId}")
 
             RefundResult.success(
                 refundedAmount = context.amount,
-                message = "포인트 환불이 완료되었습니다"
+                message = "포인트 환불이 승인되었습니다"
             )
-        } catch (e: PointException.PointNotFound) {
-            logger.warn("환불 대상 포인트 정보 없음: userId=${context.userId}")
-            RefundResult.failure("사용자 포인트 정보가 없습니다")
         } catch (e: Exception) {
             logger.error("포인트 환불 실패: userId=${context.userId}, error=${e.message}", e)
             RefundResult.failure("포인트 환불 처리 중 오류가 발생했습니다: ${e.message}")

@@ -1,6 +1,7 @@
 package io.hhplus.ecommerce.order.exception
 
 import io.hhplus.ecommerce.common.exception.BusinessException
+import io.hhplus.ecommerce.delivery.domain.constant.DeliveryStatus
 import io.hhplus.ecommerce.order.domain.constant.OrderStatus
 import org.slf4j.event.Level
 
@@ -55,6 +56,21 @@ sealed class OrderException(
             "orderNumber" to orderNumber,
             "currentStatus" to currentStatus,
             "attemptedStatus" to attemptedStatus
+        )
+    )
+
+    /**
+     * 배송 상태로 인한 주문 취소 불가 예외
+     */
+    class OrderCancellationNotAllowedByDelivery(orderId: Long, deliveryStatus: DeliveryStatus) : OrderException(
+        errorCode = OrderErrorCode.ORDER_CANCELLATION_NOT_ALLOWED_BY_DELIVERY,
+        message = OrderErrorCode.ORDER_CANCELLATION_NOT_ALLOWED_BY_DELIVERY.withParams(
+            "orderId" to orderId,
+            "deliveryStatus" to deliveryStatus
+        ),
+        data = mapOf(
+            "orderId" to orderId,
+            "deliveryStatus" to deliveryStatus
         )
     )
 

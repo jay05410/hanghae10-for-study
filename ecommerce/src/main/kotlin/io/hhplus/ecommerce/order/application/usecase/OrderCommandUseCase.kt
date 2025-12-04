@@ -6,8 +6,11 @@ import io.hhplus.ecommerce.common.annotation.DistributedTransaction
 import io.hhplus.ecommerce.common.lock.DistributedLockKeys
 import io.hhplus.ecommerce.common.outbox.EventRegistry
 import io.hhplus.ecommerce.common.outbox.OutboxEventService
+import io.hhplus.ecommerce.delivery.domain.constant.DeliveryStatus
+import io.hhplus.ecommerce.delivery.domain.service.DeliveryDomainService
 import io.hhplus.ecommerce.order.domain.entity.Order
 import io.hhplus.ecommerce.order.domain.service.OrderDomainService
+import io.hhplus.ecommerce.order.exception.OrderException
 import io.hhplus.ecommerce.order.presentation.dto.CreateOrderRequest
 import mu.KotlinLogging
 import org.springframework.stereotype.Component
@@ -24,13 +27,14 @@ import org.springframework.stereotype.Component
  * - 다른 도메인 로직은 이벤트 핸들러에서 처리
  *
  * 이벤트 흐름:
- * - OrderCreated → 포인트 차감, 재고 차감, 쿠폰 사용, 배송 생성, 장바구니 정리, 결제 기록
+ * - OrderCreated → 결제 처리 → 포인트 차감, 재고 차감, 쿠폰 사용, 배송 생성, 장바구니 정리
  * - OrderCancelled → 재고 복구, 포인트 환불
  * - OrderConfirmed → 통계 기록
  */
 @Component
 class OrderCommandUseCase(
     private val orderDomainService: OrderDomainService,
+    private val deliveryDomainService: DeliveryDomainService,
     private val outboxEventService: OutboxEventService,
     private val objectMapper: ObjectMapper
 ) {
@@ -92,10 +96,26 @@ class OrderCommandUseCase(
 
     /**
      * 주문 취소
+     *
+     * 취소 가능 조건:
+     * - 주문 상태: PENDING 또는 CONFIRMED (Order 도메인에서 검증)
+     * - 배송 상태: PENDING (Delivery 도메인에서 검증)
      */
     @DistributedLock(key = DistributedLockKeys.Order.CANCEL)
     @DistributedTransaction
     fun cancelOrder(orderId: Long, reason: String?): Order {
+        // 배송 상태 확인 - 배송 도메인에서 취소 가능 여부 판단
+        val delivery = try {
+            deliveryDomainService.getDeliveryByOrderId(orderId)
+        } catch (e: Exception) {
+            null // 배송 정보가 없으면 취소 가능
+        }
+
+        if (delivery != null && !delivery.canBeCancelled()) {
+            throw OrderException.OrderCancellationNotAllowedByDelivery(orderId, delivery.status)
+        }
+
+        // 주문 취소 - 주문 도메인에서 주문 상태 기반 취소 가능 여부 판단
         val cancelledOrder = orderDomainService.cancelOrder(orderId, reason)
         val orderItems = orderDomainService.getOrderItems(orderId)
         publishOrderCancelledEvent(cancelledOrder, reason, orderItems)

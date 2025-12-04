@@ -13,6 +13,9 @@ import org.springframework.transaction.annotation.Transactional
 /**
  * 포인트 이벤트 핸들러 (Saga Step)
  *
+ * 포인트 관련 책임은 포인트 도메인이 가짐
+ * 결제에서는 검증만 하고, 실제 차감/환불은 이 핸들러가 담당
+ *
  * PaymentCompleted → 포인트 차감
  * OrderCancelled → 포인트 환불
  */
