@@ -2,8 +2,8 @@ package io.hhplus.ecommerce.support.performance
 
 import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 import io.hhplus.ecommerce.support.ConcurrentTestHelper
-import io.hhplus.ecommerce.coupon.usecase.CouponUseCase
-import io.hhplus.ecommerce.coupon.dto.IssueCouponRequest
+import io.hhplus.ecommerce.coupon.application.usecase.CouponCommandUseCase
+import io.hhplus.ecommerce.coupon.presentation.dto.IssueCouponRequest
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import mu.KotlinLogging
 import java.io.File
@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger
  * - 성공/실패 비율
  */
 class CouponIssuancePerformanceTest(
-    private val couponUseCase: CouponUseCase,
+    private val couponCommandUseCase: CouponCommandUseCase,
     private val dataSetup: PerformanceTestDataSetup
 ) : KotestIntegrationTestBase({
 
@@ -50,7 +50,7 @@ class CouponIssuancePerformanceTest(
                 ) {
                     val index = counter.incrementAndGet()
                     val userId = testData.userIdRange.first + index - 1
-                    couponUseCase.issueCoupon(
+                    couponCommandUseCase.issueCoupon(
                         userId = userId,
                         request = IssueCouponRequest(couponId = couponId)
                     )

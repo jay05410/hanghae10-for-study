@@ -9,7 +9,7 @@ import io.hhplus.ecommerce.delivery.presentation.dto.DeliveryAddressRequest
 import io.hhplus.ecommerce.point.application.usecase.ChargePointUseCase
 import io.hhplus.ecommerce.product.application.usecase.ProductCommandUseCase
 import io.hhplus.ecommerce.product.presentation.dto.CreateProductRequest
-import io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
+import io.hhplus.ecommerce.inventory.application.usecase.InventoryCommandUseCase
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -80,7 +80,7 @@ class OrderConfirmIntegrationTest(
                 )
 
                 // 주문 생성 (직접 처리 - 비즈니스 로직 테스트 목적)
-                val createdOrder = orderCommandUseCase.processOrder(createOrderRequest)
+                val createdOrder = orderCommandUseCase.createOrder(createOrderRequest)
 
                 // 주문 생성 직후 상태 확인
                 createdOrder.status shouldBe OrderStatus.PENDING
@@ -141,7 +141,7 @@ class OrderConfirmIntegrationTest(
                 )
 
                 // 주문 생성 (직접 처리 - 비즈니스 로직 테스트 목적)
-                val createdOrder = orderCommandUseCase.processOrder(createOrderRequest)
+                val createdOrder = orderCommandUseCase.createOrder(createOrderRequest)
 
                 // 첫 번째 확정
                 orderCommandUseCase.confirmOrder(createdOrder.id)
@@ -204,7 +204,7 @@ class OrderConfirmIntegrationTest(
                 )
 
                 // 주문 생성 (직접 처리 - 비즈니스 로직 테스트 목적)
-                val createdOrder = orderCommandUseCase.processOrder(createOrderRequest)
+                val createdOrder = orderCommandUseCase.createOrder(createOrderRequest)
 
                 // 주문 취소
                 orderCommandUseCase.cancelOrder(createdOrder.id, "테스트 취소")

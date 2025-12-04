@@ -92,7 +92,7 @@ class OrderListIntegrationTest(
                     chargePointUseCase.execute(userId + index.toLong(), 50000, "테스트용 충전")
 
                     // 직접 주문 처리
-                    orderCommandUseCase.processOrder(modifiedRequest)
+                    orderCommandUseCase.createOrder(modifiedRequest)
                 }
 
                 // When: 다수 사용자의 주문 목록 조회
@@ -173,7 +173,7 @@ class OrderListIntegrationTest(
                     val modifiedRequest = createOrderRequest.copy(userId = currentUserId)
                     chargePointUseCase.execute(currentUserId, 40000, "테스트용 충전")
                     // 직접 주문 처리
-                    orderCommandUseCase.processOrder(modifiedRequest)
+                    orderCommandUseCase.createOrder(modifiedRequest)
                 }
 
                 // When: 다수 사용자 주문 조회 시간 측정

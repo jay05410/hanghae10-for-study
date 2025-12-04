@@ -1,7 +1,7 @@
 package io.hhplus.ecommerce.unit.coupon.usecase
 
-import io.hhplus.ecommerce.coupon.application.CouponService
-import io.hhplus.ecommerce.coupon.usecase.CouponUseCase
+import io.hhplus.ecommerce.coupon.domain.service.CouponDomainService
+import io.hhplus.ecommerce.coupon.application.usecase.GetCouponQueryUseCase
 import io.hhplus.ecommerce.coupon.domain.entity.Coupon
 import io.hhplus.ecommerce.coupon.domain.entity.UserCoupon
 import io.kotest.core.spec.style.DescribeSpec
@@ -9,23 +9,23 @@ import io.kotest.matchers.shouldBe
 import io.mockk.*
 
 /**
- * CouponUseCase 단위 테스트 (조회 기능)
+ * GetCouponQueryUseCase 단위 테스트
  *
  * 책임: 쿠폰 조회 비즈니스 흐름 검증
  * - 다양한 쿠폰 조회 로직의 서비스 위임 검증
  * - 파라미터 전달 및 결과 반환 검증
  *
  * 검증 목표:
- * 1. CouponService에 올바른 파라미터가 전달되는가?
+ * 1. CouponDomainService에 올바른 파라미터가 전달되는가?
  * 2. 서비스 결과가 그대로 반환되는가?
  * 3. 다양한 조회 메서드가 올바른 서비스 메서드를 호출하는가?
  */
-class CouponUseCaseQueryTest : DescribeSpec({
-    val mockCouponService = mockk<CouponService>()
-    val sut = CouponUseCase(mockCouponService, mockk(), mockk())
+class GetCouponQueryUseCaseTest : DescribeSpec({
+    val mockCouponDomainService = mockk<CouponDomainService>()
+    val sut = GetCouponQueryUseCase(mockCouponDomainService, mockk(), mockk())
 
     beforeEach {
-        clearMocks(mockCouponService)
+        clearMocks(mockCouponDomainService)
     }
 
     describe("getAvailableCoupons") {
@@ -37,12 +37,12 @@ class CouponUseCaseQueryTest : DescribeSpec({
                     mockk<Coupon>()
                 )
 
-                every { mockCouponService.getAvailableCoupons() } returns expectedCoupons
+                every { mockCouponDomainService.getAvailableCoupons() } returns expectedCoupons
 
                 val result = sut.getAvailableCoupons()
 
                 result shouldBe expectedCoupons
-                verify(exactly = 1) { mockCouponService.getAvailableCoupons() }
+                verify(exactly = 1) { mockCouponDomainService.getAvailableCoupons() }
             }
         }
 
@@ -50,12 +50,12 @@ class CouponUseCaseQueryTest : DescribeSpec({
             it("빈 리스트를 반환") {
                 val emptyCoupons = emptyList<Coupon>()
 
-                every { mockCouponService.getAvailableCoupons() } returns emptyCoupons
+                every { mockCouponDomainService.getAvailableCoupons() } returns emptyCoupons
 
                 val result = sut.getAvailableCoupons()
 
                 result shouldBe emptyCoupons
-                verify(exactly = 1) { mockCouponService.getAvailableCoupons() }
+                verify(exactly = 1) { mockCouponDomainService.getAvailableCoupons() }
             }
         }
     }
@@ -69,12 +69,12 @@ class CouponUseCaseQueryTest : DescribeSpec({
                     mockk<UserCoupon>()
                 )
 
-                every { mockCouponService.getUserCoupons(userId) } returns expectedUserCoupons
+                every { mockCouponDomainService.getUserCoupons(userId) } returns expectedUserCoupons
 
                 val result = sut.getUserCoupons(userId)
 
                 result shouldBe expectedUserCoupons
-                verify(exactly = 1) { mockCouponService.getUserCoupons(userId) }
+                verify(exactly = 1) { mockCouponDomainService.getUserCoupons(userId) }
             }
         }
 
@@ -83,12 +83,12 @@ class CouponUseCaseQueryTest : DescribeSpec({
                 val userId = 999L
                 val emptyUserCoupons = emptyList<UserCoupon>()
 
-                every { mockCouponService.getUserCoupons(userId) } returns emptyUserCoupons
+                every { mockCouponDomainService.getUserCoupons(userId) } returns emptyUserCoupons
 
                 val result = sut.getUserCoupons(userId)
 
                 result shouldBe emptyUserCoupons
-                verify(exactly = 1) { mockCouponService.getUserCoupons(userId) }
+                verify(exactly = 1) { mockCouponDomainService.getUserCoupons(userId) }
             }
         }
 
@@ -98,13 +98,13 @@ class CouponUseCaseQueryTest : DescribeSpec({
                 val mockUserCoupons = userIds.map { listOf(mockk<UserCoupon>()) }
 
                 userIds.forEachIndexed { index, userId ->
-                    every { mockCouponService.getUserCoupons(userId) } returns mockUserCoupons[index]
+                    every { mockCouponDomainService.getUserCoupons(userId) } returns mockUserCoupons[index]
 
                     val result = sut.getUserCoupons(userId)
 
                     result shouldBe mockUserCoupons[index]
-                    verify(exactly = 1) { mockCouponService.getUserCoupons(userId) }
-                    clearMocks(mockCouponService)
+                    verify(exactly = 1) { mockCouponDomainService.getUserCoupons(userId) }
+                    clearMocks(mockCouponDomainService)
                 }
             }
         }
@@ -119,12 +119,12 @@ class CouponUseCaseQueryTest : DescribeSpec({
                     mockk<UserCoupon>()
                 )
 
-                every { mockCouponService.getAvailableUserCoupons(userId) } returns expectedAvailableCoupons
+                every { mockCouponDomainService.getAvailableUserCoupons(userId) } returns expectedAvailableCoupons
 
                 val result = sut.getAvailableUserCoupons(userId)
 
                 result shouldBe expectedAvailableCoupons
-                verify(exactly = 1) { mockCouponService.getAvailableUserCoupons(userId) }
+                verify(exactly = 1) { mockCouponDomainService.getAvailableUserCoupons(userId) }
             }
         }
 
@@ -133,12 +133,12 @@ class CouponUseCaseQueryTest : DescribeSpec({
                 val userId = 999L
                 val emptyAvailableCoupons = emptyList<UserCoupon>()
 
-                every { mockCouponService.getAvailableUserCoupons(userId) } returns emptyAvailableCoupons
+                every { mockCouponDomainService.getAvailableUserCoupons(userId) } returns emptyAvailableCoupons
 
                 val result = sut.getAvailableUserCoupons(userId)
 
                 result shouldBe emptyAvailableCoupons
-                verify(exactly = 1) { mockCouponService.getAvailableUserCoupons(userId) }
+                verify(exactly = 1) { mockCouponDomainService.getAvailableUserCoupons(userId) }
             }
         }
 
@@ -151,13 +151,13 @@ class CouponUseCaseQueryTest : DescribeSpec({
                 )
 
                 testCases.forEach { (userId, expectedCoupons) ->
-                    every { mockCouponService.getAvailableUserCoupons(userId) } returns expectedCoupons
+                    every { mockCouponDomainService.getAvailableUserCoupons(userId) } returns expectedCoupons
 
                     val result = sut.getAvailableUserCoupons(userId)
 
                     result shouldBe expectedCoupons
-                    verify(exactly = 1) { mockCouponService.getAvailableUserCoupons(userId) }
-                    clearMocks(mockCouponService)
+                    verify(exactly = 1) { mockCouponDomainService.getAvailableUserCoupons(userId) }
+                    clearMocks(mockCouponDomainService)
                 }
             }
         }
@@ -169,29 +169,29 @@ class CouponUseCaseQueryTest : DescribeSpec({
                 val userId = 1L
 
                 // getAvailableCoupons 테스트
-                every { mockCouponService.getAvailableCoupons() } returns emptyList()
+                every { mockCouponDomainService.getAvailableCoupons() } returns emptyList()
                 sut.getAvailableCoupons()
-                verify(exactly = 1) { mockCouponService.getAvailableCoupons() }
-                verify(exactly = 0) { mockCouponService.getUserCoupons(any()) }
-                verify(exactly = 0) { mockCouponService.getAvailableUserCoupons(any()) }
+                verify(exactly = 1) { mockCouponDomainService.getAvailableCoupons() }
+                verify(exactly = 0) { mockCouponDomainService.getUserCoupons(any()) }
+                verify(exactly = 0) { mockCouponDomainService.getAvailableUserCoupons(any()) }
 
-                clearMocks(mockCouponService)
+                clearMocks(mockCouponDomainService)
 
                 // getUserCoupons 테스트
-                every { mockCouponService.getUserCoupons(userId) } returns emptyList()
+                every { mockCouponDomainService.getUserCoupons(userId) } returns emptyList()
                 sut.getUserCoupons(userId)
-                verify(exactly = 1) { mockCouponService.getUserCoupons(userId) }
-                verify(exactly = 0) { mockCouponService.getAvailableCoupons() }
-                verify(exactly = 0) { mockCouponService.getAvailableUserCoupons(any()) }
+                verify(exactly = 1) { mockCouponDomainService.getUserCoupons(userId) }
+                verify(exactly = 0) { mockCouponDomainService.getAvailableCoupons() }
+                verify(exactly = 0) { mockCouponDomainService.getAvailableUserCoupons(any()) }
 
-                clearMocks(mockCouponService)
+                clearMocks(mockCouponDomainService)
 
                 // getAvailableUserCoupons 테스트
-                every { mockCouponService.getAvailableUserCoupons(userId) } returns emptyList()
+                every { mockCouponDomainService.getAvailableUserCoupons(userId) } returns emptyList()
                 sut.getAvailableUserCoupons(userId)
-                verify(exactly = 1) { mockCouponService.getAvailableUserCoupons(userId) }
-                verify(exactly = 0) { mockCouponService.getAvailableCoupons() }
-                verify(exactly = 0) { mockCouponService.getUserCoupons(any()) }
+                verify(exactly = 1) { mockCouponDomainService.getAvailableUserCoupons(userId) }
+                verify(exactly = 0) { mockCouponDomainService.getAvailableCoupons() }
+                verify(exactly = 0) { mockCouponDomainService.getUserCoupons(any()) }
             }
         }
     }

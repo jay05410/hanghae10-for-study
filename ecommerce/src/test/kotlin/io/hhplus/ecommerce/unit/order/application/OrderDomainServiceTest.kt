@@ -9,6 +9,7 @@ import io.hhplus.ecommerce.order.domain.constant.OrderStatus
 import io.hhplus.ecommerce.order.domain.model.OrderItemData
 import io.hhplus.ecommerce.common.util.SnowflakeGenerator
 import io.hhplus.ecommerce.common.util.IdPrefix
+import io.hhplus.ecommerce.product.domain.service.ProductDomainService
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.core.spec.IsolationMode
@@ -32,11 +33,13 @@ class OrderDomainServiceTest : DescribeSpec() {
     private val mockOrderRepository = mockk<OrderRepository>()
     private val mockOrderItemRepository = mockk<OrderItemRepository>()
     private val mockSnowflakeGenerator = mockk<SnowflakeGenerator>()
+    private val mockProductDomainService = mockk<ProductDomainService>()
 
     private val sut = OrderDomainService(
         orderRepository = mockOrderRepository,
         orderItemRepository = mockOrderItemRepository,
-        snowflakeGenerator = mockSnowflakeGenerator
+        snowflakeGenerator = mockSnowflakeGenerator,
+        productDomainService = mockProductDomainService
     )
 
     private fun createMockOrder(

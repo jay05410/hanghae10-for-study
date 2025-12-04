@@ -5,18 +5,22 @@ import io.hhplus.ecommerce.common.util.QueueUtil
 import io.hhplus.ecommerce.coupon.domain.constant.QueueStatus
 import io.hhplus.ecommerce.coupon.domain.entity.CouponQueueRequest
 import io.hhplus.ecommerce.coupon.domain.entity.UserCoupon
+import io.hhplus.ecommerce.coupon.domain.service.CouponDomainService
 import mu.KotlinLogging
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 
 /**
- * 쿠폰 발급 Queue Worker
+ * 쿠폰 발급 Queue Worker - 애플리케이션 계층
  *
  * 역할:
  * - 활성 쿠폰들의 Queue를 주기적으로 처리
  * - Queue에서 요청을 꺼내어 실제 쿠폰 발급 수행
  * - 성공/실패에 따른 Queue 상태 업데이트
+ *
+ * 책임:
+ * - DomainService를 통해 쿠폰 발급 위임
  */
 @Component
 @ConditionalOnProperty(
@@ -27,7 +31,7 @@ import org.springframework.stereotype.Component
 )
 class CouponQueueWorker(
     private val couponQueueService: CouponQueueService,
-    private val couponService: CouponService,
+    private val couponDomainService: CouponDomainService,
     private val couponIssueHistoryService: CouponIssueHistoryService
 ) {
 
@@ -44,7 +48,7 @@ class CouponQueueWorker(
     @Scheduled(fixedDelay = PROCESS_INTERVAL_MS)
     fun processQueues() {
         try {
-            val activeCoupons = couponService.getAvailableCoupons()
+            val activeCoupons = couponDomainService.getAvailableCoupons()
 
             activeCoupons.forEach { coupon ->
                 processQueue(coupon.id)
@@ -62,8 +66,8 @@ class CouponQueueWorker(
             batchSize = MAX_BATCH_SIZE,
             dequeue = { couponQueueService.dequeue(couponId) },
             process = { queueRequest ->
-                val coupon = couponService.getCoupon(queueRequest.couponId)!!
-                couponService.issueCoupon(coupon, queueRequest.userId)
+                val coupon = couponDomainService.getCouponOrThrow(queueRequest.couponId)
+                couponDomainService.issueCoupon(coupon, queueRequest.userId)
             },
             onSuccess = { queueRequest, userCoupon ->
                 handleSuccess(queueRequest, userCoupon)

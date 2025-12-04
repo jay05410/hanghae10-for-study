@@ -9,7 +9,7 @@ import io.hhplus.ecommerce.order.domain.repository.OrderItemRepository
 import io.hhplus.ecommerce.order.presentation.dto.CreateOrderRequest
 import io.hhplus.ecommerce.order.presentation.dto.CreateOrderItemRequest
 import io.hhplus.ecommerce.delivery.presentation.dto.DeliveryAddressRequest
-import io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
+import io.hhplus.ecommerce.inventory.application.usecase.InventoryCommandUseCase
 import io.hhplus.ecommerce.point.application.usecase.ChargePointUseCase
 import io.hhplus.ecommerce.product.presentation.dto.CreateProductRequest
 import io.hhplus.ecommerce.product.domain.entity.Product
@@ -83,7 +83,7 @@ class OrderCreateIntegrationTest(
         chargePointUseCase.execute(request.userId, 500000, "테스트용 충전")
 
         // 직접 주문 처리
-        return orderCommandUseCase.processOrder(request)
+        return orderCommandUseCase.createOrder(request)
     }
 
     describe("주문 생성 (Redis Queue)") {

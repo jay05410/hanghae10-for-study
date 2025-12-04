@@ -4,9 +4,9 @@ import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 
 import io.hhplus.ecommerce.inventory.exception.InventoryException
 import io.hhplus.ecommerce.support.config.IntegrationTestFixtures
-import io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
-import io.hhplus.ecommerce.inventory.usecase.InventoryReservationUseCase
-import io.hhplus.ecommerce.inventory.usecase.GetInventoryQueryUseCase
+import io.hhplus.ecommerce.inventory.application.usecase.InventoryCommandUseCase
+import io.hhplus.ecommerce.inventory.application.usecase.StockReservationCommandUseCase
+import io.hhplus.ecommerce.inventory.application.usecase.GetInventoryQueryUseCase
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -21,7 +21,7 @@ import io.kotest.matchers.shouldNotBe
  */
 class InventoryDeductIntegrationTest(
     private val inventoryCommandUseCase: InventoryCommandUseCase,
-    private val inventoryReservationUseCase: InventoryReservationUseCase,
+    private val stockReservationCommandUseCase: StockReservationCommandUseCase,
     private val getInventoryQueryUseCase: GetInventoryQueryUseCase
 ) : KotestIntegrationTestBase({
 
@@ -123,7 +123,7 @@ class InventoryDeductIntegrationTest(
 
                 // 재고 생성 및 예약
                 inventoryCommandUseCase.createInventory(productId, initialQuantity)
-                inventoryReservationUseCase.reserveStock(productId, userId, reserveQuantity)
+                stockReservationCommandUseCase.reserveStock(productId, userId, reserveQuantity)
 
                 // When - 가용 재고만큼 차감
                 val updatedInventory = inventoryCommandUseCase.deductStock(productId, deductQuantity)
@@ -144,7 +144,7 @@ class InventoryDeductIntegrationTest(
 
                 // 재고 생성 및 예약
                 inventoryCommandUseCase.createInventory(productId, initialQuantity)
-                inventoryReservationUseCase.reserveStock(productId, userId, reserveQuantity)
+                stockReservationCommandUseCase.reserveStock(productId, userId, reserveQuantity)
 
                 // When & Then
                 shouldThrow<InventoryException.InsufficientStock> {

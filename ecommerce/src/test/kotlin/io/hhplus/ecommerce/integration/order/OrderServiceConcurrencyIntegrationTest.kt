@@ -8,7 +8,7 @@ import io.hhplus.ecommerce.support.KotestIntegrationTestBase
 import io.hhplus.ecommerce.product.application.usecase.ProductCommandUseCase
 import io.hhplus.ecommerce.product.presentation.dto.CreateProductRequest
 import io.hhplus.ecommerce.product.domain.entity.Product
-import io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
+import io.hhplus.ecommerce.inventory.application.usecase.InventoryCommandUseCase
 import io.hhplus.ecommerce.user.application.usecase.UserCommandUseCase
 import io.hhplus.ecommerce.user.domain.constant.LoginType
 import io.hhplus.ecommerce.point.application.usecase.ChargePointUseCase

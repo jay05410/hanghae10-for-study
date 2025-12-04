@@ -9,12 +9,13 @@ import io.hhplus.ecommerce.delivery.presentation.dto.DeliveryAddressRequest
 import io.hhplus.ecommerce.point.application.usecase.ChargePointUseCase
 import io.hhplus.ecommerce.point.application.usecase.UsePointUseCase
 import io.hhplus.ecommerce.point.application.usecase.GetPointQueryUseCase
-import io.hhplus.ecommerce.inventory.usecase.GetInventoryQueryUseCase
+import io.hhplus.ecommerce.inventory.application.usecase.GetInventoryQueryUseCase
 import io.hhplus.ecommerce.product.application.usecase.ProductCommandUseCase
-import io.hhplus.ecommerce.inventory.usecase.InventoryCommandUseCase
+import io.hhplus.ecommerce.inventory.application.usecase.InventoryCommandUseCase
 import io.hhplus.ecommerce.delivery.application.usecase.DeliveryCommandUseCase
 import io.hhplus.ecommerce.delivery.application.usecase.GetDeliveryQueryUseCase
 import io.hhplus.ecommerce.product.presentation.dto.CreateProductRequest
+import io.hhplus.ecommerce.common.outbox.OutboxEventProcessor
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -41,7 +42,8 @@ class OrderCancelIntegrationTest(
     private val productCommandUseCase: ProductCommandUseCase,
     private val inventoryCommandUseCase: InventoryCommandUseCase,
     private val deliveryCommandUseCase: DeliveryCommandUseCase,
-    private val getDeliveryQueryUseCase: GetDeliveryQueryUseCase
+    private val getDeliveryQueryUseCase: GetDeliveryQueryUseCase,
+    private val outboxEventProcessor: OutboxEventProcessor
 ) : KotestIntegrationTestBase({
 
     describe("주문 취소") {
@@ -98,7 +100,10 @@ class OrderCancelIntegrationTest(
                 )
 
                 // 주문 생성 (직접 처리)
-                val createdOrder = orderCommandUseCase.processOrder(createOrderRequest)
+                val createdOrder = orderCommandUseCase.createOrder(createOrderRequest)
+
+                // Saga 이벤트 처리: OrderCreated → PaymentCompleted → 재고/포인트 처리
+                repeat(3) { outboxEventProcessor.processEvents() }
 
                 // 주문 후 재고 확인
                 val stockAfterOrder = getInventoryQueryUseCase.getAvailableQuantity(savedProduct.id)
@@ -113,6 +118,9 @@ class OrderCancelIntegrationTest(
                     orderId = createdOrder.id,
                     reason = "단순 변심"
                 )
+
+                // Saga 이벤트 처리: OrderCancelled → 재고 복구/포인트 환불
+                repeat(2) { outboxEventProcessor.processEvents() }
 
                 // Then: 주문 상태 확인
                 cancelledOrder.status shouldBe OrderStatus.CANCELLED
@@ -173,7 +181,10 @@ class OrderCancelIntegrationTest(
                 )
 
                 // 주문 생성 (직접 처리)
-                val createdOrder = orderCommandUseCase.processOrder(createOrderRequest)
+                val createdOrder = orderCommandUseCase.createOrder(createOrderRequest)
+
+                // Saga 이벤트 처리: OrderCreated → PaymentCompleted → 배송 생성
+                repeat(3) { outboxEventProcessor.processEvents() }
 
                 // 주문 확정 (배송 시작)
                 orderCommandUseCase.confirmOrder(createdOrder.id)
@@ -182,7 +193,7 @@ class OrderCancelIntegrationTest(
                 val delivery = getDeliveryQueryUseCase.getDeliveryByOrderId(createdOrder.id)
                 deliveryCommandUseCase.startPreparing(delivery.id)
 
-                // When & Then: 배송 준비 중인 주문은 취소 뵦0가
+                // When & Then: 배송 준비 중인 주문은 취소 불가
                 val exception = runCatching {
                     orderCommandUseCase.cancelOrder(createdOrder.id, "취소 시도")
                 }.exceptionOrNull()

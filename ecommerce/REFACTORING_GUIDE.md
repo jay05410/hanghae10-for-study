@@ -17,11 +17,11 @@
 |-----------|------|------|
 | Payment   | ✅ 완료 | 참조 구현 |
 | Point     | ✅ 완료 | |
-| Order     | ⏳ 대기 | |
+| Order     | ✅ 완료 | |
 | Product   | ✅ 완료 | |
-| Coupon    | ⏳ 대기 | |
-| Cart      | ⏳ 대기 | |
-| Inventory | ⏳ 대기 | |
+| Coupon    | ✅ 완료 | CQRS: CouponCommandUseCase, GetCouponQueryUseCase |
+| Cart      | ✅ 완료 | |
+| Inventory | ✅ 완료 | CQRS: InventoryCommandUseCase, GetInventoryQueryUseCase, StockReservationCommandUseCase |
 | Delivery  | ✅ 완료 | |
 | User      | ✅ 완료 | |
 
