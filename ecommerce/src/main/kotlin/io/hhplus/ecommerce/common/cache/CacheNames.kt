@@ -39,6 +39,7 @@ object CacheNames {
     const val PRODUCT_LIST = "$PREFIX:prod:list"
     const val PRODUCT_CATEGORY_LIST = "$PREFIX:prod:cat"
     const val PRODUCT_POPULAR = "$PREFIX:prod:pop"
+    const val PRODUCT_RANKING = "$PREFIX:prod:rank"
 
     /**
      * 사용자 도메인 캐시 (usr = user)
@@ -66,6 +67,7 @@ object CacheNames {
         PRODUCT_LIST,
         PRODUCT_CATEGORY_LIST,
         PRODUCT_POPULAR,
+        PRODUCT_RANKING,
         USER_PROFILE,
         USER_COUPON_LIST,
         ORDER_INFO

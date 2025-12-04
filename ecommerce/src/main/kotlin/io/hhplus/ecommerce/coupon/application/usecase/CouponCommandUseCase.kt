@@ -1,19 +1,12 @@
 package io.hhplus.ecommerce.coupon.application.usecase
 
-import io.hhplus.ecommerce.common.annotation.DistributedLock
 import io.hhplus.ecommerce.common.annotation.DistributedTransaction
-import io.hhplus.ecommerce.common.cache.RedisKeyNames
-import io.hhplus.ecommerce.common.lock.DistributedLockKeys
-import io.hhplus.ecommerce.common.util.RedisUtil
 import io.hhplus.ecommerce.coupon.application.CouponIssueHistoryService
-import io.hhplus.ecommerce.coupon.application.CouponQueueService
-import io.hhplus.ecommerce.coupon.domain.entity.CouponQueueRequest
-import io.hhplus.ecommerce.coupon.domain.entity.UserCoupon
+import io.hhplus.ecommerce.coupon.application.CouponIssueService
 import io.hhplus.ecommerce.coupon.domain.service.CouponDomainService
 import io.hhplus.ecommerce.coupon.exception.CouponException
 import io.hhplus.ecommerce.coupon.presentation.dto.IssueCouponRequest
 import io.hhplus.ecommerce.coupon.presentation.dto.UseCouponRequest
-import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Component
 
 /**
@@ -21,40 +14,39 @@ import org.springframework.stereotype.Component
  *
  * 역할:
  * - 트랜잭션 경계 관리
- * - 분산락을 통한 동시성 제어
  * - 쿠폰 발급/사용 작업 오케스트레이션
  *
- * 책임:
- * - 쿠폰 발급 Queue 등록
- * - 쿠폰 사용 요청 검증 및 실행
- * - Queue 요청 상태 관리
+ * 동시성 제어:
+ * - 선착순 발급: CouponIssuePort의 SADD 원자성 활용
+ * - 쿠폰 사용: @DistributedTransaction
  */
 @Component
 class CouponCommandUseCase(
     private val couponDomainService: CouponDomainService,
-    private val couponQueueService: CouponQueueService,
-    private val couponIssueHistoryService: CouponIssueHistoryService,
-    private val redisTemplate: RedisTemplate<String, Any>
+    private val couponIssueService: CouponIssueService,
+    private val couponIssueHistoryService: CouponIssueHistoryService
 ) {
 
     /**
-     * 사용자의 쿠폰 발급 요청을 Queue에 등록한다
+     * 사용자의 쿠폰 발급 요청을 등록한다
+     *
+     * 캐시 전략:
+     * - 유효기간 검증: CouponCacheInfo (로컬 캐시)
+     * - 수량 제어: Redis maxQuantity (동적 데이터)
+     *
+     * 동시성 제어는 CouponIssuePort의 SADD 원자성으로 처리.
      */
-    @DistributedLock(key = DistributedLockKeys.Coupon.ISSUE)
-    fun issueCoupon(userId: Long, request: IssueCouponRequest): CouponQueueRequest {
-        val coupon = couponDomainService.getCoupon(request.couponId)
+    fun issueCoupon(userId: Long, request: IssueCouponRequest) {
+        // 1. 캐시된 정보로 유효기간 검증 (빠른 실패)
+        val couponInfo = couponDomainService.getCouponCacheInfo(request.couponId)
             ?: throw CouponException.CouponNotFound(request.couponId)
 
-        // 비즈니스 검증: 쿠폰 발급 가능 여부
-        if (!coupon.isAvailableForIssue()) {
-            throw CouponException.CouponNotAvailable(coupon.name)
+        if (!couponInfo.isValid()) {
+            throw CouponException.CouponNotAvailable(couponInfo.name)
         }
 
-        // 큐 크기 제한과 함께 enqueue를 원자적으로 실행
-        return couponQueueService.enqueueWithSizeLimit(
-            userId = userId,
-            coupon = coupon
-        )
+        // 2. Redis 기반 발급 요청 (수량은 Redis에서 관리)
+        couponIssueService.requestIssue(userId, couponInfo)
     }
 
     /**
@@ -86,22 +78,41 @@ class CouponCommandUseCase(
 
     /**
      * 쿠폰 사용 가능성을 검증하고 예상 할인 금액을 계산한다
+     *
+     * 캐시된 CouponCacheInfo 사용 (totalQuantity 불필요).
      */
     fun validateCoupon(userId: Long, request: UseCouponRequest): Long {
         val userCoupon = couponDomainService.getUserCouponOrThrow(request.userCouponId, userId)
-        val coupon = couponDomainService.getCouponOrThrow(userCoupon.couponId)
+        val couponInfo = couponDomainService.getCouponCacheInfoOrThrow(userCoupon.couponId)
 
-        return couponDomainService.validateCouponUsage(
-            userCoupon = userCoupon,
-            coupon = coupon,
-            orderAmount = request.orderAmount
-        )
+        // 사용 가능 여부 검증
+        if (!userCoupon.isUsable()) {
+            throw CouponException.AlreadyUsedCoupon(userCoupon.id)
+        }
+
+        // 최소 주문 금액 검증
+        if (!couponInfo.isValidForUse(request.orderAmount)) {
+            throw CouponException.MinimumOrderAmountNotMet(
+                couponInfo.name,
+                couponInfo.minimumOrderAmount,
+                request.orderAmount
+            )
+        }
+
+        return couponInfo.calculateDiscountAmount(request.orderAmount)
     }
 
     /**
      * 특정 쿠폰의 현재 대기열 크기를 조회한다
      */
-    fun getQueueSize(couponId: Long): Long {
-        return RedisUtil.getQueueSize(redisTemplate, RedisKeyNames.CouponQueue.waitingKey(couponId))
+    fun getPendingCount(couponId: Long): Long {
+        return couponIssueService.getPendingCount(couponId)
+    }
+
+    /**
+     * 특정 쿠폰의 현재 발급된 수량을 조회한다
+     */
+    fun getIssuedCount(couponId: Long): Long {
+        return couponIssueService.getIssuedCount(couponId)
     }
 }

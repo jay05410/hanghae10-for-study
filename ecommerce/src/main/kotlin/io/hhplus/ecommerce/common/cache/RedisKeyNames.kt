@@ -14,9 +14,9 @@ package io.hhplus.ecommerce.common.cache
  *
  * 축약어 매핑:
  * - ecom = ecommerce (서비스)
- * - stat = statistics, cpn = coupon, prod = product, pt = point (도메인)
- * - rt = realtime, cache = cache, lock = lock, queue = queue (목적)
- * - view, sales, wish, pop = popular, dtl = detail (리소스)
+ * - stat = statistics, cpn = coupon, prod = product, pt = point, rank = ranking (도메인)
+ * - rt = realtime, cache = cache, lock = lock, queue = queue, iss = issue (목적)
+ * - view, sales, wish, pop = popular, dtl = detail, d = daily, w = weekly (리소스)
  *
  * 사용 규칙:
  * - 개발자는 반드시 이 object의 함수를 통해 키 생성
@@ -70,34 +70,68 @@ object RedisKeyNames {
     }
 
     /**
-     * 쿠폰 큐 관련 키 (Coupon Queue)
+     * 상품 판매 랭킹 관련 키 (Ranking)
      *
-     * 용도: 쿠폰 발급 대기열 관리
+     * 용도: 판매량 기반 상품 랭킹 (Sorted Set)
+     * 명령어: ZINCRBY, ZREVRANGE, ZRANK, ZSCORE
+     *
      */
-    object CouponQueue {
-        private const val DOMAIN = "$SVC:cpn:queue"
+    object Ranking {
+        private const val DOMAIN = "$SVC:rank"
 
-        // wait = waiting, req = request, usr = user, pos = position
-        const val WAITING = "$DOMAIN:wait"
-        const val REQUEST = "$DOMAIN:req"
-        const val USER_MAPPING = "$DOMAIN:usr"
-        const val POSITION = "$DOMAIN:pos"
+        // sales = 판매량 랭킹, d = daily, w = weekly
+        const val SALES_DAILY = "$DOMAIN:sales:d"
+        const val SALES_WEEKLY = "$DOMAIN:sales:w"
+        const val SALES_TOTAL = "$DOMAIN:sales:total"
 
-        /** 대기열 키: ecom:cpn:queue:wait:{couponId} */
-        fun waitingKey(couponId: Long): String =
-            "$WAITING:$couponId"
+        /** 일별 판매 랭킹 키: ecom:rank:sales:d:{yyyyMMdd} */
+        fun dailySalesKey(date: String): String =
+            "$SALES_DAILY:$date"
 
-        /** 요청 데이터 키: ecom:cpn:queue:req:{queueId} */
-        fun requestKey(queueId: String): String =
-            "$REQUEST:$queueId"
+        /** 주간 판매 랭킹 키: ecom:rank:sales:w:{yyyyWW} */
+        fun weeklySalesKey(yearWeek: String): String =
+            "$SALES_WEEKLY:$yearWeek"
 
-        /** 사용자 매핑 키: ecom:cpn:queue:usr:{userId}:{couponId} */
-        fun userMappingKey(userId: Long, couponId: Long): String =
-            "$USER_MAPPING:$userId:$couponId"
+        /** 누적 판매 랭킹 키: ecom:rank:sales:total */
+        fun totalSalesKey(): String = SALES_TOTAL
+    }
 
-        /** 순번 카운터 키: ecom:cpn:queue:pos:{couponId} */
-        fun positionCounterKey(couponId: Long): String =
-            "$POSITION:$couponId"
+    /**
+     * 선착순 쿠폰 발급 관련 키 (Coupon Issue)
+     *
+     * 용도: 선착순 쿠폰 발급 (SET + ZSET 기반)
+     * - issued: 발급된 유저 목록 (SET) - SADD 원자성으로 중복 방지
+     * - queue: 발급 대기열 (ZSET) - timestamp score로 선착순 보장
+     *
+     */
+    object CouponIssue {
+        private const val DOMAIN = "$SVC:cpn:iss"
+
+        const val ISSUED = "$DOMAIN:issued"
+        const val QUEUE = "$DOMAIN:queue"
+        const val COUNTER = "$DOMAIN:cnt"
+        const val SOLDOUT = "$DOMAIN:soldout"
+        const val MAX_QTY = "$DOMAIN:max"
+
+        /** 발급된 유저 SET 키: ecom:cpn:iss:issued:{couponId} */
+        fun issuedKey(couponId: Long): String =
+            "$ISSUED:$couponId"
+
+        /** 발급 대기열 ZSET 키: ecom:cpn:iss:queue:{couponId} */
+        fun queueKey(couponId: Long): String =
+            "$QUEUE:$couponId"
+
+        /** 발급 카운터 STRING 키: ecom:cpn:iss:cnt:{couponId} */
+        fun counterKey(couponId: Long): String =
+            "$COUNTER:$couponId"
+
+        /** 매진 플래그 STRING 키: ecom:cpn:iss:soldout:{couponId} */
+        fun soldoutKey(couponId: Long): String =
+            "$SOLDOUT:$couponId"
+
+        /** 최대 발급 수량 STRING 키: ecom:cpn:iss:max:{couponId} */
+        fun maxQuantityKey(couponId: Long): String =
+            "$MAX_QTY:$couponId"
     }
 
     /**
@@ -148,11 +182,14 @@ object RedisKeyNames {
         Stats.POP_WINDOW,
         Stats.EVENT_LOG,
 
-        // Coupon Queue
-        CouponQueue.WAITING,
-        CouponQueue.REQUEST,
-        CouponQueue.USER_MAPPING,
-        CouponQueue.POSITION,
+        // Ranking
+        Ranking.SALES_DAILY,
+        Ranking.SALES_WEEKLY,
+        Ranking.SALES_TOTAL,
+
+        // Coupon Issue
+        CouponIssue.ISSUED,
+        CouponIssue.QUEUE,
 
         // Lock
         Lock.ORDER,

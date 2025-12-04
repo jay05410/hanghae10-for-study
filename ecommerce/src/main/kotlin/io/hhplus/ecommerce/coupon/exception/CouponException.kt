@@ -110,11 +110,11 @@ sealed class CouponException(
     )
 
     /**
-     * 이미 Queue에 등록된 예외
+     * 이미 발급 요청한 쿠폰 예외
      */
-    class AlreadyInQueue(userId: Long, couponName: String) : CouponException(
-        errorCode = CouponErrorCode.ALREADY_IN_QUEUE,
-        message = CouponErrorCode.ALREADY_IN_QUEUE.withParams(
+    class AlreadyRequested(userId: Long, couponName: String) : CouponException(
+        errorCode = CouponErrorCode.ALREADY_REQUESTED,
+        message = CouponErrorCode.ALREADY_REQUESTED.withParams(
             "userId" to userId,
             "couponName" to couponName
         ),
@@ -125,11 +125,11 @@ sealed class CouponException(
     )
 
     /**
-     * 쿠폰 발급 대기열이 가득 찬 예외
+     * 쿠폰 발급 매진 예외
      */
-    class QueueFull(couponName: String) : CouponException(
-        errorCode = CouponErrorCode.QUEUE_FULL,
-        message = CouponErrorCode.QUEUE_FULL.withParams("couponName" to couponName),
+    class IssueSoldOut(couponName: String) : CouponException(
+        errorCode = CouponErrorCode.ISSUE_SOLD_OUT,
+        message = CouponErrorCode.ISSUE_SOLD_OUT.withParams("couponName" to couponName),
         data = mapOf("couponName" to couponName)
     )
 
