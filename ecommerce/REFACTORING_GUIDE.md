@@ -13,15 +13,17 @@
 
 ## 리팩터링 완료 현황
 
-| 도메인 | 상태 | 비고 |
-|--------|------|------|
-| Payment | ✅ 완료 | 참조 구현 |
-| Point | ⏳ 대기 | |
-| Order | ⏳ 대기 | |
-| Product | ⏳ 대기 | |
-| Coupon | ⏳ 대기 | |
-| Cart | ⏳ 대기 | |
+| 도메인       | 상태 | 비고 |
+|-----------|------|------|
+| Payment   | ✅ 완료 | 참조 구현 |
+| Point     | ✅ 완료 | |
+| Order     | ⏳ 대기 | |
+| Product   | ✅ 완료 | |
+| Coupon    | ⏳ 대기 | |
+| Cart      | ⏳ 대기 | |
 | Inventory | ⏳ 대기 | |
+| Delivery  | ⏳ 대기 | |
+| User      | ⏳ 대기 | |
 
 ---
 
@@ -282,12 +284,18 @@ fun PaymentJpaEntity?.toDomain(mapper: PaymentMapper): Payment? = ...
 fun List<PaymentJpaEntity>.toDomain(mapper: PaymentMapper): List<Payment> = ...
 ```
 
+### 5. 수정 후 코드
+- 수정 후 기존 코드와의 호환성을 위해 `xxxLegacy`와 같은 형식으로 기존 코드 남기는 것 금지
+- 무조건 리팩터링 후에는 리팩터링 후의 코드를 기준으로 컴파일 및 테스트 수정
+- 수정 후 테스트 컴파일 시 테스트 수행되지 않는다고 임의로 `.bak`, `.disabled` 등으로 변경하거나 주석 처리해서 통과 시키는 것 금지.
+- 필요한 테스트는 수정된 서비스 및 애플리케이션 코드에 따라 무조건 수정 후 테스트를 통과해야 하며, 리팩토링 과정에서 서비스 로직이 잘못되어 변경한 경우 테스트 로직 변경이 필요한 경우에는 테스트 로직 변경도 진행되어야 함.
+
 ---
 
 ## Payment 도메인 참조 파일 목록
 
 ### Application Layer
-- `application/usecase/ProcessPaymentUseCase.kt` - 결제 처리
+- `applic뭊ation/usecase/ProcessPaymentUseCase.kt` - 결제 처리
 - `application/usecase/GetPaymentQueryUseCase.kt` - 결제 조회
 - `application/usecase/RefundPaymentUseCase.kt` - 환불 처리
 - `application/port/out/PaymentExecutorPort.kt` - 결제 실행 포트
