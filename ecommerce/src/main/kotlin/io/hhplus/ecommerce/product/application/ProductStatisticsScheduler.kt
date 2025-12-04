@@ -3,9 +3,9 @@ package io.hhplus.ecommerce.product.application
 import io.hhplus.ecommerce.common.cache.CacheNames
 import io.hhplus.ecommerce.common.cache.RedisKeyNames
 import io.hhplus.ecommerce.product.domain.entity.ProductPermanentStatistics
-import io.hhplus.ecommerce.product.domain.event.ProductStatisticsEvent
 import io.hhplus.ecommerce.product.domain.repository.ProductPermanentStatisticsRepository
 import io.hhplus.ecommerce.product.application.usecase.GetProductQueryUseCase
+import io.hhplus.ecommerce.product.application.port.out.ProductRankingPort
 import com.fasterxml.jackson.databind.ObjectMapper
 import mu.KotlinLogging
 import org.springframework.cache.CacheManager
@@ -13,6 +13,8 @@ import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 /**
  * 통합 상품 통계 스케줄러
@@ -24,7 +26,10 @@ import org.springframework.transaction.annotation.Transactional
  *
  * 실행 순서:
  * 1. 이벤트 배치 처리 (Redis → DB)
- * 2. 인기 상품 캐시 갱신 (최신 데이터 반영)
+ * 2. 판매 랭킹 데이터 동기화 (Redis Sorted Set → DB)
+ * 3. 인기 상품 캐시 갱신 (최신 데이터 반영)
+ *
+ * @see docs/WEEK07_RANKING_ASYNC_DESIGN_PLAN.md
  */
 @Component
 class ProductStatisticsScheduler(
@@ -32,13 +37,15 @@ class ProductStatisticsScheduler(
     private val productPermanentStatisticsRepository: ProductPermanentStatisticsRepository,
     private val objectMapper: ObjectMapper,
     private val getProductQueryUseCase: GetProductQueryUseCase,
-    private val cacheManager: CacheManager
+    private val cacheManager: CacheManager,
+    private val productRankingPort: ProductRankingPort
 ) {
     private val logger = KotlinLogging.logger {}
 
     companion object {
         private const val CHUNK_SIZE = 100
         private val WARM_UP_LIMITS = listOf(5, 10, 20)
+        private val DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd")
     }
 
     /**
@@ -46,7 +53,8 @@ class ProductStatisticsScheduler(
      *
      * 실행 순서:
      * 1. 이벤트 배치 처리 → DB 업데이트
-     * 2. 캐시 워밍 → 최신 데이터로 캐시 갱신
+     * 2. 판매 랭킹 동기화 → Redis Sorted Set → DB 업데이트
+     * 3. 캐시 워밍 → 최신 데이터로 캐시 갱신
      */
     @Scheduled(fixedDelay = 30 * 60 * 1000L) // 30분
     fun processStatisticsAndWarmCache() {
@@ -58,11 +66,14 @@ class ProductStatisticsScheduler(
             // 1. 이벤트 배치 처리
             val processedEvents = processEventBatch()
 
-            // 2. 인기 상품 캐시 워밍 (최신 데이터 반영)
+            // 2. 판매 랭킹 동기화 (Redis → DB)
+            val syncedProducts = syncSalesRankingToDb()
+
+            // 3. 인기 상품 캐시 워밍 (최신 데이터 반영)
             warmPopularProductsCache()
 
             val duration = System.currentTimeMillis() - startTime
-            logger.info("[통합스케줄러] 처리 완료: ${processedEvents}건 이벤트 처리, ${duration}ms 소요")
+            logger.info("[통합스케줄러] 처리 완료: ${processedEvents}건 이벤트, ${syncedProducts}건 랭킹 동기화, ${duration}ms 소요")
 
         } catch (e: Exception) {
             logger.error("[통합스케줄러] 처리 실패: ${e.message}", e)
@@ -184,6 +195,68 @@ class ProductStatisticsScheduler(
 
         } catch (e: Exception) {
             logger.error("[이벤트배치] 청크 업데이트 실패: ${e.message}", e)
+            throw e
+        }
+    }
+
+    /**
+     * 판매 랭킹 데이터를 DB에 동기화
+     *
+     * Redis Sorted Set의 일별 판매량 데이터를 ProductPermanentStatistics에 반영
+     * - 어제 날짜의 데이터를 동기화 (당일 데이터는 아직 집계 중일 수 있음)
+     *
+     * @return 동기화된 상품 수
+     */
+    private fun syncSalesRankingToDb(): Int {
+        logger.info("[랭킹동기화] 판매 랭킹 DB 동기화 시작")
+
+        try {
+            // 어제 날짜의 랭킹 데이터 동기화
+            val yesterday = LocalDate.now().minusDays(1).format(DATE_FORMATTER)
+            val dailySales = productRankingPort.getAllDailySales(yesterday)
+
+            if (dailySales.isEmpty()) {
+                logger.debug("[랭킹동기화] 동기화할 데이터 없음: date=$yesterday")
+                return 0
+            }
+
+            // 청크 단위로 DB 업데이트
+            val chunks = dailySales.entries.chunked(CHUNK_SIZE)
+            chunks.forEach { chunk ->
+                bulkUpdateSalesCount(chunk)
+            }
+
+            logger.info("[랭킹동기화] 동기화 완료: date=$yesterday, products=${dailySales.size}")
+            return dailySales.size
+
+        } catch (e: Exception) {
+            logger.error("[랭킹동기화] 동기화 실패: ${e.message}", e)
+            return 0
+        }
+    }
+
+    /**
+     * 판매량 청크 단위 벌크 업데이트
+     */
+    @Transactional
+    internal fun bulkUpdateSalesCount(chunk: List<Map.Entry<Long, Long>>) {
+        try {
+            chunk.forEach { (productId, salesCount) ->
+                val statistics = productPermanentStatisticsRepository.findByProductId(productId)
+                    ?: ProductPermanentStatistics.create(productId)
+
+                // 판매량 증분 반영
+                if (salesCount > 0) {
+                    statistics.addSalesCount(salesCount)
+                }
+
+                productPermanentStatisticsRepository.save(statistics)
+            }
+
+            logger.debug("[랭킹동기화] 청크 업데이트 완료: ${chunk.size}건")
+
+        } catch (e: Exception) {
+            logger.error("[랭킹동기화] 청크 업데이트 실패: ${e.message}", e)
             throw e
         }
     }

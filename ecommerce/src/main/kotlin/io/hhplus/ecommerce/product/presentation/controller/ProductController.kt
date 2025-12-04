@@ -3,6 +3,7 @@ package io.hhplus.ecommerce.product.presentation.controller
 import io.hhplus.ecommerce.product.application.usecase.*
 import io.hhplus.ecommerce.product.application.port.out.ProductStatisticsPort
 import io.hhplus.ecommerce.product.presentation.dto.*
+import io.hhplus.ecommerce.product.presentation.dto.response.ProductRankingResponse
 import io.hhplus.ecommerce.common.response.ApiResponse
 import io.hhplus.ecommerce.common.response.Cursor
 import io.swagger.v3.oas.annotations.Operation
@@ -23,14 +24,15 @@ import org.springframework.web.bind.annotation.*
  * - 적절한 UseCase로 비즈니스 로직 위임
  * - HTTP 상태 코드 및 에러 처리
  */
-@Tag(name = "상품 관리", description = "상품 조회, 생성, 수정, 인기 상품 API")
+@Tag(name = "상품 관리", description = "상품 조회, 생성, 수정, 인기 상품, 판매 랭킹 API")
 @RestController
 @RequestMapping("/api/v1/products")
 class ProductController(
     private val getProductQueryUseCase: GetProductQueryUseCase,
     private val productCommandUseCase: ProductCommandUseCase,
     private val productStatisticsQueryUseCase: ProductStatisticsQueryUseCase,
-    private val productStatisticsPort: ProductStatisticsPort
+    private val productStatisticsPort: ProductStatisticsPort,
+    private val productRankingQueryUseCase: ProductRankingQueryUseCase
 ) {
 
     @Operation(summary = "상품 목록 조회", description = "커서 기반 페이징으로 상품 목록을 조회합니다.")
@@ -134,5 +136,57 @@ class ProductController(
         return ApiResponse.success(products.map { it.toResponse() })
     }
 
+    // ===== 판매 랭킹 API (STEP 13) =====
 
+    @Operation(
+        summary = "오늘의 판매 랭킹 조회",
+        description = "오늘 가장 많이 팔린 상품 랭킹을 조회합니다."
+    )
+    @GetMapping("/ranking/daily")
+    fun getTodayRanking(
+        @Parameter(description = "조회할 상품 수", example = "10")
+        @RequestParam(defaultValue = "10") limit: Int
+    ): ApiResponse<List<ProductRankingResponse>> {
+        val ranking = productRankingQueryUseCase.getTodayTopProducts(limit)
+        return ApiResponse.success(ranking)
+    }
+
+    @Operation(
+        summary = "이번 주 판매 랭킹 조회",
+        description = "이번 주 가장 많이 팔린 상품 랭킹을 조회합니다."
+    )
+    @GetMapping("/ranking/weekly")
+    fun getThisWeekRanking(
+        @Parameter(description = "조회할 상품 수", example = "10")
+        @RequestParam(defaultValue = "10") limit: Int
+    ): ApiResponse<List<ProductRankingResponse>> {
+        val ranking = productRankingQueryUseCase.getThisWeekTopProducts(limit)
+        return ApiResponse.success(ranking)
+    }
+
+    @Operation(
+        summary = "누적 판매 랭킹 조회",
+        description = "전체 기간 중 가장 많이 팔린 상품 랭킹을 조회합니다."
+    )
+    @GetMapping("/ranking/total")
+    fun getTotalRanking(
+        @Parameter(description = "조회할 상품 수", example = "10")
+        @RequestParam(defaultValue = "10") limit: Int
+    ): ApiResponse<List<ProductRankingResponse>> {
+        val ranking = productRankingQueryUseCase.getTotalTopProducts(limit)
+        return ApiResponse.success(ranking)
+    }
+
+    @Operation(
+        summary = "특정 상품의 오늘 판매 순위 조회",
+        description = "특정 상품의 오늘 판매 순위와 판매량을 조회합니다."
+    )
+    @GetMapping("/{productId}/ranking")
+    fun getProductRanking(
+        @Parameter(description = "상품 ID", required = true)
+        @PathVariable productId: Long
+    ): ApiResponse<ProductRankingResponse> {
+        val ranking = productRankingQueryUseCase.getProductTodayRanking(productId)
+        return ApiResponse.success(ranking)
+    }
 }
