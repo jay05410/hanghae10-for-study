@@ -1,9 +1,9 @@
 package io.hhplus.ecommerce.unit.payment.controller
 
-import io.hhplus.ecommerce.payment.controller.PaymentController
-import io.hhplus.ecommerce.payment.usecase.ProcessPaymentUseCase
-import io.hhplus.ecommerce.payment.usecase.GetPaymentQueryUseCase
-import io.hhplus.ecommerce.payment.dto.ProcessPaymentRequest
+import io.hhplus.ecommerce.payment.presentation.controller.PaymentController
+import io.hhplus.ecommerce.payment.application.usecase.ProcessPaymentUseCase
+import io.hhplus.ecommerce.payment.application.usecase.GetPaymentQueryUseCase
+import io.hhplus.ecommerce.payment.presentation.dto.ProcessPaymentRequest
 import io.hhplus.ecommerce.payment.domain.entity.Payment
 import io.hhplus.ecommerce.payment.domain.constant.PaymentMethod
 import io.hhplus.ecommerce.common.response.ApiResponse

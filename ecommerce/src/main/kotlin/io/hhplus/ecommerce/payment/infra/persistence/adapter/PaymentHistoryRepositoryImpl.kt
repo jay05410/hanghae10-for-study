@@ -1,15 +1,15 @@
-package io.hhplus.ecommerce.payment.infra
+package io.hhplus.ecommerce.payment.infra.persistence.adapter
 
 import io.hhplus.ecommerce.payment.domain.entity.PaymentHistory
 import io.hhplus.ecommerce.payment.domain.repository.PaymentHistoryRepository
-import io.hhplus.ecommerce.payment.infra.mapper.PaymentHistoryMapper
-import io.hhplus.ecommerce.payment.infra.mapper.toDomain
-import io.hhplus.ecommerce.payment.infra.mapper.toEntity
+import io.hhplus.ecommerce.payment.infra.persistence.mapper.PaymentHistoryMapper
+import io.hhplus.ecommerce.payment.infra.persistence.mapper.toDomain
+import io.hhplus.ecommerce.payment.infra.persistence.mapper.toEntity
 import io.hhplus.ecommerce.payment.infra.persistence.repository.PaymentHistoryJpaRepository
 import org.springframework.stereotype.Repository
 
 /**
- * PaymentHistory Repository JPA 구현체
+ * PaymentHistory Repository JPA 구현체 - 인프라 계층 (Adapter)
  *
  * 역할:
  * - 도메인 Repository 인터페이스 구현

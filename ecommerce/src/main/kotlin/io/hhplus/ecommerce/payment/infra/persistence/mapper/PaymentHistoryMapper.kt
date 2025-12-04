@@ -1,8 +1,7 @@
-package io.hhplus.ecommerce.payment.infra.mapper
+package io.hhplus.ecommerce.payment.infra.persistence.mapper
 
 import io.hhplus.ecommerce.payment.domain.entity.PaymentHistory
 import io.hhplus.ecommerce.payment.infra.persistence.entity.PaymentHistoryJpaEntity
-import io.hhplus.ecommerce.payment.infra.persistence.entity.PaymentJpaEntity
 import org.springframework.stereotype.Component
 
 /**

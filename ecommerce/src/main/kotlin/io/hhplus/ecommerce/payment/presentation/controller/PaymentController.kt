@@ -1,7 +1,7 @@
-package io.hhplus.ecommerce.payment.controller
+package io.hhplus.ecommerce.payment.presentation.controller
 
-import io.hhplus.ecommerce.payment.usecase.*
-import io.hhplus.ecommerce.payment.dto.*
+import io.hhplus.ecommerce.payment.application.usecase.*
+import io.hhplus.ecommerce.payment.presentation.dto.*
 import io.hhplus.ecommerce.common.response.ApiResponse
 import org.springframework.web.bind.annotation.*
 

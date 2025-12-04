@@ -1,4 +1,4 @@
-package io.hhplus.ecommerce.payment.infra.mapper
+package io.hhplus.ecommerce.payment.infra.persistence.mapper
 
 import io.hhplus.ecommerce.payment.domain.entity.Payment
 import io.hhplus.ecommerce.payment.infra.persistence.entity.PaymentJpaEntity

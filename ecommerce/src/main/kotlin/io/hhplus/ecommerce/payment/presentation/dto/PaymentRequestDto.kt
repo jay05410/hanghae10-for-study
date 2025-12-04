@@ -1,4 +1,4 @@
-package io.hhplus.ecommerce.payment.dto
+package io.hhplus.ecommerce.payment.presentation.dto
 
 import io.hhplus.ecommerce.payment.domain.constant.PaymentMethod
 import io.swagger.v3.oas.annotations.media.Schema

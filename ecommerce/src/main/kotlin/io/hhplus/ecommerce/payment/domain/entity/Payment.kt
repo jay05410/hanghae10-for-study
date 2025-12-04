@@ -64,10 +64,23 @@ data class Payment(
     }
 
     /**
-     * 결제를 취소 상태로 전환
+     * 결제를 취소 상태로 전환 (미완료 결제용)
      */
     fun cancel() {
         if (!canBeCancelled()) {
+            throw PaymentException.PaymentCancellationNotAllowed(paymentNumber, status)
+        }
+
+        this.status = PaymentStatus.CANCELLED
+    }
+
+    /**
+     * 완료된 결제를 환불 처리 (COMPLETED → CANCELLED)
+     *
+     * cancel()과 달리 완료된 결제만 환불 가능
+     */
+    fun refund() {
+        if (!canBeRefunded()) {
             throw PaymentException.PaymentCancellationNotAllowed(paymentNumber, status)
         }
 
@@ -80,9 +93,14 @@ data class Payment(
     fun isCompleted(): Boolean = status == PaymentStatus.COMPLETED
 
     /**
-     * 결제 취소 가능 여부 확인
+     * 결제 취소 가능 여부 확인 (미완료 결제용)
      */
     fun canBeCancelled(): Boolean = status in listOf(PaymentStatus.PENDING, PaymentStatus.PROCESSING)
+
+    /**
+     * 환불 가능 여부 확인 (완료된 결제만 환불 가능)
+     */
+    fun canBeRefunded(): Boolean = status == PaymentStatus.COMPLETED
 
     /**
      * 결제 상태 전환 유효성 검증
