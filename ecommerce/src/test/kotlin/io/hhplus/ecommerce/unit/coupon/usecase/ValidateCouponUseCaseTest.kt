@@ -1,24 +1,26 @@
 package io.hhplus.ecommerce.unit.coupon.usecase
 
-import io.hhplus.ecommerce.coupon.domain.entity.Coupon
+import io.hhplus.ecommerce.coupon.domain.constant.DiscountType
 import io.hhplus.ecommerce.coupon.domain.entity.UserCoupon
 import io.hhplus.ecommerce.coupon.domain.service.CouponDomainService
+import io.hhplus.ecommerce.coupon.domain.vo.CouponCacheInfo
 import io.hhplus.ecommerce.coupon.application.usecase.CouponCommandUseCase
 import io.hhplus.ecommerce.coupon.presentation.dto.UseCouponRequest
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.*
+import java.time.LocalDateTime
 
 /**
  * CouponCommandUseCase 단위 테스트 (검증 기능)
  *
  * 책임: 쿠폰 사용 검증 비즈니스 흐름 검증
- * - 쿠폰 사용 가능성 검증 로직의 서비스 위임 검증
- * - 할인 금액 계산 결과 반환 검증
+ * - UserCoupon 조회 및 사용 가능 여부 검증
+ * - CouponCacheInfo 기반 할인 금액 계산
  *
  * 검증 목표:
- * 1. CouponDomainService에 올바른 파라미터가 전달되는가?
- * 2. 서비스 결과가 그대로 반환되는가?
+ * 1. UserCoupon이 사용 가능한 상태인지 확인
+ * 2. CouponCacheInfo로 최소 주문 금액 및 할인 계산
  * 3. 다양한 요청 데이터에 대한 처리가 올바른가?
  */
 class CouponCommandUseCaseValidateTest : DescribeSpec({
@@ -29,9 +31,25 @@ class CouponCommandUseCaseValidateTest : DescribeSpec({
         clearMocks(mockCouponDomainService)
     }
 
+    fun createCouponCacheInfo(
+        couponId: Long = 100L,
+        discountType: DiscountType = DiscountType.FIXED,
+        discountValue: Long = 5000L,
+        minimumOrderAmount: Long = 10000L
+    ) = CouponCacheInfo(
+        id = couponId,
+        name = "테스트쿠폰",
+        code = "TEST",
+        discountType = discountType,
+        discountValue = discountValue,
+        minimumOrderAmount = minimumOrderAmount,
+        validFrom = LocalDateTime.now().minusDays(1),
+        validTo = LocalDateTime.now().plusDays(30)
+    )
+
     describe("validateCoupon") {
         context("정상적인 쿠폰 검증 요청") {
-            it("CouponDomainService에 검증을 위임하고 할인 금액을 반환") {
+            it("CouponCacheInfo로 할인 금액을 계산하여 반환") {
                 val userId = 1L
                 val userCouponId = 1L
                 val couponId = 100L
@@ -40,25 +58,24 @@ class CouponCommandUseCaseValidateTest : DescribeSpec({
 
                 val mockUserCoupon = mockk<UserCoupon> {
                     every { this@mockk.couponId } returns couponId
+                    every { isUsable() } returns true
                 }
-                val mockCoupon = mockk<Coupon>()
+                val couponCacheInfo = createCouponCacheInfo(couponId, DiscountType.FIXED, expectedDiscountAmount, 10000L)
                 val request = UseCouponRequest(userCouponId = userCouponId, orderAmount = orderAmount)
 
                 every { mockCouponDomainService.getUserCouponOrThrow(userCouponId, userId) } returns mockUserCoupon
-                every { mockCouponDomainService.getCouponOrThrow(couponId) } returns mockCoupon
-                every { mockCouponDomainService.validateCouponUsage(mockUserCoupon, mockCoupon, orderAmount) } returns expectedDiscountAmount
+                every { mockCouponDomainService.getCouponCacheInfoOrThrow(couponId) } returns couponCacheInfo
 
                 val result = sut.validateCoupon(userId, request)
 
                 result shouldBe expectedDiscountAmount
                 verify(exactly = 1) { mockCouponDomainService.getUserCouponOrThrow(userCouponId, userId) }
-                verify(exactly = 1) { mockCouponDomainService.getCouponOrThrow(couponId) }
-                verify(exactly = 1) { mockCouponDomainService.validateCouponUsage(mockUserCoupon, mockCoupon, orderAmount) }
+                verify(exactly = 1) { mockCouponDomainService.getCouponCacheInfoOrThrow(couponId) }
             }
         }
 
         context("다양한 주문 금액으로 검증 요청") {
-            it("모든 주문 금액이 정확히 서비스에 전달되는지 확인") {
+            it("모든 주문 금액이 정확히 처리되는지 확인") {
                 val userId = 1L
                 val userCouponId = 1L
                 val couponId = 100L
@@ -68,13 +85,13 @@ class CouponCommandUseCaseValidateTest : DescribeSpec({
                 orderAmounts.forEachIndexed { index, orderAmount ->
                     val mockUserCoupon = mockk<UserCoupon> {
                         every { this@mockk.couponId } returns couponId
+                        every { isUsable() } returns true
                     }
-                    val mockCoupon = mockk<Coupon>()
+                    val couponCacheInfo = createCouponCacheInfo(couponId, DiscountType.FIXED, discountAmounts[index], 5000L)
                     val request = UseCouponRequest(userCouponId = userCouponId, orderAmount = orderAmount)
 
                     every { mockCouponDomainService.getUserCouponOrThrow(userCouponId, userId) } returns mockUserCoupon
-                    every { mockCouponDomainService.getCouponOrThrow(couponId) } returns mockCoupon
-                    every { mockCouponDomainService.validateCouponUsage(mockUserCoupon, mockCoupon, orderAmount) } returns discountAmounts[index]
+                    every { mockCouponDomainService.getCouponCacheInfoOrThrow(couponId) } returns couponCacheInfo
 
                     val result = sut.validateCoupon(userId, request)
 
@@ -94,13 +111,13 @@ class CouponCommandUseCaseValidateTest : DescribeSpec({
 
                 val mockUserCoupon = mockk<UserCoupon> {
                     every { this@mockk.couponId } returns couponId
+                    every { isUsable() } returns true
                 }
-                val mockCoupon = mockk<Coupon>()
+                val couponCacheInfo = createCouponCacheInfo(couponId, DiscountType.FIXED, expectedDiscountAmount, 1000L)
                 val request = UseCouponRequest(userCouponId = userCouponId, orderAmount = orderAmount)
 
                 every { mockCouponDomainService.getUserCouponOrThrow(userCouponId, userId) } returns mockUserCoupon
-                every { mockCouponDomainService.getCouponOrThrow(couponId) } returns mockCoupon
-                every { mockCouponDomainService.validateCouponUsage(mockUserCoupon, mockCoupon, orderAmount) } returns expectedDiscountAmount
+                every { mockCouponDomainService.getCouponCacheInfoOrThrow(couponId) } returns couponCacheInfo
 
                 val result = sut.validateCoupon(userId, request)
 
@@ -118,13 +135,13 @@ class CouponCommandUseCaseValidateTest : DescribeSpec({
 
                 val mockUserCoupon = mockk<UserCoupon> {
                     every { this@mockk.couponId } returns couponId
+                    every { isUsable() } returns true
                 }
-                val mockCoupon = mockk<Coupon>()
+                val couponCacheInfo = createCouponCacheInfo(couponId, DiscountType.FIXED, expectedDiscountAmount, 10000L)
                 val request = UseCouponRequest(userCouponId = userCouponId, orderAmount = orderAmount)
 
                 every { mockCouponDomainService.getUserCouponOrThrow(userCouponId, userId) } returns mockUserCoupon
-                every { mockCouponDomainService.getCouponOrThrow(couponId) } returns mockCoupon
-                every { mockCouponDomainService.validateCouponUsage(mockUserCoupon, mockCoupon, orderAmount) } returns expectedDiscountAmount
+                every { mockCouponDomainService.getCouponCacheInfoOrThrow(couponId) } returns couponCacheInfo
 
                 val result = sut.validateCoupon(userId, request)
 
@@ -146,21 +163,21 @@ class CouponCommandUseCaseValidateTest : DescribeSpec({
 
                 val mockUserCoupon1 = mockk<UserCoupon> {
                     every { this@mockk.couponId } returns couponId1
+                    every { isUsable() } returns true
                 }
                 val mockUserCoupon2 = mockk<UserCoupon> {
                     every { this@mockk.couponId } returns couponId2
+                    every { isUsable() } returns true
                 }
-                val mockCoupon1 = mockk<Coupon>()
-                val mockCoupon2 = mockk<Coupon>()
+                val couponCacheInfo1 = createCouponCacheInfo(couponId1, DiscountType.FIXED, expectedDiscountAmount1, 10000L)
+                val couponCacheInfo2 = createCouponCacheInfo(couponId2, DiscountType.FIXED, expectedDiscountAmount2, 10000L)
                 val request1 = UseCouponRequest(userCouponId = userCouponId1, orderAmount = orderAmount1)
                 val request2 = UseCouponRequest(userCouponId = userCouponId2, orderAmount = orderAmount2)
 
                 every { mockCouponDomainService.getUserCouponOrThrow(userCouponId1, userId) } returns mockUserCoupon1
                 every { mockCouponDomainService.getUserCouponOrThrow(userCouponId2, userId) } returns mockUserCoupon2
-                every { mockCouponDomainService.getCouponOrThrow(couponId1) } returns mockCoupon1
-                every { mockCouponDomainService.getCouponOrThrow(couponId2) } returns mockCoupon2
-                every { mockCouponDomainService.validateCouponUsage(mockUserCoupon1, mockCoupon1, orderAmount1) } returns expectedDiscountAmount1
-                every { mockCouponDomainService.validateCouponUsage(mockUserCoupon2, mockCoupon2, orderAmount2) } returns expectedDiscountAmount2
+                every { mockCouponDomainService.getCouponCacheInfoOrThrow(couponId1) } returns couponCacheInfo1
+                every { mockCouponDomainService.getCouponCacheInfoOrThrow(couponId2) } returns couponCacheInfo2
 
                 val result1 = sut.validateCoupon(userId, request1)
                 val result2 = sut.validateCoupon(userId, request2)
