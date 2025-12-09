@@ -13,7 +13,8 @@
 5. [모니터링 및 알림](#5-모니터링-및-알림)
 6. [운영 가이드](#6-운영-가이드)
 7. [Kafka 전환 대비 구조](#7-kafka-전환-대비-구조)
-8. [결론 및 향후 개선](#8-결론-및-향후-개선)
+8. [Event Sourcing (주문 도메인)](#8-event-sourcing-주문-도메인)
+9. [결론 및 향후 개선](#9-결론-및-향후-개선)
 
 ---
 
@@ -631,9 +632,216 @@ class TraceIdFilter(
 
 ---
 
-## 8. 결론 및 향후 개선
+## 8. Event Sourcing (주문 도메인)
 
-### 8.1 구현 완료 항목
+### 8.1 Event Sourcing 개요
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ Event Sourcing 아키텍처                                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  [Command]                                                      │
+│       ↓                                                         │
+│  OrderAggregate.handle(command)                                │
+│       ↓                                                         │
+│  OrderEvent 생성 (불변)                                          │
+│       ↓                                                         │
+│  ┌─────────────────────────────────────┐                       │
+│  │ order_events (Event Store)          │                       │
+│  │ - aggregateId (orderId)             │                       │
+│  │ - eventType                         │                       │
+│  │ - payload (JSON)                    │                       │
+│  │ - version (Optimistic Lock)         │                       │
+│  │ - occurredAt                        │                       │
+│  └─────────────────────────────────────┘                       │
+│       ↓                                                         │
+│  MessagePublisher.publish()                                    │
+│       ↓                                                         │
+│  OrderProjection (Read Model 업데이트)                          │
+│       ↓                                                         │
+│  ┌─────────────────────────────────────┐                       │
+│  │ orders (Read Model)                 │                       │
+│  │ - 조회 최적화된 테이블               │                       │
+│  └─────────────────────────────────────┘                       │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 8.2 적용 범위
+
+| 도메인 | 적합성 | 이유 |
+|--------|--------|------|
+| **포인트** | ❌ 부적합 | 금융 데이터, ACID 필수 |
+| **결제** | ❌ 부적합 | 외부 PG 연동, 롤백 복잡 |
+| **쿠폰** | ⚠️ 제한적 | 발급 이력 테이블로 충분 |
+| **주문** | ✅ **적합** | 상태 전이 명확, 감사 추적 필요 |
+| **재고** | ⚠️ 제한적 | 동시성 복잡 |
+
+### 8.3 OrderEvent 정의
+
+```kotlin
+sealed class OrderEvent {
+    abstract val orderId: Long
+    abstract val occurredAt: Instant
+    abstract val eventType: String
+
+    // 주문 생성
+    data class OrderCreated(
+        override val orderId: Long,
+        val orderNumber: String,
+        val userId: Long,
+        val totalAmount: Long,
+        val discountAmount: Long,
+        val finalAmount: Long,
+        val usedCouponId: Long?,
+        val items: List<OrderItemSnapshot>,
+        override val occurredAt: Instant = Instant.now()
+    ) : OrderEvent()
+
+    // 주문 확정 (결제 완료)
+    data class OrderConfirmed(...)
+
+    // 주문 완료 (배송 완료)
+    data class OrderCompleted(...)
+
+    // 주문 취소
+    data class OrderCancelled(
+        override val orderId: Long,
+        val reason: String,
+        val cancelledBy: String,
+        val refundAmount: Long?,
+        override val occurredAt: Instant = Instant.now()
+    ) : OrderEvent()
+
+    // 주문 실패
+    data class OrderFailed(...)
+}
+```
+
+### 8.4 OrderAggregate
+
+```kotlin
+class OrderAggregate private constructor() {
+    var id: Long = 0L
+    var orderNumber: String = ""
+    var status: OrderStatus = OrderStatus.PENDING
+    var version: Int = 0
+
+    // 미발행 이벤트 (저장 대기 중)
+    private val _uncommittedEvents = mutableListOf<OrderEvent>()
+
+    companion object {
+        // 새 주문 생성
+        fun create(orderId: Long, ...): OrderAggregate
+
+        // 이벤트 목록으로부터 상태 재구성
+        fun rebuild(events: List<OrderEvent>): OrderAggregate
+
+        // 스냅샷 + 이후 이벤트로 재구성
+        fun fromSnapshot(snapshot: OrderSnapshot, events: List<OrderEvent>): OrderAggregate
+    }
+
+    // Command 처리 → Event 생성
+    fun confirm(paymentId: Long?): OrderEvent
+    fun complete(): OrderEvent
+    fun cancel(reason: String, cancelledBy: String): OrderEvent
+    fun fail(reason: String): OrderEvent
+
+    // Event 적용 (상태 변경)
+    private fun apply(event: OrderEvent)
+}
+```
+
+### 8.5 OrderEventStore
+
+```kotlin
+@Service
+class OrderEventStore(
+    private val orderEventRepository: OrderEventRepository,
+    private val messagePublisher: MessagePublisher,
+    private val snapshotRepository: OrderSnapshotRepository? = null
+) {
+    // Aggregate 로드 (이벤트 재생)
+    fun load(orderId: Long): OrderAggregate
+
+    // Aggregate 저장 (이벤트 저장 + 발행)
+    fun save(aggregate: OrderAggregate): OrderAggregate
+
+    // 편의 메서드
+    fun createOrder(...): OrderAggregate
+    fun confirmOrder(orderId: Long, paymentId: Long?): OrderAggregate
+    fun cancelOrder(orderId: Long, reason: String, cancelledBy: String): OrderAggregate
+
+    // Temporal Query (특정 시점 상태 조회)
+    fun loadAtVersion(orderId: Long, targetVersion: Int): OrderAggregate
+}
+```
+
+### 8.6 CQRS: Read Model Projection
+
+```kotlin
+@Component
+class OrderProjection(
+    private val orderRepository: OrderRepository,
+    private val orderItemRepository: OrderItemRepository
+) {
+    @EventListener
+    @Transactional
+    fun handle(domainEvent: DomainEvent) {
+        // Event Store의 이벤트를 구독하여
+        // Read Model (orders 테이블) 업데이트
+        when (payload) {
+            is OrderEvent.OrderCreated -> handleOrderCreated(payload)
+            is OrderEvent.OrderConfirmed -> handleOrderConfirmed(payload)
+            is OrderEvent.OrderCancelled -> handleOrderCancelled(payload)
+            // ...
+        }
+    }
+}
+
+// Read Model 재구축 (복구용)
+@Component
+class OrderProjectionRebuilder(...) {
+    fun rebuildOrder(orderId: Long)  // 특정 주문 재구축
+}
+```
+
+### 8.7 Event Store 테이블
+
+```sql
+CREATE TABLE order_events (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    aggregate_id BIGINT NOT NULL,        -- Order ID
+    event_type VARCHAR(100) NOT NULL,    -- OrderCreated, OrderConfirmed, etc.
+    payload TEXT NOT NULL,               -- JSON
+    version INT NOT NULL,                -- Optimistic Lock
+    occurred_at TIMESTAMP NOT NULL,
+    metadata TEXT,                       -- traceId, correlationId 등
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL,
+
+    UNIQUE KEY uk_aggregate_version (aggregate_id, version),
+    INDEX idx_occurred_at (occurred_at)
+);
+```
+
+### 8.8 Event Sourcing 이점
+
+| 이점 | 설명 |
+|------|------|
+| **완벽한 감사 추적** | 모든 상태 변경 히스토리 영구 보존 |
+| **Temporal Query** | 특정 시점의 주문 상태 조회 가능 |
+| **디버깅 용이** | 이벤트 재생으로 원인 분석 |
+| **Kafka 연동 자연스러움** | 이벤트 기반 외부 시스템 통합 |
+| **CQRS 기반** | Read/Write 모델 분리 가능 |
+| **복구 가능** | Event Store로부터 Read Model 재구축 |
+
+---
+
+## 9. 결론 및 향후 개선
+
+### 9.1 구현 완료 항목
 
 | 기능 | 상태 | 설명 |
 |------|------|------|
@@ -645,8 +853,10 @@ class TraceIdFilter(
 | MessagePublisher | ✅ | 인터페이스 + InMemoryMessagePublisher |
 | CloudEvent | ✅ | CloudEvents 1.0 표준 스키마 |
 | TraceIdFilter | ✅ | Snowflake 기반 분산 추적 |
+| Event Sourcing | ✅ | 주문 도메인 (OrderEvent, OrderAggregate, OrderEventStore) |
+| CQRS Projection | ✅ | OrderProjection, OrderProjectionRebuilder |
 
-### 8.2 이점
+### 9.2 이점
 
 | 항목 | 기존 | 개선 후 |
 |------|------|---------|
@@ -656,8 +866,9 @@ class TraceIdFilter(
 | 수동 개입 | 불가 | retryFromDlq, resolveManually |
 | Kafka 전환 | 전체 재작성 필요 | Profile 변경만으로 전환 |
 | 분산 추적 | 없음 | TraceId 자동 전파 |
+| 주문 이력 관리 | DB 상태만 보관 | Event Store로 전체 히스토리 보존 |
 
-### 8.3 향후 개선 방향
+### 9.3 향후 개선 방향
 
 1. **Slack/Email 알림 구현**
    - 현재: LoggingAlertService
@@ -680,29 +891,47 @@ class TraceIdFilter(
 ## 부록: 관련 파일 구조
 
 ```
-src/main/kotlin/io/hhplus/ecommerce/common/
-├── outbox/
-│   ├── OutboxEvent.kt                    # Outbox 이벤트 엔티티
-│   ├── OutboxEventRepository.kt          # 리포지토리 인터페이스
-│   ├── OutboxEventService.kt             # Outbox 서비스 (incrementRetryAndMarkFailed 추가)
-│   ├── OutboxEventProcessor.kt           # 이벤트 프로세서 (DLQ 연동)
-│   ├── EventHandler.kt                   # 핸들러 인터페이스
-│   ├── EventHandlerRegistry.kt           # 핸들러 레지스트리
-│   └── dlq/
-│       ├── OutboxEventDlq.kt             # DLQ 엔티티
-│       ├── OutboxEventDlqRepository.kt   # DLQ 리포지토리 인터페이스
-│       ├── OutboxEventDlqJpaRepository.kt
-│       ├── OutboxEventDlqRepositoryImpl.kt
-│       ├── DlqService.kt                 # DLQ 핵심 서비스
-│       ├── AlertService.kt               # 알림 인터페이스 + LoggingAlertService
-│       └── DlqMonitoringScheduler.kt     # 모니터링 스케줄러
-├── messaging/
-│   ├── MessagePublisher.kt               # 메시지 발행 인터페이스 + Message
-│   ├── InMemoryMessagePublisher.kt       # Spring Event 기반 구현 (@Profile("!kafka"))
-│   ├── DomainEvent.kt                    # ApplicationEvent 래퍼
-│   └── CloudEvent.kt                     # CloudEvents 1.0 스키마 + Types + Topics
-├── filter/
-│   └── TraceIdFilter.kt                  # Snowflake 기반 TraceId 필터
-└── util/
-    └── SnowflakeGenerator.kt             # Snowflake ID 생성기
+src/main/kotlin/io/hhplus/ecommerce/
+├── common/
+│   ├── outbox/
+│   │   ├── OutboxEvent.kt                    # Outbox 이벤트 엔티티
+│   │   ├── OutboxEventRepository.kt          # 리포지토리 인터페이스
+│   │   ├── OutboxEventService.kt             # Outbox 서비스 (incrementRetryAndMarkFailed 추가)
+│   │   ├── OutboxEventProcessor.kt           # 이벤트 프로세서 (DLQ 연동)
+│   │   ├── EventHandler.kt                   # 핸들러 인터페이스
+│   │   ├── EventHandlerRegistry.kt           # 핸들러 레지스트리
+│   │   └── dlq/
+│   │       ├── OutboxEventDlq.kt             # DLQ 엔티티
+│   │       ├── OutboxEventDlqRepository.kt   # DLQ 리포지토리 인터페이스
+│   │       ├── OutboxEventDlqJpaRepository.kt
+│   │       ├── OutboxEventDlqRepositoryImpl.kt
+│   │       ├── DlqService.kt                 # DLQ 핵심 서비스
+│   │       ├── AlertService.kt               # 알림 인터페이스 + LoggingAlertService
+│   │       └── DlqMonitoringScheduler.kt     # 모니터링 스케줄러
+│   ├── messaging/
+│   │   ├── MessagePublisher.kt               # 메시지 발행 인터페이스 + Message
+│   │   ├── InMemoryMessagePublisher.kt       # Spring Event 기반 구현 (@Profile("!kafka"))
+│   │   ├── DomainEvent.kt                    # ApplicationEvent 래퍼
+│   │   └── CloudEvent.kt                     # CloudEvents 1.0 스키마 + Types + Topics
+│   ├── filter/
+│   │   └── TraceIdFilter.kt                  # Snowflake 기반 TraceId 필터
+│   └── util/
+│       └── SnowflakeGenerator.kt             # Snowflake ID 생성기
+│
+└── order/
+    ├── domain/
+    │   └── eventsourcing/                    # Event Sourcing 패키지
+    │       ├── OrderEvent.kt                 # 주문 이벤트 sealed class
+    │       ├── OrderAggregate.kt             # 주문 Aggregate + Snapshot
+    │       ├── OrderEventRepository.kt       # 이벤트 저장소 인터페이스
+    │       ├── OrderEventStore.kt            # Event Store 서비스
+    │       └── OrderProjection.kt            # CQRS Read Model Projection
+    └── infra/
+        └── persistence/
+            ├── entity/
+            │   └── OrderEventJpaEntity.kt    # Event Store JPA 엔티티
+            ├── repository/
+            │   └── OrderEventJpaRepository.kt # Event Store JPA Repository
+            └── adapter/
+                └── OrderEventRepositoryImpl.kt # 이벤트 저장소 구현체
 ```
