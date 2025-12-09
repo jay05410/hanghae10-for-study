@@ -1,6 +1,6 @@
-# Outbox 패턴 및 DLQ 구현 보고서
+# Outbox 패턴, DLQ 및 Kafka 전환 준비 보고서
 
-> **목표**: 이벤트 처리 안정성 강화 - Dead Letter Queue(DLQ) 도입
+> **목표**: 이벤트 처리 안정성 강화 + Kafka 전환 대비 아키텍처 구축
 
 ---
 
@@ -12,7 +12,8 @@
 4. [이벤트 처리 흐름](#4-이벤트-처리-흐름)
 5. [모니터링 및 알림](#5-모니터링-및-알림)
 6. [운영 가이드](#6-운영-가이드)
-7. [결론 및 향후 개선](#7-결론-및-향후-개선)
+7. [Kafka 전환 대비 구조](#7-kafka-전환-대비-구조)
+8. [결론 및 향후 개선](#8-결론-및-향후-개선)
 
 ---
 
@@ -414,9 +415,225 @@ dlqService.resolveManually(
 
 ---
 
-## 7. 결론 및 향후 개선
+## 7. Kafka 전환 대비 구조
 
-### 7.1 구현 완료 항목
+### 7.1 현재 vs 목표 아키텍처
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ 현재: Outbox + 직접 처리                                         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  OrderService                                                   │
+│       ↓ (same TX)                                               │
+│  outbox_event 저장                                              │
+│       ↓                                                         │
+│  OutboxEventProcessor (5초 주기)                                │
+│       ↓                                                         │
+│  EventHandler.handle()  ← 직접 로직 처리                        │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│ 목표: Outbox + Message Publisher (Kafka 전환 준비)               │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  OrderService                                                   │
+│       ↓ (same TX)                                               │
+│  outbox_event 저장                                              │
+│       ↓                                                         │
+│  OutboxEventPublisher (5초 주기)                                │
+│       ↓                                                         │
+│  MessagePublisher.publish()  ← 추상화 계층                      │
+│       ↓                                                         │
+│  ┌─────────────────────────────────────────┐                   │
+│  │ 현재: InMemoryMessagePublisher          │                   │
+│  │       → ApplicationEventPublisher       │                   │
+│  │                                          │                   │
+│  │ 전환 시: KafkaMessagePublisher          │                   │
+│  │          → KafkaTemplate                │                   │
+│  └─────────────────────────────────────────┘                   │
+│       ↓                                                         │
+│  @EventListener / @KafkaListener                               │
+│       ↓                                                         │
+│  EventHandler.handle()                                         │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 7.2 MessagePublisher 추상화
+
+```kotlin
+/**
+ * 메시지 발행 추상화 인터페이스
+ *
+ * Kafka 전환 대비:
+ * - 현재: InMemoryMessagePublisher (Spring ApplicationEvent 기반)
+ * - 전환 시: KafkaMessagePublisher (KafkaTemplate 기반)
+ */
+interface MessagePublisher {
+    fun publish(topic: String, key: String, payload: Any)
+    fun publishBatch(topic: String, messages: List<Message>)
+}
+
+data class Message(
+    val key: String,
+    val payload: Any,
+    val headers: Map<String, String> = emptyMap()
+)
+
+/**
+ * InMemory 구현 (현재)
+ */
+@Component
+@Profile("!kafka")
+class InMemoryMessagePublisher(
+    private val applicationEventPublisher: ApplicationEventPublisher
+) : MessagePublisher {
+
+    override fun publish(topic: String, key: String, payload: Any) {
+        val event = DomainEvent(topic = topic, key = key, payload = payload)
+        applicationEventPublisher.publishEvent(event)
+    }
+}
+
+/**
+ * Kafka 구현 (전환 시)
+ */
+@Component
+@Profile("kafka")
+class KafkaMessagePublisher(
+    private val kafkaTemplate: KafkaTemplate<String, Any>
+) : MessagePublisher {
+
+    override fun publish(topic: String, key: String, payload: Any) {
+        kafkaTemplate.send(topic, key, payload)
+    }
+}
+```
+
+### 7.3 CloudEvents 표준 스키마
+
+```kotlin
+/**
+ * CloudEvents 1.0 표준 기반 이벤트 래퍼
+ *
+ * Kafka 전환 시 이벤트 스키마 표준으로 사용
+ */
+data class CloudEvent<T>(
+    val specversion: String = "1.0",
+    val id: String,               // Snowflake ID (16진수)
+    val source: String,           // "/order-service"
+    val type: String,             // "io.hhplus.ecommerce.order.completed"
+    val subject: String?,         // aggregateId
+    val time: Instant = Instant.now(),
+    val datacontenttype: String = "application/json",
+    val data: T,
+    val traceid: String,          // Snowflake 기반 분산 추적 ID
+    val correlationid: String? = null
+)
+
+/**
+ * CloudEvents 이벤트 타입 (네임스페이스 포함)
+ */
+object CloudEventTypes {
+    const val ORDER_CREATED = "io.hhplus.ecommerce.order.created"
+    const val PAYMENT_COMPLETED = "io.hhplus.ecommerce.payment.completed"
+    // ...
+}
+
+/**
+ * 토픽 정의
+ */
+object Topics {
+    const val ORDER = "ecommerce.order"
+    const val PAYMENT = "ecommerce.payment"
+    // ...
+}
+```
+
+### 7.4 TraceId 전파 (Snowflake 기반)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ TraceId 전파 흐름                                                │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  1. HTTP 요청 수신                                               │
+│     └─ TraceIdFilter에서 traceId 생성 (Snowflake)               │
+│     └─ MDC.put("traceId", snowflakeId)                         │
+│                                                                 │
+│  2. 비즈니스 로직 처리                                           │
+│     └─ 로그에 자동 포함: [traceId=1A2B3C4D5E6F7890]             │
+│                                                                 │
+│  3. 이벤트 발행                                                  │
+│     └─ CloudEvent.traceid = MDC.get("traceId")                 │
+│     └─ Kafka Header: x-trace-id = traceId                      │
+│                                                                 │
+│  4. Consumer 수신                                                │
+│     └─ Header에서 traceId 추출                                  │
+│     └─ MDC.put("traceId", headerTraceId)                       │
+│                                                                 │
+│  5. 문제 발생 시                                                 │
+│     └─ traceId로 전체 흐름 추적                                 │
+│     └─ snowflakeGenerator.extractTimestamp(traceId) → 생성시점  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**TraceIdFilter 구현:**
+
+```kotlin
+@Component
+@Order(Ordered.HIGHEST_PRECEDENCE)
+class TraceIdFilter(
+    private val snowflakeGenerator: SnowflakeGenerator
+) : OncePerRequestFilter() {
+
+    override fun doFilterInternal(
+        request: HttpServletRequest,
+        response: HttpServletResponse,
+        filterChain: FilterChain
+    ) {
+        val traceId = request.getHeader("X-Trace-Id")
+            ?: snowflakeGenerator.nextId().toString(16).uppercase()
+
+        MDC.put("traceId", traceId)
+        response.setHeader("X-Trace-Id", traceId)
+
+        try {
+            filterChain.doFilter(request, response)
+        } finally {
+            MDC.remove("traceId")
+        }
+    }
+}
+```
+
+**Snowflake vs UUID 비교:**
+
+| 비교 항목 | UUID | Snowflake |
+|----------|------|-----------|
+| 크기 | 128bit (36자) | 64bit (16자) |
+| 시간 순 정렬 | ❌ 불가 | ✅ 가능 |
+| 생성 시점 추출 | ❌ 불가 | ✅ `extractTimestamp()` |
+| 로그 가독성 | 낮음 | 높음 |
+
+### 7.5 Kafka 전환 시 필요 작업
+
+| 작업 | 현재 | 전환 시 |
+|------|------|---------|
+| Profile 변경 | `!kafka` | `kafka` |
+| 의존성 추가 | - | `spring-kafka` |
+| KafkaMessagePublisher | 미구현 | 구현 필요 |
+| KafkaListener 추가 | @EventListener | @KafkaListener |
+| 토픽 생성 | 불필요 | Kafka 토픽 생성 필요 |
+
+---
+
+## 8. 결론 및 향후 개선
+
+### 8.1 구현 완료 항목
 
 | 기능 | 상태 | 설명 |
 |------|------|------|
@@ -425,8 +642,11 @@ dlqService.resolveManually(
 | Processor 연동 | ✅ | handleFailure, handleMissingHandler |
 | 알림 서비스 | ✅ | LoggingAlertService (운영 환경에서 교체) |
 | 모니터링 스케줄러 | ✅ | 1분 주기 모니터링, 10분 주기 리포트 |
+| MessagePublisher | ✅ | 인터페이스 + InMemoryMessagePublisher |
+| CloudEvent | ✅ | CloudEvents 1.0 표준 스키마 |
+| TraceIdFilter | ✅ | Snowflake 기반 분산 추적 |
 
-### 7.2 이점
+### 8.2 이점
 
 | 항목 | 기존 | 개선 후 |
 |------|------|---------|
@@ -434,8 +654,10 @@ dlqService.resolveManually(
 | 정상 이벤트 지연 | 실패 이벤트와 혼재 | 실패 이벤트 격리 |
 | 운영자 인지 | 로그 확인 필요 | 즉시 알림 |
 | 수동 개입 | 불가 | retryFromDlq, resolveManually |
+| Kafka 전환 | 전체 재작성 필요 | Profile 변경만으로 전환 |
+| 분산 추적 | 없음 | TraceId 자동 전파 |
 
-### 7.3 향후 개선 방향
+### 8.3 향후 개선 방향
 
 1. **Slack/Email 알림 구현**
    - 현재: LoggingAlertService
@@ -458,19 +680,29 @@ dlqService.resolveManually(
 ## 부록: 관련 파일 구조
 
 ```
-src/main/kotlin/io/hhplus/ecommerce/common/outbox/
-├── OutboxEvent.kt                    # Outbox 이벤트 엔티티
-├── OutboxEventRepository.kt          # 리포지토리 인터페이스
-├── OutboxEventService.kt             # Outbox 서비스 (incrementRetryAndMarkFailed 추가)
-├── OutboxEventProcessor.kt           # 이벤트 프로세서 (DLQ 연동)
-├── EventHandler.kt                   # 핸들러 인터페이스
-├── EventHandlerRegistry.kt           # 핸들러 레지스트리
-└── dlq/
-    ├── OutboxEventDlq.kt             # DLQ 엔티티
-    ├── OutboxEventDlqRepository.kt   # DLQ 리포지토리 인터페이스
-    ├── OutboxEventDlqJpaRepository.kt
-    ├── OutboxEventDlqRepositoryImpl.kt
-    ├── DlqService.kt                 # DLQ 핵심 서비스
-    ├── AlertService.kt               # 알림 인터페이스 + LoggingAlertService
-    └── DlqMonitoringScheduler.kt     # 모니터링 스케줄러
+src/main/kotlin/io/hhplus/ecommerce/common/
+├── outbox/
+│   ├── OutboxEvent.kt                    # Outbox 이벤트 엔티티
+│   ├── OutboxEventRepository.kt          # 리포지토리 인터페이스
+│   ├── OutboxEventService.kt             # Outbox 서비스 (incrementRetryAndMarkFailed 추가)
+│   ├── OutboxEventProcessor.kt           # 이벤트 프로세서 (DLQ 연동)
+│   ├── EventHandler.kt                   # 핸들러 인터페이스
+│   ├── EventHandlerRegistry.kt           # 핸들러 레지스트리
+│   └── dlq/
+│       ├── OutboxEventDlq.kt             # DLQ 엔티티
+│       ├── OutboxEventDlqRepository.kt   # DLQ 리포지토리 인터페이스
+│       ├── OutboxEventDlqJpaRepository.kt
+│       ├── OutboxEventDlqRepositoryImpl.kt
+│       ├── DlqService.kt                 # DLQ 핵심 서비스
+│       ├── AlertService.kt               # 알림 인터페이스 + LoggingAlertService
+│       └── DlqMonitoringScheduler.kt     # 모니터링 스케줄러
+├── messaging/
+│   ├── MessagePublisher.kt               # 메시지 발행 인터페이스 + Message
+│   ├── InMemoryMessagePublisher.kt       # Spring Event 기반 구현 (@Profile("!kafka"))
+│   ├── DomainEvent.kt                    # ApplicationEvent 래퍼
+│   └── CloudEvent.kt                     # CloudEvents 1.0 스키마 + Types + Topics
+├── filter/
+│   └── TraceIdFilter.kt                  # Snowflake 기반 TraceId 필터
+└── util/
+    └── SnowflakeGenerator.kt             # Snowflake ID 생성기
 ```
