@@ -27,6 +27,9 @@ class UserCouponRepositoryImpl(
     override fun save(userCoupon: UserCoupon): UserCoupon =
         jpaRepository.save(userCoupon.toEntity(mapper)).toDomain(mapper)!!
 
+    override fun saveAll(userCoupons: List<UserCoupon>): List<UserCoupon> =
+        jpaRepository.saveAll(userCoupons.map { it.toEntity(mapper) }).toDomain(mapper)
+
     override fun findById(id: Long): UserCoupon? =
         jpaRepository.findById(id).orElse(null).toDomain(mapper)
 

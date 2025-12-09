@@ -53,11 +53,15 @@ class RedisCouponIssueAdapter(
         }
 
         // 3. INCR로 원자적 순번 획득 - "내가 몇 번째인가"를 정확히 알 수 있음
+        // SADD 성공한 경우에만 도달하므로 Counter는 실제 발급 대상 수와 일치
         val myOrder = redisTemplate.opsForValue().increment(counterKey) ?: 1L
 
-        // 4. 순번이 maxQuantity보다 크면 롤백 + 매진 플래그 설정
+        // 4. 순번이 maxQuantity보다 크면 완전 롤백 + 매진 플래그 설정
         if (myOrder > maxQuantity) {
+            // SET에서 제거
             redisTemplate.opsForSet().remove(issuedKey, userIdStr)
+            // Counter 롤백 (피드백 반영: 실제 발급 수량과 Counter 정합성 유지)
+            redisTemplate.opsForValue().decrement(counterKey)
             // 매진 플래그 설정 (이후 요청은 1번에서 바로 실패)
             redisTemplate.opsForValue().set(soldoutKey, "1")
             return CouponIssueResult.SOLD_OUT

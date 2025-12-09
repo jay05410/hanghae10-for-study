@@ -5,6 +5,7 @@ import io.hhplus.ecommerce.coupon.domain.entity.UserCoupon
 
 interface UserCouponRepository {
     fun save(userCoupon: UserCoupon): UserCoupon
+    fun saveAll(userCoupons: List<UserCoupon>): List<UserCoupon>
     fun findById(id: Long): UserCoupon?
     fun findByUserId(userId: Long): List<UserCoupon>
     fun findByUserIdAndStatus(userId: Long, status: UserCouponStatus): List<UserCoupon>

@@ -109,6 +109,34 @@ class CouponDomainService(
     }
 
     /**
+     * 사용자 쿠폰 배치 발급
+     *
+     * Redis에서 이미 중복/재고 검증이 완료된 유저 목록을 대상으로 배치 발급.
+     * DB 재고 차감은 발급 수량만큼 한 번에 처리.
+     *
+     * @param coupon 발급할 쿠폰
+     * @param userIds 발급 대상 사용자 ID 목록
+     * @return 발급된 UserCoupon 목록
+     */
+    fun issueCouponsBatch(coupon: Coupon, userIds: List<Long>): List<UserCoupon> {
+        if (userIds.isEmpty()) return emptyList()
+
+        // 쿠폰 재고 배치 차감 (발급 수량만큼 한 번에)
+        repeat(userIds.size) { coupon.issue() }
+        couponRepository.save(coupon)
+
+        // 사용자 쿠폰 배치 생성
+        val userCoupons = userIds.map { userId ->
+            UserCoupon.create(
+                userId = userId,
+                couponId = coupon.id
+            )
+        }
+
+        return userCouponRepository.saveAll(userCoupons)
+    }
+
+    /**
      * 사용자 쿠폰 조회
      */
     fun getUserCoupons(userId: Long, status: UserCouponStatus? = null): List<UserCoupon> {

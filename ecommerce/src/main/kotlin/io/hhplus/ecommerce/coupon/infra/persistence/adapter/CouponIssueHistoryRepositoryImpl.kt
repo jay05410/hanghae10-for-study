@@ -17,6 +17,9 @@ class CouponIssueHistoryRepositoryImpl(
     override fun save(couponIssueHistory: CouponIssueHistory): CouponIssueHistory =
         jpaRepository.save(couponIssueHistory)
 
+    override fun saveAll(histories: List<CouponIssueHistory>): List<CouponIssueHistory> =
+        jpaRepository.saveAll(histories)
+
     override fun findById(id: Long): CouponIssueHistory? =
         jpaRepository.findById(id).orElse(null)
 

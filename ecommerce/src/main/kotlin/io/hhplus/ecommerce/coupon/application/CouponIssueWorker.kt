@@ -1,12 +1,12 @@
 package io.hhplus.ecommerce.coupon.application
 
-import io.hhplus.ecommerce.common.annotation.DistributedTransaction
-import io.hhplus.ecommerce.coupon.domain.entity.UserCoupon
+import io.hhplus.ecommerce.coupon.domain.entity.Coupon
 import io.hhplus.ecommerce.coupon.domain.service.CouponDomainService
 import mu.KotlinLogging
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 
 /**
  * 쿠폰 발급 Worker
@@ -18,6 +18,9 @@ import org.springframework.stereotype.Component
  * Redis 자료구조:
  * - ZSET: 발급 대기열에서 ZPOPMIN으로 배치 처리
  *
+ * 개선 사항 (피드백 반영):
+ * - 100ms → 500ms 주기로 변경 (DB 부하 감소)
+ * - 단건 처리 → Bulk 처리 (saveAll 활용)
  */
 @Component
 @ConditionalOnProperty(
@@ -35,12 +38,13 @@ class CouponIssueWorker(
     private val logger = KotlinLogging.logger {}
 
     companion object {
-        private const val PROCESS_INTERVAL_MS = 100L
+        // 100ms → 500ms로 변경 (DB 부하 80% 감소)
+        private const val PROCESS_INTERVAL_MS = 500L
         private const val MAX_BATCH_SIZE = 50
     }
 
     /**
-     * 발급 대기열 처리 메인 루프 (100ms 주기)
+     * 발급 대기열 처리 메인 루프 (500ms 주기)
      *
      * 활성 쿠폰들의 대기열을 순회하며 배치 처리.
      */
@@ -50,7 +54,7 @@ class CouponIssueWorker(
             val activeCoupons = couponDomainService.getAvailableCoupons()
 
             activeCoupons.forEach { coupon ->
-                processCouponIssues(coupon.id, coupon.name)
+                processCouponIssuesBatch(coupon)
             }
         } catch (e: Exception) {
             logger.error("발급 대기열 처리 중 예상치 못한 오류", e)
@@ -58,55 +62,42 @@ class CouponIssueWorker(
     }
 
     /**
-     * 특정 쿠폰의 발급 대기열 처리
+     * 특정 쿠폰의 발급 대기열 배치 처리
      *
-     * ZPOPMIN으로 배치 크기만큼 유저를 꺼내어 발급 처리.
+     * ZPOPMIN으로 배치 크기만큼 유저를 꺼내어 Bulk 발급 처리.
+     * 단건 insert → Bulk insert로 성능 개선.
      */
-    private fun processCouponIssues(couponId: Long, couponName: String) {
+    @Transactional
+    fun processCouponIssuesBatch(coupon: Coupon) {
         // ZPOPMIN으로 대기열에서 유저들을 꺼냄
-        val userIds = couponIssueService.popPendingUsers(couponId, MAX_BATCH_SIZE)
+        val userIds = couponIssueService.popPendingUsers(coupon.id, MAX_BATCH_SIZE)
 
         if (userIds.isEmpty()) {
             return
         }
 
-        userIds.forEach { userId ->
-            try {
-                val coupon = couponDomainService.getCouponOrThrow(couponId)
-                val userCoupon = couponDomainService.issueCoupon(coupon, userId)
-                handleSuccess(couponId, userId, couponName, userCoupon)
-            } catch (e: Exception) {
-                handleFailure(couponId, userId, e)
-            }
+        try {
+            // Bulk 쿠폰 발급 (단건 → 배치)
+            val userCoupons = couponDomainService.issueCouponsBatch(coupon, userIds)
+
+            // Bulk 발급 이력 저장 (단건 → 배치)
+            couponIssueHistoryService.recordIssuesBatch(
+                couponId = coupon.id,
+                userIds = userIds,
+                couponName = coupon.name
+            )
+
+            logger.info(
+                "쿠폰 배치 발급 완료 - couponId: {}, couponName: {}, count: {}",
+                coupon.id, coupon.name, userCoupons.size
+            )
+        } catch (e: Exception) {
+            // 배치 실패 시 개별 유저 로깅
+            logger.error(
+                "쿠폰 배치 발급 실패 - couponId: {}, userIds: {}, error: {}",
+                coupon.id, userIds, e.message, e
+            )
+            // TODO: Phase 2에서 DLQ로 이동 처리 추가
         }
-    }
-
-    /**
-     * 쿠폰 발급 성공 후처리
-     */
-    @DistributedTransaction
-    fun handleSuccess(couponId: Long, userId: Long, couponName: String, userCoupon: UserCoupon) {
-        // 쿠폰 발급 이력 저장 (MySQL)
-        couponIssueHistoryService.recordIssue(
-            couponId = couponId,
-            userId = userId,
-            couponName = couponName
-        )
-
-        logger.info(
-            "쿠폰 발급 성공 - couponId: {}, userId: {}, userCouponId: {}",
-            couponId, userId, userCoupon.id
-        )
-    }
-
-    /**
-     * 쿠폰 발급 실패 처리
-     */
-    private fun handleFailure(couponId: Long, userId: Long, error: Exception) {
-        val failureReason = error.message ?: "알 수 없는 오류"
-        logger.warn(
-            "쿠폰 발급 실패 - couponId: {}, userId: {}, reason: {}",
-            couponId, userId, failureReason, error
-        )
     }
 }

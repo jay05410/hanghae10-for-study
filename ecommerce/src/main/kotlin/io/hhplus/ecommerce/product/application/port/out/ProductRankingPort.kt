@@ -30,6 +30,17 @@ interface ProductRankingPort {
     fun incrementSalesCount(productId: Long, quantity: Int): Long
 
     /**
+     * 상품 판매량 배치 반영 (Pipeline 최적화)
+     *
+     * Redis 명령어: Pipeline + ZINCRBY
+     * - 여러 상품의 판매량을 한 번의 RTT로 처리
+     * - 피드백 반영: 50개 이벤트 × 3 ZINCRBY = 150 RTT → 1 RTT
+     *
+     * @param salesByProduct 상품 ID → 판매 수량 맵
+     */
+    fun incrementSalesCountBatch(salesByProduct: Map<Long, Int>)
+
+    /**
      * 일별 판매 랭킹 Top N 상품 조회
      *
      * Redis 명령어: ZREVRANGE (O(log N + M))

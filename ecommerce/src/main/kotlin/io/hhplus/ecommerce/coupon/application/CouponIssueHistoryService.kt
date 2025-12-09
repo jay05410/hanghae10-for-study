@@ -40,6 +40,34 @@ class CouponIssueHistoryService(
         return couponIssueHistoryRepository.save(issueHistory)
     }
 
+    /**
+     * 쿠폰 발급 이력 배치 저장
+     *
+     * @param couponId 쿠폰 ID
+     * @param userIds 발급 대상 사용자 ID 목록
+     * @param couponName 쿠폰명
+     * @return 저장된 발급 이력 목록
+     */
+    @Transactional
+    fun recordIssuesBatch(
+        couponId: Long,
+        userIds: List<Long>,
+        couponName: String
+    ): List<CouponIssueHistory> {
+        if (userIds.isEmpty()) return emptyList()
+
+        val now = LocalDateTime.now()
+        val histories = userIds.map { userId ->
+            CouponIssueHistory.createIssueHistory(
+                couponId = couponId,
+                userId = userId,
+                issuedAt = now,
+                description = "쿠폰 발급: $couponName"
+            )
+        }
+        return couponIssueHistoryRepository.saveAll(histories)
+    }
+
     @Transactional
     fun recordUsage(
         couponId: Long,

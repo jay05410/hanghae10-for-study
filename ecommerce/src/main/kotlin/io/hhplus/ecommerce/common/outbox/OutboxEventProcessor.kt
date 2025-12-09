@@ -3,7 +3,6 @@ package io.hhplus.ecommerce.common.outbox
 import mu.KotlinLogging
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 
 /**
  * Outbox 이벤트 프로세서 - 이벤트 처리의 중앙 허브
@@ -18,6 +17,10 @@ import org.springframework.transaction.annotation.Transactional
  * 2. EventHandlerRegistry에서 적절한 핸들러 조회
  * 3. 핸들러에게 이벤트 전달
  * 4. 처리 결과에 따라 상태 업데이트
+ *
+ * 개선 사항 (피드백 반영):
+ * - 배치 처리 지원 핸들러는 handleBatch()로 일괄 처리
+ * - Pipeline 등 bulk 연산 최적화 활용
  */
 @Component
 class OutboxEventProcessor(
@@ -43,26 +46,99 @@ class OutboxEventProcessor(
 
         logger.debug("[이벤트프로세서] ${events.size}개 이벤트 처리 시작")
 
-        events.forEach { event ->
-            processEvent(event)
+        // 이벤트 타입별로 그룹핑
+        val eventsByType = events.groupBy { it.eventType }
+
+        eventsByType.forEach { (eventType, typeEvents) ->
+            processEventsByType(eventType, typeEvents)
         }
 
         logger.debug("[이벤트프로세서] 이벤트 처리 완료")
     }
 
     /**
-     * 개별 이벤트 처리 - 모든 등록된 핸들러를 순차적으로 호출
+     * 이벤트 타입별 처리
+     *
+     * 배치 처리 지원 핸들러가 있으면 handleBatch() 호출,
+     * 그렇지 않으면 개별 handle() 호출
      */
-    private fun processEvent(event: OutboxEvent) {
-        try {
-            val handlers = eventHandlerRegistry.getHandlers(event.eventType)
+    private fun processEventsByType(eventType: String, events: List<OutboxEvent>) {
+        val handlers = eventHandlerRegistry.getHandlers(eventType)
 
-            if (handlers.isEmpty()) {
-                logger.warn("[이벤트프로세서] 핸들러 없음: eventType=${event.eventType}, eventId=${event.id}")
-                outboxEventService.markAsFailed(event.id, "핸들러를 찾을 수 없습니다: ${event.eventType}")
-                return
+        if (handlers.isEmpty()) {
+            events.forEach { event ->
+                logger.warn("[이벤트프로세서] 핸들러 없음: eventType=$eventType, eventId=${event.id}")
+                outboxEventService.markAsFailed(event.id, "핸들러를 찾을 수 없습니다: $eventType")
             }
+            return
+        }
 
+        // 배치 처리 지원 핸들러 찾기
+        val batchHandlers = handlers.filter { it.supportsBatchProcessing() }
+        val nonBatchHandlers = handlers.filter { !it.supportsBatchProcessing() }
+
+        // 배치 처리 지원 핸들러는 handleBatch()로 일괄 처리
+        if (batchHandlers.isNotEmpty()) {
+            processBatchHandlers(events, batchHandlers)
+        }
+
+        // 배치 미지원 핸들러는 개별 처리
+        if (nonBatchHandlers.isNotEmpty()) {
+            events.forEach { event ->
+                processEventWithHandlers(event, nonBatchHandlers)
+            }
+        }
+
+        // 배치/비배치 핸들러가 섞여있지 않은 경우에만 성공 마킹
+        // (배치 핸들러만 있는 경우)
+        if (nonBatchHandlers.isEmpty() && batchHandlers.isNotEmpty()) {
+            // 배치 처리 완료 후 성공 마킹은 processBatchHandlers에서 처리
+        }
+    }
+
+    /**
+     * 배치 핸들러로 이벤트 일괄 처리
+     */
+    private fun processBatchHandlers(events: List<OutboxEvent>, handlers: List<EventHandler>) {
+        var allSuccess = true
+        val failedHandlers = mutableListOf<String>()
+
+        handlers.forEach { handler ->
+            try {
+                val success = handler.handleBatch(events)
+                if (!success) {
+                    allSuccess = false
+                    failedHandlers.add(handler::class.simpleName ?: "Unknown")
+                    logger.warn("[이벤트프로세서] 배치 핸들러 처리 실패: handler=${handler::class.simpleName}")
+                }
+            } catch (e: Exception) {
+                allSuccess = false
+                failedHandlers.add(handler::class.simpleName ?: "Unknown")
+                logger.error("[이벤트프로세서] 배치 핸들러 오류: handler=${handler::class.simpleName}, error=${e.message}", e)
+            }
+        }
+
+        // 배치 처리 결과에 따라 이벤트 상태 업데이트
+        events.forEach { event ->
+            if (allSuccess) {
+                outboxEventService.markAsProcessed(event.id)
+            } else {
+                outboxEventService.markAsFailed(event.id, "배치 핸들러 실패: ${failedHandlers.joinToString(", ")}")
+            }
+        }
+
+        if (allSuccess) {
+            logger.debug("[이벤트프로세서] 배치 처리 성공: eventCount=${events.size}, handlers=${handlers.size}")
+        } else {
+            logger.warn("[이벤트프로세서] 배치 처리 부분 실패: eventCount=${events.size}, 실패 핸들러=${failedHandlers}")
+        }
+    }
+
+    /**
+     * 개별 이벤트 처리 - 지정된 핸들러들을 순차적으로 호출
+     */
+    private fun processEventWithHandlers(event: OutboxEvent, handlers: List<EventHandler>) {
+        try {
             var allSuccess = true
             val failedHandlers = mutableListOf<String>()
 
@@ -83,7 +159,7 @@ class OutboxEventProcessor(
 
             if (allSuccess) {
                 outboxEventService.markAsProcessed(event.id)
-                logger.debug("[이벤트프로세서] 이벤트 처리 성공: eventType=${event.eventType}, eventId=${event.id}, handlers=${handlers.size}")
+                logger.debug("[이벤트프로세서] 이벤트 처리 성공: eventType=${event.eventType}, eventId=${event.id}")
             } else {
                 outboxEventService.markAsFailed(event.id, "일부 핸들러 실패: ${failedHandlers.joinToString(", ")}")
                 logger.warn("[이벤트프로세서] 이벤트 처리 부분 실패: eventType=${event.eventType}, 실패 핸들러=${failedHandlers}")

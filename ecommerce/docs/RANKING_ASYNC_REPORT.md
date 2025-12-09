@@ -63,17 +63,21 @@ Step 2: enqueue (성공)          │
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ 구현된 데이터 흐름                                            │
+│ 구현된 데이터 흐름 (배치 + Pipeline 최적화)                    │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│  주문 완료 (OrderCompletedEvent)                             │
+│  주문 완료 (PaymentCompletedEvent)                           │
 │       ↓                                                     │
-│  SalesRankingEventHandler                                   │
+│  OutboxEventProcessor (5초 주기, 50개 배치)                  │
+│       ↓                                                     │
+│  ProductRankingEventHandler.handleBatch()                   │
 │       ↓                                                     │
 │  ┌─────────────────────────────────────────┐                │
-│  │ Redis Sorted Set (실시간 랭킹)           │                │
+│  │ 1. 이벤트별 상품 판매량 집계             │                │
+│  │    (50개 이벤트 → Map<productId, qty>)  │                │
 │  │                                         │                │
-│  │ ZINCRBY 명령어 (Atomic, O(log N))       │                │
+│  │ 2. Pipeline으로 일괄 ZINCRBY (1 RTT)    │                │
+│  │    ※ 기존: 50 × 3 = 150 RTT            │                │
 │  │                                         │                │
 │  │ ├─ ecom:rank:sales:d:{yyyyMMdd}  일별   │                │
 │  │ ├─ ecom:rank:sales:w:{yyyyWW}    주별   │                │
@@ -91,9 +95,21 @@ Step 2: enqueue (성공)          │
 
 ```kotlin
 interface ProductRankingPort {
-    fun incrementSalesCount(productId: Long, quantity: Int, date: LocalDate)
-    fun getTopProducts(period: RankingPeriod, limit: Int): List<ProductRankingEntry>
-    fun getProductRank(productId: Long, period: RankingPeriod): Long?
+    // 단건 판매량 증가
+    fun incrementSalesCount(productId: Long, quantity: Int): Long
+
+    // 배치 판매량 증가 (Pipeline 최적화)
+    fun incrementSalesCountBatch(salesByProduct: Map<Long, Int>)
+
+    // Top N 상품 조회
+    fun getDailyTopProducts(date: String, limit: Int): List<Pair<Long, Long>>
+    fun getWeeklyTopProducts(yearWeek: String, limit: Int): List<Pair<Long, Long>>
+    fun getTotalTopProducts(limit: Int): List<Pair<Long, Long>>
+
+    // 특정 상품 조회
+    fun getDailySalesCount(productId: Long, date: String): Long
+    fun getDailyRank(productId: Long, date: String): Long?
+    fun getTotalSalesCount(productId: Long): Long
 }
 ```
 
@@ -184,6 +200,7 @@ override fun tryIssue(couponId: Long, userId: Long, maxQuantity: Int): CouponIss
     // 4. 순번이 maxQuantity보다 크면 롤백 + 매진 플래그 설정
     if (myOrder > maxQuantity) {
         redisTemplate.opsForSet().remove(issuedKey, userIdStr)
+        redisTemplate.opsForValue().decrement(counterKey)  // 카운터 롤백 (정확한 발급 수량 유지)
         redisTemplate.opsForValue().set(soldoutKey, "1")
         return CouponIssueResult.SOLD_OUT
     }
@@ -258,15 +275,16 @@ data class CouponCacheInfo(
 | `ecom:cpn:iss:soldout:{couponId}` | STRING | 매진 플래그 |
 | `ecom:cpn:iss:max:{couponId}` | STRING | 최대 발급 수량 |
 
-### 3.5 통신 횟수 개선
+### 3.5 통신 횟수 분석
 
-| 시나리오 | 기존 | 개선 후 |
-|----------|------|---------|
-| 성공 | 5 RTT | **4 RTT** |
-| 중복 거부 | 2 RTT | **2 RTT** |
-| 수량 초과 (매진 전) | 3 RTT | **4 RTT** |
-| 수량 초과 (매진 후) | 3 RTT | **1 RTT** |
+| 시나리오 | RTT | 연산 상세 |
+|----------|-----|----------|
+| 성공 | **4 RTT** | hasKey + SADD + INCR + ZADD |
+| 중복 거부 | **2 RTT** | hasKey + SADD(0 반환) |
+| 수량 초과 (매진 전) | **5 RTT** | hasKey + SADD + INCR + SREM + DECR + SET |
+| 수량 초과 (매진 후) | **1 RTT** | hasKey(true) → 즉시 반환 |
 
+**Note**: 수량 초과 시 DECR로 카운터를 롤백하여 정확한 발급 수량 유지
 **매진 후 요청은 Soldout 플래그로 즉시 실패 (O(1))**
 
 ---
@@ -372,7 +390,9 @@ describe("선착순 쿠폰 동시성 제어") {
 | 기능 | 상태 | 핵심 기술 |
 |------|------|----------|
 | 상품 판매 랭킹 | ✅ | Redis Sorted Set, ZINCRBY |
-| 선착순 쿠폰 발급 | ✅ | SADD + INCR + Soldout 플래그 |
+| 랭킹 배치 처리 | ✅ | Pipeline + handleBatch() (150 RTT → 1 RTT) |
+| 선착순 쿠폰 발급 | ✅ | SADD + INCR + DECR 롤백 + Soldout 플래그 |
+| 쿠폰 배치 Worker | ✅ | saveAll() 벌크 인서트 (500ms/50건) |
 | 캐시 분리 | ✅ | CouponCacheInfo DTO |
 | 동시성 테스트 | ✅ | 1000명 동시 요청 검증 |
 
@@ -381,22 +401,38 @@ describe("선착순 쿠폰 동시성 제어") {
 | 항목 | 기존 | 개선 후 |
 |------|------|---------|
 | 랭킹 조회 | ❌ 불가능 | O(log N + M) |
+| 랭킹 배치 업데이트 | 150 RTT (50이벤트×3키) | **1 RTT** (Pipeline) |
+| 쿠폰 Worker 처리 | 100ms 단건 | **500ms 50건 배치** |
 | 매진 후 쿠폰 요청 | 3 RTT | **1 RTT** |
 | 중복 발급 방지 | Race Condition 존재 | 원자적 처리 |
+| 카운터 정확성 | 롤백 없음 | **DECR 롤백** |
 
-### 6.3 향후 개선 방향
+### 6.3 구현 현황 및 향후 개선 방향
 
-1. **배치 발급 Worker 구현**
-   - ZSET 대기열에서 ZPOPMIN으로 DB 영속화
-   - 현재는 대기열 등록까지만 구현
+#### 구현 완료
+1. **배치 발급 Worker** ✅
+   - 500ms 주기로 최대 50건씩 배치 처리
+   - `saveAll()`을 활용한 JPA 벌크 인서트
+   - `issueCouponsBatch()`로 도메인 로직 일괄 처리
 
-2. **Redis 클러스터 대응**
+2. **랭킹 Pipeline 최적화** ✅
+   - `incrementSalesCountBatch()`로 배치 ZINCRBY
+   - 50개 이벤트 × 3 ZINCRBY = 150 RTT → 1 RTT
+
+3. **카운터 일관성 보장** ✅
+   - 수량 초과 시 DECR 롤백으로 정확한 발급 수량 유지
+
+#### 향후 개선 방향
+1. **Redis 클러스터 대응**
    - 현재: 단일 Redis 인스턴스 가정
    - 개선: Hash Tag로 같은 슬롯 보장
 
-3. **모니터링 강화**
+2. **모니터링 강화**
    - 발급 성공/실패 메트릭
    - 대기열 크기 알림
+
+3. **DLQ(Dead Letter Queue) 구현**
+   - 실패 이벤트 격리 및 재처리 로직
 
 ### 6.4 배운 점
 
@@ -419,30 +455,42 @@ describe("선착순 쿠폰 동시성 제어") {
 ```
 src/main/kotlin/io/hhplus/ecommerce/
 ├── common/
-│   └── cache/
-│       ├── RedisKeyNames.kt          # Redis 키 중앙 관리
-│       ├── CacheNames.kt             # Spring Cache 이름
-│       └── CacheInvalidationPublisher.kt
+│   ├── cache/
+│   │   ├── RedisKeyNames.kt              # Redis 키 중앙 관리
+│   │   ├── CacheNames.kt                 # Spring Cache 이름
+│   │   └── CacheInvalidationPublisher.kt
+│   └── outbox/
+│       ├── EventHandler.kt               # 이벤트 핸들러 인터페이스 (배치 지원)
+│       ├── EventHandlerRegistry.kt       # 핸들러 레지스트리
+│       ├── OutboxEventProcessor.kt       # 이벤트 배치 프로세서
+│       └── OutboxEventService.kt
 ├── coupon/
 │   ├── application/
-│   │   ├── CouponIssueService.kt     # 선착순 발급 서비스
+│   │   ├── CouponIssueService.kt         # 선착순 발급 서비스
+│   │   ├── CouponIssueWorker.kt          # 배치 발급 Worker (500ms/50건)
+│   │   ├── CouponIssueHistoryService.kt  # 발급 이력 서비스 (배치 지원)
 │   │   ├── port/out/
-│   │   │   └── CouponIssuePort.kt    # DIP 포트
+│   │   │   └── CouponIssuePort.kt        # DIP 포트
 │   │   └── usecase/
 │   │       └── CouponCommandUseCase.kt
 │   ├── domain/
+│   │   ├── service/
+│   │   │   └── CouponDomainService.kt    # 도메인 서비스 (배치 지원)
+│   │   ├── repository/
+│   │   │   ├── UserCouponRepository.kt   # saveAll() 추가
+│   │   │   └── CouponIssueHistoryRepository.kt  # saveAll() 추가
 │   │   └── vo/
-│   │       └── CouponCacheInfo.kt    # 캐시용 VO (신규)
+│   │       └── CouponCacheInfo.kt        # 캐시용 VO
 │   └── infra/
 │       └── issue/
-│           └── RedisCouponIssueAdapter.kt  # Redis 구현체
+│           └── RedisCouponIssueAdapter.kt  # DECR 롤백 포함
 └── product/
     ├── application/
     │   ├── handler/
-    │   │   └── SalesRankingEventHandler.kt
+    │   │   └── ProductRankingEventHandler.kt  # 배치 처리 지원
     │   └── port/out/
-    │       └── ProductRankingPort.kt
+    │       └── ProductRankingPort.kt     # incrementSalesCountBatch() 추가
     └── infra/
         └── ranking/
-            └── RedisProductRankingAdapter.kt
+            └── RedisProductRankingAdapter.kt  # Pipeline 최적화
 ```

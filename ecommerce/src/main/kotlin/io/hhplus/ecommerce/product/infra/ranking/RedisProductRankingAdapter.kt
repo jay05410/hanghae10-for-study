@@ -72,6 +72,42 @@ class RedisProductRankingAdapter(
         return dailyScore.toLong()
     }
 
+    /**
+     * 상품 판매량 배치 반영 (Pipeline 최적화)
+     *
+     * 피드백 반영: 50개 이벤트 × 3 ZINCRBY = 150 RTT → 1 RTT
+     * Pipeline을 사용하여 모든 ZINCRBY 명령을 한 번에 전송
+     */
+    override fun incrementSalesCountBatch(salesByProduct: Map<Long, Int>) {
+        if (salesByProduct.isEmpty()) return
+
+        val today = LocalDate.now()
+        val dateKey = today.format(DATE_FORMATTER)
+        val weekKey = getYearWeek(today)
+
+        val dailyKeyBytes = RedisKeyNames.Ranking.dailySalesKey(dateKey).toByteArray()
+        val weeklyKeyBytes = RedisKeyNames.Ranking.weeklySalesKey(weekKey).toByteArray()
+        val totalKeyBytes = RedisKeyNames.Ranking.totalSalesKey().toByteArray()
+
+        // Pipeline으로 모든 ZINCRBY 명령을 한 번에 전송 (1 RTT)
+        redisTemplate.executePipelined { connection ->
+            salesByProduct.forEach { (productId, quantity) ->
+                val productIdBytes = productId.toString().toByteArray()
+                val incrementValue = quantity.toDouble()
+
+                // 일별, 주별, 누적 랭킹 모두 업데이트
+                connection.zSetCommands().zIncrBy(dailyKeyBytes, incrementValue, productIdBytes)
+                connection.zSetCommands().zIncrBy(weeklyKeyBytes, incrementValue, productIdBytes)
+                connection.zSetCommands().zIncrBy(totalKeyBytes, incrementValue, productIdBytes)
+            }
+            null
+        }
+
+        // TTL 설정 (일별: 7일, 주별: 30일)
+        setDailyKeyExpire(dateKey, 7)
+        setWeeklyKeyExpire(weekKey, 30)
+    }
+
     override fun getDailyTopProducts(date: String, limit: Int): List<Pair<Long, Long>> {
         val key = RedisKeyNames.Ranking.dailySalesKey(date)
         return getTopProductsFromZSet(key, limit)
