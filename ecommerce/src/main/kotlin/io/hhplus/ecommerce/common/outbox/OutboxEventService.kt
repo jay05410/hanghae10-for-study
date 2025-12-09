@@ -83,4 +83,25 @@ class OutboxEventService(
             outboxEventRepository.deleteByIds(idsToDelete)
         }
     }
+
+    /**
+     * 재시도 횟수 증가 및 실패 마킹
+     *
+     * DLQ 연동 시 사용: 재시도 횟수가 증가하면서 실패 상태로 마킹
+     * 다음 폴링 주기에 다시 처리 시도
+     */
+    @Transactional
+    fun incrementRetryAndMarkFailed(eventId: Long, errorMessage: String?): OutboxEvent? {
+        val event = outboxEventRepository.findById(eventId)
+            ?: return null
+
+        event.markAsFailed(errorMessage ?: "알 수 없는 오류")
+
+        // 재시도 횟수가 max 미만일 때만 증가
+        if (event.retryCount < maxRetryCount) {
+            event.incrementRetryCount(maxRetryCount)
+        }
+
+        return outboxEventRepository.save(event)
+    }
 }

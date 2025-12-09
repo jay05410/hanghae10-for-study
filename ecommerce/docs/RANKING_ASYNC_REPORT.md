@@ -431,8 +431,8 @@ describe("선착순 쿠폰 동시성 제어") {
    - 발급 성공/실패 메트릭
    - 대기열 크기 알림
 
-3. **DLQ(Dead Letter Queue) 구현**
-   - 실패 이벤트 격리 및 재처리 로직
+3. **DLQ(Dead Letter Queue)** ✅
+   - 상세 내용: [OUTBOX_DLQ_REPORT.md](./OUTBOX_DLQ_REPORT.md) 참조
 
 ### 6.4 배운 점
 

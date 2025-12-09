@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.common.outbox
 
+import io.hhplus.ecommerce.common.outbox.dlq.DlqService
 import mu.KotlinLogging
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -11,21 +12,24 @@ import org.springframework.stereotype.Component
  * - 미처리 이벤트 폴링
  * - 적절한 핸들러에게 이벤트 라우팅
  * - 처리 결과 기록 (성공/실패)
+ * - 최대 재시도 초과 시 DLQ로 이동
  *
  * 이벤트 흐름:
  * 1. Outbox 테이블에서 미처리 이벤트 조회
  * 2. EventHandlerRegistry에서 적절한 핸들러 조회
  * 3. 핸들러에게 이벤트 전달
  * 4. 처리 결과에 따라 상태 업데이트
+ * 5. 최대 재시도 초과 시 DLQ로 이동
  *
- * 개선 사항 (피드백 반영):
- * - 배치 처리 지원 핸들러는 handleBatch()로 일괄 처리
- * - Pipeline 등 bulk 연산 최적화 활용
+ * DLQ 연동:
+ * - retryCount >= maxRetryCount 시 DLQ로 이동
+ * - 핸들러 없는 이벤트도 DLQ로 이동
  */
 @Component
 class OutboxEventProcessor(
     private val outboxEventService: OutboxEventService,
-    private val eventHandlerRegistry: EventHandlerRegistry
+    private val eventHandlerRegistry: EventHandlerRegistry,
+    private val dlqService: DlqService
 ) {
     private val logger = KotlinLogging.logger {}
 
@@ -67,8 +71,7 @@ class OutboxEventProcessor(
 
         if (handlers.isEmpty()) {
             events.forEach { event ->
-                logger.warn("[이벤트프로세서] 핸들러 없음: eventType=$eventType, eventId=${event.id}")
-                outboxEventService.markAsFailed(event.id, "핸들러를 찾을 수 없습니다: $eventType")
+                handleMissingHandler(event, eventType)
             }
             return
         }
@@ -88,12 +91,17 @@ class OutboxEventProcessor(
                 processEventWithHandlers(event, nonBatchHandlers)
             }
         }
+    }
 
-        // 배치/비배치 핸들러가 섞여있지 않은 경우에만 성공 마킹
-        // (배치 핸들러만 있는 경우)
-        if (nonBatchHandlers.isEmpty() && batchHandlers.isNotEmpty()) {
-            // 배치 처리 완료 후 성공 마킹은 processBatchHandlers에서 처리
-        }
+    /**
+     * 핸들러가 없는 이벤트 처리
+     *
+     * 핸들러가 없는 이벤트는 즉시 DLQ로 이동
+     */
+    private fun handleMissingHandler(event: OutboxEvent, eventType: String) {
+        val errorMessage = "핸들러를 찾을 수 없습니다: $eventType"
+        logger.warn("[이벤트프로세서] 핸들러 없음: eventType=$eventType, eventId=${event.id}")
+        dlqService.moveToDlq(event, errorMessage)
     }
 
     /**
@@ -123,7 +131,7 @@ class OutboxEventProcessor(
             if (allSuccess) {
                 outboxEventService.markAsProcessed(event.id)
             } else {
-                outboxEventService.markAsFailed(event.id, "배치 핸들러 실패: ${failedHandlers.joinToString(", ")}")
+                handleFailure(event, "배치 핸들러 실패: ${failedHandlers.joinToString(", ")}")
             }
         }
 
@@ -161,13 +169,31 @@ class OutboxEventProcessor(
                 outboxEventService.markAsProcessed(event.id)
                 logger.debug("[이벤트프로세서] 이벤트 처리 성공: eventType=${event.eventType}, eventId=${event.id}")
             } else {
-                outboxEventService.markAsFailed(event.id, "일부 핸들러 실패: ${failedHandlers.joinToString(", ")}")
-                logger.warn("[이벤트프로세서] 이벤트 처리 부분 실패: eventType=${event.eventType}, 실패 핸들러=${failedHandlers}")
+                handleFailure(event, "일부 핸들러 실패: ${failedHandlers.joinToString(", ")}")
             }
 
         } catch (e: Exception) {
             logger.error("[이벤트프로세서] 이벤트 처리 중 오류: eventType=${event.eventType}, eventId=${event.id}, error=${e.message}", e)
-            outboxEventService.markAsFailed(event.id, e.message ?: "알 수 없는 오류")
+            handleFailure(event, e.message ?: "알 수 없는 오류")
+        }
+    }
+
+    /**
+     * 실패 처리 - DLQ 이동 또는 재시도
+     *
+     * retryCount >= maxRetryCount 시 DLQ로 이동
+     * 그렇지 않으면 재시도 횟수 증가 후 다음 폴링에서 재시도
+     */
+    private fun handleFailure(event: OutboxEvent, errorMessage: String) {
+        if (dlqService.shouldMoveToDlq(event)) {
+            logger.warn("[이벤트프로세서] DLQ로 이동: eventId=${event.id}, retryCount=${event.retryCount}")
+            dlqService.moveToDlq(event, errorMessage)
+        } else {
+            logger.warn(
+                "[이벤트프로세서] 재시도 예정: eventId=${event.id}, " +
+                    "retryCount=${event.retryCount + 1}, error=$errorMessage"
+            )
+            outboxEventService.incrementRetryAndMarkFailed(event.id, errorMessage)
         }
     }
 }
