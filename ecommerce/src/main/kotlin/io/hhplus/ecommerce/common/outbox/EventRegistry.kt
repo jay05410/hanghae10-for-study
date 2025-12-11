@@ -131,7 +131,7 @@ object EventRegistry {
         // === Saga Step 2: 결제 완료 (분기점) ===
         EventTypes.PAYMENT_COMPLETED to EventMetadata(
             eventType = EventTypes.PAYMENT_COMPLETED,
-            description = "결제가 완료되었을 때 발행. 포인트 차감, 재고 차감, 쿠폰 사용, 배송 생성, 장바구니 정리, 판매 랭킹 업데이트를 병렬로 트리거함",
+            description = "결제가 완료되었을 때 발행. 포인트 차감, 재고 차감, 쿠폰 사용, 배송 생성, 장바구니 정리, 판매 랭킹 업데이트, 데이터 플랫폼 전송을 병렬로 트리거함",
             publisher = "PaymentEventHandler",
             subscribers = listOf(
                 "PointEventHandler",          // 포인트 차감 (포인트 도메인 책임)
@@ -139,7 +139,8 @@ object EventRegistry {
                 "CouponEventHandler",         // 쿠폰 사용 처리
                 "DeliveryEventHandler",       // 배송 생성
                 "CartEventHandler",           // 장바구니 정리
-                "ProductRankingEventHandler"  // 판매 랭킹 업데이트 (Redis Sorted Set)
+                "ProductRankingEventHandler", // 판매 랭킹 업데이트 (Redis Sorted Set)
+                "OrderDataPlatformHandler"    // 데이터 플랫폼 전송 (Kafka)
             )
         ),
 
