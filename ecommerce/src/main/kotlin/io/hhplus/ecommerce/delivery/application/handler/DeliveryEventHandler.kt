@@ -2,7 +2,7 @@ package io.hhplus.ecommerce.delivery.application.handler
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.hhplus.ecommerce.common.outbox.EventHandler
-import io.hhplus.ecommerce.common.outbox.EventRegistry
+import io.hhplus.ecommerce.config.event.EventRegistry
 import io.hhplus.ecommerce.common.outbox.OutboxEvent
 import io.hhplus.ecommerce.delivery.domain.service.DeliveryDomainService
 import io.hhplus.ecommerce.delivery.domain.vo.DeliveryAddress

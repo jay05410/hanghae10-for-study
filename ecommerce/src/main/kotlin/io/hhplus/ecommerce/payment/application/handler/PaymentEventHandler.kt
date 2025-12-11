@@ -2,7 +2,7 @@ package io.hhplus.ecommerce.payment.application.handler
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.hhplus.ecommerce.common.outbox.EventHandler
-import io.hhplus.ecommerce.common.outbox.EventRegistry
+import io.hhplus.ecommerce.config.event.EventRegistry
 import io.hhplus.ecommerce.common.outbox.OutboxEvent
 import io.hhplus.ecommerce.common.outbox.OutboxEventService
 import io.hhplus.ecommerce.payment.application.usecase.ProcessPaymentUseCase

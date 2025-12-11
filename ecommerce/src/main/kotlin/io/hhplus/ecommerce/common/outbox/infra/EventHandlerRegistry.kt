@@ -1,20 +1,18 @@
-package io.hhplus.ecommerce.common.outbox
+package io.hhplus.ecommerce.common.outbox.infra
 
+import io.hhplus.ecommerce.common.outbox.EventHandler
+import io.hhplus.ecommerce.config.event.EventRegistry
 import mu.KotlinLogging
 import org.springframework.stereotype.Component
 import jakarta.annotation.PostConstruct
 
 /**
- * 이벤트 핸들러 레지스트리 - 핸들러 등록 및 조회의 중앙 관리
+ * 이벤트 핸들러 레지스트리
  *
  * 역할:
  * - 모든 EventHandler 빈 자동 수집
  * - 이벤트 타입별 핸들러 매핑 (다중 핸들러 지원)
  * - 핸들러 조회 API 제공
- *
- * 사용법:
- * - EventHandler 인터페이스를 구현한 @Component를 생성하면 자동 등록됨
- * - getHandlers(eventType)으로 핸들러 목록 조회
  */
 @Component
 class EventHandlerRegistry(
@@ -37,30 +35,18 @@ class EventHandlerRegistry(
         logEventFlowSummary()
     }
 
-    /**
-     * 이벤트 타입에 해당하는 핸들러 목록 조회
-     */
     fun getHandlers(eventType: String): List<EventHandler> {
         return handlerMap[eventType] ?: emptyList()
     }
 
-    /**
-     * 이벤트 타입에 해당하는 핸들러 조회 (단일 - 하위 호환)
-     */
     fun getHandler(eventType: String): EventHandler? {
         return handlerMap[eventType]?.firstOrNull()
     }
 
-    /**
-     * 등록된 모든 이벤트 타입 조회
-     */
     fun getAllRegisteredEventTypes(): Set<String> {
         return handlerMap.keys.toSet()
     }
 
-    /**
-     * 이벤트 흐름 요약 로깅
-     */
     private fun logEventFlowSummary() {
         logger.info("========================================")
         logger.info("[이벤트 흐름 요약]")
@@ -76,7 +62,6 @@ class EventHandlerRegistry(
             logger.info("    설명: ${metadata.description}")
         }
 
-        // 레지스트리에는 있지만 카탈로그에 없는 핸들러 경고
         val unregisteredTypes = handlerMap.keys.filter { !EventRegistry.catalog.containsKey(it) }
         if (unregisteredTypes.isNotEmpty()) {
             logger.warn("----------------------------------------")

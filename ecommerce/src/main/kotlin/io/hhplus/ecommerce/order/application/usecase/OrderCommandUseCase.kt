@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import io.hhplus.ecommerce.common.annotation.DistributedLock
 import io.hhplus.ecommerce.common.annotation.DistributedTransaction
 import io.hhplus.ecommerce.common.lock.DistributedLockKeys
-import io.hhplus.ecommerce.common.outbox.EventRegistry
+import io.hhplus.ecommerce.config.event.EventRegistry
 import io.hhplus.ecommerce.common.outbox.OutboxEventService
 import io.hhplus.ecommerce.delivery.domain.constant.DeliveryStatus
 import io.hhplus.ecommerce.delivery.domain.service.DeliveryDomainService

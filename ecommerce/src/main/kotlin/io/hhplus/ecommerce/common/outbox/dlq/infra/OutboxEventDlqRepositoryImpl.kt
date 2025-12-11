@@ -1,5 +1,7 @@
-package io.hhplus.ecommerce.common.outbox.dlq
+package io.hhplus.ecommerce.common.outbox.dlq.infra
 
+import io.hhplus.ecommerce.common.outbox.dlq.OutboxEventDlq
+import io.hhplus.ecommerce.common.outbox.dlq.OutboxEventDlqRepository
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Repository
 
