@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.spring)
     alias(libs.plugins.kotlin.jpa)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.spring.boot)
     alias(libs.plugins.spring.dependency.management)
     id("jacoco")
@@ -64,6 +65,9 @@ dependencies {
 
     // Kotlin Logging
     implementation(libs.kotlin.logging)
+
+    // Kotlinx Serialization
+    implementation(libs.kotlinx.serialization.json)
 
     // Test Dependencies
     testImplementation(libs.spring.boot.starter.test)

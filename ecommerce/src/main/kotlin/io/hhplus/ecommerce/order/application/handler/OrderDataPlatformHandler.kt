@@ -1,14 +1,18 @@
 package io.hhplus.ecommerce.order.application.handler
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import io.hhplus.ecommerce.order.application.mapper.toOrderInfoPayload
 import io.hhplus.ecommerce.common.messaging.MessagePublisher
 import io.hhplus.ecommerce.common.outbox.EventHandler
-import io.hhplus.ecommerce.config.event.EventRegistry
 import io.hhplus.ecommerce.common.outbox.OutboxEvent
+import io.hhplus.ecommerce.config.event.EventRegistry
+import io.hhplus.ecommerce.order.application.mapper.toOrderInfoPayload
 import io.hhplus.ecommerce.order.application.usecase.GetOrderQueryUseCase
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
 import mu.KotlinLogging
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
 
 /**
@@ -29,15 +33,16 @@ import org.springframework.stereotype.Component
  * - Kafka 기반으로 재시도 및 순서 보장
  */
 @Component
+@Order(2)  // OrderEventHandler(@Order(1)) 이후 실행
 class OrderDataPlatformHandler(
     private val messagePublisher: MessagePublisher,
     private val getOrderQueryUseCase: GetOrderQueryUseCase,
-    private val objectMapper: ObjectMapper,
     @Value("\${kafka.topics.data-platform:ecommerce.data-platform}")
     private val dataPlatformTopic: String
 ) : EventHandler {
 
     private val logger = KotlinLogging.logger {}
+    private val json = Json { ignoreUnknownKeys = true }
 
     override fun supportedEventTypes(): List<String> {
         return listOf(EventRegistry.EventTypes.PAYMENT_COMPLETED)
@@ -45,9 +50,10 @@ class OrderDataPlatformHandler(
 
     override fun handle(event: OutboxEvent): Boolean {
         return try {
-            val payload = objectMapper.readValue(event.payload, Map::class.java)
-            val orderId = (payload["orderId"] as Number).toLong()
-            val paymentId = (payload["paymentId"] as? Number)?.toLong()
+            val payload = json.parseToJsonElement(event.payload).jsonObject
+            val orderId = payload["orderId"]?.jsonPrimitive?.long
+                ?: throw IllegalArgumentException("orderId is required")
+            val paymentId = payload["paymentId"]?.jsonPrimitive?.long
 
             logger.info(
                 "[OrderDataPlatformHandler] 데이터 플랫폼 전송 시작: orderId={}, paymentId={}",
