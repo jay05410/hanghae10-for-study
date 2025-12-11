@@ -59,6 +59,9 @@ dependencies {
     // Caffeine Cache
     implementation(libs.caffeine)
 
+    // Kafka
+    implementation(libs.spring.kafka)
+
     // Kotlin Logging
     implementation(libs.kotlin.logging)
 
@@ -72,6 +75,10 @@ dependencies {
 
     // TestContainers
     testImplementation(libs.bundles.testcontainers.mysql)
+    testImplementation(libs.test.containers.kafka)
+
+    // Kafka Test
+    testImplementation(libs.spring.kafka.test)
 }
 
 tasks.test {

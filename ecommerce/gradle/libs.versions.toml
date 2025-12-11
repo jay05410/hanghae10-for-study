@@ -69,5 +69,10 @@ redisson_spring_boot_starter = { module = "org.redisson:redisson-spring-boot-sta
 # Caffeine Cache
 caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "caffeine" }
 
+# Kafka
+spring_kafka = { module = "org.springframework.kafka:spring-kafka" }
+spring_kafka_test = { module = "org.springframework.kafka:spring-kafka-test" }
+test_containers_kafka = { module = "org.testcontainers:kafka", version.ref = "test_containers" }
+
 [bundles]
 testcontainers_mysql = ["test_containers_mysql", "spring_boot_testcontainers", "test_containers_junit_jupiter","spring_boot_starter_test"]

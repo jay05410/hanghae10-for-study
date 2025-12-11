@@ -91,6 +91,26 @@ coupon:
     worker:
       enabled: true  # Queue Worker 활성화 여부
 
+# 데이터 플랫폼 설정 (mockAPI.io)
+dataplatform:
+  enabled: ${DATAPLATFORM_ENABLED:true}
+  url: ${DATAPLATFORM_URL:https://693adba99b80ba7262cbac6f.mockapi.io/api/v1/orders}
+
+# Kafka 설정
+kafka:
+  enabled: ${KAFKA_ENABLED:true}
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  consumer:
+    group-id: ecommerce-consumer-group
+    auto-offset-reset: earliest
+  producer:
+    acks: all
+    retries: 3
+  topics:
+    order-events: ecommerce.order.events
+    payment-events: ecommerce.payment.events
+    data-platform: ecommerce.data-platform
+
 # Spring Actuator 모니터링 설정
 management:
   endpoints:
