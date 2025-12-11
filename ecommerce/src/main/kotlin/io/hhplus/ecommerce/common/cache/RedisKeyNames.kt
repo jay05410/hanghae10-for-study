@@ -169,6 +169,23 @@ object RedisKeyNames {
     }
 
     /**
+     * 주문 관련 키 (Order)
+     *
+     * 용도: 주문 처리 멱등성 보장
+     * - dp:sent = 데이터 플랫폼 전송 이력
+     */
+    object Order {
+        private const val DOMAIN = "$SVC:ord"
+
+        // dp = data platform, sent = 전송 완료
+        const val DP_SENT = "$DOMAIN:dp:sent"
+
+        /** 데이터 플랫폼 전송 이력 키: ecom:ord:dp:sent:{orderId}:{status} */
+        fun dataPlatformSentKey(orderId: Long, status: String): String =
+            "$DP_SENT:$orderId:$status"
+    }
+
+    /**
      * 모든 키 프리픽스 목록 (모니터링용)
      *
      * Redis CLI에서 패턴 검색 시 사용:
@@ -204,6 +221,9 @@ object RedisKeyNames {
         Cache.PRODUCT_POPULAR,
         Cache.PRODUCT_CATEGORY,
         Cache.COUPON_INFO,
-        Cache.COUPON_ACTIVE
+        Cache.COUPON_ACTIVE,
+
+        // Order
+        Order.DP_SENT
     )
 }

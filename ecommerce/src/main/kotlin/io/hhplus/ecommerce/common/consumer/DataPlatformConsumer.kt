@@ -14,12 +14,15 @@ import org.springframework.stereotype.Component
 /**
  * 데이터 플랫폼 Kafka Consumer
  *
- * 주문 정보를 Kafka에서 수신하여 데이터 플랫폼에 전송
+ * Kafka 메시지를 수신하여 데이터 플랫폼에 전송
  *
  * 특징:
  * - 수동 ACK (처리 완료 후 커밋)
  * - TraceId 전파 (분산 추적)
- * - 실패 시 재시도 (Kafka 재처리)
+ *
+ * 멱등성 보장:
+ * - Producer 측(OrderDataPlatformHandler)에서 도메인 레벨 멱등성 처리
+ * - Consumer는 Kafka offset 기반으로 at-least-once 보장
  */
 @Component
 @ConditionalOnProperty(name = ["kafka.enabled"], havingValue = "true", matchIfMissing = false)
@@ -31,22 +34,19 @@ class DataPlatformConsumer(
 
     /**
      * 데이터 플랫폼 토픽 리스너
-     *
-     * PAYMENT_COMPLETED 이벤트 수신 → 주문 정보 데이터 플랫폼 전송
      */
     @KafkaListener(
         topics = ["\${kafka.topics.data-platform}"],
         groupId = "\${kafka.consumer.group-id}",
         containerFactory = "kafkaListenerContainerFactory"
     )
-    fun consumeOrderInfo(
+    fun consume(
         record: ConsumerRecord<String, String>,
         acknowledgment: Acknowledgment
     ) {
         val traceId = extractTraceId(record)
 
         try {
-            // TraceId를 MDC에 설정 (로그 추적용)
             traceId?.let { MDC.put("traceId", it) }
 
             logger.info(
@@ -54,45 +54,36 @@ class DataPlatformConsumer(
                 record.topic(), record.partition(), record.offset(), record.key()
             )
 
-            // 페이로드 파싱
-            val orderInfo = objectMapper.readValue(record.value(), OrderInfoPayload::class.java)
+            val payload = objectMapper.readValue(record.value(), OrderInfoPayload::class.java)
 
-            // 데이터 플랫폼 전송
-            val response = dataPlatformClient.sendOrderInfo(orderInfo)
+            val response = dataPlatformClient.sendOrderInfo(payload)
 
             if (response.success) {
-                // 성공 시 커밋
                 acknowledgment.acknowledge()
                 logger.info(
-                    "[DataPlatformConsumer] 처리 완료: orderId={}, offset={}",
-                    orderInfo.orderId, record.offset()
+                    "[DataPlatformConsumer] 전송 완료: key={}, offset={}",
+                    record.key(), record.offset()
                 )
             } else {
-                // 실패 시 커밋하지 않음 → Kafka가 재전달
                 logger.warn(
-                    "[DataPlatformConsumer] 전송 실패, 재처리 예정: orderId={}, message={}",
-                    orderInfo.orderId, response.message
+                    "[DataPlatformConsumer] 전송 실패: key={}, message={}",
+                    record.key(), response.message
                 )
-                // 실패 시에도 ACK를 하지 않으면 무한 재시도가 될 수 있음
-                // 실무에서는 재시도 횟수 제한 + DLQ 이동 필요
+                // 실패해도 ACK - 무한 재시도 방지 (실무에서는 DLQ 이동)
                 acknowledgment.acknowledge()
             }
 
         } catch (e: Exception) {
             logger.error(
-                "[DataPlatformConsumer] 처리 중 오류: offset={}, error={}",
+                "[DataPlatformConsumer] 처리 오류: offset={}, error={}",
                 record.offset(), e.message, e
             )
-            // 파싱 오류 등은 재시도해도 의미 없으므로 ACK
             acknowledgment.acknowledge()
         } finally {
             MDC.remove("traceId")
         }
     }
 
-    /**
-     * Kafka 헤더에서 TraceId 추출
-     */
     private fun extractTraceId(record: ConsumerRecord<String, String>): String? {
         return record.headers()
             .lastHeader("traceId")

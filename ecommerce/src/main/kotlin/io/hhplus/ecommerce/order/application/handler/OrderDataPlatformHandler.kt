@@ -1,5 +1,7 @@
 package io.hhplus.ecommerce.order.application.handler
 
+import io.hhplus.ecommerce.common.cache.RedisKeyNames
+import io.hhplus.ecommerce.common.idempotency.IdempotencyService
 import io.hhplus.ecommerce.common.messaging.MessagePublisher
 import io.hhplus.ecommerce.common.outbox.EventHandler
 import io.hhplus.ecommerce.common.outbox.OutboxEvent
@@ -14,6 +16,7 @@ import mu.KotlinLogging
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
+import java.time.Duration
 
 /**
  * 주문 정보 데이터 플랫폼 전송 핸들러
@@ -37,12 +40,17 @@ import org.springframework.stereotype.Component
 class OrderDataPlatformHandler(
     private val messagePublisher: MessagePublisher,
     private val getOrderQueryUseCase: GetOrderQueryUseCase,
+    private val idempotencyService: IdempotencyService,
     @Value("\${kafka.topics.data-platform:ecommerce.data-platform}")
     private val dataPlatformTopic: String
 ) : EventHandler {
 
     private val logger = KotlinLogging.logger {}
     private val json = Json { ignoreUnknownKeys = true }
+
+    companion object {
+        private val IDEMPOTENCY_TTL = Duration.ofDays(7)
+    }
 
     override fun supportedEventTypes(): List<String> {
         return listOf(EventRegistry.EventTypes.PAYMENT_COMPLETED)
@@ -55,11 +63,6 @@ class OrderDataPlatformHandler(
                 ?: throw IllegalArgumentException("orderId is required")
             val paymentId = payload["paymentId"]?.jsonPrimitive?.long
 
-            logger.info(
-                "[OrderDataPlatformHandler] 데이터 플랫폼 전송 시작: orderId={}, paymentId={}",
-                orderId, paymentId
-            )
-
             // 주문 정보 조회
             val orderWithItems = getOrderQueryUseCase.getOrderWithItems(orderId)
 
@@ -70,12 +73,30 @@ class OrderDataPlatformHandler(
 
             val (order, items) = orderWithItems
 
-            // Kafka 토픽으로 발행 (확장 함수 사용)
+            // 멱등성 체크: orderId + status 조합으로 중복 발행 방지
+            val idempotencyKey = RedisKeyNames.Order.dataPlatformSentKey(orderId, order.status.name)
+            if (idempotencyService.isProcessed(idempotencyKey)) {
+                logger.debug(
+                    "[OrderDataPlatformHandler] 이미 발행된 메시지, 스킵: orderId={}, status={}",
+                    orderId, order.status
+                )
+                return true
+            }
+
+            logger.info(
+                "[OrderDataPlatformHandler] 데이터 플랫폼 전송 시작: orderId={}, paymentId={}, status={}",
+                orderId, paymentId, order.status
+            )
+
+            // Kafka 토픽으로 발행
             messagePublisher.publish(
                 topic = dataPlatformTopic,
                 key = orderId.toString(),
                 payload = order.toOrderInfoPayload(items, paymentId)
             )
+
+            // 발행 성공 시 이력 저장
+            idempotencyService.markAsProcessed(idempotencyKey, IDEMPOTENCY_TTL)
 
             logger.info(
                 "[OrderDataPlatformHandler] 데이터 플랫폼 전송 완료: orderId={}, topic={}",
