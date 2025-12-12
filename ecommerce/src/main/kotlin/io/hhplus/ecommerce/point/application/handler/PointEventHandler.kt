@@ -1,5 +1,7 @@
 package io.hhplus.ecommerce.point.application.handler
 
+import io.hhplus.ecommerce.common.cache.RedisKeyNames
+import io.hhplus.ecommerce.common.idempotency.IdempotencyService
 import io.hhplus.ecommerce.common.outbox.EventHandler
 import io.hhplus.ecommerce.common.outbox.OutboxEvent
 import io.hhplus.ecommerce.common.outbox.payload.OrderCancelledPayload
@@ -11,6 +13,7 @@ import kotlinx.serialization.json.Json
 import mu.KotlinLogging
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.time.Duration
 
 /**
  * 포인트 이벤트 핸들러 (Saga Step)
@@ -20,14 +23,21 @@ import org.springframework.transaction.annotation.Transactional
  *
  * PaymentCompleted → 포인트 차감
  * OrderCancelled → 포인트 환불
+ *
+ * 멱등성 보장: 같은 orderId에 대해 한 번만 처리
  */
 @Component
 class PointEventHandler(
-    private val pointDomainService: PointDomainService
+    private val pointDomainService: PointDomainService,
+    private val idempotencyService: IdempotencyService
 ) : EventHandler {
 
     private val logger = KotlinLogging.logger {}
     private val json = Json { ignoreUnknownKeys = true }
+
+    companion object {
+        private val IDEMPOTENCY_TTL = Duration.ofDays(7)
+    }
 
     override fun supportedEventTypes(): List<String> {
         return listOf(
@@ -52,6 +62,13 @@ class PointEventHandler(
         return try {
             val payload = json.decodeFromString<PaymentCompletedPayload>(event.payload)
 
+            // 멱등성 체크
+            val idempotencyKey = RedisKeyNames.Point.deductedKey(payload.orderId)
+            if (!idempotencyService.tryAcquire(idempotencyKey, IDEMPOTENCY_TTL)) {
+                logger.debug("[PointEventHandler] 이미 처리된 포인트 차감, 스킵: orderId=${payload.orderId}")
+                return true
+            }
+
             logger.info("[PointEventHandler] 포인트 차감 시작: userId=${payload.userId}, amount=${payload.amount}")
 
             pointDomainService.usePoint(payload.userId, PointAmount.of(payload.amount))
@@ -67,6 +84,13 @@ class PointEventHandler(
     private fun handleOrderCancelled(event: OutboxEvent): Boolean {
         return try {
             val payload = json.decodeFromString<OrderCancelledPayload>(event.payload)
+
+            // 멱등성 체크
+            val idempotencyKey = RedisKeyNames.Point.refundedKey(payload.orderId)
+            if (!idempotencyService.tryAcquire(idempotencyKey, IDEMPOTENCY_TTL)) {
+                logger.debug("[PointEventHandler] 이미 처리된 포인트 환불, 스킵: orderId=${payload.orderId}")
+                return true
+            }
 
             logger.info("[PointEventHandler] 포인트 환불 시작: userId=${payload.userId}, amount=${payload.finalAmount}")
 

@@ -1,5 +1,7 @@
 package io.hhplus.ecommerce.inventory.application.handler
 
+import io.hhplus.ecommerce.common.cache.RedisKeyNames
+import io.hhplus.ecommerce.common.idempotency.IdempotencyService
 import io.hhplus.ecommerce.common.outbox.EventHandler
 import io.hhplus.ecommerce.common.outbox.OutboxEvent
 import io.hhplus.ecommerce.common.outbox.payload.OrderCancelledPayload
@@ -10,20 +12,28 @@ import kotlinx.serialization.json.Json
 import mu.KotlinLogging
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.time.Duration
 
 /**
  * 재고 이벤트 핸들러 (Saga Step 2)
  *
  * PaymentCompleted → 재고 차감
  * OrderCancelled → 재고 복구
+ *
+ * 멱등성 보장: 같은 orderId에 대해 한 번만 처리
  */
 @Component
 class InventoryEventHandler(
-    private val inventoryDomainService: InventoryDomainService
+    private val inventoryDomainService: InventoryDomainService,
+    private val idempotencyService: IdempotencyService
 ) : EventHandler {
 
     private val logger = KotlinLogging.logger {}
     private val json = Json { ignoreUnknownKeys = true }
+
+    companion object {
+        private val IDEMPOTENCY_TTL = Duration.ofDays(7)
+    }
 
     override fun supportedEventTypes(): List<String> {
         return listOf(
@@ -48,6 +58,13 @@ class InventoryEventHandler(
         return try {
             val payload = json.decodeFromString<PaymentCompletedPayload>(event.payload)
 
+            // 멱등성 체크
+            val idempotencyKey = RedisKeyNames.Inventory.deductedKey(payload.orderId)
+            if (!idempotencyService.tryAcquire(idempotencyKey, IDEMPOTENCY_TTL)) {
+                logger.debug("[InventoryEventHandler] 이미 처리된 재고 차감, 스킵: orderId=${payload.orderId}")
+                return true
+            }
+
             logger.info("[InventoryEventHandler] 재고 차감 시작: orderId=${payload.orderId}")
 
             payload.items.sortedBy { it.productId }.forEach { item ->
@@ -65,6 +82,13 @@ class InventoryEventHandler(
     private fun handleOrderCancelled(event: OutboxEvent): Boolean {
         return try {
             val payload = json.decodeFromString<OrderCancelledPayload>(event.payload)
+
+            // 멱등성 체크
+            val idempotencyKey = RedisKeyNames.Inventory.restoredKey(payload.orderId)
+            if (!idempotencyService.tryAcquire(idempotencyKey, IDEMPOTENCY_TTL)) {
+                logger.debug("[InventoryEventHandler] 이미 처리된 재고 복구, 스킵: orderId=${payload.orderId}")
+                return true
+            }
 
             logger.info("[InventoryEventHandler] 재고 복구 시작: orderId=${payload.orderId}")
 

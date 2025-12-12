@@ -192,6 +192,50 @@ object RedisKeyNames {
     }
 
     /**
+     * 재고 관련 키 (Inventory)
+     *
+     * 용도: 재고 처리 멱등성 보장
+     * - deducted = 재고 차감 완료
+     * - restored = 재고 복구 완료
+     */
+    object Inventory {
+        private const val DOMAIN = "$SVC:inv"
+
+        const val DEDUCTED = "$DOMAIN:deducted"
+        const val RESTORED = "$DOMAIN:restored"
+
+        /** 재고 차감 이력 키: ecom:inv:deducted:{orderId} */
+        fun deductedKey(orderId: Long): String =
+            "$DEDUCTED:$orderId"
+
+        /** 재고 복구 이력 키: ecom:inv:restored:{orderId} */
+        fun restoredKey(orderId: Long): String =
+            "$RESTORED:$orderId"
+    }
+
+    /**
+     * 포인트 관련 키 (Point)
+     *
+     * 용도: 포인트 처리 멱등성 보장
+     * - deducted = 포인트 차감 완료
+     * - refunded = 포인트 환불 완료
+     */
+    object Point {
+        private const val DOMAIN = "$SVC:pt"
+
+        const val DEDUCTED = "$DOMAIN:deducted"
+        const val REFUNDED = "$DOMAIN:refunded"
+
+        /** 포인트 차감 이력 키: ecom:pt:deducted:{orderId} */
+        fun deductedKey(orderId: Long): String =
+            "$DEDUCTED:$orderId"
+
+        /** 포인트 환불 이력 키: ecom:pt:refunded:{orderId} */
+        fun refundedKey(orderId: Long): String =
+            "$REFUNDED:$orderId"
+    }
+
+    /**
      * 모든 키 프리픽스 목록 (모니터링용)
      *
      * Redis CLI에서 패턴 검색 시 사용:
