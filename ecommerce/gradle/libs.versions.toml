@@ -4,6 +4,7 @@ ktlint_plugin = "11.6.1"
 kotlinx_serialization = "1.6.2"
 
 spring_boot = "3.5.7"
+resilience4j = "2.2.0"
 spring_cloud_dependencies = "2023.0.0"
 spring_io_dependency_management = "1.1.0"
 spring_mockk = "4.0.2"
@@ -78,6 +79,11 @@ test_containers_kafka = { module = "org.testcontainers:kafka", version.ref = "te
 
 # Kotlinx Serialization
 kotlinx_serialization_json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx_serialization" }
+
+# Resilience4j (Circuit Breaker + Retry)
+resilience4j_spring_boot3 = { module = "io.github.resilience4j:resilience4j-spring-boot3", version.ref = "resilience4j" }
+resilience4j_kotlin = { module = "io.github.resilience4j:resilience4j-kotlin", version.ref = "resilience4j" }
+spring_boot_starter_aop = { module = "org.springframework.boot:spring-boot-starter-aop" }
 
 [bundles]
 testcontainers_mysql = ["test_containers_mysql", "spring_boot_testcontainers", "test_containers_junit_jupiter","spring_boot_starter_test"]

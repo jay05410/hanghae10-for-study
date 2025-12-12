@@ -63,6 +63,11 @@ dependencies {
     // Kafka
     implementation(libs.spring.kafka)
 
+    // Resilience4j (Circuit Breaker + Retry)
+    implementation(libs.resilience4j.spring.boot3)
+    implementation(libs.resilience4j.kotlin)
+    implementation(libs.spring.boot.starter.aop)
+
     // Kotlin Logging
     implementation(libs.kotlin.logging)
 
