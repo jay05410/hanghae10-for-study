@@ -172,17 +172,23 @@ object RedisKeyNames {
      * 주문 관련 키 (Order)
      *
      * 용도: 주문 처리 멱등성 보장
-     * - dp:sent = 데이터 플랫폼 전송 이력
+     * - dp:sent = 데이터 플랫폼 전송 이력 (Producer)
+     * - dp:consumed = 데이터 플랫폼 소비 이력 (Consumer)
      */
     object Order {
         private const val DOMAIN = "$SVC:ord"
 
-        // dp = data platform, sent = 전송 완료
+        // dp = data platform, sent = 전송 완료 (Producer), consumed = 소비 완료 (Consumer)
         const val DP_SENT = "$DOMAIN:dp:sent"
+        const val DP_CONSUMED = "$DOMAIN:dp:consumed"
 
-        /** 데이터 플랫폼 전송 이력 키: ecom:ord:dp:sent:{orderId}:{status} */
+        /** 데이터 플랫폼 전송 이력 키 (Producer): ecom:ord:dp:sent:{orderId}:{status} */
         fun dataPlatformSentKey(orderId: Long, status: String): String =
             "$DP_SENT:$orderId:$status"
+
+        /** 데이터 플랫폼 소비 이력 키 (Consumer): ecom:ord:dp:consumed:{orderId}:{status} */
+        fun dataPlatformConsumedKey(orderId: Long, status: String): String =
+            "$DP_CONSUMED:$orderId:$status"
     }
 
     /**
@@ -224,6 +230,7 @@ object RedisKeyNames {
         Cache.COUPON_ACTIVE,
 
         // Order
-        Order.DP_SENT
+        Order.DP_SENT,
+        Order.DP_CONSUMED
     )
 }

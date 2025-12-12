@@ -12,12 +12,15 @@ import java.time.Duration
 interface IdempotencyService {
 
     /**
-     * 이미 처리된 키인지 확인
+     * 원자적으로 멱등성 키 획득 시도 (SETNX 기반)
+     *
+     * 체크와 마킹을 원자적으로 수행하여 경쟁 조건 방지
+     * - true 반환: 처리 권한 획득 (처음 요청)
+     * - false 반환: 이미 다른 요청이 처리 중이거나 처리 완료
+     *
+     * @param key 멱등성 키
+     * @param ttl 키 만료 시간 (기본값: 7일)
+     * @return 처리 권한 획득 여부
      */
-    fun isProcessed(key: String): Boolean
-
-    /**
-     * 처리 완료로 마킹
-     */
-    fun markAsProcessed(key: String, ttl: Duration = Duration.ofDays(7))
+    fun tryAcquire(key: String, ttl: Duration = Duration.ofDays(7)): Boolean
 }

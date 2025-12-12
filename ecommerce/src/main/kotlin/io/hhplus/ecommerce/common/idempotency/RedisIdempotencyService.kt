@@ -16,11 +16,13 @@ class RedisIdempotencyService(
     private val redisTemplate: RedisTemplate<String, Any>
 ) : IdempotencyService {
 
-    override fun isProcessed(key: String): Boolean {
-        return redisTemplate.hasKey(key) == true
-    }
-
-    override fun markAsProcessed(key: String, ttl: Duration) {
-        redisTemplate.opsForValue().set(key, "1", ttl)
+    /**
+     * 원자적으로 멱등성 키 획득 (SETNX with TTL)
+     *
+     * Redis SETNX는 키가 없을 때만 설정하는 원자적 연산
+     * 경쟁 조건 없이 정확히 한 번만 처리 권한을 부여
+     */
+    override fun tryAcquire(key: String, ttl: Duration): Boolean {
+        return redisTemplate.opsForValue().setIfAbsent(key, "1", ttl) == true
     }
 }
