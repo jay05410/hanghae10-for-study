@@ -312,23 +312,218 @@ sequenceDiagram
 
 **문제:** 데이터 플랫폼 전송 실패
 
-**해결:** 재시도 + DLQ
+**해결:** Retry + Circuit Breaker (Resilience4j)
 
 ```mermaid
-graph LR
-    E[이벤트] --> P{처리 성공?}
-    P -->|Yes| C[완료]
-    P -->|No| R{재시도 < 5?}
-    R -->|Yes| E
-    R -->|No| DLQ[Dead Letter Queue]
-    DLQ --> Alert[운영자 알림]
+graph TB
+    subgraph Consumer["Kafka Consumer"]
+        MSG[메시지 수신]
+        IDEM{멱등성 체크}
+        SEND[DataPlatformSender]
+    end
+
+    subgraph Resilience4j
+        RETRY[Retry<br/>3회 재시도<br/>지수 백오프]
+        CB[Circuit Breaker<br/>50% 실패 시 Open]
+    end
+
+    subgraph Result
+        OK[성공 → ACK]
+        DLQ[실패 → DLQ]
+        PAUSE[CB Open → Consumer Pause]
+    end
+
+    MSG --> IDEM
+    IDEM -->|이미 처리| OK
+    IDEM -->|미처리| SEND
+    SEND --> RETRY
+    RETRY --> CB
+    CB -->|성공| OK
+    CB -->|Retry 소진| DLQ
+    CB -->|Open| PAUSE
 ```
 
-### 5.2 중복 이벤트 처리
+#### Retry + Circuit Breaker 동작 방식
+
+| 단계 | 상황 | 동작 |
+|------|------|------|
+| 1 | 일시적 실패 | Retry (1s → 2s → 4s 지수 백오프) |
+| 2 | Retry 3회 소진 | Circuit Breaker 실패 카운트 |
+| 3 | 실패율 50% 초과 | Circuit Breaker OPEN |
+| 4 | CB Open 상태 | Kafka Consumer **일시 중지** |
+| 5 | 30초 후 | Half-Open → Consumer **재개** |
+
+#### 구현 코드
+
+**DataPlatformSender.kt** (Retry + Circuit Breaker 적용):
+
+```kotlin
+@Service
+class DataPlatformSender(private val dataPlatformClient: DataPlatformClient) {
+
+    @Retry(name = "dataPlatform", fallbackMethod = "sendFallback")
+    @CircuitBreaker(name = "dataPlatform", fallbackMethod = "sendFallback")
+    fun send(payload: OrderInfoPayload): DataPlatformResponse {
+        val response = dataPlatformClient.sendOrderInfo(payload)
+        if (!response.success) {
+            throw DataPlatformException("전송 실패: ${response.message}")
+        }
+        return response
+    }
+}
+```
+
+**CircuitBreakerEventListener.kt** (Consumer pause/resume):
+
+```kotlin
+@PostConstruct
+fun registerEventListener() {
+    circuitBreaker.eventPublisher.onStateTransition { event ->
+        when (event.stateTransition.toState) {
+            OPEN, FORCED_OPEN -> kafkaContainer.pause()
+            HALF_OPEN, CLOSED -> kafkaContainer.resume()
+        }
+    }
+}
+```
+
+**application.yml** 설정:
+
+```yaml
+resilience4j:
+  retry:
+    instances:
+      dataPlatform:
+        maxAttempts: 3
+        waitDuration: 1s
+        exponentialBackoffMultiplier: 2
+  circuitbreaker:
+    instances:
+      dataPlatform:
+        failureRateThreshold: 50
+        slidingWindowSize: 10
+        waitDurationInOpenState: 30s
+```
+
+#### 실패 시 Redis 키 처리
+
+| 상황 | Redis 키 | 이유 |
+|------|----------|------|
+| **성공** | 유지 | 중복 처리 방지 |
+| **CB Open** | 삭제 | 재시도 가능하게 |
+| **최종 실패 (DLQ)** | 유지 | 중복 DLQ 방지 |
+
+### 5.2 중복 이벤트 처리 (멱등성)
 
 **문제:** At-least-once 특성으로 동일 이벤트 2회 이상 도착 가능
 
-**해결 방향:** Idempotent Consumer 패턴 적용 필요
+**해결:** 2단계 멱등성 체크 (Producer + Consumer) + **원자적 SETNX**
+
+```mermaid
+sequenceDiagram
+    participant H as Handler (Producer)
+    participant R as Redis
+    participant K as Kafka
+    participant C as Consumer
+    participant EXT as 외부 API
+
+    H->>R: tryAcquire (SETNX): dataPlatformSentKey
+    R-->>H: true (획득 성공)
+    H->>K: 메시지 발행
+
+    K->>C: 메시지 전달 (at-least-once)
+    C->>R: tryAcquire (SETNX): dataPlatformConsumedKey
+    R-->>C: true (획득 성공)
+    C->>EXT: 외부 API 전송
+    EXT-->>C: 성공
+    C->>K: ACK
+
+    Note over K,C: 네트워크 실패로 ACK 누락 시
+    K->>C: 동일 메시지 재전달
+    C->>R: tryAcquire (SETNX): dataPlatformConsumedKey
+    R-->>C: false (이미 존재) → 스킵
+    C->>K: ACK
+```
+
+**구현 내용:**
+
+| 단계 | 위치 | 목적 | 키 패턴 |
+|------|------|------|---------|
+| 1차 | OrderDataPlatformHandler | Kafka 중복 발행 방지 | `ecom:ord:dp:sent:{orderId}:{status}` |
+| 2차 | DataPlatformConsumer | 외부 API 중복 전송 방지 | `ecom:ord:dp:consumed:{orderId}:{status}` |
+
+#### 왜 SETNX (원자적 체크)가 필요한가?
+
+**기존 방식의 문제점 (isProcessed + markAsProcessed):**
+
+```kotlin
+// ❌ 경쟁 조건에 취약한 기존 방식
+if (!idempotencyService.isProcessed(key)) {   // 1. 체크
+    // ← 여기서 다른 스레드도 false를 받을 수 있음!
+    messagePublisher.publish(...)              // 2. 발행 (중복!)
+    idempotencyService.markAsProcessed(key)    // 3. 마킹
+}
+```
+
+**테스트 결과 (동시 10개 스레드):**
+```
+기존 방식: 10번 모두 중복 처리됨 ⚠️
+SETNX 방식: 정확히 1번만 처리됨 ✅
+```
+
+**개선된 방식 (tryAcquire = SETNX):**
+
+```kotlin
+// ✅ 원자적으로 체크하고 마킹하는 방식
+if (idempotencyService.tryAcquire(key, TTL_7_DAYS)) {
+    // SETNX 성공 = 처음 요청 = 처리 권한 획득
+    messagePublisher.publish(...)
+}
+```
+
+**IdempotencyService 인터페이스:**
+
+```kotlin
+interface IdempotencyService {
+    /**
+     * 원자적으로 멱등성 키 획득 시도 (SETNX 기반)
+     * - true: 처리 권한 획득 (처음 요청)
+     * - false: 이미 처리 중이거나 완료
+     */
+    fun tryAcquire(key: String, ttl: Duration = Duration.ofDays(7)): Boolean
+}
+```
+
+**RedisIdempotencyService 구현:**
+
+```kotlin
+override fun tryAcquire(key: String, ttl: Duration): Boolean {
+    return redisTemplate.opsForValue().setIfAbsent(key, "1", ttl) == true
+}
+```
+
+#### SETNX 방식의 장점
+
+| 항목 | 설명 |
+|------|------|
+| **원자성** | Redis 단일 연산으로 경쟁 조건 완전 방지 |
+| **성능** | 네트워크 RTT 1회 (기존 hasKey + set 2회보다 빠름) |
+| **블로킹 없음** | 분산 락처럼 대기하지 않고 즉시 true/false 반환 |
+| **업계 표준** | Kafka 멱등성 처리에 널리 사용되는 패턴 |
+
+#### 왜 2단계가 필요한가?
+
+1. **Kafka at-least-once 특성**: Consumer가 메시지를 처리하고 ACK 전송 중 네트워크 실패 시, Kafka는 동일 메시지를 재전달함
+2. **Producer 레벨 멱등성만으로 부족**: Producer는 Kafka 발행까지만 책임지고, Consumer가 실제 외부 API를 호출하므로 Consumer 레벨에서도 별도 체크 필요
+3. **TTL 7일**: 충분한 기간 동안 중복 방지, 이후 자동 만료
+
+#### 업계 사례
+
+| 기업/도구 | 접근법 |
+|-----------|--------|
+| **Confluent (Kafka 개발사)** | "외부 API 호출은 반드시 자체 멱등성 체크 필요" |
+| **Turkcell** | Redis SETNX로 Consumer 레벨 멱등성 처리 |
+| **Lydtech Consulting** | Transactional Outbox + Idempotent Consumer 조합 권장 |
 
 ### 5.3 이벤트 순서 역전
 
@@ -350,22 +545,19 @@ graph LR
 | DLQ 처리 | ✅ | 실패 이벤트 격리 |
 | Kafka 연동 | ✅ | MessagePublisher 추상화 |
 | 외부 API 분리 | ✅ | DataPlatformConsumer |
-| 멱등성 처리 | ❌ | 미구현 |
-| Circuit Breaker | ❌ | 미구현 |
+| 멱등성 처리 | ✅ | 2단계 멱등성 + **원자적 SETNX** (경쟁 조건 방지) |
+| Retry | ✅ | Resilience4j - 3회 재시도, 지수 백오프 |
+| Circuit Breaker | ✅ | Resilience4j - 50% 실패 시 Open, Consumer pause/resume |
 
-### 6.2 추가 개선 필요사항
+### 6.2 추가 개선 가능 사항
 
-**1. 멱등성 처리**
-
-현재 미구현. At-least-once 특성으로 인한 중복 처리 방지 필요.
-
-**2. Circuit Breaker**
-
-외부 API 연쇄 장애 방지를 위해 도입 필요.
-
-**3. 분산 추적 강화**
+**1. 분산 추적 강화**
 
 현재 `traceId`를 MDC로 전파 중. OpenTelemetry 도입으로 전체 흐름 가시화 가능.
+
+**2. DLQ 재처리 자동화**
+
+현재 DLQ 메시지는 수동 처리. 자동 재처리 스케줄러 도입 가능.
 
 ---
 
@@ -386,7 +578,10 @@ graph LR
 Eventual Consistency (최종 일관성)
 ├── 즉각적 강한 일관성 대신 시간차 일관성
 ├── 재시도 + DLQ로 실패 복구
-└── 멱등성 처리로 중복 방지 (구현 필요)
+└── 2단계 멱등성 처리로 중복 방지
+    ├── Producer: OrderDataPlatformHandler (tryAcquire)
+    ├── Consumer: DataPlatformConsumer (tryAcquire)
+    └── 원자적 SETNX로 경쟁 조건 완전 방지
 ```
 
 ---
@@ -396,11 +591,18 @@ Eventual Consistency (최종 일관성)
 ```
 src/main/kotlin/io/hhplus/ecommerce/
 ├── common/
+│   ├── cache/
+│   │   └── RedisKeyNames.kt             # Redis 키 패턴 정의 (멱등성 키 포함)
 │   ├── client/
 │   │   ├── DataPlatformClient.kt
 │   │   └── MockDataPlatformClient.kt
 │   ├── consumer/
-│   │   └── DataPlatformConsumer.kt
+│   │   ├── DataPlatformConsumer.kt      # Kafka Consumer (멱등성 + 에러 처리)
+│   │   ├── DataPlatformSender.kt        # Retry + Circuit Breaker 적용
+│   │   └── CircuitBreakerEventListener.kt  # CB 상태에 따른 Consumer pause/resume
+│   ├── idempotency/
+│   │   ├── IdempotencyService.kt        # 멱등성 서비스 인터페이스 (tryAcquire)
+│   │   └── RedisIdempotencyService.kt   # Redis SETNX 기반 원자적 멱등성 구현
 │   ├── messaging/
 │   │   ├── MessagePublisher.kt
 │   │   ├── InMemoryMessagePublisher.kt
@@ -410,6 +612,8 @@ src/main/kotlin/io/hhplus/ecommerce/
 │       ├── OutboxEvent.kt               # Entity
 │       ├── OutboxEventRepository.kt     # Repository 인터페이스
 │       ├── OutboxEventService.kt        # Application Service
+│       ├── payload/
+│       │   └── OutboxEventPayloads.kt   # @Serializable 이벤트 페이로드 정의
 │       ├── infra/
 │       └── dlq/
 ├── config/
@@ -420,7 +624,7 @@ src/main/kotlin/io/hhplus/ecommerce/
 └── order/
     └── application/
         ├── handler/
-        │   └── OrderDataPlatformHandler.kt
+        │   └── OrderDataPlatformHandler.kt  # 1차 멱등성 체크 (Producer 레벨)
         └── mapper/
             └── OrderPayloadMapper.kt
 ```
