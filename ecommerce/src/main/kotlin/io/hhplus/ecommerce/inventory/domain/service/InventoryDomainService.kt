@@ -72,12 +72,19 @@ class InventoryDomainService(
     }
 
     /**
-     * 재고 보충
+     * 재고 보충 (upsert)
+     * 재고가 없으면 생성, 있으면 보충
      */
     fun restockInventory(productId: Long, quantity: Int): Inventory {
-        val inventory = getInventoryWithLock(productId)
-        inventory.restock(quantity)
-        return inventoryRepository.save(inventory)
+        val inventory = inventoryRepository.findByProductIdWithLock(productId)
+
+        return if (inventory != null) {
+            inventory.restock(quantity)
+            inventoryRepository.save(inventory)
+        } else {
+            val newInventory = Inventory.create(productId, quantity)
+            inventoryRepository.save(newInventory)
+        }
     }
 
     /**

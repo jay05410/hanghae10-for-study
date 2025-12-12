@@ -1,5 +1,7 @@
-package io.hhplus.ecommerce.common.outbox.dlq
+package io.hhplus.ecommerce.common.outbox.dlq.infra
 
+import io.hhplus.ecommerce.common.outbox.dlq.AlertService
+import io.hhplus.ecommerce.common.outbox.dlq.DlqService
 import mu.KotlinLogging
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.scheduling.annotation.Scheduled
@@ -11,7 +13,6 @@ import org.springframework.stereotype.Component
  * 역할:
  * - 주기적으로 미해결 DLQ 이벤트 수 체크
  * - 임계치 초과 시 알림 발송
- * - 운영자가 DLQ 상태를 파악할 수 있도록 로깅
  */
 @Component
 class DlqMonitoringScheduler(
@@ -22,9 +23,6 @@ class DlqMonitoringScheduler(
 ) {
     private val logger = KotlinLogging.logger {}
 
-    /**
-     * 1분마다 DLQ 상태 모니터링
-     */
     @Scheduled(fixedDelay = 60000)
     fun monitorDlqStatus() {
         val unresolvedCount = dlqService.countUnresolved()
@@ -41,9 +39,6 @@ class DlqMonitoringScheduler(
         }
     }
 
-    /**
-     * 10분마다 DLQ 상세 리포트 로깅
-     */
     @Scheduled(fixedDelay = 600000)
     fun logDlqReport() {
         val unresolvedEvents = dlqService.getUnresolvedEvents()

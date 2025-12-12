@@ -15,7 +15,7 @@ import io.hhplus.ecommerce.inventory.application.usecase.InventoryCommandUseCase
 import io.hhplus.ecommerce.delivery.application.usecase.DeliveryCommandUseCase
 import io.hhplus.ecommerce.delivery.application.usecase.GetDeliveryQueryUseCase
 import io.hhplus.ecommerce.product.presentation.dto.CreateProductRequest
-import io.hhplus.ecommerce.common.outbox.OutboxEventProcessor
+import io.hhplus.ecommerce.common.outbox.infra.OutboxEventProcessor
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -65,9 +65,9 @@ class OrderCancelIntegrationTest(
                 )
 
                 // 재고 생성
-                val savedInventory = inventoryCommandUseCase.createInventory(
+                val savedInventory = inventoryCommandUseCase.restockInventory(
                     productId = savedProduct.id,
-                    initialQuantity = 100
+                    quantity = 100
                 )
                 val initialStock = savedInventory.quantity
 
@@ -150,9 +150,9 @@ class OrderCancelIntegrationTest(
                     )
                 )
 
-                inventoryCommandUseCase.createInventory(
+                inventoryCommandUseCase.restockInventory(
                     productId = savedProduct.id,
-                    initialQuantity = 100
+                    quantity = 100
                 )
 
                 chargePointUseCase.execute(userId, 100000, "테스트용 충전")

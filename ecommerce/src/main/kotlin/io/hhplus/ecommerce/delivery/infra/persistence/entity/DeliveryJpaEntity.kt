@@ -2,7 +2,6 @@ package io.hhplus.ecommerce.delivery.infra.persistence.entity
 
 import io.hhplus.ecommerce.common.baseentity.BaseJpaEntity
 import io.hhplus.ecommerce.delivery.domain.constant.DeliveryStatus
-import io.hhplus.ecommerce.delivery.domain.converter.DeliveryAddressConverter
 import jakarta.persistence.*
 import java.time.LocalDateTime
 
@@ -35,7 +34,6 @@ class DeliveryJpaEntity(
     @Column(nullable = false, unique = true, name = "order_id")
     val orderId: Long,
 
-    @Convert(converter = DeliveryAddressConverter::class)
     @Column(nullable = false, columnDefinition = "JSON", name = "delivery_address")
     val deliveryAddress: String, // JSON 문자열로 저장
 

@@ -1,5 +1,6 @@
-package io.hhplus.ecommerce.common.outbox.dlq
+package io.hhplus.ecommerce.common.outbox.dlq.infra
 
+import io.hhplus.ecommerce.common.outbox.dlq.OutboxEventDlq
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 

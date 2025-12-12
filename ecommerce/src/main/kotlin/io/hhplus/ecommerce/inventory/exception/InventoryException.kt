@@ -22,16 +22,20 @@ sealed class InventoryException(
         data = mapOf("productId" to productId)
     )
 
-    class InsufficientStock(productId: Long, availableStock: Int, requestedQuantity: Int) : InventoryException(
+    class InsufficientStock(
+        val productId: Long,
+        val availableQuantity: Int,
+        val requestedQuantity: Int
+    ) : InventoryException(
         errorCode = InventoryErrorCode.INSUFFICIENT_STOCK,
         message = InventoryErrorCode.INSUFFICIENT_STOCK.withParams(
             "productId" to productId,
-            "availableStock" to availableStock,
+            "availableStock" to availableQuantity,
             "requestedQuantity" to requestedQuantity
         ),
         data = mapOf(
             "productId" to productId,
-            "availableStock" to availableStock,
+            "availableStock" to availableQuantity,
             "requestedQuantity" to requestedQuantity
         )
     )

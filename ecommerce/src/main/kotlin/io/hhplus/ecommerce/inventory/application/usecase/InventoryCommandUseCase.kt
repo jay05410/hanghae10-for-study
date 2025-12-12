@@ -12,12 +12,14 @@ import org.springframework.stereotype.Component
  * 역할:
  * - 트랜잭션 경계 관리
  * - 분산락을 통한 동시성 제어
- * - 재고 변경 작업 오케스트레이션
+ * - 재고 수량 변경 오케스트레이션
  *
  * 책임:
- * - 재고 생성, 차감, 보충 기능 제공
- * - 재고 예약 확정/해제 기능 제공
+ * - 재고 차감, 보충 기능 제공
  * - InventoryDomainService에 도메인 로직 위임
+ *
+ * 참고:
+ * - 예약 관련 기능은 StockReservationCommandUseCase에서 담당
  */
 @Component
 class InventoryCommandUseCase(
@@ -25,15 +27,7 @@ class InventoryCommandUseCase(
 ) {
 
     /**
-     * 새 재고를 생성합니다.
-     */
-    @DistributedTransaction
-    fun createInventory(productId: Long, initialQuantity: Int): Inventory {
-        return inventoryDomainService.createInventory(productId, initialQuantity)
-    }
-
-    /**
-     * 재고를 차감합니다.
+     * 재고 차감
      */
     @DistributedLock(key = "'inventory:' + #productId")
     @DistributedTransaction
@@ -42,38 +36,11 @@ class InventoryCommandUseCase(
     }
 
     /**
-     * 재고를 보충합니다.
+     * 재고 보충 (upsert: 없으면 생성, 있으면 추가)
      */
     @DistributedLock(key = "'inventory:' + #productId")
     @DistributedTransaction
     fun restockInventory(productId: Long, quantity: Int): Inventory {
         return inventoryDomainService.restockInventory(productId, quantity)
-    }
-
-    /**
-     * 재고를 예약합니다.
-     */
-    @DistributedLock(key = "'inventory:' + #productId")
-    @DistributedTransaction
-    fun reserveStock(productId: Long, quantity: Int): Inventory {
-        return inventoryDomainService.reserveStock(productId, quantity)
-    }
-
-    /**
-     * 예약을 해제합니다.
-     */
-    @DistributedLock(key = "'inventory:' + #productId")
-    @DistributedTransaction
-    fun releaseReservation(productId: Long, quantity: Int): Inventory {
-        return inventoryDomainService.releaseReservation(productId, quantity)
-    }
-
-    /**
-     * 예약을 확정합니다 (예약 수량을 실제 차감).
-     */
-    @DistributedLock(key = "'inventory:' + #productId")
-    @DistributedTransaction
-    fun confirmReservation(productId: Long, quantity: Int): Inventory {
-        return inventoryDomainService.confirmReservation(productId, quantity)
     }
 }

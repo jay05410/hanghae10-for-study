@@ -1,10 +1,11 @@
 package io.hhplus.ecommerce.product.application.handler
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import io.hhplus.ecommerce.common.outbox.EventHandler
-import io.hhplus.ecommerce.common.outbox.EventRegistry
 import io.hhplus.ecommerce.common.outbox.OutboxEvent
+import io.hhplus.ecommerce.common.outbox.payload.PaymentCompletedPayload
+import io.hhplus.ecommerce.config.event.EventRegistry
 import io.hhplus.ecommerce.product.application.port.out.ProductRankingPort
+import kotlinx.serialization.json.Json
 import mu.KotlinLogging
 import org.springframework.stereotype.Component
 
@@ -28,11 +29,11 @@ import org.springframework.stereotype.Component
  */
 @Component
 class ProductRankingEventHandler(
-    private val productRankingPort: ProductRankingPort,
-    private val objectMapper: ObjectMapper
+    private val productRankingPort: ProductRankingPort
 ) : EventHandler {
 
     private val logger = KotlinLogging.logger {}
+    private val json = Json { ignoreUnknownKeys = true }
 
     override fun supportedEventTypes(): List<String> {
         return listOf(EventRegistry.EventTypes.PAYMENT_COMPLETED)
@@ -70,15 +71,10 @@ class ProductRankingEventHandler(
 
             events.forEach { event ->
                 try {
-                    val payload = objectMapper.readValue(event.payload, Map::class.java)
+                    val payload = json.decodeFromString<PaymentCompletedPayload>(event.payload)
 
-                    @Suppress("UNCHECKED_CAST")
-                    val items = payload["items"] as? List<Map<String, Any>> ?: return@forEach
-
-                    items.forEach { item ->
-                        val productId = (item["productId"] as Number).toLong()
-                        val quantity = (item["quantity"] as Number).toInt()
-                        salesByProduct.merge(productId, quantity, Int::plus)
+                    payload.items.forEach { item ->
+                        salesByProduct.merge(item.productId, item.quantity, Int::plus)
                     }
                 } catch (e: Exception) {
                     logger.warn("[ProductRankingEventHandler] 이벤트 파싱 실패: eventId=${event.id}, error=${e.message}")
@@ -105,45 +101,27 @@ class ProductRankingEventHandler(
 
     /**
      * 결제 완료 이벤트 처리 - 판매량 랭킹 업데이트
-     *
-     * Payload 구조:
-     * {
-     *   "orderId": 123,
-     *   "userId": 456,
-     *   "amount": 50000,
-     *   "items": [
-     *     {"productId": 1, "quantity": 2, "unitPrice": 10000},
-     *     {"productId": 2, "quantity": 1, "unitPrice": 30000}
-     *   ]
-     * }
      */
     private fun handlePaymentCompleted(event: OutboxEvent): Boolean {
         return try {
-            val payload = objectMapper.readValue(event.payload, Map::class.java)
-            val orderId = (payload["orderId"] as Number).toLong()
+            val payload = json.decodeFromString<PaymentCompletedPayload>(event.payload)
 
-            @Suppress("UNCHECKED_CAST")
-            val items = payload["items"] as? List<Map<String, Any>>
-
-            if (items.isNullOrEmpty()) {
-                logger.warn("[ProductRankingEventHandler] 주문 아이템이 없음: orderId=$orderId")
+            if (payload.items.isEmpty()) {
+                logger.warn("[ProductRankingEventHandler] 주문 아이템이 없음: orderId=${payload.orderId}")
                 return true // 아이템이 없어도 성공 처리
             }
 
-            logger.info("[ProductRankingEventHandler] 판매 랭킹 업데이트 시작: orderId=$orderId, itemCount=${items.size}")
+            logger.info("[ProductRankingEventHandler] 판매 랭킹 업데이트 시작: orderId=${payload.orderId}, itemCount=${payload.items.size}")
 
             var updatedCount = 0
-            items.forEach { item ->
+            payload.items.forEach { item ->
                 try {
-                    val productId = (item["productId"] as Number).toLong()
-                    val quantity = (item["quantity"] as Number).toInt()
-
                     // Redis Sorted Set에 판매량 반영 (ZINCRBY)
-                    val newDailySales = productRankingPort.incrementSalesCount(productId, quantity)
+                    val newDailySales = productRankingPort.incrementSalesCount(item.productId, item.quantity)
 
                     logger.debug(
-                        "[ProductRankingEventHandler] 상품 랭킹 업데이트: productId=$productId, " +
-                            "quantity=$quantity, newDailySales=$newDailySales"
+                        "[ProductRankingEventHandler] 상품 랭킹 업데이트: productId=${item.productId}, " +
+                            "quantity=${item.quantity}, newDailySales=$newDailySales"
                     )
                     updatedCount++
                 } catch (e: Exception) {
@@ -155,8 +133,8 @@ class ProductRankingEventHandler(
             }
 
             logger.info(
-                "[ProductRankingEventHandler] 판매 랭킹 업데이트 완료: orderId=$orderId, " +
-                    "updated=$updatedCount/${items.size}"
+                "[ProductRankingEventHandler] 판매 랭킹 업데이트 완료: orderId=${payload.orderId}, " +
+                    "updated=$updatedCount/${payload.items.size}"
             )
             true
         } catch (e: Exception) {

@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.spring)
     alias(libs.plugins.kotlin.jpa)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.spring.boot)
     alias(libs.plugins.spring.dependency.management)
     id("jacoco")
@@ -59,8 +60,19 @@ dependencies {
     // Caffeine Cache
     implementation(libs.caffeine)
 
+    // Kafka
+    implementation(libs.spring.kafka)
+
+    // Resilience4j (Circuit Breaker + Retry)
+    implementation(libs.resilience4j.spring.boot3)
+    implementation(libs.resilience4j.kotlin)
+    implementation(libs.spring.boot.starter.aop)
+
     // Kotlin Logging
     implementation(libs.kotlin.logging)
+
+    // Kotlinx Serialization
+    implementation(libs.kotlinx.serialization.json)
 
     // Test Dependencies
     testImplementation(libs.spring.boot.starter.test)
@@ -72,6 +84,10 @@ dependencies {
 
     // TestContainers
     testImplementation(libs.bundles.testcontainers.mysql)
+    testImplementation(libs.test.containers.kafka)
+
+    // Kafka Test
+    testImplementation(libs.spring.kafka.test)
 }
 
 tasks.test {

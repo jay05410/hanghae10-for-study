@@ -1,14 +1,19 @@
 package io.hhplus.ecommerce.point.application.handler
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import io.hhplus.ecommerce.common.cache.RedisKeyNames
+import io.hhplus.ecommerce.common.idempotency.IdempotencyService
 import io.hhplus.ecommerce.common.outbox.EventHandler
-import io.hhplus.ecommerce.common.outbox.EventRegistry
 import io.hhplus.ecommerce.common.outbox.OutboxEvent
+import io.hhplus.ecommerce.common.outbox.payload.OrderCancelledPayload
+import io.hhplus.ecommerce.common.outbox.payload.PaymentCompletedPayload
+import io.hhplus.ecommerce.config.event.EventRegistry
 import io.hhplus.ecommerce.point.domain.service.PointDomainService
 import io.hhplus.ecommerce.point.domain.vo.PointAmount
+import kotlinx.serialization.json.Json
 import mu.KotlinLogging
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.time.Duration
 
 /**
  * 포인트 이벤트 핸들러 (Saga Step)
@@ -18,14 +23,21 @@ import org.springframework.transaction.annotation.Transactional
  *
  * PaymentCompleted → 포인트 차감
  * OrderCancelled → 포인트 환불
+ *
+ * 멱등성 보장: 같은 orderId에 대해 한 번만 처리
  */
 @Component
 class PointEventHandler(
     private val pointDomainService: PointDomainService,
-    private val objectMapper: ObjectMapper
+    private val idempotencyService: IdempotencyService
 ) : EventHandler {
 
     private val logger = KotlinLogging.logger {}
+    private val json = Json { ignoreUnknownKeys = true }
+
+    companion object {
+        private val IDEMPOTENCY_TTL = Duration.ofDays(7)
+    }
 
     override fun supportedEventTypes(): List<String> {
         return listOf(
@@ -48,15 +60,20 @@ class PointEventHandler(
 
     private fun handlePaymentCompleted(event: OutboxEvent): Boolean {
         return try {
-            val payload = objectMapper.readValue(event.payload, Map::class.java)
-            val userId = (payload["userId"] as Number).toLong()
-            val amount = (payload["amount"] as Number).toLong()
+            val payload = json.decodeFromString<PaymentCompletedPayload>(event.payload)
 
-            logger.info("[PointEventHandler] 포인트 차감 시작: userId=$userId, amount=$amount")
+            // 멱등성 체크
+            val idempotencyKey = RedisKeyNames.Point.deductedKey(payload.orderId)
+            if (!idempotencyService.tryAcquire(idempotencyKey, IDEMPOTENCY_TTL)) {
+                logger.debug("[PointEventHandler] 이미 처리된 포인트 차감, 스킵: orderId=${payload.orderId}")
+                return true
+            }
 
-            pointDomainService.usePoint(userId, PointAmount.of(amount))
+            logger.info("[PointEventHandler] 포인트 차감 시작: userId=${payload.userId}, amount=${payload.amount}")
 
-            logger.info("[PointEventHandler] 포인트 차감 완료: userId=$userId")
+            pointDomainService.usePoint(payload.userId, PointAmount.of(payload.amount))
+
+            logger.info("[PointEventHandler] 포인트 차감 완료: userId=${payload.userId}")
             true
         } catch (e: Exception) {
             logger.error("[PointEventHandler] 포인트 차감 실패: ${e.message}", e)
@@ -66,15 +83,20 @@ class PointEventHandler(
 
     private fun handleOrderCancelled(event: OutboxEvent): Boolean {
         return try {
-            val payload = objectMapper.readValue(event.payload, Map::class.java)
-            val userId = (payload["userId"] as Number).toLong()
-            val finalAmount = (payload["finalAmount"] as Number).toLong()
+            val payload = json.decodeFromString<OrderCancelledPayload>(event.payload)
 
-            logger.info("[PointEventHandler] 포인트 환불 시작: userId=$userId, amount=$finalAmount")
+            // 멱등성 체크
+            val idempotencyKey = RedisKeyNames.Point.refundedKey(payload.orderId)
+            if (!idempotencyService.tryAcquire(idempotencyKey, IDEMPOTENCY_TTL)) {
+                logger.debug("[PointEventHandler] 이미 처리된 포인트 환불, 스킵: orderId=${payload.orderId}")
+                return true
+            }
 
-            pointDomainService.earnPoint(userId, PointAmount.of(finalAmount))
+            logger.info("[PointEventHandler] 포인트 환불 시작: userId=${payload.userId}, amount=${payload.finalAmount}")
 
-            logger.info("[PointEventHandler] 포인트 환불 완료: userId=$userId")
+            pointDomainService.earnPoint(payload.userId, PointAmount.of(payload.finalAmount))
+
+            logger.info("[PointEventHandler] 포인트 환불 완료: userId=${payload.userId}")
             true
         } catch (e: Exception) {
             logger.error("[PointEventHandler] 포인트 환불 실패: ${e.message}", e)

@@ -54,8 +54,13 @@ class RedisConfig {
         return Redisson.create(config)
     }
 
-    @Bean
-    fun redisObjectMapper(): ObjectMapper {
+    /**
+     * Redis 전용 ObjectMapper
+     *
+     * activateDefaultTyping으로 타입 정보 포함 - Redis 캐시에서 다형성 역직렬화에 필요
+     * Spring의 기본 ObjectMapper에 영향 주지 않도록 private으로 생성
+     */
+    private fun createRedisObjectMapper(): ObjectMapper {
         val typeValidator: PolymorphicTypeValidator = BasicPolymorphicTypeValidator.builder()
             .allowIfBaseType(Any::class.java)
             .allowIfSubType("io.hhplus.ecommerce")
@@ -72,9 +77,9 @@ class RedisConfig {
 
     @Bean
     fun redisTemplate(
-        connectionFactory: RedisConnectionFactory,
-        redisObjectMapper: ObjectMapper
+        connectionFactory: RedisConnectionFactory
     ): RedisTemplate<String, Any> {
+        val redisObjectMapper = createRedisObjectMapper()
         return RedisTemplate<String, Any>().apply {
             this.connectionFactory = connectionFactory
             keySerializer = StringRedisSerializer()

@@ -199,19 +199,24 @@ class InventoryDomainServiceTest : DescribeSpec({
             }
         }
 
-        context("존재하지 않는 상품의 재고 충당") {
-            it("InventoryNotFound 예외를 발생") {
+        context("존재하지 않는 상품의 재고 충당 (upsert)") {
+            it("새 재고를 생성하여 저장") {
                 val productId = 999L
                 val quantity = 50
+                val newInventory = createMockInventory(productId = productId, quantity = quantity)
 
                 every { mockInventoryRepository.findByProductIdWithLock(productId) } returns null
+                every { mockInventoryRepository.save(any()) } returns newInventory
 
-                shouldThrow<InventoryException.InventoryNotFound> {
-                    sut.restockInventory(productId, quantity)
-                }
+                mockkObject(Inventory.Companion)
+                every { Inventory.create(productId, quantity) } returns newInventory
 
+                val result = sut.restockInventory(productId, quantity)
+
+                result shouldBe newInventory
                 verify(exactly = 1) { mockInventoryRepository.findByProductIdWithLock(productId) }
-                verify(exactly = 0) { mockInventoryRepository.save(any()) }
+                verify(exactly = 1) { Inventory.create(productId, quantity) }
+                verify(exactly = 1) { mockInventoryRepository.save(any()) }
             }
         }
     }
