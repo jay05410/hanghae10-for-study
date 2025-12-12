@@ -1,12 +1,15 @@
 package io.hhplus.ecommerce.payment.application.handler
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import io.hhplus.ecommerce.common.outbox.EventHandler
-import io.hhplus.ecommerce.config.event.EventRegistry
 import io.hhplus.ecommerce.common.outbox.OutboxEvent
 import io.hhplus.ecommerce.common.outbox.OutboxEventService
+import io.hhplus.ecommerce.common.outbox.payload.OrderCreatedPayload
+import io.hhplus.ecommerce.common.outbox.payload.PaymentCompletedPayload
+import io.hhplus.ecommerce.common.outbox.payload.PaymentFailedPayload
+import io.hhplus.ecommerce.config.event.EventRegistry
 import io.hhplus.ecommerce.payment.application.usecase.ProcessPaymentUseCase
 import io.hhplus.ecommerce.payment.presentation.dto.ProcessPaymentRequest
+import kotlinx.serialization.json.Json
 import mu.KotlinLogging
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -23,11 +26,11 @@ import org.springframework.transaction.annotation.Transactional
 @Component
 class PaymentEventHandler(
     private val processPaymentUseCase: ProcessPaymentUseCase,
-    private val outboxEventService: OutboxEventService,
-    private val objectMapper: ObjectMapper
+    private val outboxEventService: OutboxEventService
 ) : EventHandler {
 
     private val logger = KotlinLogging.logger {}
+    private val json = Json { ignoreUnknownKeys = true }
 
     override fun supportedEventTypes(): List<String> {
         return listOf(EventRegistry.EventTypes.ORDER_CREATED)
@@ -36,31 +39,27 @@ class PaymentEventHandler(
     @Transactional
     override fun handle(event: OutboxEvent): Boolean {
         return try {
-            val payload = objectMapper.readValue(event.payload, Map::class.java)
+            val payload = json.decodeFromString<OrderCreatedPayload>(event.payload)
 
-            val orderId = (payload["orderId"] as Number).toLong()
-            val userId = (payload["userId"] as Number).toLong()
-            val finalAmount = (payload["finalAmount"] as Number).toLong()
-
-            logger.info("[PaymentEventHandler] 결제 처리 시작: orderId=$orderId, userId=$userId, amount=$finalAmount")
+            logger.info("[PaymentEventHandler] 결제 처리 시작: orderId=${payload.orderId}, userId=${payload.userId}, amount=${payload.finalAmount}")
 
             try {
                 // 결제 처리
                 val payment = processPaymentUseCase.execute(
                     ProcessPaymentRequest(
-                        userId = userId,
-                        orderId = orderId,
-                        amount = finalAmount
+                        userId = payload.userId,
+                        orderId = payload.orderId,
+                        amount = payload.finalAmount
                     )
                 )
 
                 // 결제 성공 이벤트 발행
-                publishPaymentCompletedEvent(orderId, userId, payment.id, finalAmount, payload)
+                publishPaymentCompletedEvent(payload, payment.id)
                 logger.info("[PaymentEventHandler] 결제 성공: paymentId=${payment.id}")
 
             } catch (e: Exception) {
                 // 결제 실패 이벤트 발행
-                publishPaymentFailedEvent(orderId, userId, e.message ?: "결제 실패", payload)
+                publishPaymentFailedEvent(payload, e.message ?: "결제 실패")
                 logger.error("[PaymentEventHandler] 결제 실패: ${e.message}")
             }
 
@@ -72,48 +71,43 @@ class PaymentEventHandler(
     }
 
     private fun publishPaymentCompletedEvent(
-        orderId: Long,
-        userId: Long,
-        paymentId: Long,
-        amount: Long,
-        originalPayload: Map<*, *>
+        originalPayload: OrderCreatedPayload,
+        paymentId: Long
     ) {
-        val payload = mapOf(
-            "orderId" to orderId,
-            "userId" to userId,
-            "paymentId" to paymentId,
-            "amount" to amount,
-            "usedCouponId" to originalPayload["usedCouponId"],
-            "items" to originalPayload["items"],
-            "deliveryAddress" to originalPayload["deliveryAddress"]
+        val payload = PaymentCompletedPayload(
+            orderId = originalPayload.orderId,
+            userId = originalPayload.userId,
+            paymentId = paymentId,
+            amount = originalPayload.finalAmount,
+            usedCouponId = originalPayload.usedCouponId,
+            items = originalPayload.items,
+            deliveryAddress = originalPayload.deliveryAddress
         )
 
         outboxEventService.publishEvent(
             eventType = EventRegistry.EventTypes.PAYMENT_COMPLETED,
             aggregateType = EventRegistry.AggregateTypes.PAYMENT,
             aggregateId = paymentId.toString(),
-            payload = objectMapper.writeValueAsString(payload)
+            payload = json.encodeToString(PaymentCompletedPayload.serializer(), payload)
         )
     }
 
     private fun publishPaymentFailedEvent(
-        orderId: Long,
-        userId: Long,
-        reason: String,
-        originalPayload: Map<*, *>
+        originalPayload: OrderCreatedPayload,
+        reason: String
     ) {
-        val payload = mapOf(
-            "orderId" to orderId,
-            "userId" to userId,
-            "reason" to reason,
-            "items" to originalPayload["items"]
+        val payload = PaymentFailedPayload(
+            orderId = originalPayload.orderId,
+            userId = originalPayload.userId,
+            reason = reason,
+            items = originalPayload.items
         )
 
         outboxEventService.publishEvent(
             eventType = EventRegistry.EventTypes.PAYMENT_FAILED,
             aggregateType = EventRegistry.AggregateTypes.PAYMENT,
-            aggregateId = orderId.toString(),
-            payload = objectMapper.writeValueAsString(payload)
+            aggregateId = originalPayload.orderId.toString(),
+            payload = json.encodeToString(PaymentFailedPayload.serializer(), payload)
         )
     }
 }

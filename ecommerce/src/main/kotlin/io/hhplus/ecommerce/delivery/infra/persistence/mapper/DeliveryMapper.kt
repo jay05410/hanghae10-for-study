@@ -1,10 +1,10 @@
 package io.hhplus.ecommerce.delivery.infra.persistence.mapper
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import io.hhplus.ecommerce.delivery.domain.entity.Delivery
 import io.hhplus.ecommerce.delivery.domain.vo.DeliveryAddress
 import io.hhplus.ecommerce.delivery.infra.persistence.entity.DeliveryJpaEntity
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.springframework.stereotype.Component
 
 /**
@@ -20,9 +20,8 @@ import org.springframework.stereotype.Component
  * - JSON 직렬화/역직렬화 (DeliveryAddress)
  */
 @Component
-class DeliveryMapper(
-    private val objectMapper: ObjectMapper
-) {
+class DeliveryMapper {
+    private val json = Json { ignoreUnknownKeys = true }
     /**
      * JPA 엔티티를 도메인 모델로 변환
      *
@@ -67,14 +66,14 @@ class DeliveryMapper(
      * DeliveryAddress를 JSON 문자열로 직렬화
      */
     private fun serializeAddress(address: DeliveryAddress): String {
-        return objectMapper.writeValueAsString(address)
+        return json.encodeToString(address)
     }
 
     /**
      * JSON 문자열을 DeliveryAddress로 역직렬화
      */
-    private fun deserializeAddress(json: String): DeliveryAddress {
-        return objectMapper.readValue(json)
+    private fun deserializeAddress(jsonString: String): DeliveryAddress {
+        return json.decodeFromString(jsonString)
     }
 
     /**

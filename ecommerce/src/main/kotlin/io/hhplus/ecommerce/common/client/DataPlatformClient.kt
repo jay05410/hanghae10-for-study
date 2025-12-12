@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.common.client
 
+import kotlinx.serialization.Serializable
 import java.time.Instant
 
 /**
@@ -24,6 +25,7 @@ interface DataPlatformClient {
  *
  * 데이터 플랫폼에 전송할 주문 정보
  */
+@Serializable
 data class OrderInfoPayload(
     val orderId: Long,
     val orderNumber: String,
@@ -33,10 +35,11 @@ data class OrderInfoPayload(
     val discountAmount: Long,
     val finalAmount: Long,
     val status: String,
-    val paymentId: Long?,
+    val paymentId: Long? = null,
     val createdAt: String
 )
 
+@Serializable
 data class OrderItemPayload(
     val productId: Long,
     val productName: String,

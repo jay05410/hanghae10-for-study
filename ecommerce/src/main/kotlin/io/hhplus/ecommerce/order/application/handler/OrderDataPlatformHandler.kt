@@ -5,13 +5,11 @@ import io.hhplus.ecommerce.common.idempotency.IdempotencyService
 import io.hhplus.ecommerce.common.messaging.MessagePublisher
 import io.hhplus.ecommerce.common.outbox.EventHandler
 import io.hhplus.ecommerce.common.outbox.OutboxEvent
+import io.hhplus.ecommerce.common.outbox.payload.PaymentCompletedPayload
 import io.hhplus.ecommerce.config.event.EventRegistry
 import io.hhplus.ecommerce.order.application.mapper.toOrderInfoPayload
 import io.hhplus.ecommerce.order.application.usecase.GetOrderQueryUseCase
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.long
 import mu.KotlinLogging
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.annotation.Order
@@ -58,49 +56,43 @@ class OrderDataPlatformHandler(
 
     override fun handle(event: OutboxEvent): Boolean {
         return try {
-            val payload = json.parseToJsonElement(event.payload).jsonObject
-            val orderId = payload["orderId"]?.jsonPrimitive?.long
-                ?: throw IllegalArgumentException("orderId is required")
-            val paymentId = payload["paymentId"]?.jsonPrimitive?.long
+            val payload = json.decodeFromString<PaymentCompletedPayload>(event.payload)
 
             // 주문 정보 조회
-            val orderWithItems = getOrderQueryUseCase.getOrderWithItems(orderId)
+            val orderWithItems = getOrderQueryUseCase.getOrderWithItems(payload.orderId)
 
             if (orderWithItems == null) {
-                logger.warn("[OrderDataPlatformHandler] 주문 정보를 찾을 수 없습니다: orderId={}", orderId)
+                logger.warn("[OrderDataPlatformHandler] 주문 정보를 찾을 수 없습니다: orderId={}", payload.orderId)
                 return false
             }
 
             val (order, items) = orderWithItems
 
-            // 멱등성 체크: orderId + status 조합으로 중복 발행 방지
-            val idempotencyKey = RedisKeyNames.Order.dataPlatformSentKey(orderId, order.status.name)
-            if (idempotencyService.isProcessed(idempotencyKey)) {
+            // 멱등성 체크: orderId + status 조합으로 중복 발행 방지 (원자적 SETNX)
+            val idempotencyKey = RedisKeyNames.Order.dataPlatformSentKey(payload.orderId, order.status.name)
+            if (!idempotencyService.tryAcquire(idempotencyKey, IDEMPOTENCY_TTL)) {
                 logger.debug(
                     "[OrderDataPlatformHandler] 이미 발행된 메시지, 스킵: orderId={}, status={}",
-                    orderId, order.status
+                    payload.orderId, order.status
                 )
                 return true
             }
 
             logger.info(
                 "[OrderDataPlatformHandler] 데이터 플랫폼 전송 시작: orderId={}, paymentId={}, status={}",
-                orderId, paymentId, order.status
+                payload.orderId, payload.paymentId, order.status
             )
 
             // Kafka 토픽으로 발행
             messagePublisher.publish(
                 topic = dataPlatformTopic,
-                key = orderId.toString(),
-                payload = order.toOrderInfoPayload(items, paymentId)
+                key = payload.orderId.toString(),
+                payload = order.toOrderInfoPayload(items, payload.paymentId)
             )
-
-            // 발행 성공 시 이력 저장
-            idempotencyService.markAsProcessed(idempotencyKey, IDEMPOTENCY_TTL)
 
             logger.info(
                 "[OrderDataPlatformHandler] 데이터 플랫폼 전송 완료: orderId={}, topic={}",
-                orderId, dataPlatformTopic
+                payload.orderId, dataPlatformTopic
             )
 
             true

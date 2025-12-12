@@ -1,17 +1,22 @@
 package io.hhplus.ecommerce.order.application.usecase
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import io.hhplus.ecommerce.common.annotation.DistributedLock
 import io.hhplus.ecommerce.common.annotation.DistributedTransaction
 import io.hhplus.ecommerce.common.lock.DistributedLockKeys
-import io.hhplus.ecommerce.config.event.EventRegistry
 import io.hhplus.ecommerce.common.outbox.OutboxEventService
-import io.hhplus.ecommerce.delivery.domain.constant.DeliveryStatus
+import io.hhplus.ecommerce.common.outbox.payload.OrderCancelledPayload
+import io.hhplus.ecommerce.common.outbox.payload.OrderConfirmedPayload
+import io.hhplus.ecommerce.common.outbox.payload.OrderCreatedItemPayload
+import io.hhplus.ecommerce.common.outbox.payload.OrderCreatedPayload
+import io.hhplus.ecommerce.common.outbox.payload.OrderItemPayloadSimple
+import io.hhplus.ecommerce.config.event.EventRegistry
 import io.hhplus.ecommerce.delivery.domain.service.DeliveryDomainService
+import io.hhplus.ecommerce.delivery.domain.vo.DeliveryAddress
 import io.hhplus.ecommerce.order.domain.entity.Order
 import io.hhplus.ecommerce.order.domain.service.OrderDomainService
 import io.hhplus.ecommerce.order.exception.OrderException
 import io.hhplus.ecommerce.order.presentation.dto.CreateOrderRequest
+import kotlinx.serialization.json.Json
 import mu.KotlinLogging
 import org.springframework.stereotype.Component
 
@@ -35,10 +40,10 @@ import org.springframework.stereotype.Component
 class OrderCommandUseCase(
     private val orderDomainService: OrderDomainService,
     private val deliveryDomainService: DeliveryDomainService,
-    private val outboxEventService: OutboxEventService,
-    private val objectMapper: ObjectMapper
+    private val outboxEventService: OutboxEventService
 ) {
     private val logger = KotlinLogging.logger {}
+    private val json = Json { ignoreUnknownKeys = true }
 
     /**
      * 주문 생성
@@ -59,30 +64,30 @@ class OrderCommandUseCase(
     }
 
     private fun publishOrderCreatedEvent(order: Order, request: CreateOrderRequest) {
-        val payload = mapOf(
-            "orderId" to order.id,
-            "userId" to order.userId,
-            "orderNumber" to order.orderNumber,
-            "totalAmount" to order.totalAmount,
-            "finalAmount" to order.finalAmount,
-            "discountAmount" to order.discountAmount,
-            "status" to order.status.name,
-            "usedCouponId" to request.usedCouponId,
-            "items" to request.items.map { item ->
-                mapOf(
-                    "productId" to item.productId,
-                    "quantity" to item.quantity,
-                    "giftWrap" to item.giftWrap,
-                    "giftMessage" to item.giftMessage
+        val payload = OrderCreatedPayload(
+            orderId = order.id,
+            userId = order.userId,
+            orderNumber = order.orderNumber,
+            totalAmount = order.totalAmount,
+            finalAmount = order.finalAmount,
+            discountAmount = order.discountAmount,
+            status = order.status.name,
+            usedCouponId = request.usedCouponId,
+            items = request.items.map { item ->
+                OrderCreatedItemPayload(
+                    productId = item.productId,
+                    quantity = item.quantity,
+                    giftWrap = item.giftWrap,
+                    giftMessage = item.giftMessage
                 )
             },
-            "deliveryAddress" to mapOf(
-                "recipientName" to request.deliveryAddress.recipientName,
-                "phone" to request.deliveryAddress.phone,
-                "zipCode" to request.deliveryAddress.zipCode,
-                "address" to request.deliveryAddress.address,
-                "addressDetail" to request.deliveryAddress.addressDetail,
-                "deliveryMessage" to request.deliveryAddress.deliveryMessage
+            deliveryAddress = DeliveryAddress(
+                recipientName = request.deliveryAddress.recipientName,
+                phone = request.deliveryAddress.phone,
+                zipCode = request.deliveryAddress.zipCode,
+                address = request.deliveryAddress.address,
+                addressDetail = request.deliveryAddress.addressDetail,
+                deliveryMessage = request.deliveryAddress.deliveryMessage
             )
         )
 
@@ -90,7 +95,7 @@ class OrderCommandUseCase(
             eventType = EventRegistry.EventTypes.ORDER_CREATED,
             aggregateType = EventRegistry.AggregateTypes.ORDER,
             aggregateId = order.id.toString(),
-            payload = objectMapper.writeValueAsString(payload)
+            payload = json.encodeToString(OrderCreatedPayload.serializer(), payload)
         )
     }
 
@@ -128,15 +133,18 @@ class OrderCommandUseCase(
         reason: String?,
         orderItems: List<io.hhplus.ecommerce.order.domain.entity.OrderItem>
     ) {
-        val payload = mapOf(
-            "orderId" to order.id,
-            "userId" to order.userId,
-            "orderNumber" to order.orderNumber,
-            "finalAmount" to order.finalAmount,
-            "reason" to (reason ?: "사용자 요청"),
-            "status" to order.status.name,
-            "items" to orderItems.map { item ->
-                mapOf("productId" to item.productId, "quantity" to item.quantity)
+        val payload = OrderCancelledPayload(
+            orderId = order.id,
+            userId = order.userId,
+            orderNumber = order.orderNumber,
+            finalAmount = order.finalAmount,
+            reason = reason ?: "사용자 요청",
+            status = order.status.name,
+            items = orderItems.map { item ->
+                OrderItemPayloadSimple(
+                    productId = item.productId,
+                    quantity = item.quantity
+                )
             }
         )
 
@@ -144,7 +152,7 @@ class OrderCommandUseCase(
             eventType = EventRegistry.EventTypes.ORDER_CANCELLED,
             aggregateType = EventRegistry.AggregateTypes.ORDER,
             aggregateId = order.id.toString(),
-            payload = objectMapper.writeValueAsString(payload)
+            payload = json.encodeToString(OrderCancelledPayload.serializer(), payload)
         )
     }
 
@@ -163,13 +171,16 @@ class OrderCommandUseCase(
     private fun publishOrderConfirmedEvent(order: Order) {
         val orderItems = orderDomainService.getOrderItems(order.id)
 
-        val payload = mapOf(
-            "orderId" to order.id,
-            "userId" to order.userId,
-            "orderNumber" to order.orderNumber,
-            "status" to order.status.name,
-            "items" to orderItems.map { item ->
-                mapOf("productId" to item.productId, "quantity" to item.quantity)
+        val payload = OrderConfirmedPayload(
+            orderId = order.id,
+            userId = order.userId,
+            orderNumber = order.orderNumber,
+            status = order.status.name,
+            items = orderItems.map { item ->
+                OrderItemPayloadSimple(
+                    productId = item.productId,
+                    quantity = item.quantity
+                )
             }
         )
 
@@ -177,7 +188,7 @@ class OrderCommandUseCase(
             eventType = EventRegistry.EventTypes.ORDER_CONFIRMED,
             aggregateType = EventRegistry.AggregateTypes.ORDER,
             aggregateId = order.id.toString(),
-            payload = objectMapper.writeValueAsString(payload)
+            payload = json.encodeToString(OrderConfirmedPayload.serializer(), payload)
         )
     }
 }

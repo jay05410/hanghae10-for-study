@@ -1,11 +1,11 @@
 package io.hhplus.ecommerce.delivery.application.handler
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import io.hhplus.ecommerce.common.outbox.EventHandler
-import io.hhplus.ecommerce.config.event.EventRegistry
 import io.hhplus.ecommerce.common.outbox.OutboxEvent
+import io.hhplus.ecommerce.common.outbox.payload.PaymentCompletedPayload
+import io.hhplus.ecommerce.config.event.EventRegistry
 import io.hhplus.ecommerce.delivery.domain.service.DeliveryDomainService
-import io.hhplus.ecommerce.delivery.domain.vo.DeliveryAddress
+import kotlinx.serialization.json.Json
 import mu.KotlinLogging
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -17,11 +17,11 @@ import org.springframework.transaction.annotation.Transactional
  */
 @Component
 class DeliveryEventHandler(
-    private val deliveryDomainService: DeliveryDomainService,
-    private val objectMapper: ObjectMapper
+    private val deliveryDomainService: DeliveryDomainService
 ) : EventHandler {
 
     private val logger = KotlinLogging.logger {}
+    private val json = Json { ignoreUnknownKeys = true }
 
     override fun supportedEventTypes(): List<String> {
         return listOf(EventRegistry.EventTypes.PAYMENT_COMPLETED)
@@ -30,32 +30,19 @@ class DeliveryEventHandler(
     @Transactional
     override fun handle(event: OutboxEvent): Boolean {
         return try {
-            val payload = objectMapper.readValue(event.payload, Map::class.java)
-            val orderId = (payload["orderId"] as Number).toLong()
+            val payload = json.decodeFromString<PaymentCompletedPayload>(event.payload)
 
-            @Suppress("UNCHECKED_CAST")
-            val deliveryAddressMap = payload["deliveryAddress"] as? Map<String, Any>
-
-            if (deliveryAddressMap == null) {
-                logger.debug("[DeliveryEventHandler] 배송지 정보 없음: orderId=$orderId")
+            if (payload.deliveryAddress == null) {
+                logger.debug("[DeliveryEventHandler] 배송지 정보 없음: orderId=${payload.orderId}")
                 return true
             }
 
-            logger.info("[DeliveryEventHandler] 배송 생성 시작: orderId=$orderId")
+            logger.info("[DeliveryEventHandler] 배송 생성 시작: orderId=${payload.orderId}")
 
-            val deliveryAddress = DeliveryAddress(
-                recipientName = deliveryAddressMap["recipientName"] as? String ?: "",
-                phone = deliveryAddressMap["phone"] as? String ?: "",
-                zipCode = deliveryAddressMap["zipCode"] as? String ?: "",
-                address = deliveryAddressMap["address"] as? String ?: "",
-                addressDetail = deliveryAddressMap["addressDetail"] as? String,
-                deliveryMessage = deliveryAddressMap["deliveryMessage"] as? String
-            )
-            val deliveryMemo = deliveryAddressMap["deliveryMessage"] as? String
+            val deliveryMemo = payload.deliveryAddress.deliveryMessage
+            deliveryDomainService.createDelivery(payload.orderId, payload.deliveryAddress, deliveryMemo)
 
-            deliveryDomainService.createDelivery(orderId, deliveryAddress, deliveryMemo)
-
-            logger.info("[DeliveryEventHandler] 배송 생성 완료: orderId=$orderId")
+            logger.info("[DeliveryEventHandler] 배송 생성 완료: orderId=${payload.orderId}")
             true
         } catch (e: Exception) {
             logger.error("[DeliveryEventHandler] 배송 생성 실패: ${e.message}", e)

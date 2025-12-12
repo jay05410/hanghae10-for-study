@@ -2,13 +2,12 @@ package io.hhplus.ecommerce.order.application.handler
 
 import io.hhplus.ecommerce.common.outbox.EventHandler
 import io.hhplus.ecommerce.common.outbox.OutboxEvent
+import io.hhplus.ecommerce.common.outbox.payload.PaymentCompletedPayload
+import io.hhplus.ecommerce.common.outbox.payload.PaymentFailedPayload
 import io.hhplus.ecommerce.config.event.EventRegistry
 import io.hhplus.ecommerce.order.domain.constant.OrderStatus
 import io.hhplus.ecommerce.order.domain.service.OrderDomainService
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.long
 import mu.KotlinLogging
 import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
@@ -51,20 +50,18 @@ class OrderEventHandler(
      */
     private fun confirmOrder(event: OutboxEvent): Boolean {
         return try {
-            val payload = json.parseToJsonElement(event.payload).jsonObject
-            val orderId = payload["orderId"]?.jsonPrimitive?.long
-                ?: throw IllegalArgumentException("orderId is required")
+            val payload = json.decodeFromString<PaymentCompletedPayload>(event.payload)
 
-            val order = orderDomainService.getOrderOrThrow(orderId)
+            val order = orderDomainService.getOrderOrThrow(payload.orderId)
 
             // 이미 CONFIRMED 상태면 중복 처리 방지
             if (order.status == OrderStatus.CONFIRMED) {
-                logger.debug("[OrderEventHandler] 이미 확정된 주문: orderId={}", orderId)
+                logger.debug("[OrderEventHandler] 이미 확정된 주문: orderId={}", payload.orderId)
                 return true
             }
 
-            orderDomainService.confirmOrder(orderId)
-            logger.info("[OrderEventHandler] 주문 확정 완료: orderId={}", orderId)
+            orderDomainService.confirmOrder(payload.orderId)
+            logger.info("[OrderEventHandler] 주문 확정 완료: orderId={}", payload.orderId)
 
             true
         } catch (e: Exception) {
@@ -78,16 +75,13 @@ class OrderEventHandler(
      */
     private fun failOrder(event: OutboxEvent): Boolean {
         return try {
-            val payload = json.parseToJsonElement(event.payload).jsonObject
-            val orderId = payload["orderId"]?.jsonPrimitive?.long
-                ?: throw IllegalArgumentException("orderId is required")
-            val reason = payload["reason"]?.jsonPrimitive?.content ?: "결제 실패"
+            val payload = json.decodeFromString<PaymentFailedPayload>(event.payload)
 
-            val order = orderDomainService.getOrderOrThrow(orderId)
+            val order = orderDomainService.getOrderOrThrow(payload.orderId)
             order.fail()
             orderDomainService.updateOrder(order)
 
-            logger.info("[OrderEventHandler] 주문 실패 처리 완료: orderId={}, reason={}", orderId, reason)
+            logger.info("[OrderEventHandler] 주문 실패 처리 완료: orderId={}, reason={}", payload.orderId, payload.reason)
 
             true
         } catch (e: Exception) {

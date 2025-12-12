@@ -15,7 +15,7 @@ import io.hhplus.ecommerce.inventory.application.usecase.InventoryCommandUseCase
 import io.hhplus.ecommerce.delivery.application.usecase.DeliveryCommandUseCase
 import io.hhplus.ecommerce.delivery.application.usecase.GetDeliveryQueryUseCase
 import io.hhplus.ecommerce.product.presentation.dto.CreateProductRequest
-import io.hhplus.ecommerce.common.outbox.OutboxEventProcessor
+import io.hhplus.ecommerce.common.outbox.infra.OutboxEventProcessor
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain

@@ -6,7 +6,8 @@ import io.hhplus.ecommerce.product.domain.entity.ProductPermanentStatistics
 import io.hhplus.ecommerce.product.domain.repository.ProductPermanentStatisticsRepository
 import io.hhplus.ecommerce.product.application.usecase.GetProductQueryUseCase
 import io.hhplus.ecommerce.product.application.port.out.ProductRankingPort
-import com.fasterxml.jackson.databind.ObjectMapper
+import io.hhplus.ecommerce.product.domain.event.ProductStatisticsEvent
+import kotlinx.serialization.json.Json
 import mu.KotlinLogging
 import org.springframework.cache.CacheManager
 import org.springframework.data.redis.core.RedisTemplate
@@ -34,12 +35,12 @@ import java.time.format.DateTimeFormatter
 class ProductStatisticsScheduler(
     private val redisTemplate: RedisTemplate<String, Any>,
     private val productPermanentStatisticsRepository: ProductPermanentStatisticsRepository,
-    private val objectMapper: ObjectMapper,
     private val getProductQueryUseCase: GetProductQueryUseCase,
     private val cacheManager: CacheManager,
     private val productRankingPort: ProductRankingPort
 ) {
     private val logger = KotlinLogging.logger {}
+    private val json = Json { ignoreUnknownKeys = true }
 
     companion object {
         private const val CHUNK_SIZE = 100
@@ -137,23 +138,22 @@ class ProductStatisticsScheduler(
         eventLogs.forEach { eventLog ->
             try {
                 val eventJson = eventLog.toString()
-                val eventMap = objectMapper.readValue(eventJson, Map::class.java)
+                val event = json.decodeFromString<ProductStatisticsEvent>(eventJson)
 
-                val productId = (eventMap["pId"] as Number).toLong()
+                val productId = event.productId
                 val currentStats = statsMap.getOrPut(productId) { AggregatedStats() }
 
-                when {
-                    eventJson.contains("ProductViewed") -> {
+                when (event) {
+                    is ProductStatisticsEvent.ProductViewed -> {
                         currentStats.viewCount += 1
                     }
-                    eventJson.contains("ProductSold") -> {
-                        val quantity = (eventMap["quantity"] as Number).toInt()
-                        currentStats.salesCount += quantity
+                    is ProductStatisticsEvent.ProductSold -> {
+                        currentStats.salesCount += event.quantity
                     }
-                    eventJson.contains("ProductWished") -> {
+                    is ProductStatisticsEvent.ProductWished -> {
                         currentStats.wishCount += 1
                     }
-                    eventJson.contains("ProductUnwished") -> {
+                    is ProductStatisticsEvent.ProductUnwished -> {
                         currentStats.wishCount -= 1
                     }
                 }

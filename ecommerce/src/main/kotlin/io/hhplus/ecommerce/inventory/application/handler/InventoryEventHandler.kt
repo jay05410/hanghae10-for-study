@@ -1,10 +1,12 @@
 package io.hhplus.ecommerce.inventory.application.handler
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import io.hhplus.ecommerce.common.outbox.EventHandler
-import io.hhplus.ecommerce.config.event.EventRegistry
 import io.hhplus.ecommerce.common.outbox.OutboxEvent
+import io.hhplus.ecommerce.common.outbox.payload.OrderCancelledPayload
+import io.hhplus.ecommerce.common.outbox.payload.PaymentCompletedPayload
+import io.hhplus.ecommerce.config.event.EventRegistry
 import io.hhplus.ecommerce.inventory.domain.service.InventoryDomainService
+import kotlinx.serialization.json.Json
 import mu.KotlinLogging
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -17,11 +19,11 @@ import org.springframework.transaction.annotation.Transactional
  */
 @Component
 class InventoryEventHandler(
-    private val inventoryDomainService: InventoryDomainService,
-    private val objectMapper: ObjectMapper
+    private val inventoryDomainService: InventoryDomainService
 ) : EventHandler {
 
     private val logger = KotlinLogging.logger {}
+    private val json = Json { ignoreUnknownKeys = true }
 
     override fun supportedEventTypes(): List<String> {
         return listOf(
@@ -44,21 +46,15 @@ class InventoryEventHandler(
 
     private fun handlePaymentCompleted(event: OutboxEvent): Boolean {
         return try {
-            val payload = objectMapper.readValue(event.payload, Map::class.java)
-            val orderId = (payload["orderId"] as Number).toLong()
+            val payload = json.decodeFromString<PaymentCompletedPayload>(event.payload)
 
-            @Suppress("UNCHECKED_CAST")
-            val items = payload["items"] as List<Map<String, Any>>
+            logger.info("[InventoryEventHandler] 재고 차감 시작: orderId=${payload.orderId}")
 
-            logger.info("[InventoryEventHandler] 재고 차감 시작: orderId=$orderId")
-
-            items.sortedBy { (it["productId"] as Number).toLong() }.forEach { item ->
-                val productId = (item["productId"] as Number).toLong()
-                val quantity = (item["quantity"] as Number).toInt()
-                inventoryDomainService.deductStock(productId, quantity)
+            payload.items.sortedBy { it.productId }.forEach { item ->
+                inventoryDomainService.deductStock(item.productId, item.quantity)
             }
 
-            logger.info("[InventoryEventHandler] 재고 차감 완료: orderId=$orderId")
+            logger.info("[InventoryEventHandler] 재고 차감 완료: orderId=${payload.orderId}")
             true
         } catch (e: Exception) {
             logger.error("[InventoryEventHandler] 재고 차감 실패: ${e.message}", e)
@@ -68,21 +64,15 @@ class InventoryEventHandler(
 
     private fun handleOrderCancelled(event: OutboxEvent): Boolean {
         return try {
-            val payload = objectMapper.readValue(event.payload, Map::class.java)
-            val orderId = (payload["orderId"] as Number).toLong()
+            val payload = json.decodeFromString<OrderCancelledPayload>(event.payload)
 
-            @Suppress("UNCHECKED_CAST")
-            val items = payload["items"] as List<Map<String, Any>>
+            logger.info("[InventoryEventHandler] 재고 복구 시작: orderId=${payload.orderId}")
 
-            logger.info("[InventoryEventHandler] 재고 복구 시작: orderId=$orderId")
-
-            items.forEach { item ->
-                val productId = (item["productId"] as Number).toLong()
-                val quantity = (item["quantity"] as Number).toInt()
-                inventoryDomainService.restockInventory(productId, quantity)
+            payload.items.forEach { item ->
+                inventoryDomainService.restockInventory(item.productId, item.quantity)
             }
 
-            logger.info("[InventoryEventHandler] 재고 복구 완료: orderId=$orderId")
+            logger.info("[InventoryEventHandler] 재고 복구 완료: orderId=${payload.orderId}")
             true
         } catch (e: Exception) {
             logger.error("[InventoryEventHandler] 재고 복구 실패: ${e.message}", e)

@@ -5,9 +5,10 @@ import io.hhplus.ecommerce.product.application.port.out.ProductStatisticsPort
 import io.hhplus.ecommerce.product.domain.calculator.PopularityCalculator
 import io.hhplus.ecommerce.product.domain.event.ProductStatisticsEvent
 import io.hhplus.ecommerce.product.domain.vo.ProductStatsVO
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Component
-import com.fasterxml.jackson.databind.ObjectMapper
 
 /**
  * Redis 기반 상품 통계 어댑터
@@ -31,9 +32,9 @@ import com.fasterxml.jackson.databind.ObjectMapper
  */
 @Component
 class RedisProductStatisticsAdapter(
-    private val redisTemplate: RedisTemplate<String, Any>,
-    private val objectMapper: ObjectMapper
+    private val redisTemplate: RedisTemplate<String, Any>
 ) : ProductStatisticsPort {
+    private val json = Json { ignoreUnknownKeys = true }
 
     override fun recordViewEvent(productId: Long, userId: Long?): Long {
         val event = ProductStatisticsEvent.ProductViewed(
@@ -193,7 +194,7 @@ class RedisProductStatisticsAdapter(
      * 이벤트 로그를 Redis에 저장 (청크 처리용)
      */
     private fun storeEventLog(event: ProductStatisticsEvent) {
-        val eventJson = objectMapper.writeValueAsString(event)
+        val eventJson = json.encodeToString(event)
         val logKey = RedisKeyNames.Stats.eventLogKey(getCurrentHour())
 
         // 시간별로 로그 분리하여 저장 (처리 효율성을 위해)
