@@ -57,6 +57,7 @@ object EventRegistry {
         // Inventory 도메인 이벤트 (내부용)
         const val STOCK_DEDUCTED = "StockDeducted"
         const val STOCK_RESTORED = "StockRestored"
+        const val INVENTORY_INSUFFICIENT = "InventoryInsufficient"  // 재고 부족 → 주문 취소 트리거
 
         // Coupon 도메인 이벤트 (내부용)
         const val COUPON_USED = "CouponUsed"
@@ -129,6 +130,13 @@ object EventRegistry {
             description = "주문이 확정되었을 때 발행. 통계 기록 등 후처리를 트리거함",
             publisher = "OrderCommandUseCase",
             subscribers = listOf()
+        ),
+
+        EventTypes.INVENTORY_INSUFFICIENT to EventMetadata(
+            eventType = EventTypes.INVENTORY_INSUFFICIENT,
+            description = "재고 부족 시 발행. 주문 취소를 트리거함",
+            publisher = "InventoryEventHandler",
+            subscribers = listOf("OrderCompensationHandler")
         )
     )
 

@@ -35,7 +35,7 @@ class StockReservationIntegrationTest(
                 val quantity = 5
                 val initialStock = 100
 
-                inventoryCommandUseCase.createInventory(productId, initialStock)
+                inventoryCommandUseCase.restockInventory(productId, initialStock)
 
                 // When
                 val reservation = stockReservationCommandUseCase.reserveStock(productId, userId, quantity)
@@ -61,7 +61,7 @@ class StockReservationIntegrationTest(
                 val quantity = 10
                 val initialStock = 100
 
-                inventoryCommandUseCase.createInventory(productId, initialStock)
+                inventoryCommandUseCase.restockInventory(productId, initialStock)
                 val reservation = stockReservationCommandUseCase.reserveStock(productId, userId, quantity)
 
                 // When
@@ -81,7 +81,7 @@ class StockReservationIntegrationTest(
                 val quantity = 8
                 val initialStock = 100
 
-                inventoryCommandUseCase.createInventory(productId, initialStock)
+                inventoryCommandUseCase.restockInventory(productId, initialStock)
                 val reservation = stockReservationCommandUseCase.reserveStock(productId, userId, quantity)
 
                 // When
@@ -102,8 +102,8 @@ class StockReservationIntegrationTest(
                 val quantity = 5
                 val initialStock = 100
 
-                inventoryCommandUseCase.createInventory(productId1, initialStock)
-                inventoryCommandUseCase.createInventory(productId2, initialStock)
+                inventoryCommandUseCase.restockInventory(productId1, initialStock)
+                inventoryCommandUseCase.restockInventory(productId2, initialStock)
 
                 // 예약 생성 (1분 만료로 설정하고 시간을 조작하기 어려우므로 만료 로직만 테스트)
                 val reservation1 = stockReservationCommandUseCase.reserveStock(productId1, userId, quantity, 1)
@@ -125,7 +125,7 @@ class StockReservationIntegrationTest(
                 val quantity = 3
                 val initialStock = 100
 
-                inventoryCommandUseCase.createInventory(productId, initialStock)
+                inventoryCommandUseCase.restockInventory(productId, initialStock)
                 val reservation = stockReservationCommandUseCase.reserveStock(productId, userId, quantity)
 
                 // 예약을 확정하여 처리 완료 상태로 만듦
@@ -151,7 +151,7 @@ class StockReservationIntegrationTest(
                 val quantity = 5
                 val initialStock = 100
 
-                inventoryCommandUseCase.createInventory(productId, initialStock)
+                inventoryCommandUseCase.restockInventory(productId, initialStock)
                 stockReservationCommandUseCase.reserveStock(productId, userId, quantity)
 
                 // When & Then
@@ -169,7 +169,7 @@ class StockReservationIntegrationTest(
                 val quantity = 150 // 재고보다 많음
                 val initialStock = 100
 
-                inventoryCommandUseCase.createInventory(productId, initialStock)
+                inventoryCommandUseCase.restockInventory(productId, initialStock)
 
                 // When & Then
                 shouldThrow<InventoryException.InsufficientStock> {
@@ -211,7 +211,7 @@ class StockReservationIntegrationTest(
                 val quantity = 5
                 val initialStock = 100
 
-                inventoryCommandUseCase.createInventory(productId, initialStock)
+                inventoryCommandUseCase.restockInventory(productId, initialStock)
                 val reservation = stockReservationCommandUseCase.reserveStock(productId, userId, quantity)
 
                 // When & Then

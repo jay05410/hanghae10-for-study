@@ -125,3 +125,19 @@ data class PaymentFailedPayload(
     val reason: String,
     val items: List<OrderCreatedItemPayload>
 )
+
+/**
+ * 재고 부족 이벤트 Payload
+ *
+ * InventoryInsufficient 이벤트 발행 시 사용
+ * 주문 보상 핸들러에서 수신하여 주문 취소 처리
+ */
+@Serializable
+data class InventoryInsufficientPayload(
+    val orderId: Long,
+    val userId: Long,
+    val productId: Long,
+    val requestedQuantity: Int,
+    val availableQuantity: Int,
+    val reason: String
+)

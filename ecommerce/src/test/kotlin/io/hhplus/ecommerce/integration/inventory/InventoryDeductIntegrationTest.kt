@@ -34,7 +34,7 @@ class InventoryDeductIntegrationTest(
                 val deductQuantity = 30
 
                 // 재고 생성
-                inventoryCommandUseCase.createInventory(productId, initialQuantity)
+                inventoryCommandUseCase.restockInventory(productId, initialQuantity)
 
                 // When
                 val updatedInventory = inventoryCommandUseCase.deductStock(productId, deductQuantity)
@@ -58,7 +58,7 @@ class InventoryDeductIntegrationTest(
                 val productId = IntegrationTestFixtures.createTestProductId(2)
                 val initialQuantity = 50
 
-                inventoryCommandUseCase.createInventory(productId, initialQuantity)
+                inventoryCommandUseCase.restockInventory(productId, initialQuantity)
 
                 // When - 전액 차감
                 val updatedInventory = inventoryCommandUseCase.deductStock(productId, initialQuantity)
@@ -76,7 +76,7 @@ class InventoryDeductIntegrationTest(
                 val initialQuantity = 20
                 val deductQuantity = 30 // 재고보다 많은 수량
 
-                inventoryCommandUseCase.createInventory(productId, initialQuantity)
+                inventoryCommandUseCase.restockInventory(productId, initialQuantity)
 
                 // When & Then
                 shouldThrow<InventoryException.InsufficientStock> {
@@ -98,7 +98,7 @@ class InventoryDeductIntegrationTest(
                 val secondDeduct = 30
                 val thirdDeduct = 10
 
-                inventoryCommandUseCase.createInventory(productId, initialQuantity)
+                inventoryCommandUseCase.restockInventory(productId, initialQuantity)
 
                 // When - 연속 차감
                 inventoryCommandUseCase.deductStock(productId, firstDeduct)
@@ -122,7 +122,7 @@ class InventoryDeductIntegrationTest(
                 val deductQuantity = 70 // 가용 재고 딱 맞게
 
                 // 재고 생성 및 예약
-                inventoryCommandUseCase.createInventory(productId, initialQuantity)
+                inventoryCommandUseCase.restockInventory(productId, initialQuantity)
                 stockReservationCommandUseCase.reserveStock(productId, userId, reserveQuantity)
 
                 // When - 가용 재고만큼 차감
@@ -143,7 +143,7 @@ class InventoryDeductIntegrationTest(
                 val deductQuantity = 80 // 가용 재고(60)보다 많음
 
                 // 재고 생성 및 예약
-                inventoryCommandUseCase.createInventory(productId, initialQuantity)
+                inventoryCommandUseCase.restockInventory(productId, initialQuantity)
                 stockReservationCommandUseCase.reserveStock(productId, userId, reserveQuantity)
 
                 // When & Then
@@ -167,7 +167,7 @@ class InventoryDeductIntegrationTest(
                 val deductQuantity = 70
 
                 // 재고 생성
-                inventoryCommandUseCase.createInventory(productId, initialQuantity)
+                inventoryCommandUseCase.restockInventory(productId, initialQuantity)
 
                 // When - 보충 후 차감
                 inventoryCommandUseCase.restockInventory(productId, restockQuantity)

@@ -63,8 +63,8 @@ class OrderCreateIntegrationTest(
             )
         )
 
-        inventoryCommandUseCase.createInventory(product1.id, 1000)
-        inventoryCommandUseCase.createInventory(product2.id, 1000)
+        inventoryCommandUseCase.restockInventory(product1.id, 1000)
+        inventoryCommandUseCase.restockInventory(product2.id, 1000)
 
         // 포인트 충전 (주문에 필요)
         chargePointUseCase.execute(1000L, 500000, "주문 테스트용 충전")

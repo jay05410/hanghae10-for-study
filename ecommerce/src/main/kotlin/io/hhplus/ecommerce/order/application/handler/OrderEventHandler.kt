@@ -2,6 +2,7 @@ package io.hhplus.ecommerce.order.application.handler
 
 import io.hhplus.ecommerce.common.outbox.EventHandler
 import io.hhplus.ecommerce.common.outbox.OutboxEvent
+import io.hhplus.ecommerce.common.outbox.payload.InventoryInsufficientPayload
 import io.hhplus.ecommerce.common.outbox.payload.PaymentCompletedPayload
 import io.hhplus.ecommerce.common.outbox.payload.PaymentFailedPayload
 import io.hhplus.ecommerce.config.event.EventRegistry
@@ -33,7 +34,8 @@ class OrderEventHandler(
     override fun supportedEventTypes(): List<String> {
         return listOf(
             EventRegistry.EventTypes.PAYMENT_COMPLETED,
-            EventRegistry.EventTypes.PAYMENT_FAILED
+            EventRegistry.EventTypes.PAYMENT_FAILED,
+            EventRegistry.EventTypes.INVENTORY_INSUFFICIENT
         )
     }
 
@@ -41,6 +43,7 @@ class OrderEventHandler(
         return when (event.eventType) {
             EventRegistry.EventTypes.PAYMENT_COMPLETED -> confirmOrder(event)
             EventRegistry.EventTypes.PAYMENT_FAILED -> failOrder(event)
+            EventRegistry.EventTypes.INVENTORY_INSUFFICIENT -> cancelOrderDueToInventory(event)
             else -> false
         }
     }
@@ -86,6 +89,34 @@ class OrderEventHandler(
             true
         } catch (e: Exception) {
             logger.error("[OrderEventHandler] 주문 실패 처리 실패: eventId={}, error={}", event.id, e.message, e)
+            false
+        }
+    }
+
+    /**
+     * 재고 부족으로 인한 주문 취소
+     */
+    private fun cancelOrderDueToInventory(event: OutboxEvent): Boolean {
+        return try {
+            val payload = json.decodeFromString<InventoryInsufficientPayload>(event.payload)
+
+            val order = orderDomainService.getOrderOrThrow(payload.orderId)
+
+            // 이미 취소된 상태면 중복 처리 방지
+            if (order.status == OrderStatus.CANCELLED) {
+                logger.debug("[OrderEventHandler] 이미 취소된 주문: orderId={}", payload.orderId)
+                return true
+            }
+
+            orderDomainService.cancelOrder(payload.orderId, payload.reason)
+            logger.info(
+                "[OrderEventHandler] 재고 부족으로 주문 취소: orderId={}, productId={}, reason={}",
+                payload.orderId, payload.productId, payload.reason
+            )
+
+            true
+        } catch (e: Exception) {
+            logger.error("[OrderEventHandler] 재고 부족 주문 취소 실패: eventId={}, error={}", event.id, e.message, e)
             false
         }
     }

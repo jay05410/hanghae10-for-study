@@ -49,9 +49,9 @@ class OrderConfirmIntegrationTest(
                     )
                 )
 
-                inventoryCommandUseCase.createInventory(
+                inventoryCommandUseCase.restockInventory(
                     productId = savedProduct.id,
-                    initialQuantity = 100
+                    quantity = 100
                 )
 
                 chargePointUseCase.execute(userId, 50000, "테스트용 충전")
@@ -110,9 +110,9 @@ class OrderConfirmIntegrationTest(
                     )
                 )
 
-                inventoryCommandUseCase.createInventory(
+                inventoryCommandUseCase.restockInventory(
                     productId = savedProduct.id,
-                    initialQuantity = 100
+                    quantity = 100
                 )
 
                 chargePointUseCase.execute(userId, 50000, "테스트용 충전")
@@ -173,9 +173,9 @@ class OrderConfirmIntegrationTest(
                     )
                 )
 
-                inventoryCommandUseCase.createInventory(
+                inventoryCommandUseCase.restockInventory(
                     productId = savedProduct.id,
-                    initialQuantity = 100
+                    quantity = 100
                 )
 
                 chargePointUseCase.execute(userId, 50000, "테스트용 충전")

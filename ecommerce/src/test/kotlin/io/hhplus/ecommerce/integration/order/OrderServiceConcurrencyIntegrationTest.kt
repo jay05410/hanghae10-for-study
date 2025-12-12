@@ -45,7 +45,7 @@ class OrderServiceConcurrencyIntegrationTest(
         )
 
         // 재고 생성 (충분한 수량)
-        inventoryCommandUseCase.createInventory(testProduct.id, 10000)
+        inventoryCommandUseCase.restockInventory(testProduct.id, 10000)
 
         // 테스트용 사용자들 생성 및 포인트 충전
         repeat(100) { index ->

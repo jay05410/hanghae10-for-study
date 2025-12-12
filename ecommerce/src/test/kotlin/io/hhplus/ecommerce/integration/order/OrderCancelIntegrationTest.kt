@@ -65,9 +65,9 @@ class OrderCancelIntegrationTest(
                 )
 
                 // 재고 생성
-                val savedInventory = inventoryCommandUseCase.createInventory(
+                val savedInventory = inventoryCommandUseCase.restockInventory(
                     productId = savedProduct.id,
-                    initialQuantity = 100
+                    quantity = 100
                 )
                 val initialStock = savedInventory.quantity
 
@@ -150,9 +150,9 @@ class OrderCancelIntegrationTest(
                     )
                 )
 
-                inventoryCommandUseCase.createInventory(
+                inventoryCommandUseCase.restockInventory(
                     productId = savedProduct.id,
-                    initialQuantity = 100
+                    quantity = 100
                 )
 
                 chargePointUseCase.execute(userId, 100000, "테스트용 충전")
