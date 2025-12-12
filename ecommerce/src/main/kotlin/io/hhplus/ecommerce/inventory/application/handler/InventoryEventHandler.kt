@@ -79,7 +79,13 @@ class InventoryEventHandler(
             } catch (e: InventoryException.InsufficientStock) {
                 // 재고 부족 → 보상 이벤트 발행 (주문 취소 트리거)
                 logger.warn("[InventoryEventHandler] 재고 부족: orderId=${payload.orderId}, productId=${e.productId}")
-                publishInventoryInsufficientEvent(payload, e)
+                publishInventoryInsufficientEvent(payload, e.productId, e.requestedQuantity, e.availableQuantity)
+            } catch (e: InventoryException.InventoryNotFound) {
+                // 재고 없음 → 재고 부족과 동일하게 처리 (가용 재고 0)
+                val productId = e.data["productId"] as Long
+                val item = payload.items.find { it.productId == productId }
+                logger.warn("[InventoryEventHandler] 재고 없음: orderId=${payload.orderId}, productId=$productId")
+                publishInventoryInsufficientEvent(payload, productId, item?.quantity ?: 0, 0)
             }
 
             true
@@ -91,15 +97,17 @@ class InventoryEventHandler(
 
     private fun publishInventoryInsufficientEvent(
         payload: PaymentCompletedPayload,
-        exception: InventoryException.InsufficientStock
+        productId: Long,
+        requestedQuantity: Int,
+        availableQuantity: Int
     ) {
         val insufficientPayload = InventoryInsufficientPayload(
             orderId = payload.orderId,
             userId = payload.userId,
-            productId = exception.productId,
-            requestedQuantity = exception.requestedQuantity,
-            availableQuantity = exception.availableQuantity,
-            reason = "재고 부족: 상품 ${exception.productId}번의 가용 재고(${exception.availableQuantity})가 요청 수량(${exception.requestedQuantity})보다 부족합니다."
+            productId = productId,
+            requestedQuantity = requestedQuantity,
+            availableQuantity = availableQuantity,
+            reason = "재고 부족: 상품 ${productId}번의 가용 재고(${availableQuantity})가 요청 수량(${requestedQuantity})보다 부족합니다."
         )
 
         outboxEventService.publishEvent(
