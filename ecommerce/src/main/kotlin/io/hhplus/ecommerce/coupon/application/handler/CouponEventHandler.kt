@@ -13,7 +13,11 @@ import org.springframework.transaction.annotation.Transactional
 /**
  * 쿠폰 이벤트 핸들러 (Saga Step)
  *
- * PaymentCompleted → 쿠폰 사용 처리
+ * PaymentCompleted → 쿠폰 상태 USED로 변경
+ *
+ * 주의:
+ * - 할인 금액 계산은 주문 생성 시 PricingDomainService에서 이미 수행됨
+ * - 이 핸들러에서는 쿠폰 상태만 변경 (재계산 없음)
  */
 @Component
 class CouponEventHandler(
@@ -37,14 +41,19 @@ class CouponEventHandler(
                 return true
             }
 
-            logger.info("[CouponEventHandler] 쿠폰 사용 처리 시작: orderId=${payload.orderId}, couponId=${payload.usedCouponId}")
+            logger.info("[CouponEventHandler] 쿠폰 상태 변경 시작: orderId=${payload.orderId}, couponId=${payload.usedCouponId}")
 
-            couponDomainService.applyCoupon(payload.userId, payload.usedCouponId, payload.orderId, payload.amount)
+            // 할인은 이미 주문 생성 시 계산됨 - 상태만 USED로 변경
+            couponDomainService.markCouponAsUsed(
+                userId = payload.userId,
+                userCouponId = payload.usedCouponId,
+                orderId = payload.orderId
+            )
 
-            logger.info("[CouponEventHandler] 쿠폰 사용 처리 완료: couponId=${payload.usedCouponId}")
+            logger.info("[CouponEventHandler] 쿠폰 상태 변경 완료: couponId=${payload.usedCouponId}")
             true
         } catch (e: Exception) {
-            logger.error("[CouponEventHandler] 쿠폰 사용 처리 실패: ${e.message}", e)
+            logger.error("[CouponEventHandler] 쿠폰 상태 변경 실패: ${e.message}", e)
             // 쿠폰 실패는 치명적이지 않으므로 true 반환
             true
         }

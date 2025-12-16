@@ -8,8 +8,6 @@ import io.hhplus.ecommerce.order.domain.model.OrderItemData
 import io.hhplus.ecommerce.order.domain.repository.OrderItemRepository
 import io.hhplus.ecommerce.order.domain.repository.OrderRepository
 import io.hhplus.ecommerce.order.exception.OrderException
-import io.hhplus.ecommerce.order.presentation.dto.CreateOrderRequest
-import io.hhplus.ecommerce.product.domain.service.ProductDomainService
 import mu.KotlinLogging
 import org.springframework.stereotype.Component
 
@@ -25,6 +23,10 @@ import org.springframework.stereotype.Component
  * - 주문 도메인 불변식 보장
  * - Repository(Port)를 통한 영속성 위임
  *
+ * 의존성:
+ * - Product/Coupon 도메인에 직접 의존하지 않음
+ * - 가격 계산은 PricingDomainService에서 수행 후 전달받음
+ *
  * 주의:
  * - 트랜잭션 관리는 UseCase에서 담당
  * - 이벤트 발행 등 인프라 관련 로직 없음
@@ -34,8 +36,7 @@ import org.springframework.stereotype.Component
 class OrderDomainService(
     private val orderRepository: OrderRepository,
     private val orderItemRepository: OrderItemRepository,
-    private val snowflakeGenerator: SnowflakeGenerator,
-    private val productDomainService: ProductDomainService
+    private val snowflakeGenerator: SnowflakeGenerator
 ) {
     private val logger = KotlinLogging.logger {}
 
@@ -86,45 +87,6 @@ class OrderDomainService(
 
         logger.info("주문 생성: orderId=${savedOrder.id}, orderNumber=$orderNumber, userId=$userId")
         return savedOrder
-    }
-
-    /**
-     * 요청 DTO로부터 주문 생성
-     *
-     * 상품 가격 조회 → 주문 아이템 데이터 생성 → 주문 생성
-     *
-     * @param request 주문 생성 요청 DTO
-     * @return 생성된 주문 엔티티
-     */
-    fun createOrderFromRequest(request: CreateOrderRequest): Order {
-        // 1. 상품 정보 조회 및 주문 아이템 데이터 생성
-        val orderItems = request.items.map { item ->
-            val product = productDomainService.getProduct(item.productId)
-            OrderItemData(
-                productId = item.productId,
-                productName = product.name,
-                categoryName = "기본카테고리",
-                quantity = item.quantity,
-                unitPrice = product.price.toInt(),
-                giftWrap = item.giftWrap,
-                giftMessage = item.giftMessage,
-                giftWrapPrice = if (item.giftWrap) 2000 else 0,
-                totalPrice = (product.price.toInt() * item.quantity) + if (item.giftWrap) 2000 else 0,
-                requiresReservation = product.requiresStockReservation()
-            )
-        }
-
-        // 2. 총 금액 계산
-        val totalAmount = orderItems.sumOf { it.totalPrice }.toLong()
-
-        // 3. 주문 생성 (할인은 이벤트 핸들러에서 처리)
-        return createOrder(
-            userId = request.userId,
-            items = orderItems,
-            usedCouponId = request.usedCouponId,
-            totalAmount = totalAmount,
-            discountAmount = 0L  // 할인은 이벤트에서 처리
-        )
     }
 
     /**

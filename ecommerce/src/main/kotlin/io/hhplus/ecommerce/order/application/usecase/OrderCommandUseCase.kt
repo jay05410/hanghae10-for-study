@@ -16,6 +16,9 @@ import io.hhplus.ecommerce.order.domain.entity.Order
 import io.hhplus.ecommerce.order.domain.service.OrderDomainService
 import io.hhplus.ecommerce.order.exception.OrderException
 import io.hhplus.ecommerce.order.presentation.dto.CreateOrderRequest
+import io.hhplus.ecommerce.pricing.domain.model.PricingItemRequest
+import io.hhplus.ecommerce.pricing.domain.model.toOrderItemDataList
+import io.hhplus.ecommerce.pricing.domain.service.PricingDomainService
 import kotlinx.serialization.json.Json
 import mu.KotlinLogging
 import org.springframework.stereotype.Component
@@ -26,9 +29,11 @@ import org.springframework.stereotype.Component
  * 역할:
  * - 주문 생성/취소/확정의 핵심 로직만 수행
  * - 이벤트 발행으로 다른 도메인과 느슨하게 연결
+ * - PricingDomainService를 통한 가격 계산 오케스트레이션
  *
  * 원칙:
  * - 주문은 주문만 담당
+ * - 가격 계산은 PricingDomainService에 위임
  * - 다른 도메인 로직은 이벤트 핸들러에서 처리
  *
  * 이벤트 흐름:
@@ -40,6 +45,7 @@ import org.springframework.stereotype.Component
 class OrderCommandUseCase(
     private val orderDomainService: OrderDomainService,
     private val deliveryDomainService: DeliveryDomainService,
+    private val pricingDomainService: PricingDomainService,
     private val outboxEventService: OutboxEventService
 ) {
     private val logger = KotlinLogging.logger {}
@@ -48,18 +54,55 @@ class OrderCommandUseCase(
     /**
      * 주문 생성
      *
-     * 주문만 생성하고, 나머지 로직은 이벤트 핸들러에서 처리
+     * 흐름:
+     * 1. PricingDomainService로 가격 계산 (쿠폰 할인 포함)
+     * 2. OrderDomainService로 주문 생성
+     * 3. OrderCreated 이벤트 발행
      */
     @DistributedLock(key = DistributedLockKeys.Order.PROCESS, waitTime = 10L, leaseTime = 60L)
     @DistributedTransaction
     fun createOrder(request: CreateOrderRequest): Order {
-        // 주문 생성
-        val savedOrder = orderDomainService.createOrderFromRequest(request)
+        // 1. 요청을 PricingItemRequest로 변환
+        val pricingRequests = request.items.map { item ->
+            PricingItemRequest(
+                productId = item.productId,
+                quantity = item.quantity,
+                giftWrap = item.giftWrap,
+                giftMessage = item.giftMessage
+            )
+        }
 
-        // 이벤트 발행
+        // 2. PricingDomainService로 가격 계산 (쿠폰 할인 포함)
+        val pricingResult = if (request.usedCouponId != null) {
+            pricingDomainService.calculatePricingWithCoupon(
+                userId = request.userId,
+                itemRequests = pricingRequests,
+                userCouponId = request.usedCouponId
+            )
+        } else {
+            pricingDomainService.calculatePricing(pricingRequests)
+        }
+
+        // 3. PricingResult -> OrderItemData 변환 (확장함수 사용)
+        val orderItems = pricingResult.items.toOrderItemDataList()
+
+        // 4. 주문 생성 (할인 금액이 정확히 반영됨!)
+        val savedOrder = orderDomainService.createOrder(
+            userId = request.userId,
+            items = orderItems,
+            usedCouponId = request.usedCouponId,
+            totalAmount = pricingResult.totalAmount,
+            discountAmount = pricingResult.discountAmount
+        )
+
+        // 5. 이벤트 발행
         publishOrderCreatedEvent(savedOrder, request)
 
-        logger.info("[OrderCommandUseCase] 주문 생성 완료: orderId=${savedOrder.id}")
+        logger.info {
+            "[OrderCommandUseCase] 주문 생성 완료: orderId=${savedOrder.id}, " +
+                "totalAmount=${pricingResult.totalAmount}, discountAmount=${pricingResult.discountAmount}, " +
+                "finalAmount=${pricingResult.finalAmount}"
+        }
         return savedOrder
     }
 

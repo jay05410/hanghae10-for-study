@@ -1,6 +1,7 @@
 package io.hhplus.ecommerce.coupon.infra.persistence.entity
 
 import io.hhplus.ecommerce.common.baseentity.BaseJpaEntity
+import io.hhplus.ecommerce.coupon.domain.constant.DiscountScope
 import io.hhplus.ecommerce.coupon.domain.constant.DiscountType
 import jakarta.persistence.*
 import java.time.LocalDateTime
@@ -23,7 +24,8 @@ import java.time.LocalDateTime
     indexes = [
         Index(name = "uk_coupon_name", columnList = "name", unique = true),
         Index(name = "uk_coupon_code", columnList = "code", unique = true),
-        Index(name = "idx_coupon_valid_period", columnList = "valid_from, valid_to")
+        Index(name = "idx_coupon_valid_period", columnList = "valid_from, valid_to"),
+        Index(name = "idx_coupon_discount_scope", columnList = "discount_scope")
     ]
 )
 class CouponJpaEntity(
@@ -60,5 +62,18 @@ class CouponJpaEntity(
     val validFrom: LocalDateTime,
 
     @Column(nullable = false, name = "valid_to")
-    val validTo: LocalDateTime
+    val validTo: LocalDateTime,
+
+    @Column(nullable = false, name = "discount_scope", length = 20)
+    @Enumerated(EnumType.STRING)
+    val discountScope: DiscountScope = DiscountScope.TOTAL,
+
+    @Column(name = "target_category_ids", length = 500)
+    val targetCategoryIds: String = "",
+
+    @Column(name = "target_product_ids", length = 500)
+    val targetProductIds: String = "",
+
+    @Column(name = "max_discount_amount")
+    val maxDiscountAmount: Long? = null
 ) : BaseJpaEntity()

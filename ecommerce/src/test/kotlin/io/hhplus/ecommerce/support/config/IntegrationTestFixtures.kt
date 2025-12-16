@@ -27,6 +27,7 @@ object IntegrationTestFixtures {
     fun createOrderItemData(
         productId: Long = 1L,
         productName: String = "테스트 상품",
+        categoryId: Long = 1L,
         categoryName: String = "전자기기",
         quantity: Int = 1,
         unitPrice: Int = 10000,
@@ -37,6 +38,7 @@ object IntegrationTestFixtures {
     ) = OrderItemData(
         productId = productId,
         productName = productName,
+        categoryId = categoryId,
         categoryName = categoryName,
         quantity = quantity,
         unitPrice = unitPrice,

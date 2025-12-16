@@ -1,6 +1,7 @@
 package io.hhplus.ecommerce.coupon.domain.entity
 
 import io.hhplus.ecommerce.coupon.exception.CouponException
+import io.hhplus.ecommerce.coupon.domain.constant.DiscountScope
 import io.hhplus.ecommerce.coupon.domain.constant.DiscountType
 import java.time.LocalDateTime
 
@@ -16,6 +17,8 @@ import java.time.LocalDateTime
  * - 쿠폰은 발급량이 남아있고 유효기간 내에만 발급 가능
  * - 쿠폰 사용 시 최소 주문 금액 이상이어야 함
  * - 할인 타입에 따라 고정 금액 또는 퍼센트 할인 적용
+ * - 할인 범위(discountScope)에 따라 전체/카테고리/상품별 할인 적용
+ * - maxDiscountAmount로 퍼센트 할인 상한 설정 가능
  *
  * 주의: 이 클래스는 순수 도메인 모델이며 JPA 어노테이션이 없습니다.
  *       영속성은 infra/persistence/entity/CouponJpaEntity에서 처리됩니다.
@@ -31,7 +34,11 @@ data class Coupon(
     var issuedQuantity: Int = 0,
     var version: Int = 0,
     val validFrom: LocalDateTime,
-    val validTo: LocalDateTime
+    val validTo: LocalDateTime,
+    val discountScope: DiscountScope = DiscountScope.TOTAL,
+    val targetCategoryIds: List<Long> = emptyList(),
+    val targetProductIds: List<Long> = emptyList(),
+    val maxDiscountAmount: Long? = null
 ) {
     fun getRemainingQuantity(): Int = totalQuantity - issuedQuantity
 
@@ -59,16 +66,39 @@ data class Coupon(
         this.issuedQuantity += 1
     }
 
-    fun calculateDiscountAmount(orderAmount: Long): Long {
-        if (!isValidForUse(orderAmount)) {
+    /**
+     * 할인 금액 계산
+     *
+     * @param eligibleAmount 할인 대상 금액 (스코프에 따라 전체/카테고리/상품 금액)
+     * @return 계산된 할인 금액 (maxDiscountAmount 적용됨)
+     */
+    fun calculateDiscountAmount(eligibleAmount: Long): Long {
+        if (!isValidForUse(eligibleAmount)) {
             return 0L
         }
 
-        return when (discountType) {
-            DiscountType.FIXED -> minOf(discountValue, orderAmount)
-            DiscountType.PERCENTAGE -> (orderAmount * discountValue / 100)
-                .coerceAtMost(orderAmount)
+        val rawDiscount = when (discountType) {
+            DiscountType.FIXED -> minOf(discountValue, eligibleAmount)
+            DiscountType.PERCENTAGE -> (eligibleAmount * discountValue / 100)
+                .coerceAtMost(eligibleAmount)
         }
+
+        // maxDiscountAmount가 설정된 경우 상한 적용
+        return maxDiscountAmount?.let { maxOf -> minOf(rawDiscount, maxOf) } ?: rawDiscount
+    }
+
+    /**
+     * 특정 카테고리가 할인 대상인지 확인
+     */
+    fun isTargetCategory(categoryId: Long): Boolean {
+        return discountScope == DiscountScope.CATEGORY && categoryId in targetCategoryIds
+    }
+
+    /**
+     * 특정 상품이 할인 대상인지 확인
+     */
+    fun isTargetProduct(productId: Long): Boolean {
+        return discountScope == DiscountScope.PRODUCT && productId in targetProductIds
     }
 
     companion object {
@@ -80,7 +110,11 @@ data class Coupon(
             minimumOrderAmount: Long = 0,
             totalQuantity: Int,
             validFrom: LocalDateTime,
-            validTo: LocalDateTime
+            validTo: LocalDateTime,
+            discountScope: DiscountScope = DiscountScope.TOTAL,
+            targetCategoryIds: List<Long> = emptyList(),
+            targetProductIds: List<Long> = emptyList(),
+            maxDiscountAmount: Long? = null
         ): Coupon {
             require(name.isNotBlank()) { "쿠폰명은 필수입니다" }
             require(discountValue > 0) { "할인값은 0보다 커야 합니다" }
@@ -92,6 +126,21 @@ data class Coupon(
                 require(discountValue <= 100) { "퍼센트 할인값은 100 이하여야 합니다" }
             }
 
+            // 스코프별 대상 ID 검증
+            when (discountScope) {
+                DiscountScope.CATEGORY -> require(targetCategoryIds.isNotEmpty()) {
+                    "카테고리 스코프 쿠폰은 대상 카테고리가 필요합니다"
+                }
+                DiscountScope.PRODUCT -> require(targetProductIds.isNotEmpty()) {
+                    "상품 스코프 쿠폰은 대상 상품이 필요합니다"
+                }
+                DiscountScope.TOTAL -> Unit
+            }
+
+            if (maxDiscountAmount != null) {
+                require(maxDiscountAmount > 0) { "최대 할인 금액은 0보다 커야 합니다" }
+            }
+
             return Coupon(
                 name = name,
                 code = code,
@@ -100,7 +149,11 @@ data class Coupon(
                 minimumOrderAmount = minimumOrderAmount,
                 totalQuantity = totalQuantity,
                 validFrom = validFrom,
-                validTo = validTo
+                validTo = validTo,
+                discountScope = discountScope,
+                targetCategoryIds = targetCategoryIds,
+                targetProductIds = targetProductIds,
+                maxDiscountAmount = maxDiscountAmount
             )
         }
     }
