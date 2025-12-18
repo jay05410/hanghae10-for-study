@@ -54,6 +54,22 @@ data class UserCoupon(
     }
 
     /**
+     * 쿠폰 사용 취소 (롤백)
+     *
+     * 주문 취소 시 사용된 쿠폰을 다시 사용 가능 상태로 복구
+     */
+    fun release() {
+        if (status != UserCouponStatus.USED) {
+            // 이미 ISSUED 상태이거나 다른 상태면 무시 (멱등성)
+            return
+        }
+
+        this.status = UserCouponStatus.ISSUED
+        this.usedAt = null
+        this.usedOrderId = null
+    }
+
+    /**
      * 쿠폰을 만료 처리
      *
      * @throws IllegalStateException 이미 사용된 쿠폰인 경우

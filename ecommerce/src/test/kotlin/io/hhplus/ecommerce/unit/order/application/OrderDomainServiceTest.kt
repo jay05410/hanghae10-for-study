@@ -57,7 +57,7 @@ class OrderDomainServiceTest : DescribeSpec() {
             totalAmount = totalAmount,
             discountAmount = discountAmount,
             finalAmount = totalAmount - discountAmount,
-            usedCouponId = null,
+            usedCouponIds = emptyList(),
             status = status
         )
     }
@@ -115,7 +115,7 @@ class OrderDomainServiceTest : DescribeSpec() {
                     every { mockOrderItemRepository.save(any()) } answers { firstArg() }
 
                     // When
-                    val result = sut.createOrder(userId, items, null, totalAmount, discountAmount)
+                    val result = sut.createOrder(userId, items, emptyList(), totalAmount, discountAmount)
 
                     // Then
                     result.orderNumber shouldBe orderNumber

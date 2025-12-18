@@ -45,7 +45,7 @@ class OrderDomainService(
      *
      * @param userId 주문을 생성하는 사용자 ID
      * @param items 주문 아이템 목록
-     * @param usedCouponId 사용된 쿠폰 ID (선택적)
+     * @param usedCouponIds 사용된 쿠폰 ID 목록
      * @param totalAmount 총 주문 금액
      * @param discountAmount 할인 금액
      * @return 생성된 주문 엔티티
@@ -53,7 +53,7 @@ class OrderDomainService(
     fun createOrder(
         userId: Long,
         items: List<OrderItemData>,
-        usedCouponId: Long?,
+        usedCouponIds: List<Long>,
         totalAmount: Long,
         discountAmount: Long
     ): Order {
@@ -64,7 +64,7 @@ class OrderDomainService(
             userId = userId,
             totalAmount = totalAmount,
             discountAmount = discountAmount,
-            usedCouponId = usedCouponId
+            usedCouponIds = usedCouponIds
         )
 
         val savedOrder = orderRepository.save(order)
@@ -86,6 +86,55 @@ class OrderDomainService(
         }
 
         logger.info("주문 생성: orderId=${savedOrder.id}, orderNumber=$orderNumber, userId=$userId")
+        return savedOrder
+    }
+
+    /**
+     * 결제 대기 상태의 주문 생성 (체크아웃 시작 시)
+     *
+     * @param userId 주문을 생성하는 사용자 ID
+     * @param items 주문 아이템 목록
+     * @param usedCouponIds 사용된 쿠폰 ID 목록
+     * @param totalAmount 총 주문 금액
+     * @param discountAmount 할인 금액
+     * @return 생성된 주문 엔티티 (PENDING_PAYMENT 상태)
+     */
+    fun createPendingPaymentOrder(
+        userId: Long,
+        items: List<OrderItemData>,
+        usedCouponIds: List<Long>,
+        totalAmount: Long,
+        discountAmount: Long
+    ): Order {
+        val orderNumber = snowflakeGenerator.generateNumberWithPrefix(IdPrefix.ORDER)
+
+        val order = Order.createPendingPayment(
+            orderNumber = orderNumber,
+            userId = userId,
+            totalAmount = totalAmount,
+            discountAmount = discountAmount,
+            usedCouponIds = usedCouponIds
+        )
+
+        val savedOrder = orderRepository.save(order)
+
+        // 주문 아이템 생성 및 저장
+        items.forEach { item ->
+            val orderItem = OrderItem.create(
+                orderId = savedOrder.id,
+                productId = item.productId,
+                productName = item.productName,
+                categoryName = item.categoryName,
+                quantity = item.quantity,
+                unitPrice = item.unitPrice,
+                giftWrap = item.giftWrap,
+                giftMessage = item.giftMessage,
+                giftWrapPrice = item.giftWrapPrice
+            )
+            orderItemRepository.save(orderItem)
+        }
+
+        logger.info("결제 대기 주문 생성: orderId=${savedOrder.id}, orderNumber=$orderNumber, userId=$userId")
         return savedOrder
     }
 
@@ -132,6 +181,16 @@ class OrderDomainService(
     }
 
     /**
+     * 사용자에게 노출되는 주문만 조회 (PENDING_PAYMENT, EXPIRED 제외)
+     *
+     * @param userId 조회할 사용자의 ID
+     * @return 사용자에게 보이는 주문 목록 (최신순 정렬)
+     */
+    fun getVisibleOrdersByUser(userId: Long): List<Order> {
+        return orderRepository.findVisibleOrdersByUserId(userId)
+    }
+
+    /**
      * 주문 ID로 주문과 주문 아이템을 함께 조회
      *
      * @param orderId 조회할 주문 ID
@@ -151,6 +210,27 @@ class OrderDomainService(
      */
     fun getOrdersWithItemsByUser(userId: Long): Map<Order, List<OrderItem>> {
         val orders = orderRepository.findByUserIdOrderByCreatedAtDesc(userId)
+        if (orders.isEmpty()) return emptyMap()
+
+        val orderIds = orders.map { it.id }
+        val allOrderItems = orderIds.flatMap { orderId ->
+            orderItemRepository.findByOrderId(orderId)
+        }
+        val orderItemsMap = allOrderItems.groupBy { it.orderId }
+
+        return orders.associateWith { order ->
+            orderItemsMap[order.id] ?: emptyList()
+        }
+    }
+
+    /**
+     * 사용자에게 노출되는 주문과 주문 아이템을 함께 조회 (PENDING_PAYMENT, EXPIRED 제외)
+     *
+     * @param userId 인증된 사용자 ID
+     * @return 주문 정보와 주문 아이템 목록의 Map
+     */
+    fun getVisibleOrdersWithItemsByUser(userId: Long): Map<Order, List<OrderItem>> {
+        val orders = orderRepository.findVisibleOrdersByUserId(userId)
         if (orders.isEmpty()) return emptyMap()
 
         val orderIds = orders.map { it.id }
@@ -203,5 +283,35 @@ class OrderDomainService(
         val cancelledOrder = orderRepository.save(order)
         logger.info("주문 취소: orderId=$orderId, reason=${reason ?: "사용자 요청"}")
         return cancelledOrder
+    }
+
+    /**
+     * 결제 완료 처리 (PENDING_PAYMENT -> PENDING)
+     *
+     * @param orderId 결제 완료된 주문의 ID
+     * @return 결제 완료된 주문 엔티티
+     * @throws OrderException.OrderNotFound 주문을 찾을 수 없는 경우
+     */
+    fun confirmPayment(orderId: Long): Order {
+        val order = getOrderOrThrow(orderId)
+        order.confirmPayment()
+        val confirmedOrder = orderRepository.save(order)
+        logger.info("결제 완료: orderId=$orderId, status=${confirmedOrder.status}")
+        return confirmedOrder
+    }
+
+    /**
+     * 주문 만료 처리 (PENDING_PAYMENT -> EXPIRED)
+     *
+     * @param orderId 만료시킬 주문의 ID
+     * @return 만료된 주문 엔티티
+     * @throws OrderException.OrderNotFound 주문을 찾을 수 없는 경우
+     */
+    fun expireOrder(orderId: Long): Order {
+        val order = getOrderOrThrow(orderId)
+        order.expire()
+        val expiredOrder = orderRepository.save(order)
+        logger.info("주문 만료: orderId=$orderId, status=${expiredOrder.status}")
+        return expiredOrder
     }
 }

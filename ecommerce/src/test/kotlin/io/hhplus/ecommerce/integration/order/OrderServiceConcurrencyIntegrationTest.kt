@@ -94,7 +94,7 @@ class OrderServiceConcurrencyIntegrationTest(
                         val createOrderRequest = CreateOrderRequest(
                             userId = userId,
                             items = listOf(orderItem),
-                            usedCouponId = null,
+                            usedCouponIds = emptyList(),
                             deliveryAddress = DeliveryAddressRequest(
                                 recipientName = "테스트 수령인",
                                 phone = "010-1234-5678",

@@ -13,7 +13,7 @@ import jakarta.persistence.*
  *
  * 주의: 이 클래스는 영속성 전용이며 비즈니스 로직을 포함하지 않습니다.
  *       비즈니스 로직은 domain/entity/Inventory에 있습니다.
- *       createdAt, updatedAt, createdBy, updatedBy, isActive는 BaseJpaEntity에서 상속받습니다.
+ *       createdAt, updatedAt, createdBy, updatedBy, deletedAt는 BaseJpaEntity에서 상속받습니다.
  */
 @Entity
 @Table(

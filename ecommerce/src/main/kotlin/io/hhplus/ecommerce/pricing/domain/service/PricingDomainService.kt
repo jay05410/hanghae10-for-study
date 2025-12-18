@@ -78,73 +78,143 @@ class PricingDomainService(
             totalAmount = totalAmount,
             discountAmount = 0L,
             finalAmount = totalAmount,
-            appliedCouponInfo = null
+            appliedCouponInfos = emptyList()
         )
     }
 
     /**
-     * 주문 가격 계산 (쿠폰 적용)
+     * 주문 가격 계산 (다중 쿠폰 적용)
+     *
+     * 쿠폰 적용 순서:
+     * 1. PRODUCT 스코프 (상품별 할인)
+     * 2. CATEGORY 스코프 (카테고리별 할인)
+     * 3. TOTAL 스코프 (전체 주문 할인)
      *
      * @param userId 사용자 ID
      * @param itemRequests 주문 아이템 요청 목록
-     * @param userCouponId 사용할 사용자 쿠폰 ID
-     * @return 가격 계산 결과 (할인 포함)
+     * @param userCouponIds 사용할 사용자 쿠폰 ID 목록
+     * @return 가격 계산 결과 (모든 할인 포함)
      */
-    fun calculatePricingWithCoupon(
+    fun calculatePricingWithCoupons(
         userId: Long,
         itemRequests: List<PricingItemRequest>,
-        userCouponId: Long
+        userCouponIds: List<Long>
     ): PricingResult {
         validateItemRequests(itemRequests)
+
+        if (userCouponIds.isEmpty()) {
+            return calculatePricing(itemRequests)
+        }
 
         val pricingItems = enrichItemsWithProductInfo(itemRequests)
         val totalAmount = pricingItems.sumOf { it.itemTotalPrice }
 
-        // 쿠폰 조회 및 검증
-        val userCoupon = couponDomainService.getUserCoupon(userCouponId)
-            ?: throw PricingException.UserCouponNotFound(userId, userCouponId)
+        // 모든 쿠폰 검증 및 조회
+        val validatedCoupons = userCouponIds.map { userCouponId ->
+            val userCoupon = couponDomainService.getUserCoupon(userCouponId)
+                ?: throw PricingException.UserCouponNotFound(userId, userCouponId)
 
-        if (userCoupon.userId != userId) {
-            throw PricingException.CouponNotApplicable("다른 사용자의 쿠폰입니다")
+            if (userCoupon.userId != userId) {
+                throw PricingException.CouponNotApplicable("다른 사용자의 쿠폰입니다: $userCouponId")
+            }
+
+            if (!userCoupon.isUsable()) {
+                throw PricingException.CouponNotApplicable("이미 사용되었거나 만료된 쿠폰입니다: $userCouponId")
+            }
+
+            val coupon = couponDomainService.getCoupon(userCoupon.couponId)
+                ?: throw PricingException.CouponNotApplicable("쿠폰 정보를 찾을 수 없습니다: $userCouponId")
+
+            Pair(userCouponId, coupon)
         }
 
-        if (!userCoupon.isUsable()) {
-            throw PricingException.CouponNotApplicable("이미 사용되었거나 만료된 쿠폰입니다")
+        // 최소 주문 금액 검증 (모든 쿠폰에 대해)
+        validatedCoupons.forEach { (userCouponId, coupon) ->
+            if (!coupon.isValidForUse(totalAmount)) {
+                throw PricingException.CouponNotApplicable(
+                    "쿠폰 '${coupon.name}'의 최소 주문 금액(${coupon.minimumOrderAmount}원)을 충족하지 않습니다. 현재: ${totalAmount}원"
+                )
+            }
         }
 
-        val coupon = couponDomainService.getCoupon(userCoupon.couponId)
-            ?: throw PricingException.CouponNotApplicable("쿠폰 정보를 찾을 수 없습니다")
+        // 스코프별 정렬: PRODUCT → CATEGORY → TOTAL
+        val sortedCoupons = validatedCoupons.sortedBy { (_, coupon) ->
+            when (coupon.discountScope) {
+                DiscountScope.PRODUCT -> 0
+                DiscountScope.CATEGORY -> 1
+                DiscountScope.TOTAL -> 2
+            }
+        }
 
-        // 최소 주문 금액 검증
-        if (!coupon.isValidForUse(totalAmount)) {
-            throw PricingException.CouponNotApplicable(
-                "최소 주문 금액(${coupon.minimumOrderAmount}원)을 충족하지 않습니다. 현재: ${totalAmount}원"
+        // 할인 적용 (누적)
+        var currentItems = pricingItems
+        var currentAmount = totalAmount
+        var totalDiscount = 0L
+        val appliedCouponInfos = mutableListOf<AppliedCouponInfo>()
+
+        sortedCoupons.forEach { (userCouponId, coupon) ->
+            val (discountAmount, newPricedItems) = calculateDiscountByScope(coupon, currentItems, currentAmount)
+            totalDiscount += discountAmount
+            currentAmount -= discountAmount
+
+            appliedCouponInfos.add(
+                AppliedCouponInfo(
+                    userCouponId = userCouponId,
+                    couponId = coupon.id,
+                    couponName = coupon.name,
+                    discountScope = coupon.discountScope,
+                    calculatedDiscount = discountAmount
+                )
+            )
+
+            // PricingItem -> PricedItem 변환 (다음 할인 계산을 위해)
+            currentItems = newPricedItems.map { pricedItem ->
+                PricingItem(
+                    productId = pricedItem.productId,
+                    productName = pricedItem.productName,
+                    categoryId = pricedItem.categoryId,
+                    categoryName = pricedItem.categoryName,
+                    quantity = pricedItem.quantity,
+                    unitPrice = pricedItem.unitPrice,
+                    giftWrap = pricedItem.giftWrap,
+                    giftMessage = pricedItem.giftMessage,
+                    giftWrapPrice = pricedItem.giftWrapPrice,
+                    requiresReservation = pricedItem.requiresReservation
+                )
+            }
+        }
+
+        val finalAmount = totalAmount - totalDiscount
+
+        // 최종 PricedItem 생성
+        val finalPricedItems = currentItems.map { item ->
+            PricedItem(
+                productId = item.productId,
+                productName = item.productName,
+                categoryId = item.categoryId,
+                categoryName = item.categoryName,
+                quantity = item.quantity,
+                unitPrice = item.unitPrice,
+                giftWrap = item.giftWrap,
+                giftMessage = item.giftMessage,
+                giftWrapPrice = item.giftWrapPrice,
+                totalPrice = item.itemTotalPrice,
+                itemDiscountAmount = 0L,
+                requiresReservation = item.requiresReservation
             )
         }
 
-        // 할인 금액 계산 (스코프별)
-        val (discountAmount, pricedItems) = calculateDiscountByScope(coupon, pricingItems, totalAmount)
-
-        val finalAmount = totalAmount - discountAmount
-
         logger.info {
-            "[PricingDomainService] 가격 계산 완료 (쿠폰 적용): " +
-                "totalAmount=$totalAmount, discountAmount=$discountAmount, finalAmount=$finalAmount, " +
-                "couponId=${coupon.id}, scope=${coupon.discountScope}"
+            "[PricingDomainService] 가격 계산 완료 (쿠폰 ${appliedCouponInfos.size}개 적용): " +
+                "totalAmount=$totalAmount, totalDiscount=$totalDiscount, finalAmount=$finalAmount"
         }
 
         return PricingResult(
-            items = pricedItems,
+            items = finalPricedItems,
             totalAmount = totalAmount,
-            discountAmount = discountAmount,
+            discountAmount = totalDiscount,
             finalAmount = finalAmount,
-            appliedCouponInfo = AppliedCouponInfo(
-                userCouponId = userCouponId,
-                couponId = coupon.id,
-                couponName = coupon.name,
-                discountScope = coupon.discountScope,
-                calculatedDiscount = discountAmount
-            )
+            appliedCouponInfos = appliedCouponInfos
         )
     }
 

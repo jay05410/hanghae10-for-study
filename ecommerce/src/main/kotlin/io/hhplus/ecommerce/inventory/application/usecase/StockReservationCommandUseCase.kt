@@ -6,6 +6,7 @@ import io.hhplus.ecommerce.inventory.domain.entity.StockReservation
 import io.hhplus.ecommerce.inventory.domain.service.InventoryDomainService
 import io.hhplus.ecommerce.inventory.domain.service.StockReservationDomainService
 import io.hhplus.ecommerce.inventory.exception.InventoryException
+import io.hhplus.ecommerce.order.domain.service.OrderDomainService
 import mu.KotlinLogging
 import org.springframework.stereotype.Component
 
@@ -25,7 +26,8 @@ import org.springframework.stereotype.Component
 @Component
 class StockReservationCommandUseCase(
     private val inventoryDomainService: InventoryDomainService,
-    private val stockReservationDomainService: StockReservationDomainService
+    private val stockReservationDomainService: StockReservationDomainService,
+    private val orderDomainService: OrderDomainService
 ) {
     private val logger = KotlinLogging.logger {}
 
@@ -98,25 +100,47 @@ class StockReservationCommandUseCase(
 
     /**
      * 만료된 예약 처리
+     *
+     * 1. 재고 예약 해제
+     * 2. 예약 상태 만료 처리
+     * 3. 연결된 주문 만료 처리 (PENDING_PAYMENT → EXPIRED)
      */
     @DistributedTransaction
     fun expireReservations(): Int {
         val expiredReservations = stockReservationDomainService.findExpiredReservations()
         var expiredCount = 0
 
+        // orderId별로 그룹화하여 주문 만료는 한 번만 처리
+        val processedOrderIds = mutableSetOf<Long>()
+
         expiredReservations.forEach { reservation ->
             try {
-                // 재고 예약 해제
+                // 1. 재고 예약 해제
                 val inventory = inventoryDomainService.getInventory(reservation.productId)
                 if (inventory != null) {
                     inventoryDomainService.releaseReservation(reservation.productId, reservation.quantity)
                 }
 
-                // 예약 만료 처리
+                // 2. 예약 만료 처리
                 stockReservationDomainService.expireReservation(reservation)
+
+                // 3. 연결된 주문 만료 처리 (중복 방지)
+                reservation.orderId?.let { orderId ->
+                    if (!processedOrderIds.contains(orderId)) {
+                        try {
+                            orderDomainService.expireOrder(orderId)
+                            processedOrderIds.add(orderId)
+                            logger.info("[ReservationExpiry] 주문 만료 처리 완료: orderId=$orderId")
+                        } catch (e: Exception) {
+                            logger.warn("[ReservationExpiry] 주문 만료 처리 실패 (이미 처리되었거나 상태 불일치): orderId=$orderId, error=${e.message}")
+                        }
+                    }
+                }
+
                 expiredCount++
+                logger.debug("[ReservationExpiry] 예약 만료 처리 완료: reservationId=${reservation.id}")
             } catch (e: Exception) {
-                logger.warn("Failed to expire reservation ${reservation.id}: ${e.message}")
+                logger.warn("[ReservationExpiry] Failed to expire reservation ${reservation.id}: ${e.message}")
             }
         }
 

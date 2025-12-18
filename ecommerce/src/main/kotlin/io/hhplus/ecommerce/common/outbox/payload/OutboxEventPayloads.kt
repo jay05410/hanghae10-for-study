@@ -29,7 +29,7 @@ data class OrderCreatedPayload(
     val finalAmount: Long,
     val discountAmount: Long,
     val status: String,
-    val usedCouponId: Long? = null,
+    val usedCouponIds: List<Long> = emptyList(),
     val items: List<OrderCreatedItemPayload>,
     val deliveryAddress: DeliveryAddress
 )
@@ -51,7 +51,10 @@ data class OrderCreatedItemPayload(
  * 주문 취소 이벤트 Payload
  *
  * OrderCancelled 이벤트 발행 시 사용
- * 재고 복구, 포인트 환불 핸들러에서 수신
+ * - 재고 복구 핸들러
+ * - 포인트 환불 핸들러
+ * - 쿠폰 복구 핸들러
+ * - 장바구니 복구 핸들러
  */
 @Serializable
 data class OrderCancelledPayload(
@@ -61,6 +64,7 @@ data class OrderCancelledPayload(
     val finalAmount: Long,
     val reason: String,
     val status: String,
+    val usedCouponIds: List<Long> = emptyList(),
     val items: List<OrderItemPayloadSimple>
 )
 
@@ -68,7 +72,8 @@ data class OrderCancelledPayload(
  * 주문 확정 이벤트 Payload
  *
  * OrderConfirmed 이벤트 발행 시 사용
- * 통계 기록 핸들러에서 수신
+ * - CouponEventHandler: 쿠폰 USED 확정
+ * - 통계 기록 핸들러: 판매 통계
  */
 @Serializable
 data class OrderConfirmedPayload(
@@ -76,6 +81,7 @@ data class OrderConfirmedPayload(
     val userId: Long,
     val orderNumber: String,
     val status: String,
+    val usedCouponIds: List<Long> = emptyList(),
     val items: List<OrderItemPayloadSimple>
 )
 
@@ -99,17 +105,21 @@ data class OrderItemPayloadSimple(
  * 결제 완료 이벤트 Payload
  *
  * PaymentCompleted 이벤트 발행 시 사용
- * 재고 차감, 쿠폰 사용, 배송 생성 등의 핸들러에서 수신
+ *
+ * 도메인 분리 원칙:
+ * - Payment 도메인은 결제 정보만 발행
+ * - 각 핸들러가 orderId로 자기 도메인 데이터 조회
+ *   - InventoryEventHandler: stock_reservations 조회 → 재고 확정
+ *   - OrderEventHandler: orders 조회 → 상태 변경
+ *   - CouponEventHandler: orders에서 usedCouponId 조회
+ *   - DeliveryEventHandler: orders + 배송지 조회
  */
 @Serializable
 data class PaymentCompletedPayload(
     val orderId: Long,
     val userId: Long,
     val paymentId: Long,
-    val amount: Long,
-    val usedCouponId: Long? = null,
-    val items: List<OrderCreatedItemPayload>,
-    val deliveryAddress: DeliveryAddress? = null
+    val amount: Long
 )
 
 /**

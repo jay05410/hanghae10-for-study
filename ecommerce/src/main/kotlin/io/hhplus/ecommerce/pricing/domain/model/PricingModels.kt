@@ -59,18 +59,14 @@ data class PricingResult(
     val totalAmount: Long,
     val discountAmount: Long,
     val finalAmount: Long,
-    val appliedCouponInfo: AppliedCouponInfo? = null
+    val appliedCouponInfos: List<AppliedCouponInfo> = emptyList()
 ) {
-    /**
-     * 할인 적용 여부
-     */
     fun hasDiscount(): Boolean = discountAmount > 0
 
-    /**
-     * 할인율 (%)
-     */
     fun getDiscountRate(): Double =
         if (totalAmount > 0) (discountAmount.toDouble() / totalAmount.toDouble()) * 100 else 0.0
+
+    fun appliedCouponCount(): Int = appliedCouponInfos.size
 }
 
 /**

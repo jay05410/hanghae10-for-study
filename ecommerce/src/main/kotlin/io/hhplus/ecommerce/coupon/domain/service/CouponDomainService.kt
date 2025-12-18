@@ -250,24 +250,38 @@ class CouponDomainService(
     }
 
     /**
-     * 쿠폰 상태만 USED로 변경 (할인 계산 없이)
-     *
-     * 주문 생성 시 PricingDomainService에서 이미 할인이 계산되었으므로
-     * 결제 완료 후 쿠폰 상태만 변경하면 됨.
+     * 다중 쿠폰 상태를 USED로 변경
      *
      * @param userId 사용자 ID
-     * @param userCouponId 사용자 쿠폰 ID
+     * @param userCouponIds 사용자 쿠폰 ID 목록
      * @param orderId 주문 ID (쿠폰 사용 추적용)
      */
-    fun markCouponAsUsed(userId: Long, userCouponId: Long, orderId: Long) {
-        val userCoupon = getUserCouponOrThrow(userCouponId, userId)
+    fun markCouponsAsUsed(userId: Long, userCouponIds: List<Long>, orderId: Long) {
+        userCouponIds.forEach { userCouponId ->
+            val userCoupon = getUserCouponOrThrow(userCouponId, userId)
 
-        if (!userCoupon.isUsable()) {
-            // 이미 사용된 쿠폰은 무시 (멱등성 보장)
-            return
+            if (!userCoupon.isUsable()) {
+                // 이미 사용된 쿠폰은 무시 (멱등성 보장)
+                return@forEach
+            }
+
+            userCoupon.use(orderId)
+            userCouponRepository.save(userCoupon)
         }
+    }
 
-        userCoupon.use(orderId)
-        userCouponRepository.save(userCoupon)
+    /**
+     * 다중 쿠폰 사용 취소 (롤백)
+     *
+     * @param userId 사용자 ID
+     * @param userCouponIds 사용자 쿠폰 ID 목록
+     */
+    fun releaseCoupons(userId: Long, userCouponIds: List<Long>) {
+        userCouponIds.forEach { userCouponId ->
+            val userCoupon = getUserCouponOrThrow(userCouponId, userId)
+
+            userCoupon.release()
+            userCouponRepository.save(userCoupon)
+        }
     }
 }

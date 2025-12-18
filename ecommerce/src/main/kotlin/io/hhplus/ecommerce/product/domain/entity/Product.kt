@@ -15,9 +15,6 @@ import io.hhplus.ecommerce.product.domain.constant.ProductStatus
  * - 가격은 0보다 커야 함
  * - 티백 용량은 0보다 커야 함
  * - 상품 정보는 가변 객체로 관리 (직접 필드 수정)
- *
- * 주의: 이 클래스는 순수 도메인 모델이며 JPA 어노테이션이 없습니다.
- *       영속성은 infra/persistence/entity/ProductJpaEntity에서 처리됩니다.
  */
 data class Product(
     val id: Long = 0,

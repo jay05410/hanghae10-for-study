@@ -47,11 +47,13 @@ object OrderValidator {
      */
     fun validateStatusTransition(currentStatus: OrderStatus, newStatus: OrderStatus, orderNumber: String) {
         val validTransitions = when (currentStatus) {
+            OrderStatus.PENDING_PAYMENT -> listOf(OrderStatus.PENDING, OrderStatus.CANCELLED, OrderStatus.FAILED, OrderStatus.EXPIRED)
             OrderStatus.PENDING -> listOf(OrderStatus.CONFIRMED, OrderStatus.CANCELLED, OrderStatus.FAILED)
             OrderStatus.CONFIRMED -> listOf(OrderStatus.COMPLETED, OrderStatus.CANCELLED)
             OrderStatus.COMPLETED -> emptyList()
             OrderStatus.CANCELLED -> emptyList()
             OrderStatus.FAILED -> emptyList()
+            OrderStatus.EXPIRED -> emptyList()
         }
 
         if (newStatus !in validTransitions) {

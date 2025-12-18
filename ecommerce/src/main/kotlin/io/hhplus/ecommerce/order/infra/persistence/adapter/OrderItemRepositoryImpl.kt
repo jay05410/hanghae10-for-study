@@ -42,6 +42,11 @@ class OrderItemRepositoryImpl(
     override fun findByProductId(productId: Long): List<OrderItem> =
         jpaRepository.findByProductId(productId).toDomain(mapper)
 
+    override fun findByOrderIdIn(orderIds: List<Long>): List<OrderItem> {
+        if (orderIds.isEmpty()) return emptyList()
+        return jpaRepository.findByOrderIdIn(orderIds).toDomain(mapper)
+    }
+
     override fun deleteById(id: Long) {
         jpaRepository.deleteById(id)
     }

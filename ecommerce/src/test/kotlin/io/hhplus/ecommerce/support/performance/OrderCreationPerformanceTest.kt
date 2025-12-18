@@ -78,7 +78,7 @@ class OrderCreationPerformanceTest(
                             addressDetail = "${index}호",
                             deliveryMessage = "문 앞에 놓아주세요"
                         ),
-                        usedCouponId = null
+                        usedCouponIds = emptyList()
                     )
 
                     orderCommandUseCase.createOrder(request)
