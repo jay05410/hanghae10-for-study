@@ -1,10 +1,11 @@
 package io.hhplus.ecommerce.coupon.application.handler
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import io.hhplus.ecommerce.common.outbox.EventHandler
-import io.hhplus.ecommerce.common.outbox.EventRegistry
 import io.hhplus.ecommerce.common.outbox.OutboxEvent
+import io.hhplus.ecommerce.common.outbox.payload.PaymentCompletedPayload
+import io.hhplus.ecommerce.config.event.EventRegistry
 import io.hhplus.ecommerce.coupon.domain.service.CouponDomainService
+import kotlinx.serialization.json.Json
 import mu.KotlinLogging
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -12,15 +13,19 @@ import org.springframework.transaction.annotation.Transactional
 /**
  * 쿠폰 이벤트 핸들러 (Saga Step)
  *
- * PaymentCompleted → 쿠폰 사용 처리
+ * PaymentCompleted → 쿠폰 상태 USED로 변경
+ *
+ * 주의:
+ * - 할인 금액 계산은 주문 생성 시 PricingDomainService에서 이미 수행됨
+ * - 이 핸들러에서는 쿠폰 상태만 변경 (재계산 없음)
  */
 @Component
 class CouponEventHandler(
-    private val couponDomainService: CouponDomainService,
-    private val objectMapper: ObjectMapper
+    private val couponDomainService: CouponDomainService
 ) : EventHandler {
 
     private val logger = KotlinLogging.logger {}
+    private val json = Json { ignoreUnknownKeys = true }
 
     override fun supportedEventTypes(): List<String> {
         return listOf(EventRegistry.EventTypes.PAYMENT_COMPLETED)
@@ -29,25 +34,26 @@ class CouponEventHandler(
     @Transactional
     override fun handle(event: OutboxEvent): Boolean {
         return try {
-            val payload = objectMapper.readValue(event.payload, Map::class.java)
-            val orderId = (payload["orderId"] as Number).toLong()
-            val userId = (payload["userId"] as Number).toLong()
-            val amount = (payload["amount"] as Number).toLong()
-            val usedCouponId = payload["usedCouponId"]?.let { (it as Number).toLong() }
+            val payload = json.decodeFromString<PaymentCompletedPayload>(event.payload)
 
-            if (usedCouponId == null) {
-                logger.debug("[CouponEventHandler] 사용된 쿠폰 없음: orderId=$orderId")
+            if (payload.usedCouponId == null) {
+                logger.debug("[CouponEventHandler] 사용된 쿠폰 없음: orderId=${payload.orderId}")
                 return true
             }
 
-            logger.info("[CouponEventHandler] 쿠폰 사용 처리 시작: orderId=$orderId, couponId=$usedCouponId")
+            logger.info("[CouponEventHandler] 쿠폰 상태 변경 시작: orderId=${payload.orderId}, couponId=${payload.usedCouponId}")
 
-            couponDomainService.applyCoupon(userId, usedCouponId, orderId, amount)
+            // 할인은 이미 주문 생성 시 계산됨 - 상태만 USED로 변경
+            couponDomainService.markCouponAsUsed(
+                userId = payload.userId,
+                userCouponId = payload.usedCouponId,
+                orderId = payload.orderId
+            )
 
-            logger.info("[CouponEventHandler] 쿠폰 사용 처리 완료: couponId=$usedCouponId")
+            logger.info("[CouponEventHandler] 쿠폰 상태 변경 완료: couponId=${payload.usedCouponId}")
             true
         } catch (e: Exception) {
-            logger.error("[CouponEventHandler] 쿠폰 사용 처리 실패: ${e.message}", e)
+            logger.error("[CouponEventHandler] 쿠폰 상태 변경 실패: ${e.message}", e)
             // 쿠폰 실패는 치명적이지 않으므로 true 반환
             true
         }

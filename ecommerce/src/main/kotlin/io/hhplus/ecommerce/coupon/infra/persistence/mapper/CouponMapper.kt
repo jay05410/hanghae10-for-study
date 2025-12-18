@@ -10,6 +10,9 @@ import org.springframework.stereotype.Component
  * 역할:
  * - 도메인 모델과 영속성 모델 간의 양방향 변환
  * - 도메인 계층과 인프라 계층의 분리 유지
+ *
+ * 변환 규칙:
+ * - targetCategoryIds, targetProductIds: List<Long> <-> 쉼표 구분 문자열
  */
 @Component
 class CouponMapper {
@@ -29,7 +32,11 @@ class CouponMapper {
             issuedQuantity = entity.issuedQuantity,
             version = entity.version,
             validFrom = entity.validFrom,
-            validTo = entity.validTo
+            validTo = entity.validTo,
+            discountScope = entity.discountScope,
+            targetCategoryIds = parseIds(entity.targetCategoryIds),
+            targetProductIds = parseIds(entity.targetProductIds),
+            maxDiscountAmount = entity.maxDiscountAmount
         )
     }
 
@@ -48,8 +55,28 @@ class CouponMapper {
             issuedQuantity = domain.issuedQuantity,
             version = domain.version,
             validFrom = domain.validFrom,
-            validTo = domain.validTo
+            validTo = domain.validTo,
+            discountScope = domain.discountScope,
+            targetCategoryIds = joinIds(domain.targetCategoryIds),
+            targetProductIds = joinIds(domain.targetProductIds),
+            maxDiscountAmount = domain.maxDiscountAmount
         )
+    }
+
+    /**
+     * 쉼표 구분 문자열 -> List<Long> 변환
+     */
+    private fun parseIds(idsString: String): List<Long> {
+        if (idsString.isBlank()) return emptyList()
+        return idsString.split(",")
+            .mapNotNull { it.trim().toLongOrNull() }
+    }
+
+    /**
+     * List<Long> -> 쉼표 구분 문자열 변환
+     */
+    private fun joinIds(ids: List<Long>): String {
+        return ids.joinToString(",")
     }
 
     /**

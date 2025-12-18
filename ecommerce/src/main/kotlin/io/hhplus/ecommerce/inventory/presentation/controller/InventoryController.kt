@@ -3,10 +3,9 @@ package io.hhplus.ecommerce.inventory.presentation.controller
 import io.hhplus.ecommerce.common.response.ApiResponse
 import io.hhplus.ecommerce.inventory.application.usecase.GetInventoryQueryUseCase
 import io.hhplus.ecommerce.inventory.application.usecase.GetStockReservationQueryUseCase
+import io.hhplus.ecommerce.inventory.application.usecase.InventoryCommandUseCase
 import io.hhplus.ecommerce.inventory.application.usecase.StockReservationCommandUseCase
-import io.hhplus.ecommerce.inventory.presentation.dto.ReserveStockRequest
-import io.hhplus.ecommerce.inventory.presentation.dto.StockReservationResponse
-import io.hhplus.ecommerce.inventory.presentation.dto.toResponse
+import io.hhplus.ecommerce.inventory.presentation.dto.*
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -25,14 +24,42 @@ import org.springframework.web.bind.annotation.*
  * - 적절한 UseCase로 비즈니스 로직 위임
  * - HTTP 상태 코드 및 에러 처리
  */
-@Tag(name = "재고 관리", description = "재고 예약, 확정, 취소 API")
+@Tag(name = "재고 관리", description = "재고 생성, 보충, 조회, 예약 API")
 @RestController
 @RequestMapping("/api/v1/inventory")
 class InventoryController(
+    private val inventoryCommandUseCase: InventoryCommandUseCase,
     private val stockReservationCommandUseCase: StockReservationCommandUseCase,
     private val getStockReservationQueryUseCase: GetStockReservationQueryUseCase,
     private val getInventoryQueryUseCase: GetInventoryQueryUseCase
 ) {
+
+    // ===== 재고 관리 API (백오피스용) =====
+
+    @Operation(summary = "재고 조회", description = "상품의 현재 재고를 조회합니다.")
+    @GetMapping("/products/{productId}")
+    fun getInventory(
+        @Parameter(description = "상품 ID", required = true)
+        @PathVariable productId: Long
+    ): ApiResponse<InventoryResponse> {
+        val inventory = getInventoryQueryUseCase.getInventory(productId)
+            ?: throw io.hhplus.ecommerce.inventory.exception.InventoryException.InventoryNotFound(productId)
+        return ApiResponse.success(inventory.toResponse())
+    }
+
+    @Operation(summary = "재고 보충", description = "재고가 없으면 생성, 있으면 수량 추가")
+    @PostMapping("/products/{productId}/restock")
+    fun restockInventory(
+        @Parameter(description = "상품 ID", required = true)
+        @PathVariable productId: Long,
+        @Parameter(description = "보충할 수량", required = true)
+        @RequestParam quantity: Int
+    ): ApiResponse<InventoryResponse> {
+        val inventory = inventoryCommandUseCase.restockInventory(productId, quantity)
+        return ApiResponse.success(inventory.toResponse())
+    }
+
+    // ===== 재고 예약 API =====
 
     @Operation(summary = "재고 예약", description = "상품의 재고를 예약합니다.")
     @PostMapping("/products/{productId}/reserve")

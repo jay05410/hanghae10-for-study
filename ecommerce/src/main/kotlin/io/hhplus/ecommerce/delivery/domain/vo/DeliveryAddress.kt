@@ -1,5 +1,7 @@
 package io.hhplus.ecommerce.delivery.domain.vo
 
+import kotlinx.serialization.Serializable
+
 /**
  * 배송지 정보 Value Object
  *
@@ -12,6 +14,7 @@ package io.hhplus.ecommerce.delivery.domain.vo
  * - 배송지 정보는 주문 시점에 스냅샷으로 저장되어야 함
  * - 사용자가 나중에 배송지를 수정/삭제해도 주문의 배송지는 변경되지 않음
  */
+@Serializable
 data class DeliveryAddress(
     /** 수령인 이름 */
     val recipientName: String,

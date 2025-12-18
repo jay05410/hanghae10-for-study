@@ -55,8 +55,8 @@ class CartAddIntegrationTest(
             )
         )
 
-        inventoryCommandUseCase.createInventory(product1.id, 1000)
-        inventoryCommandUseCase.createInventory(product2.id, 1000)
+        inventoryCommandUseCase.restockInventory(product1.id, 1000)
+        inventoryCommandUseCase.restockInventory(product2.id, 1000)
     }
 
     describe("장바구니 아이템 추가") {
@@ -316,7 +316,7 @@ class CartAddIntegrationTest(
                         createdBy = 1L
                     )
                 )
-                inventoryCommandUseCase.createInventory(product3.id, 1000)
+                inventoryCommandUseCase.restockInventory(product3.id, 1000)
 
                 cartCommandUseCase.addToCart(userId, AddToCartRequest(productId = product1.id, quantity = 1, giftWrap = false, giftMessage = null))
                 cartCommandUseCase.addToCart(userId, AddToCartRequest(productId = product2.id, quantity = 2, giftWrap = false, giftMessage = null))

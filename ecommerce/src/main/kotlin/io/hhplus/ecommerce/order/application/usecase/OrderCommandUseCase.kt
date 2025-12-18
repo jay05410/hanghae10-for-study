@@ -1,17 +1,25 @@
 package io.hhplus.ecommerce.order.application.usecase
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import io.hhplus.ecommerce.common.annotation.DistributedLock
 import io.hhplus.ecommerce.common.annotation.DistributedTransaction
 import io.hhplus.ecommerce.common.lock.DistributedLockKeys
-import io.hhplus.ecommerce.common.outbox.EventRegistry
 import io.hhplus.ecommerce.common.outbox.OutboxEventService
-import io.hhplus.ecommerce.delivery.domain.constant.DeliveryStatus
+import io.hhplus.ecommerce.common.outbox.payload.OrderCancelledPayload
+import io.hhplus.ecommerce.common.outbox.payload.OrderConfirmedPayload
+import io.hhplus.ecommerce.common.outbox.payload.OrderCreatedItemPayload
+import io.hhplus.ecommerce.common.outbox.payload.OrderCreatedPayload
+import io.hhplus.ecommerce.common.outbox.payload.OrderItemPayloadSimple
+import io.hhplus.ecommerce.config.event.EventRegistry
 import io.hhplus.ecommerce.delivery.domain.service.DeliveryDomainService
+import io.hhplus.ecommerce.delivery.domain.vo.DeliveryAddress
 import io.hhplus.ecommerce.order.domain.entity.Order
 import io.hhplus.ecommerce.order.domain.service.OrderDomainService
 import io.hhplus.ecommerce.order.exception.OrderException
 import io.hhplus.ecommerce.order.presentation.dto.CreateOrderRequest
+import io.hhplus.ecommerce.pricing.domain.model.PricingItemRequest
+import io.hhplus.ecommerce.pricing.domain.model.toOrderItemDataList
+import io.hhplus.ecommerce.pricing.domain.service.PricingDomainService
+import kotlinx.serialization.json.Json
 import mu.KotlinLogging
 import org.springframework.stereotype.Component
 
@@ -21,9 +29,11 @@ import org.springframework.stereotype.Component
  * 역할:
  * - 주문 생성/취소/확정의 핵심 로직만 수행
  * - 이벤트 발행으로 다른 도메인과 느슨하게 연결
+ * - PricingDomainService를 통한 가격 계산 오케스트레이션
  *
  * 원칙:
  * - 주문은 주문만 담당
+ * - 가격 계산은 PricingDomainService에 위임
  * - 다른 도메인 로직은 이벤트 핸들러에서 처리
  *
  * 이벤트 흐름:
@@ -35,54 +45,92 @@ import org.springframework.stereotype.Component
 class OrderCommandUseCase(
     private val orderDomainService: OrderDomainService,
     private val deliveryDomainService: DeliveryDomainService,
-    private val outboxEventService: OutboxEventService,
-    private val objectMapper: ObjectMapper
+    private val pricingDomainService: PricingDomainService,
+    private val outboxEventService: OutboxEventService
 ) {
     private val logger = KotlinLogging.logger {}
+    private val json = Json { ignoreUnknownKeys = true }
 
     /**
      * 주문 생성
      *
-     * 주문만 생성하고, 나머지 로직은 이벤트 핸들러에서 처리
+     * 흐름:
+     * 1. PricingDomainService로 가격 계산 (쿠폰 할인 포함)
+     * 2. OrderDomainService로 주문 생성
+     * 3. OrderCreated 이벤트 발행
      */
     @DistributedLock(key = DistributedLockKeys.Order.PROCESS, waitTime = 10L, leaseTime = 60L)
     @DistributedTransaction
     fun createOrder(request: CreateOrderRequest): Order {
-        // 주문 생성
-        val savedOrder = orderDomainService.createOrderFromRequest(request)
+        // 1. 요청을 PricingItemRequest로 변환
+        val pricingRequests = request.items.map { item ->
+            PricingItemRequest(
+                productId = item.productId,
+                quantity = item.quantity,
+                giftWrap = item.giftWrap,
+                giftMessage = item.giftMessage
+            )
+        }
 
-        // 이벤트 발행
+        // 2. PricingDomainService로 가격 계산 (쿠폰 할인 포함)
+        val pricingResult = if (request.usedCouponId != null) {
+            pricingDomainService.calculatePricingWithCoupon(
+                userId = request.userId,
+                itemRequests = pricingRequests,
+                userCouponId = request.usedCouponId
+            )
+        } else {
+            pricingDomainService.calculatePricing(pricingRequests)
+        }
+
+        // 3. PricingResult -> OrderItemData 변환 (확장함수 사용)
+        val orderItems = pricingResult.items.toOrderItemDataList()
+
+        // 4. 주문 생성 (할인 금액이 정확히 반영됨!)
+        val savedOrder = orderDomainService.createOrder(
+            userId = request.userId,
+            items = orderItems,
+            usedCouponId = request.usedCouponId,
+            totalAmount = pricingResult.totalAmount,
+            discountAmount = pricingResult.discountAmount
+        )
+
+        // 5. 이벤트 발행
         publishOrderCreatedEvent(savedOrder, request)
 
-        logger.info("[OrderCommandUseCase] 주문 생성 완료: orderId=${savedOrder.id}")
+        logger.info {
+            "[OrderCommandUseCase] 주문 생성 완료: orderId=${savedOrder.id}, " +
+                "totalAmount=${pricingResult.totalAmount}, discountAmount=${pricingResult.discountAmount}, " +
+                "finalAmount=${pricingResult.finalAmount}"
+        }
         return savedOrder
     }
 
     private fun publishOrderCreatedEvent(order: Order, request: CreateOrderRequest) {
-        val payload = mapOf(
-            "orderId" to order.id,
-            "userId" to order.userId,
-            "orderNumber" to order.orderNumber,
-            "totalAmount" to order.totalAmount,
-            "finalAmount" to order.finalAmount,
-            "discountAmount" to order.discountAmount,
-            "status" to order.status.name,
-            "usedCouponId" to request.usedCouponId,
-            "items" to request.items.map { item ->
-                mapOf(
-                    "productId" to item.productId,
-                    "quantity" to item.quantity,
-                    "giftWrap" to item.giftWrap,
-                    "giftMessage" to item.giftMessage
+        val payload = OrderCreatedPayload(
+            orderId = order.id,
+            userId = order.userId,
+            orderNumber = order.orderNumber,
+            totalAmount = order.totalAmount,
+            finalAmount = order.finalAmount,
+            discountAmount = order.discountAmount,
+            status = order.status.name,
+            usedCouponId = request.usedCouponId,
+            items = request.items.map { item ->
+                OrderCreatedItemPayload(
+                    productId = item.productId,
+                    quantity = item.quantity,
+                    giftWrap = item.giftWrap,
+                    giftMessage = item.giftMessage
                 )
             },
-            "deliveryAddress" to mapOf(
-                "recipientName" to request.deliveryAddress.recipientName,
-                "phone" to request.deliveryAddress.phone,
-                "zipCode" to request.deliveryAddress.zipCode,
-                "address" to request.deliveryAddress.address,
-                "addressDetail" to request.deliveryAddress.addressDetail,
-                "deliveryMessage" to request.deliveryAddress.deliveryMessage
+            deliveryAddress = DeliveryAddress(
+                recipientName = request.deliveryAddress.recipientName,
+                phone = request.deliveryAddress.phone,
+                zipCode = request.deliveryAddress.zipCode,
+                address = request.deliveryAddress.address,
+                addressDetail = request.deliveryAddress.addressDetail,
+                deliveryMessage = request.deliveryAddress.deliveryMessage
             )
         )
 
@@ -90,7 +138,7 @@ class OrderCommandUseCase(
             eventType = EventRegistry.EventTypes.ORDER_CREATED,
             aggregateType = EventRegistry.AggregateTypes.ORDER,
             aggregateId = order.id.toString(),
-            payload = objectMapper.writeValueAsString(payload)
+            payload = json.encodeToString(OrderCreatedPayload.serializer(), payload)
         )
     }
 
@@ -128,15 +176,18 @@ class OrderCommandUseCase(
         reason: String?,
         orderItems: List<io.hhplus.ecommerce.order.domain.entity.OrderItem>
     ) {
-        val payload = mapOf(
-            "orderId" to order.id,
-            "userId" to order.userId,
-            "orderNumber" to order.orderNumber,
-            "finalAmount" to order.finalAmount,
-            "reason" to (reason ?: "사용자 요청"),
-            "status" to order.status.name,
-            "items" to orderItems.map { item ->
-                mapOf("productId" to item.productId, "quantity" to item.quantity)
+        val payload = OrderCancelledPayload(
+            orderId = order.id,
+            userId = order.userId,
+            orderNumber = order.orderNumber,
+            finalAmount = order.finalAmount,
+            reason = reason ?: "사용자 요청",
+            status = order.status.name,
+            items = orderItems.map { item ->
+                OrderItemPayloadSimple(
+                    productId = item.productId,
+                    quantity = item.quantity
+                )
             }
         )
 
@@ -144,7 +195,7 @@ class OrderCommandUseCase(
             eventType = EventRegistry.EventTypes.ORDER_CANCELLED,
             aggregateType = EventRegistry.AggregateTypes.ORDER,
             aggregateId = order.id.toString(),
-            payload = objectMapper.writeValueAsString(payload)
+            payload = json.encodeToString(OrderCancelledPayload.serializer(), payload)
         )
     }
 
@@ -163,13 +214,16 @@ class OrderCommandUseCase(
     private fun publishOrderConfirmedEvent(order: Order) {
         val orderItems = orderDomainService.getOrderItems(order.id)
 
-        val payload = mapOf(
-            "orderId" to order.id,
-            "userId" to order.userId,
-            "orderNumber" to order.orderNumber,
-            "status" to order.status.name,
-            "items" to orderItems.map { item ->
-                mapOf("productId" to item.productId, "quantity" to item.quantity)
+        val payload = OrderConfirmedPayload(
+            orderId = order.id,
+            userId = order.userId,
+            orderNumber = order.orderNumber,
+            status = order.status.name,
+            items = orderItems.map { item ->
+                OrderItemPayloadSimple(
+                    productId = item.productId,
+                    quantity = item.quantity
+                )
             }
         )
 
@@ -177,7 +231,7 @@ class OrderCommandUseCase(
             eventType = EventRegistry.EventTypes.ORDER_CONFIRMED,
             aggregateType = EventRegistry.AggregateTypes.ORDER,
             aggregateId = order.id.toString(),
-            payload = objectMapper.writeValueAsString(payload)
+            payload = json.encodeToString(OrderConfirmedPayload.serializer(), payload)
         )
     }
 }

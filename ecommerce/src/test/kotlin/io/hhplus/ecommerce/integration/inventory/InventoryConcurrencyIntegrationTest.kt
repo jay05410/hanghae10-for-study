@@ -49,7 +49,7 @@ class InventoryConcurrencyIntegrationTest(
                 val threadCount = 10 // 정확히 재고만큼 차감
 
                 // 재고 생성
-                inventoryCommandUseCase.createInventory(productId, initialQuantity)
+                inventoryCommandUseCase.restockInventory(productId, initialQuantity)
 
                 // When - 10개 스레드가 동시에 10개씩 차감
                 val executor = Executors.newFixedThreadPool(threadCount)
@@ -102,7 +102,7 @@ class InventoryConcurrencyIntegrationTest(
                 val threadCount = 10 // 50개인데 10개 스레드가 10개씩 차감 시도
 
                 // 재고 생성
-                inventoryCommandUseCase.createInventory(productId, initialQuantity)
+                inventoryCommandUseCase.restockInventory(productId, initialQuantity)
 
                 // When - 10개 스레드가 동시에 10개씩 차감
                 val executor = Executors.newFixedThreadPool(threadCount)
@@ -155,7 +155,7 @@ class InventoryConcurrencyIntegrationTest(
                 val threadCount = 20 // 100개를 20명이 5개씩 예약
 
                 // 재고 생성
-                inventoryCommandUseCase.createInventory(productId, initialQuantity)
+                inventoryCommandUseCase.restockInventory(productId, initialQuantity)
 
                 // When - 20개 스레드가 동시에 5개씩 예약
                 val executor = Executors.newFixedThreadPool(threadCount)
@@ -217,7 +217,7 @@ class InventoryConcurrencyIntegrationTest(
                 val threadCount = 20 // 10번 예약, 10번 차감
 
                 // 재고 생성
-                inventoryCommandUseCase.createInventory(productId, initialQuantity)
+                inventoryCommandUseCase.restockInventory(productId, initialQuantity)
 
                 // When - 10개는 예약, 10개는 차감
                 val executor = Executors.newFixedThreadPool(threadCount)
@@ -278,7 +278,7 @@ class InventoryConcurrencyIntegrationTest(
                 val threadCount = 100
 
                 // 재고 생성
-                inventoryCommandUseCase.createInventory(productId, initialQuantity)
+                inventoryCommandUseCase.restockInventory(productId, initialQuantity)
 
                 // When - 100개 스레드가 동시에 1개씩 차감
                 val executor = Executors.newFixedThreadPool(threadCount)
@@ -330,7 +330,7 @@ class InventoryConcurrencyIntegrationTest(
                 val threadCount = 10
 
                 // 재고 생성
-                inventoryCommandUseCase.createInventory(productId, initialQuantity)
+                inventoryCommandUseCase.restockInventory(productId, initialQuantity)
 
                 // When - 10개 스레드가 동시에 예약과 확정을 시도 (각 10개씩)
                 val executor = Executors.newFixedThreadPool(threadCount)

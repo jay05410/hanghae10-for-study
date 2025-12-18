@@ -9,7 +9,6 @@ import io.hhplus.ecommerce.order.domain.constant.OrderStatus
 import io.hhplus.ecommerce.order.domain.model.OrderItemData
 import io.hhplus.ecommerce.common.util.SnowflakeGenerator
 import io.hhplus.ecommerce.common.util.IdPrefix
-import io.hhplus.ecommerce.product.domain.service.ProductDomainService
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.core.spec.IsolationMode
@@ -24,6 +23,9 @@ import io.mockk.*
  * 책임: 주문 도메인 서비스의 핵심 비즈니스 로직 검증
  * - 주문 생성, 수정, 조회, 확정, 취소 기능 검증
  * - Repository와의 상호작용 검증
+ *
+ * 주의: OrderDomainService는 더 이상 ProductDomainService에 의존하지 않음
+ *       가격 계산은 PricingDomainService에서 수행
  */
 class OrderDomainServiceTest : DescribeSpec() {
 
@@ -33,13 +35,11 @@ class OrderDomainServiceTest : DescribeSpec() {
     private val mockOrderRepository = mockk<OrderRepository>()
     private val mockOrderItemRepository = mockk<OrderItemRepository>()
     private val mockSnowflakeGenerator = mockk<SnowflakeGenerator>()
-    private val mockProductDomainService = mockk<ProductDomainService>()
 
     private val sut = OrderDomainService(
         orderRepository = mockOrderRepository,
         orderItemRepository = mockOrderItemRepository,
-        snowflakeGenerator = mockSnowflakeGenerator,
-        productDomainService = mockProductDomainService
+        snowflakeGenerator = mockSnowflakeGenerator
     )
 
     private fun createMockOrder(
@@ -96,6 +96,7 @@ class OrderDomainServiceTest : DescribeSpec() {
                         OrderItemData(
                             productId = 1L,
                             productName = "테스트 상품",
+                            categoryId = 1L,
                             categoryName = "전자기기",
                             quantity = 2,
                             unitPrice = 5000,

@@ -91,6 +91,26 @@ coupon:
     worker:
       enabled: true  # Queue Worker 활성화 여부
 
+# 데이터 플랫폼 설정 (mockAPI.io)
+dataplatform:
+  enabled: ${DATAPLATFORM_ENABLED:true}
+  url: ${DATAPLATFORM_URL:https://693adba99b80ba7262cbac6f.mockapi.io/api/v1/orders}
+
+# Kafka 설정
+kafka:
+  enabled: ${KAFKA_ENABLED:true}
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  consumer:
+    group-id: ecommerce-consumer-group
+    auto-offset-reset: earliest
+  producer:
+    acks: all
+    retries: 3
+  topics:
+    order-events: ecommerce.order.events
+    payment-events: ecommerce.payment.events
+    data-platform: ecommerce.data-platform
+
 # Spring Actuator 모니터링 설정
 management:
   endpoints:
@@ -123,4 +143,35 @@ management:
         gets: cache.gets
         puts: cache.puts
         size: cache.size
+
+# Resilience4j 설정
+resilience4j:
+  # Retry 설정
+  retry:
+    instances:
+      dataPlatform:
+        maxAttempts: 3                    # 최대 재시도 횟수
+        waitDuration: 1s                  # 재시도 간격
+        exponentialBackoffMultiplier: 2   # 지수 백오프 배수 (1s → 2s → 4s)
+        retryExceptions:
+          - java.io.IOException
+          - java.net.SocketTimeoutException
+          - org.springframework.web.client.ResourceAccessException
+        ignoreExceptions:
+          - io.hhplus.ecommerce.common.exception.BusinessException
+
+  # Circuit Breaker 설정
+  circuitbreaker:
+    instances:
+      dataPlatform:
+        registerHealthIndicator: true     # Actuator에 상태 노출
+        slidingWindowType: COUNT_BASED    # 카운트 기반 슬라이딩 윈도우
+        slidingWindowSize: 10             # 최근 10개 요청 기준
+        minimumNumberOfCalls: 5           # 최소 5개 요청 후 판단
+        failureRateThreshold: 50          # 실패율 50% 이상 시 Open
+        slowCallRateThreshold: 80         # 느린 호출 80% 이상 시 Open
+        slowCallDurationThreshold: 3s     # 3초 이상이면 느린 호출
+        waitDurationInOpenState: 30s      # Open 상태 유지 시간
+        permittedNumberOfCallsInHalfOpenState: 3  # Half-Open에서 허용 호출 수
+        automaticTransitionFromOpenToHalfOpenEnabled: true
 
