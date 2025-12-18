@@ -106,7 +106,7 @@ class OrderCreateIntegrationTest(
                 val createOrderRequest = CreateOrderRequest(
                     userId = userId,
                     items = items,
-                    usedCouponId = null,
+                    usedCouponIds = emptyList(),
                     deliveryAddress = DeliveryAddressRequest(
                         recipientName = "테스트 수령인",
                         phone = "010-1234-5678",
@@ -148,7 +148,7 @@ class OrderCreateIntegrationTest(
                 val createOrderRequest = CreateOrderRequest(
                     userId = userId,
                     items = items,
-                    usedCouponId = null, // 쿠폰 적용 로직 구현 필요
+                    usedCouponIds = emptyList(), // 쿠폰 적용 로직 구현 필요
                     deliveryAddress = DeliveryAddressRequest(
                         recipientName = "테스트 수령인",
                         phone = "010-1234-5678",
@@ -190,7 +190,7 @@ class OrderCreateIntegrationTest(
                 val createOrderRequest = CreateOrderRequest(
                     userId = userId,
                     items = items,
-                    usedCouponId = null,
+                    usedCouponIds = emptyList(),
                     deliveryAddress = DeliveryAddressRequest(
                         recipientName = "테스트 수령인",
                         phone = "010-1234-5678",
@@ -231,7 +231,7 @@ class OrderCreateIntegrationTest(
                 val createOrderRequest = CreateOrderRequest(
                     userId = userId,
                     items = items,
-                    usedCouponId = null,
+                    usedCouponIds = emptyList(),
                     deliveryAddress = DeliveryAddressRequest(
                         recipientName = "테스트 수령인",
                         phone = "010-1234-5678",
@@ -268,7 +268,7 @@ class OrderCreateIntegrationTest(
                 val createOrderRequest = CreateOrderRequest(
                     userId = userId,
                     items = items,
-                    usedCouponId = null,
+                    usedCouponIds = emptyList(),
                     deliveryAddress = DeliveryAddressRequest(
                         recipientName = "테스트 수령인",
                         phone = "010-1234-5678",
@@ -306,7 +306,7 @@ class OrderCreateIntegrationTest(
                 val order1 = createOrderDirectly(CreateOrderRequest(
                     userId = userId,
                     items = items,
-                    usedCouponId = null,
+                    usedCouponIds = emptyList(),
                     deliveryAddress = DeliveryAddressRequest(
                         recipientName = "테스트 수령인",
                         phone = "010-1234-5678",
@@ -319,7 +319,7 @@ class OrderCreateIntegrationTest(
                 val order2 = createOrderDirectly(CreateOrderRequest(
                     userId = userId + 1, // 다른 사용자 ID로 설정
                     items = items,
-                    usedCouponId = null,
+                    usedCouponIds = emptyList(),
                     deliveryAddress = DeliveryAddressRequest(
                         recipientName = "테스트 수령인",
                         phone = "010-1234-5678",
@@ -355,7 +355,7 @@ class OrderCreateIntegrationTest(
                 val order = createOrderDirectly(CreateOrderRequest(
                     userId = userId,
                     items = items,
-                    usedCouponId = null,
+                    usedCouponIds = emptyList(),
                     deliveryAddress = DeliveryAddressRequest(
                         recipientName = "테스트 수령인",
                         phone = "010-1234-5678",
@@ -396,7 +396,7 @@ class OrderCreateIntegrationTest(
                 val order = createOrderDirectly(CreateOrderRequest(
                     userId = userId,
                     items = items,
-                    usedCouponId = null,
+                    usedCouponIds = emptyList(),
                     deliveryAddress = DeliveryAddressRequest(
                         recipientName = "테스트 수령인",
                         phone = "010-1234-5678",

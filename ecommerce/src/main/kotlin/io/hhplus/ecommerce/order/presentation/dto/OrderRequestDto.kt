@@ -15,8 +15,8 @@ data class CreateOrderRequest(
     @Schema(description = "배송지 정보", required = true)
     val deliveryAddress: DeliveryAddressRequest,
 
-    @Schema(description = "사용할 쿠폰 ID (선택)", example = "10")
-    val usedCouponId: Long? = null
+    @Schema(description = "사용할 쿠폰 ID 목록 (선택)", example = "[10, 20]")
+    val usedCouponIds: List<Long> = emptyList()
 )
 
 @Schema(description = "주문 아이템 생성 요청")

@@ -18,6 +18,9 @@ class StockReservation(
     @Column(nullable = false)
     val userId: Long,
 
+    @Column
+    var orderId: Long? = null,
+
     @Column(nullable = false)
     val quantity: Int,
 
@@ -34,6 +37,10 @@ class StockReservation(
     @Version
     var version: Int = 0
 ) : BaseJpaEntity() {
+
+    fun linkToOrder(orderId: Long) {
+        this.orderId = orderId
+    }
 
     fun isExpired(): Boolean = LocalDateTime.now().isAfter(expiresAt)
 
@@ -55,16 +62,23 @@ class StockReservation(
     }
 
     companion object {
+        const val DEFAULT_RESERVATION_MINUTES = 10
+        const val RESERVATION_PRODUCT_MINUTES = 30
+
         fun create(
             productId: Long,
             userId: Long,
             quantity: Int,
-            reservationMinutes: Int = 20
+            requiresReservation: Boolean = false
         ): StockReservation {
             require(productId > 0) { "상품 ID는 유효해야 합니다" }
             require(userId > 0) { "사용자 ID는 유효해야 합니다" }
             require(quantity > 0) { "예약 수량은 0보다 커야 합니다" }
-            require(reservationMinutes > 0) { "예약 시간은 0보다 커야 합니다" }
+
+            val reservationMinutes = if (requiresReservation)
+                RESERVATION_PRODUCT_MINUTES
+            else
+                DEFAULT_RESERVATION_MINUTES
 
             return StockReservation(
                 productId = productId,

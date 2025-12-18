@@ -18,7 +18,7 @@ data class Order(
     val totalAmount: Long,
     val discountAmount: Long = 0,
     val finalAmount: Long,
-    val usedCouponId: Long? = null,
+    val usedCouponIds: List<Long> = emptyList(),
     var status: OrderStatus = OrderStatus.PENDING
 ) {
 
@@ -56,7 +56,25 @@ data class Order(
         this.status = OrderStatus.FAILED
     }
 
+    /**
+     * 주문 만료 (결제 시간 초과)
+     */
+    fun expire() {
+        validateStatusTransition(OrderStatus.EXPIRED)
+        this.status = OrderStatus.EXPIRED
+    }
+
+    /**
+     * 결제 완료 후 주문 상태 변경 (PENDING_PAYMENT -> PENDING)
+     */
+    fun confirmPayment() {
+        validateStatusTransition(OrderStatus.PENDING)
+        this.status = OrderStatus.PENDING
+    }
+
     fun canBeCancelled(): Boolean = status.canBeCancelled()
+
+    fun isAwaitingPayment(): Boolean = status.isAwaitingPayment()
 
     fun isPaid(): Boolean = status.isPaid()
 
@@ -72,7 +90,7 @@ data class Order(
             userId: Long,
             totalAmount: Long,
             discountAmount: Long = 0,
-            usedCouponId: Long? = null
+            usedCouponIds: List<Long> = emptyList()
         ): Order {
             require(orderNumber.isNotBlank()) { "주문번호는 필수입니다" }
             require(userId > 0) { "사용자 ID는 유효해야 합니다" }
@@ -88,7 +106,36 @@ data class Order(
                 totalAmount = totalAmount,
                 discountAmount = discountAmount,
                 finalAmount = finalAmount,
-                usedCouponId = usedCouponId
+                usedCouponIds = usedCouponIds
+            )
+        }
+
+        /**
+         * 결제 대기 상태의 주문 생성 (체크아웃 시작 시)
+         */
+        fun createPendingPayment(
+            orderNumber: String,
+            userId: Long,
+            totalAmount: Long,
+            discountAmount: Long = 0,
+            usedCouponIds: List<Long> = emptyList()
+        ): Order {
+            require(orderNumber.isNotBlank()) { "주문번호는 필수입니다" }
+            require(userId > 0) { "사용자 ID는 유효해야 합니다" }
+            require(totalAmount > 0) { "총 금액은 0보다 커야 합니다" }
+            require(discountAmount >= 0) { "할인 금액은 0 이상이어야 합니다" }
+
+            val finalAmount = totalAmount - discountAmount
+            require(finalAmount >= 0) { "최종 금액은 0 이상이어야 합니다" }
+
+            return Order(
+                orderNumber = orderNumber,
+                userId = userId,
+                totalAmount = totalAmount,
+                discountAmount = discountAmount,
+                finalAmount = finalAmount,
+                usedCouponIds = usedCouponIds,
+                status = OrderStatus.PENDING_PAYMENT
             )
         }
     }

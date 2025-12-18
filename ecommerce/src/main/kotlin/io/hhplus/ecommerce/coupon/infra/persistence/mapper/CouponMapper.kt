@@ -66,16 +66,17 @@ class CouponMapper {
     /**
      * 쉼표 구분 문자열 -> List<Long> 변환
      */
-    private fun parseIds(idsString: String): List<Long> {
-        if (idsString.isBlank()) return emptyList()
+    private fun parseIds(idsString: String?): List<Long> {
+        if (idsString.isNullOrBlank()) return emptyList()
         return idsString.split(",")
             .mapNotNull { it.trim().toLongOrNull() }
     }
 
     /**
-     * List<Long> -> 쉼표 구분 문자열 변환
+     * List<Long> -> 쉼표 구분 문자열 변환 (빈 리스트는 null)
      */
-    private fun joinIds(ids: List<Long>): String {
+    private fun joinIds(ids: List<Long>): String? {
+        if (ids.isEmpty()) return null
         return ids.joinToString(",")
     }
 

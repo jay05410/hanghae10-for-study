@@ -51,4 +51,14 @@ class OrderRepositoryImpl(
 
     override fun countByUserIdAndStatus(userId: Long, status: OrderStatus): Long =
         jpaRepository.countByUserIdAndStatus(userId, status)
+
+    override fun findVisibleOrdersByUserId(userId: Long): List<Order> {
+        val excludedStatuses = listOf(OrderStatus.PENDING_PAYMENT, OrderStatus.EXPIRED)
+        return jpaRepository.findVisibleOrdersByUserId(userId, excludedStatuses).toDomain(mapper)
+    }
+
+    override fun findPaidOrdersBetween(startDate: LocalDateTime, endDate: LocalDateTime): List<Order> {
+        val paidStatuses = listOf(OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.COMPLETED)
+        return jpaRepository.findPaidOrdersBetween(startDate, endDate, paidStatuses).toDomain(mapper)
+    }
 }

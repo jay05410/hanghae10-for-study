@@ -84,6 +84,16 @@ object DistributedLockKeys {
     }
 
     /**
+     * 체크아웃 도메인 분산락 (chk = checkout)
+     */
+    object Checkout {
+        private const val DOMAIN = "$PREFIX:chk"
+
+        const val INITIATE = "$DOMAIN:init:#{#request.userId}"
+        const val CANCEL = "$DOMAIN:cancel:#{#orderId}"
+    }
+
+    /**
      * 모든 분산락 키 패턴 목록 (모니터링용)
      *
      * Redis CLI 사용 예:
@@ -118,7 +128,11 @@ object DistributedLockKeys {
         Inventory.RESERVE,
         Inventory.CONFIRM_RESERVATION,
         Inventory.CANCEL_RESERVATION,
-        Inventory.RESTOCK
+        Inventory.RESTOCK,
+
+        // Checkout
+        Checkout.INITIATE,
+        Checkout.CANCEL
     )
 
     /**
@@ -129,6 +143,7 @@ object DistributedLockKeys {
         "point" to listOf(Point.CHARGE, Point.USE, Point.EARN, Point.DEDUCT, Point.EXPIRE),
         "order" to listOf(Order.CREATE, Order.CANCEL, Order.CONFIRM, Order.PROCESS),
         "payment" to listOf(Payment.PROCESS, Payment.DUPLICATE_PREVENTION, Payment.REFUND),
-        "inventory" to listOf(Inventory.DEDUCT, Inventory.RESERVE, Inventory.CONFIRM_RESERVATION, Inventory.CANCEL_RESERVATION, Inventory.RESTOCK)
+        "inventory" to listOf(Inventory.DEDUCT, Inventory.RESERVE, Inventory.CONFIRM_RESERVATION, Inventory.CANCEL_RESERVATION, Inventory.RESTOCK),
+        "checkout" to listOf(Checkout.INITIATE, Checkout.CANCEL)
     )
 }

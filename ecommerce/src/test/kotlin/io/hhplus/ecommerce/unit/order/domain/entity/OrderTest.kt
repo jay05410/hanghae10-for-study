@@ -19,7 +19,7 @@ class OrderTest : DescribeSpec({
                 val userId = 1L
                 val totalAmount = 10000L
                 val discountAmount = 1000L
-                val usedCouponId = 100L
+                val usedCouponIds = listOf(100L)
 
                 // When
                 val order = Order.create(
@@ -27,7 +27,7 @@ class OrderTest : DescribeSpec({
                     userId = userId,
                     totalAmount = totalAmount,
                     discountAmount = discountAmount,
-                    usedCouponId = usedCouponId
+                    usedCouponIds = usedCouponIds
                 )
 
                 // Then
@@ -36,7 +36,7 @@ class OrderTest : DescribeSpec({
                 order.userId shouldBe userId
                 order.totalAmount shouldBe totalAmount
                 order.discountAmount shouldBe discountAmount
-                order.usedCouponId shouldBe usedCouponId
+                order.usedCouponIds shouldBe usedCouponIds
                 order.status shouldBe OrderStatus.PENDING
                 order.finalAmount shouldBe (totalAmount - discountAmount)
             }
@@ -54,11 +54,11 @@ class OrderTest : DescribeSpec({
                     userId = userId,
                     totalAmount = totalAmount,
                     discountAmount = discountAmount,
-                    usedCouponId = null
+                    usedCouponIds = emptyList()
                 )
 
                 // Then
-                order.usedCouponId shouldBe null
+                order.usedCouponIds shouldBe emptyList()
                 order.finalAmount shouldBe totalAmount
             }
         }
@@ -74,7 +74,7 @@ class OrderTest : DescribeSpec({
                     userId = 1L,
                     totalAmount = 10000L,
                     discountAmount = 0L,
-                    usedCouponId = null
+                    usedCouponIds = emptyList()
                 )
 
                 // When
@@ -91,7 +91,7 @@ class OrderTest : DescribeSpec({
                     userId = 1L,
                     totalAmount = 10000L,
                     discountAmount = 0L,
-                    usedCouponId = null
+                    usedCouponIds = emptyList()
                 )
 
                 // When
@@ -108,7 +108,7 @@ class OrderTest : DescribeSpec({
                     userId = 1L,
                     totalAmount = 10000L,
                     discountAmount = 0L,
-                    usedCouponId = null
+                    usedCouponIds = emptyList()
                 )
                 order.confirm()
 
@@ -129,7 +129,7 @@ class OrderTest : DescribeSpec({
                         userId = 1L,
                         totalAmount = -1000L,
                         discountAmount = 0L,
-                        usedCouponId = null
+                        usedCouponIds = emptyList()
                     )
                 }
             }
@@ -142,7 +142,7 @@ class OrderTest : DescribeSpec({
                         userId = 1L,
                         totalAmount = 10000L,
                         discountAmount = -500L,
-                        usedCouponId = null
+                        usedCouponIds = emptyList()
                     )
                 }
             }
@@ -155,7 +155,7 @@ class OrderTest : DescribeSpec({
                         userId = 1L,
                         totalAmount = 5000L,
                         discountAmount = 6000L,
-                        usedCouponId = null
+                        usedCouponIds = emptyList()
                     )
                 }
             }

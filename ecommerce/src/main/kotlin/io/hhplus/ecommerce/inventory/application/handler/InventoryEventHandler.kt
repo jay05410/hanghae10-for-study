@@ -10,6 +10,7 @@ import io.hhplus.ecommerce.common.outbox.payload.OrderCancelledPayload
 import io.hhplus.ecommerce.common.outbox.payload.PaymentCompletedPayload
 import io.hhplus.ecommerce.config.event.EventRegistry
 import io.hhplus.ecommerce.inventory.domain.service.InventoryDomainService
+import io.hhplus.ecommerce.inventory.domain.service.StockReservationDomainService
 import io.hhplus.ecommerce.inventory.exception.InventoryException
 import kotlinx.serialization.json.Json
 import mu.KotlinLogging
@@ -20,7 +21,7 @@ import java.time.Duration
 /**
  * 재고 이벤트 핸들러 (Saga Step 2)
  *
- * PaymentCompleted → 재고 차감
+ * PaymentCompleted → 재고 예약 확정 (체크아웃 시 예약된 재고를 확정)
  * OrderCancelled → 재고 복구
  *
  * 멱등성 보장: 같은 orderId에 대해 한 번만 처리
@@ -28,6 +29,7 @@ import java.time.Duration
 @Component
 class InventoryEventHandler(
     private val inventoryDomainService: InventoryDomainService,
+    private val stockReservationDomainService: StockReservationDomainService,
     private val idempotencyService: IdempotencyService,
     private val outboxEventService: OutboxEventService
 ) : EventHandler {
@@ -65,17 +67,26 @@ class InventoryEventHandler(
             // 멱등성 체크
             val idempotencyKey = RedisKeyNames.Inventory.deductedKey(payload.orderId)
             if (!idempotencyService.tryAcquire(idempotencyKey, IDEMPOTENCY_TTL)) {
-                logger.debug("[InventoryEventHandler] 이미 처리된 재고 차감, 스킵: orderId=${payload.orderId}")
+                logger.debug("[InventoryEventHandler] 이미 처리된 재고 예약 확정, 스킵: orderId=${payload.orderId}")
                 return true
             }
 
-            logger.info("[InventoryEventHandler] 재고 차감 시작: orderId=${payload.orderId}")
+            logger.info("[InventoryEventHandler] 재고 예약 확정 시작: orderId=${payload.orderId}")
+
+            // orderId로 stock_reservations 조회
+            val reservations = stockReservationDomainService.findByOrderId(payload.orderId)
+
+            if (reservations.isEmpty()) {
+                logger.warn("[InventoryEventHandler] 예약 정보 없음: orderId=${payload.orderId}")
+                return true
+            }
 
             try {
-                payload.items.sortedBy { it.productId }.forEach { item ->
-                    inventoryDomainService.deductStock(item.productId, item.quantity)
+                reservations.sortedBy { it.productId }.forEach { reservation ->
+                    inventoryDomainService.confirmReservation(reservation.productId, reservation.quantity)
+                    stockReservationDomainService.confirmReservation(reservation)
                 }
-                logger.info("[InventoryEventHandler] 재고 차감 완료: orderId=${payload.orderId}")
+                logger.info("[InventoryEventHandler] 재고 예약 확정 완료: orderId=${payload.orderId}")
             } catch (e: InventoryException.InsufficientStock) {
                 // 재고 부족 → 보상 이벤트 발행 (주문 취소 트리거)
                 logger.warn("[InventoryEventHandler] 재고 부족: orderId=${payload.orderId}, productId=${e.productId}")
@@ -83,14 +94,14 @@ class InventoryEventHandler(
             } catch (e: InventoryException.InventoryNotFound) {
                 // 재고 없음 → 재고 부족과 동일하게 처리 (가용 재고 0)
                 val productId = e.data["productId"] as Long
-                val item = payload.items.find { it.productId == productId }
+                val reservation = reservations.find { it.productId == productId }
                 logger.warn("[InventoryEventHandler] 재고 없음: orderId=${payload.orderId}, productId=$productId")
-                publishInventoryInsufficientEvent(payload, productId, item?.quantity ?: 0, 0)
+                publishInventoryInsufficientEvent(payload, productId, reservation?.quantity ?: 0, 0)
             }
 
             true
         } catch (e: Exception) {
-            logger.error("[InventoryEventHandler] 재고 차감 실패: ${e.message}", e)
+            logger.error("[InventoryEventHandler] 재고 예약 확정 실패: ${e.message}", e)
             false
         }
     }

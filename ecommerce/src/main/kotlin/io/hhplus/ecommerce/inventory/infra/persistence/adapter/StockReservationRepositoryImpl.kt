@@ -28,6 +28,9 @@ class StockReservationRepositoryImpl(
     override fun findById(id: Long): StockReservation? =
         jpaRepository.findById(id).orElse(null)
 
+    override fun findByOrderId(orderId: Long): List<StockReservation> =
+        jpaRepository.findByOrderId(orderId)
+
     override fun findByUserIdAndProductIdAndStatus(
         userId: Long,
         productId: Long,

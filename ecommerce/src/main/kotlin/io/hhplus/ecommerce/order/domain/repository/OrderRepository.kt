@@ -22,4 +22,18 @@ interface OrderRepository {
     fun findByStatus(status: OrderStatus): List<Order>
     fun findByCreatedAtBetween(startDate: LocalDateTime, endDate: LocalDateTime): List<Order>
     fun countByUserIdAndStatus(userId: Long, status: OrderStatus): Long
+
+    /**
+     * 사용자에게 노출되는 주문만 조회 (PENDING_PAYMENT, EXPIRED 제외)
+     */
+    fun findVisibleOrdersByUserId(userId: Long): List<Order>
+
+    /**
+     * 결제 완료된 주문 기간별 조회 (통계용)
+     *
+     * @param startDate 시작 일시
+     * @param endDate 종료 일시
+     * @return 결제 완료된 주문 목록 (PENDING, CONFIRMED, COMPLETED)
+     */
+    fun findPaidOrdersBetween(startDate: LocalDateTime, endDate: LocalDateTime): List<Order>
 }

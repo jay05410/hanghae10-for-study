@@ -106,7 +106,7 @@ class DeliveryDomainService(
     }
 
     /**
-     * 배송 준비 시작
+     * 배송 준비 시작 (Delivery 엔티티로)
      *
      * @param delivery 배송 엔티티
      * @return 업데이트된 배송 엔티티
@@ -114,6 +114,18 @@ class DeliveryDomainService(
     fun startPreparing(delivery: Delivery): Delivery {
         val updated = delivery.startPreparing()
         return deliveryRepository.save(updated)
+    }
+
+    /**
+     * 배송 준비 시작 (주문 ID로)
+     *
+     * @param orderId 주문 ID
+     * @return 업데이트된 배송 엔티티
+     * @throws DeliveryException.DeliveryNotFoundByOrder 배송을 찾을 수 없을 때
+     */
+    fun startPreparing(orderId: Long): Delivery {
+        val delivery = getDeliveryByOrderId(orderId)
+        return startPreparing(delivery)
     }
 
     /**

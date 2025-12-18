@@ -114,7 +114,7 @@ class OrderEventStore(
         userId: Long,
         totalAmount: Long,
         discountAmount: Long = 0,
-        usedCouponId: Long? = null,
+        usedCouponIds: List<Long> = emptyList(),
         items: List<OrderItemSnapshot>
     ): OrderAggregate {
         // 중복 체크
@@ -128,7 +128,7 @@ class OrderEventStore(
             userId = userId,
             totalAmount = totalAmount,
             discountAmount = discountAmount,
-            usedCouponId = usedCouponId,
+            usedCouponIds = usedCouponIds,
             items = items
         )
 

@@ -25,7 +25,7 @@ class OrderMapper {
             totalAmount = entity.totalAmount,
             discountAmount = entity.discountAmount,
             finalAmount = entity.finalAmount,
-            usedCouponId = entity.usedCouponId,
+            usedCouponIds = entity.usedCouponIds,
             status = entity.status
         )
     }
@@ -41,7 +41,7 @@ class OrderMapper {
             totalAmount = domain.totalAmount,
             discountAmount = domain.discountAmount,
             finalAmount = domain.finalAmount,
-            usedCouponId = domain.usedCouponId,
+            usedCouponIds = domain.usedCouponIds,
             status = domain.status
         )
     }
