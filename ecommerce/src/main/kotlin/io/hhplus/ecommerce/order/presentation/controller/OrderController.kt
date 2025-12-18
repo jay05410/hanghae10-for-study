@@ -75,19 +75,20 @@ class OrderController(
     }
 
     /**
-     * 특정 사용자의 모든 주문을 조회한다
+     * 특정 사용자의 주문 목록을 조회한다
+     * 결제 진행 중(PENDING_PAYMENT) 및 만료(EXPIRED) 상태의 주문은 제외
      * Application-level에서 OrderItem과 조합하여 반환 (N+1 방지)
      *
      * @param userId 조회할 사용자의 ID
      * @return 사용자의 주문 목록을 포함한 API 응답
      */
-    @Operation(summary = "사용자 주문 목록 조회", description = "특정 사용자의 모든 주문 내역을 조회합니다.")
+    @Operation(summary = "사용자 주문 목록 조회", description = "특정 사용자의 주문 내역을 조회합니다. 결제 진행 중 및 만료된 주문은 제외됩니다.")
     @GetMapping
     fun getOrders(
         @Parameter(description = "사용자 ID", required = true, example = "1")
         @RequestParam userId: Long
     ): ApiResponse<List<OrderResponse>> {
-        val ordersWithItems = getOrderQueryUseCase.getOrdersWithItemsByUser(userId)
+        val ordersWithItems = getOrderQueryUseCase.getVisibleOrdersWithItemsByUser(userId)
         return ApiResponse.success(ordersWithItems.map { (order, items) ->
             order.toResponse(items)
         })

@@ -26,7 +26,7 @@ sealed class OrderEvent {
         val totalAmount: Long,
         val discountAmount: Long,
         val finalAmount: Long,
-        val usedCouponId: Long?,
+        val usedCouponIds: List<Long>,
         val items: List<OrderItemSnapshot>,
         override val occurredAt: Instant = Instant.now()
     ) : OrderEvent() {

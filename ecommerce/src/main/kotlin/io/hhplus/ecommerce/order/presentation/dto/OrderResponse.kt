@@ -34,16 +34,15 @@ data class OrderResponse(
     @Schema(description = "최종 결제 금액 (할인 후)", example = "45000")
     val finalAmount: Long,
 
-    @Schema(description = "사용한 쿠폰 ID (선택)", example = "10")
-    val usedCouponId: Long?,
+    @Schema(description = "사용한 쿠폰 ID 목록", example = "[10, 20]")
+    val usedCouponIds: List<Long>,
 
     @Schema(description = "주문 상태", example = "PENDING", allowableValues = ["PENDING", "CONFIRMED", "CANCELLED"])
     val status: OrderStatus,
 
     @Schema(description = "주문 아이템 목록")
     val orderItems: List<OrderItemResponse>
-) {
-}
+)
 
 /**
  * 주문 아이템 정보 응답 DTO
@@ -89,7 +88,7 @@ fun Order.toResponse(orderItems: List<OrderItem> = emptyList()): OrderResponse =
     totalAmount = this.totalAmount,
     discountAmount = this.discountAmount,
     finalAmount = this.finalAmount,
-    usedCouponId = this.usedCouponId,
+    usedCouponIds = this.usedCouponIds,
     status = this.status,
     orderItems = orderItems.map { it.toResponse() }
 )

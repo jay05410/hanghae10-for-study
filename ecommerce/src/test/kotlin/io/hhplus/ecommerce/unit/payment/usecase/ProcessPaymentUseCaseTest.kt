@@ -1,5 +1,7 @@
 package io.hhplus.ecommerce.unit.payment.usecase
 
+import io.hhplus.ecommerce.common.outbox.OutboxEvent
+import io.hhplus.ecommerce.common.outbox.OutboxEventService
 import io.hhplus.ecommerce.payment.application.port.out.PaymentExecutorPort
 import io.hhplus.ecommerce.payment.domain.constant.PaymentMethod
 import io.hhplus.ecommerce.payment.domain.constant.PaymentStatus
@@ -24,16 +26,19 @@ import io.mockk.*
  */
 class ProcessPaymentUseCaseTest : DescribeSpec({
     val mockPaymentDomainService = mockk<PaymentDomainService>()
+    val mockOutboxEventService = mockk<OutboxEventService>()
     val mockBalanceExecutor = mockk<PaymentExecutorPort>()
 
     beforeEach {
-        clearMocks(mockPaymentDomainService, mockBalanceExecutor)
+        clearMocks(mockPaymentDomainService, mockOutboxEventService, mockBalanceExecutor)
         every { mockBalanceExecutor.supportedMethod() } returns PaymentMethod.BALANCE
+        every { mockOutboxEventService.publishEvent(any(), any(), any(), any()) } returns mockk<OutboxEvent>()
     }
 
     fun createSut(): ProcessPaymentUseCase {
         return ProcessPaymentUseCase(
             paymentDomainService = mockPaymentDomainService,
+            outboxEventService = mockOutboxEventService,
             executors = listOf(mockBalanceExecutor)
         )
     }

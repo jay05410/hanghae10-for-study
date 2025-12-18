@@ -76,7 +76,7 @@ class OrderProjection(
             totalAmount = event.totalAmount,
             discountAmount = event.discountAmount,
             finalAmount = event.finalAmount,
-            usedCouponId = event.usedCouponId,
+            usedCouponIds = event.usedCouponIds,
             status = OrderStatus.PENDING
         )
         val savedOrder = orderRepository.save(order)

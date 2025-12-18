@@ -271,8 +271,8 @@ class PerformanceDataLoader(
 
         val time = measureTimeMillis {
             val sql = """
-                INSERT INTO users (login_type, login_id, password, email, name, phone, provider_id, is_active, created_at, updated_at, created_by, updated_by)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO users (login_type, login_id, password, email, name, phone, provider_id, created_at, updated_at, created_by, updated_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """.trimIndent()
 
             val batches = USER_COUNT / BATCH_SIZE
@@ -289,11 +289,10 @@ class PerformanceDataLoader(
                         ps.setString(5, "테스트유저$userId")
                         ps.setString(6, String.format("010-%04d-%04d", userId / 10000, userId % 10000))
                         ps.setString(7, null)
-                        ps.setBoolean(8, true)
+                        ps.setString(8, now)
                         ps.setString(9, now)
-                        ps.setString(10, now)
+                        ps.setLong(10, 0)
                         ps.setLong(11, 0)
-                        ps.setLong(12, 0)
                     }
 
                     override fun getBatchSize(): Int = BATCH_SIZE
@@ -314,8 +313,8 @@ class PerformanceDataLoader(
 
         val time = measureTimeMillis {
             val sql = """
-                INSERT INTO items (category_id, name, description, caffeine_type, taste_profile, aroma_profile, color_profile, bag_per_weight, price_per_100g, ingredients, origin, status, is_active, created_at, updated_at, created_by, updated_by)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO items (category_id, name, description, caffeine_type, taste_profile, aroma_profile, color_profile, bag_per_weight, price_per_100g, ingredients, origin, status, created_at, updated_at, created_by, updated_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """.trimIndent()
 
             val caffeineTypes = listOf("NONE", "LOW", "MEDIUM", "HIGH")
@@ -343,11 +342,10 @@ class PerformanceDataLoader(
                         ps.setString(10, "차 잎 100%")
                         ps.setString(11, origins[productId % origins.size])
                         ps.setString(12, ProductStatus.ACTIVE.name)
-                        ps.setBoolean(13, true)
+                        ps.setString(13, now)
                         ps.setString(14, now)
-                        ps.setString(15, now)
+                        ps.setLong(15, 0)
                         ps.setLong(16, 0)
-                        ps.setLong(17, 0)
                     }
 
                     override fun getBatchSize(): Int = BATCH_SIZE
@@ -368,8 +366,8 @@ class PerformanceDataLoader(
 
         val time = measureTimeMillis {
             val sql = """
-                INSERT INTO inventory (product_id, quantity, reserved_quantity, version, is_active, created_at, updated_at, created_by, updated_by)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO inventory (product_id, quantity, reserved_quantity, version, created_at, updated_at, created_by, updated_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """.trimIndent()
 
             val batches = PRODUCT_COUNT / BATCH_SIZE
@@ -383,11 +381,10 @@ class PerformanceDataLoader(
                         ps.setLong(2, Random.nextLong(100, 10000)) // 재고: 100~10,000
                         ps.setLong(3, 0)
                         ps.setInt(4, 0) // version
-                        ps.setBoolean(5, true)
+                        ps.setString(5, now)
                         ps.setString(6, now)
-                        ps.setString(7, now)
+                        ps.setLong(7, 0)
                         ps.setLong(8, 0)
-                        ps.setLong(9, 0)
                     }
 
                     override fun getBatchSize(): Int = BATCH_SIZE
@@ -404,8 +401,8 @@ class PerformanceDataLoader(
 
         val time = measureTimeMillis {
             val sql = """
-                INSERT INTO orders (order_number, user_id, total_amount, discount_amount, final_amount, used_coupon_id, status, is_active, created_at, updated_at, created_by, updated_by)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO orders (order_number, user_id, total_amount, discount_amount, final_amount, used_coupon_id, status, created_at, updated_at, created_by, updated_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """.trimIndent()
 
             val statuses = OrderStatus.values()
@@ -429,11 +426,10 @@ class PerformanceDataLoader(
                         ps.setLong(5, finalAmount)
                         ps.setObject(6, null)
                         ps.setString(7, statuses[orderId % statuses.size].name)
-                        ps.setBoolean(8, true)
+                        ps.setString(8, now)
                         ps.setString(9, now)
-                        ps.setString(10, now)
+                        ps.setLong(10, userId.toLong())
                         ps.setLong(11, userId.toLong())
-                        ps.setLong(12, userId.toLong())
                     }
 
                     override fun getBatchSize(): Int = BATCH_SIZE
@@ -455,8 +451,8 @@ class PerformanceDataLoader(
 
         val time = measureTimeMillis {
             val sql = """
-                INSERT INTO order_item (order_id, package_type_id, quantity, daily_serving, package_type_days, total_quantity, tea_price, container_price, gift_wrap_price, total_price, gift_wrap, package_type_name, gift_message, is_active, created_at, updated_at, created_by, updated_by)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO order_item (order_id, package_type_id, quantity, daily_serving, package_type_days, total_quantity, tea_price, container_price, gift_wrap_price, total_price, gift_wrap, package_type_name, gift_message, created_at, updated_at, created_by, updated_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """.trimIndent()
 
             val batches = totalItems / BATCH_SIZE
@@ -491,11 +487,10 @@ class PerformanceDataLoader(
                         ps.setBoolean(11, giftWrap) // gift_wrap
                         ps.setString(12, "패키지타입$packageTypeDays") // package_type_name
                         ps.setString(13, if (giftWrap) "성능테스트 선물메시지" else null) // gift_message
-                        ps.setBoolean(14, true) // is_active
-                        ps.setString(15, now) // created_at
-                        ps.setString(16, now) // updated_at
-                        ps.setLong(17, 0) // created_by
-                        ps.setLong(18, 0) // updated_by
+                        ps.setString(14, now) // created_at
+                        ps.setString(15, now) // updated_at
+                        ps.setLong(16, 0) // created_by
+                        ps.setLong(17, 0) // updated_by
                     }
 
                     override fun getBatchSize(): Int = BATCH_SIZE
@@ -516,8 +511,8 @@ class PerformanceDataLoader(
 
         val time = measureTimeMillis {
             val sql = """
-                INSERT INTO point_history (user_id, amount, transaction_type, balance_before, balance_after, order_id, description, is_active, created_at, updated_at, created_by, updated_by)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO point_history (user_id, amount, transaction_type, balance_before, balance_after, order_id, description, created_at, updated_at, created_by, updated_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """.trimIndent()
 
             val transactionTypes = PointTransactionType.values()
@@ -547,11 +542,10 @@ class PerformanceDataLoader(
                         ps.setLong(5, balanceAfter)
                         ps.setObject(6, if (transactionType == PointTransactionType.USE) (historyId % ORDER_COUNT) + 1 else null)
                         ps.setString(7, "성능 테스트 데이터")
-                        ps.setBoolean(8, true)
+                        ps.setString(8, now)
                         ps.setString(9, now)
-                        ps.setString(10, now)
+                        ps.setLong(10, userId.toLong())
                         ps.setLong(11, userId.toLong())
-                        ps.setLong(12, userId.toLong())
                     }
 
                     override fun getBatchSize(): Int = BATCH_SIZE
@@ -572,8 +566,8 @@ class PerformanceDataLoader(
 
         val time = measureTimeMillis {
             val sql = """
-                INSERT INTO user_point (user_id, balance, version, is_active, created_at, updated_at, created_by, updated_by)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO user_point (user_id, balance, version, created_at, updated_at, created_by, updated_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             """.trimIndent()
 
             val batches = USER_COUNT / BATCH_SIZE
@@ -586,11 +580,10 @@ class PerformanceDataLoader(
                         ps.setLong(1, userId.toLong())
                         ps.setLong(2, Random.nextLong(0, 100000))
                         ps.setInt(3, 0) // version
-                        ps.setBoolean(4, true)
+                        ps.setString(4, now)
                         ps.setString(5, now)
-                        ps.setString(6, now)
+                        ps.setLong(6, 0)
                         ps.setLong(7, 0)
-                        ps.setLong(8, 0)
                     }
 
                     override fun getBatchSize(): Int = BATCH_SIZE
@@ -607,8 +600,8 @@ class PerformanceDataLoader(
 
         val time = measureTimeMillis {
             val sql = """
-                INSERT INTO coupons (name, code, discount_type, discount_value, minimum_order_amount, total_quantity, issued_quantity, valid_from, valid_to, version, is_active, created_at, updated_at, created_by, updated_by)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO coupons (name, code, discount_type, discount_value, minimum_order_amount, total_quantity, issued_quantity, valid_from, valid_to, version, created_at, updated_at, created_by, updated_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """.trimIndent()
 
             val discountTypes = listOf("FIXED", "PERCENTAGE")
@@ -642,11 +635,10 @@ class PerformanceDataLoader(
                         ps.setString(8, validFrom)
                         ps.setString(9, validTo)
                         ps.setInt(10, 0) // version
-                        ps.setBoolean(11, true)
+                        ps.setString(11, now)
                         ps.setString(12, now)
-                        ps.setString(13, now)
+                        ps.setLong(13, 0)
                         ps.setLong(14, 0)
-                        ps.setLong(15, 0)
                     }
 
                     override fun getBatchSize(): Int = BATCH_SIZE
@@ -667,8 +659,8 @@ class PerformanceDataLoader(
 
         val time = measureTimeMillis {
             val sql = """
-                INSERT INTO user_coupons (user_id, coupon_id, status, issued_at, used_at, used_order_id, is_active, created_at, updated_at, created_by, updated_by)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO user_coupons (user_id, coupon_id, status, issued_at, used_at, used_order_id, created_at, updated_at, created_by, updated_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """.trimIndent()
 
             val statuses = listOf("ISSUED", "USED", "EXPIRED")
@@ -690,11 +682,10 @@ class PerformanceDataLoader(
                         ps.setString(4, issuedAt)
                         ps.setObject(5, if (status == "USED") LocalDateTime.now().minusDays(Random.nextLong(0, 30)).format(dateFormatter) else null)
                         ps.setObject(6, if (status == "USED") (userCouponId % ORDER_COUNT) + 1 else null)
-                        ps.setBoolean(7, true)
+                        ps.setString(7, now)
                         ps.setString(8, now)
-                        ps.setString(9, now)
+                        ps.setLong(9, 0)
                         ps.setLong(10, 0)
-                        ps.setLong(11, 0)
                     }
 
                     override fun getBatchSize(): Int = BATCH_SIZE
@@ -711,8 +702,8 @@ class PerformanceDataLoader(
 
         val time = measureTimeMillis {
             val sql = """
-                INSERT INTO carts (user_id, is_active, created_at, updated_at, created_by, updated_by)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO carts (user_id, created_at, updated_at, created_by, updated_by)
+                VALUES (?, ?, ?, ?, ?)
             """.trimIndent()
 
             val batches = CART_COUNT / BATCH_SIZE
@@ -724,11 +715,10 @@ class PerformanceDataLoader(
                         val now = LocalDateTime.now().format(dateFormatter)
 
                         ps.setLong(1, userId.toLong())
-                        ps.setBoolean(2, true)
+                        ps.setString(2, now)
                         ps.setString(3, now)
-                        ps.setString(4, now)
+                        ps.setLong(4, userId.toLong())
                         ps.setLong(5, userId.toLong())
-                        ps.setLong(6, userId.toLong())
                     }
 
                     override fun getBatchSize(): Int = BATCH_SIZE
@@ -746,8 +736,8 @@ class PerformanceDataLoader(
 
         val time = measureTimeMillis {
             val sql = """
-                INSERT INTO cart_items (cart_id, package_type_id, daily_serving, gift_wrap, package_type_days, package_type_name, total_quantity, gift_message, is_active, created_at, updated_at, created_by, updated_by)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO cart_items (cart_id, package_type_id, daily_serving, gift_wrap, package_type_days, package_type_name, total_quantity, gift_message, created_at, updated_at, created_by, updated_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """.trimIndent()
 
             val batches = totalItems / BATCH_SIZE
@@ -772,11 +762,10 @@ class PerformanceDataLoader(
                         ps.setString(6, "패키지타입${packageTypeDays}")
                         ps.setDouble(7, totalQuantity)
                         ps.setString(8, if (giftWrap) "장바구니 선물 메시지" else null)
-                        ps.setBoolean(9, true)
+                        ps.setString(9, now)
                         ps.setString(10, now)
-                        ps.setString(11, now)
+                        ps.setLong(11, 0)
                         ps.setLong(12, 0)
-                        ps.setLong(13, 0)
                     }
 
                     override fun getBatchSize(): Int = BATCH_SIZE
@@ -793,8 +782,8 @@ class PerformanceDataLoader(
 
         val time = measureTimeMillis {
             val sql = """
-                INSERT INTO delivery (order_id, status, delivery_address, carrier, tracking_number, shipped_at, delivered_at, delivery_memo, is_active, created_at, updated_at, created_by, updated_by)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO delivery (order_id, status, delivery_address, carrier, tracking_number, shipped_at, delivered_at, delivery_memo, created_at, updated_at, created_by, updated_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """.trimIndent()
 
             val statuses = listOf("PENDING", "PREPARING", "SHIPPED", "DELIVERED", "FAILED")
@@ -818,11 +807,10 @@ class PerformanceDataLoader(
                         ps.setObject(6, if (status in listOf("SHIPPED", "DELIVERED")) LocalDateTime.now().minusDays(Random.nextLong(0, 7)).format(dateFormatter) else null)
                         ps.setObject(7, if (status == "DELIVERED") LocalDateTime.now().minusDays(Random.nextLong(0, 3)).format(dateFormatter) else null)
                         ps.setString(8, "문앞에 놓아주세요")
-                        ps.setBoolean(9, true)
+                        ps.setString(9, now)
                         ps.setString(10, now)
-                        ps.setString(11, now)
+                        ps.setLong(11, 0)
                         ps.setLong(12, 0)
-                        ps.setLong(13, 0)
                     }
 
                     override fun getBatchSize(): Int = BATCH_SIZE

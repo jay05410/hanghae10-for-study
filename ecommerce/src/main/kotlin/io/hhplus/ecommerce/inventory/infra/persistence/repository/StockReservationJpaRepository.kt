@@ -8,6 +8,8 @@ import java.time.LocalDateTime
 
 interface StockReservationJpaRepository : JpaRepository<StockReservation, Long> {
 
+    fun findByOrderId(orderId: Long): List<StockReservation>
+
     fun findByUserIdAndProductIdAndStatus(userId: Long, productId: Long, status: ReservationStatus): StockReservation?
 
     @Query("SELECT s FROM StockReservation s WHERE s.expiresAt < :expiredBefore AND s.status = 'RESERVED'")

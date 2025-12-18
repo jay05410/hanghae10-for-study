@@ -29,7 +29,7 @@ class OrderAggregate private constructor() {
         private set
     var finalAmount: Long = 0L
         private set
-    var usedCouponId: Long? = null
+    var usedCouponIds: List<Long> = emptyList()
         private set
     var status: OrderStatus = OrderStatus.PENDING
         private set
@@ -52,7 +52,7 @@ class OrderAggregate private constructor() {
             userId: Long,
             totalAmount: Long,
             discountAmount: Long = 0,
-            usedCouponId: Long? = null,
+            usedCouponIds: List<Long> = emptyList(),
             items: List<OrderItemSnapshot>
         ): OrderAggregate {
             require(orderNumber.isNotBlank()) { "주문번호는 필수입니다" }
@@ -72,7 +72,7 @@ class OrderAggregate private constructor() {
                 totalAmount = totalAmount,
                 discountAmount = discountAmount,
                 finalAmount = finalAmount,
-                usedCouponId = usedCouponId,
+                usedCouponIds = usedCouponIds,
                 items = items
             )
 
@@ -180,7 +180,7 @@ class OrderAggregate private constructor() {
                 this.totalAmount = event.totalAmount
                 this.discountAmount = event.discountAmount
                 this.finalAmount = event.finalAmount
-                this.usedCouponId = event.usedCouponId
+                this.usedCouponIds = event.usedCouponIds
                 this.items = event.items
                 this.status = OrderStatus.PENDING
             }
@@ -226,7 +226,7 @@ class OrderAggregate private constructor() {
             totalAmount = totalAmount,
             discountAmount = discountAmount,
             finalAmount = finalAmount,
-            usedCouponId = usedCouponId,
+            usedCouponIds = usedCouponIds,
             status = status,
             items = items,
             version = version,
@@ -244,7 +244,7 @@ class OrderAggregate private constructor() {
         this.totalAmount = snapshot.totalAmount
         this.discountAmount = snapshot.discountAmount
         this.finalAmount = snapshot.finalAmount
-        this.usedCouponId = snapshot.usedCouponId
+        this.usedCouponIds = snapshot.usedCouponIds
         this.status = snapshot.status
         this.items = snapshot.items
         this.version = snapshot.version
@@ -275,7 +275,7 @@ data class OrderSnapshot(
     val totalAmount: Long,
     val discountAmount: Long,
     val finalAmount: Long,
-    val usedCouponId: Long?,
+    val usedCouponIds: List<Long>,
     val status: OrderStatus,
     val items: List<OrderItemSnapshot>,
     val version: Int,

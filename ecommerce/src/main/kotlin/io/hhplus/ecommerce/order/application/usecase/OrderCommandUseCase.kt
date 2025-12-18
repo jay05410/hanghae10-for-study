@@ -37,7 +37,7 @@ import org.springframework.stereotype.Component
  * - 다른 도메인 로직은 이벤트 핸들러에서 처리
  *
  * 이벤트 흐름:
- * - OrderCreated → 결제 처리 → 포인트 차감, 재고 차감, 쿠폰 사용, 배송 생성, 장바구니 정리
+ * - 주문 생성 시: 이벤트 없음 (결제 완료 후 PaymentCompleted 이벤트로 후속 처리)
  * - OrderCancelled → 재고 복구, 포인트 환불
  * - OrderConfirmed → 통계 기록
  */
@@ -73,11 +73,11 @@ class OrderCommandUseCase(
         }
 
         // 2. PricingDomainService로 가격 계산 (쿠폰 할인 포함)
-        val pricingResult = if (request.usedCouponId != null) {
-            pricingDomainService.calculatePricingWithCoupon(
+        val pricingResult = if (request.usedCouponIds.isNotEmpty()) {
+            pricingDomainService.calculatePricingWithCoupons(
                 userId = request.userId,
                 itemRequests = pricingRequests,
-                userCouponId = request.usedCouponId
+                userCouponIds = request.usedCouponIds
             )
         } else {
             pricingDomainService.calculatePricing(pricingRequests)
@@ -90,7 +90,7 @@ class OrderCommandUseCase(
         val savedOrder = orderDomainService.createOrder(
             userId = request.userId,
             items = orderItems,
-            usedCouponId = request.usedCouponId,
+            usedCouponIds = request.usedCouponIds,
             totalAmount = pricingResult.totalAmount,
             discountAmount = pricingResult.discountAmount
         )
@@ -101,7 +101,7 @@ class OrderCommandUseCase(
         logger.info {
             "[OrderCommandUseCase] 주문 생성 완료: orderId=${savedOrder.id}, " +
                 "totalAmount=${pricingResult.totalAmount}, discountAmount=${pricingResult.discountAmount}, " +
-                "finalAmount=${pricingResult.finalAmount}"
+                "finalAmount=${pricingResult.finalAmount}, coupons=${request.usedCouponIds.size}"
         }
         return savedOrder
     }
@@ -115,7 +115,7 @@ class OrderCommandUseCase(
             finalAmount = order.finalAmount,
             discountAmount = order.discountAmount,
             status = order.status.name,
-            usedCouponId = request.usedCouponId,
+            usedCouponIds = request.usedCouponIds,
             items = request.items.map { item ->
                 OrderCreatedItemPayload(
                     productId = item.productId,
@@ -183,6 +183,7 @@ class OrderCommandUseCase(
             finalAmount = order.finalAmount,
             reason = reason ?: "사용자 요청",
             status = order.status.name,
+            usedCouponIds = order.usedCouponIds,
             items = orderItems.map { item ->
                 OrderItemPayloadSimple(
                     productId = item.productId,
@@ -219,6 +220,7 @@ class OrderCommandUseCase(
             userId = order.userId,
             orderNumber = order.orderNumber,
             status = order.status.name,
+            usedCouponIds = order.usedCouponIds,
             items = orderItems.map { item ->
                 OrderItemPayloadSimple(
                     productId = item.productId,

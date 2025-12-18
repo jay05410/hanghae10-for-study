@@ -7,6 +7,7 @@ import java.time.LocalDateTime
 interface StockReservationRepository {
     fun save(stockReservation: StockReservation): StockReservation
     fun findById(id: Long): StockReservation?
+    fun findByOrderId(orderId: Long): List<StockReservation>
     fun findByUserIdAndProductIdAndStatus(userId: Long, productId: Long, status: ReservationStatus): StockReservation?
     fun findExpiredReservations(expiredBefore: LocalDateTime): List<StockReservation>
     fun findByUserIdAndStatus(userId: Long, status: ReservationStatus): List<StockReservation>

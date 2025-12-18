@@ -53,6 +53,20 @@ class StockReservationDomainService(
     }
 
     /**
+     * 주문 ID로 예약 목록 조회
+     */
+    fun findByOrderId(orderId: Long): List<StockReservation> {
+        return stockReservationRepository.findByOrderId(orderId)
+    }
+
+    /**
+     * 예약 저장
+     */
+    fun save(reservation: StockReservation): StockReservation {
+        return stockReservationRepository.save(reservation)
+    }
+
+    /**
      * 새 예약 생성
      */
     fun createReservation(
@@ -61,11 +75,12 @@ class StockReservationDomainService(
         quantity: Int,
         reservationMinutes: Int
     ): StockReservation {
+        val requiresReservation = reservationMinutes > StockReservation.DEFAULT_RESERVATION_MINUTES
         val reservation = StockReservation.create(
             productId = productId,
             userId = userId,
             quantity = quantity,
-            reservationMinutes = reservationMinutes
+            requiresReservation = requiresReservation
         )
         return stockReservationRepository.save(reservation)
     }

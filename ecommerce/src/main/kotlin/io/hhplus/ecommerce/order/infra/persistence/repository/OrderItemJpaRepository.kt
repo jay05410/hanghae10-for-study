@@ -22,6 +22,9 @@ interface OrderItemJpaRepository : JpaRepository<OrderItemJpaEntity, Long> {
 
     fun findByProductId(productId: Long): List<OrderItemJpaEntity>
 
+    @Query("SELECT oi FROM OrderItemJpaEntity oi WHERE oi.orderId IN :orderIds")
+    fun findByOrderIdIn(@Param("orderIds") orderIds: List<Long>): List<OrderItemJpaEntity>
+
     @Modifying
     @Query("DELETE FROM OrderItemJpaEntity oi WHERE oi.orderId = :orderId")
     fun deleteByOrderId(@Param("orderId") orderId: Long)
