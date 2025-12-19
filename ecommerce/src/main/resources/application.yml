@@ -85,11 +85,6 @@ swagger:
   version: 1.0.0
   auto-wrap-response: true  # false로 변경하면 ApiResponse 자동 래핑 비활성화
 
-# 쿠폰 Queue Worker 설정
-coupon:
-  queue:
-    worker:
-      enabled: true  # Queue Worker 활성화 여부
 
 # 데이터 플랫폼 설정 (mockAPI.io)
 dataplatform:
@@ -110,6 +105,7 @@ kafka:
     order-events: ecommerce.order.events
     payment-events: ecommerce.payment.events
     data-platform: ecommerce.data-platform
+    coupon-issue: ecommerce.coupon.issue
 
 # Spring Actuator 모니터링 설정
 management:

@@ -39,6 +39,12 @@ spring:
           min-idle: 0
       timeout: 10000ms
 
+# Kafka 비활성화 (테스트 환경)
+kafka:
+  enabled: false
+  topics:
+    coupon-issue: ecommerce.coupon.issue
+
 logging:
   level:
     org.springframework: WARN
