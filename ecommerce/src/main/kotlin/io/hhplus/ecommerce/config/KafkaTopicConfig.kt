@@ -10,23 +10,31 @@ import org.springframework.kafka.config.TopicBuilder
 /**
  * Kafka 토픽 설정
  *
- * 애플리케이션 시작 시 토픽 자동 생성
+ * 도메인별 토픽 자동 생성:
+ * - ecommerce.order: 주문 이벤트 (OrderCreated, OrderCancelled, OrderConfirmed)
+ * - ecommerce.payment: 결제 이벤트 (PaymentCompleted, PaymentFailed)
+ * - ecommerce.coupon: 쿠폰 이벤트 (CouponIssueRequest)
+ * - ecommerce.inventory: 재고 이벤트
+ * - ecommerce.data-platform: 외부 데이터 플랫폼 전송용
  */
 @Configuration
 @ConditionalOnProperty(name = ["kafka.enabled"], havingValue = "true", matchIfMissing = false)
 class KafkaTopicConfig {
 
-    @Value("\${kafka.topics.order-events}")
-    private lateinit var orderEventsTopic: String
+    @Value("\${kafka.topics.order}")
+    private lateinit var orderTopic: String
 
-    @Value("\${kafka.topics.payment-events}")
-    private lateinit var paymentEventsTopic: String
+    @Value("\${kafka.topics.payment}")
+    private lateinit var paymentTopic: String
+
+    @Value("\${kafka.topics.coupon}")
+    private lateinit var couponTopic: String
+
+    @Value("\${kafka.topics.inventory}")
+    private lateinit var inventoryTopic: String
 
     @Value("\${kafka.topics.data-platform}")
     private lateinit var dataPlatformTopic: String
-
-    @Value("\${kafka.topics.coupon-issue}")
-    private lateinit var couponIssueTopic: String
 
     companion object {
         private const val DEFAULT_PARTITIONS = 3
@@ -34,16 +42,32 @@ class KafkaTopicConfig {
     }
 
     @Bean
-    fun orderEventsTopic(): NewTopic {
-        return TopicBuilder.name(orderEventsTopic)
+    fun orderTopic(): NewTopic {
+        return TopicBuilder.name(orderTopic)
             .partitions(DEFAULT_PARTITIONS)
             .replicas(DEFAULT_REPLICAS)
             .build()
     }
 
     @Bean
-    fun paymentEventsTopic(): NewTopic {
-        return TopicBuilder.name(paymentEventsTopic)
+    fun paymentTopic(): NewTopic {
+        return TopicBuilder.name(paymentTopic)
+            .partitions(DEFAULT_PARTITIONS)
+            .replicas(DEFAULT_REPLICAS)
+            .build()
+    }
+
+    @Bean
+    fun couponTopic(): NewTopic {
+        return TopicBuilder.name(couponTopic)
+            .partitions(DEFAULT_PARTITIONS)
+            .replicas(DEFAULT_REPLICAS)
+            .build()
+    }
+
+    @Bean
+    fun inventoryTopic(): NewTopic {
+        return TopicBuilder.name(inventoryTopic)
             .partitions(DEFAULT_PARTITIONS)
             .replicas(DEFAULT_REPLICAS)
             .build()
@@ -52,14 +76,6 @@ class KafkaTopicConfig {
     @Bean
     fun dataPlatformTopic(): NewTopic {
         return TopicBuilder.name(dataPlatformTopic)
-            .partitions(DEFAULT_PARTITIONS)
-            .replicas(DEFAULT_REPLICAS)
-            .build()
-    }
-
-    @Bean
-    fun couponIssueTopic(): NewTopic {
-        return TopicBuilder.name(couponIssueTopic)
             .partitions(DEFAULT_PARTITIONS)
             .replicas(DEFAULT_REPLICAS)
             .build()

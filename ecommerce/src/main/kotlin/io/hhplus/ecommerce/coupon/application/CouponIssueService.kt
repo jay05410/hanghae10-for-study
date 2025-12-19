@@ -2,8 +2,9 @@ package io.hhplus.ecommerce.coupon.application
 
 import io.hhplus.ecommerce.common.cache.CacheInvalidationPublisher
 import io.hhplus.ecommerce.common.cache.CacheNames
-import io.hhplus.ecommerce.common.messaging.MessagePublisher
+import io.hhplus.ecommerce.common.outbox.OutboxEventService
 import io.hhplus.ecommerce.common.outbox.payload.CouponIssueRequestPayload
+import io.hhplus.ecommerce.config.event.EventRegistry
 import io.hhplus.ecommerce.coupon.application.port.out.CouponIssuePort
 import io.hhplus.ecommerce.coupon.application.port.out.CouponIssueResult
 import io.hhplus.ecommerce.coupon.domain.repository.CouponRepository
@@ -12,7 +13,6 @@ import io.hhplus.ecommerce.coupon.exception.CouponException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import mu.KotlinLogging
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 
 /**
@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service
  * 역할:
  * - 선착순 쿠폰 발급 요청 처리
  * - CouponIssuePort를 통한 Redis 기반 동시성 제어
+ * - Outbox 패턴을 통한 이벤트 발행 (CDC → Kafka)
  *
  * 동시성 제어 패턴: SADD + INCR + Soldout Flag
  * - SET: 발급된 유저 목록 (SADD 원자성으로 중복 방지)
@@ -33,9 +34,7 @@ class CouponIssueService(
     private val couponIssuePort: CouponIssuePort,
     private val couponRepository: CouponRepository,
     private val cacheInvalidationPublisher: CacheInvalidationPublisher,
-    private val messagePublisher: MessagePublisher,
-    @Value("\${kafka.topics.coupon-issue:ecommerce.coupon.issue}")
-    private val couponIssueTopic: String
+    private val outboxEventService: OutboxEventService
 ) {
     private val logger = KotlinLogging.logger {}
     private val json = Json { ignoreUnknownKeys = true }
@@ -72,7 +71,7 @@ class CouponIssueService(
 
         when (result) {
             CouponIssueResult.QUEUED -> {
-                // Kafka로 발급 요청 발행
+                // Outbox 패턴으로 발급 요청 발행 (CDC → Kafka)
                 val payload = CouponIssueRequestPayload(
                     couponId = couponInfo.id,
                     userId = userId,
@@ -80,14 +79,15 @@ class CouponIssueService(
                     requestedAt = System.currentTimeMillis()
                 )
 
-                messagePublisher.publish(
-                    topic = couponIssueTopic,
-                    key = couponInfo.id.toString(),
-                    payload = json.encodeToString(payload)
+                outboxEventService.publishEvent(
+                    eventType = EventRegistry.EventTypes.COUPON_ISSUE_REQUEST,
+                    aggregateType = EventRegistry.AggregateTypes.COUPON,
+                    aggregateId = couponInfo.id.toString(),
+                    payload = json.encodeToString(CouponIssueRequestPayload.serializer(), payload)
                 )
 
                 logger.info(
-                    "[CouponIssueService] 발급 요청 Kafka 발행: couponId={}, userId={}",
+                    "[CouponIssueService] 발급 요청 Outbox 발행: couponId={}, userId={}",
                     couponInfo.id, userId
                 )
             }

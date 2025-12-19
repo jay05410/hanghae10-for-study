@@ -102,10 +102,11 @@ kafka:
     acks: all
     retries: 3
   topics:
-    order-events: ecommerce.order.events
-    payment-events: ecommerce.payment.events
+    order: ecommerce.order
+    payment: ecommerce.payment
+    coupon: ecommerce.coupon
+    inventory: ecommerce.inventory
     data-platform: ecommerce.data-platform
-    coupon-issue: ecommerce.coupon.issue
 
 # Spring Actuator 모니터링 설정
 management:

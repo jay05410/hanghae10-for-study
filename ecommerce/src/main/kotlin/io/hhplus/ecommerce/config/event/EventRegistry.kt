@@ -59,7 +59,8 @@ object EventRegistry {
         const val STOCK_RESTORED = "StockRestored"
         const val INVENTORY_INSUFFICIENT = "InventoryInsufficient"  // 재고 부족 → 주문 취소 트리거
 
-        // Coupon 도메인 이벤트 (내부용)
+        // Coupon 도메인 이벤트
+        const val COUPON_ISSUE_REQUEST = "CouponIssueRequest"  // 선착순 쿠폰 발급 요청
         const val COUPON_USED = "CouponUsed"
         const val COUPON_RESTORED = "CouponRestored"
 
@@ -69,13 +70,13 @@ object EventRegistry {
     }
 
     object AggregateTypes {
-        const val ORDER = "Order"
-        const val PAYMENT = "Payment"
-        const val INVENTORY = "Inventory"
-        const val COUPON = "Coupon"
-        const val POINT = "Point"
-        const val DELIVERY = "Delivery"
-        const val CART = "Cart"
+        const val ORDER = "order"
+        const val PAYMENT = "payment"
+        const val INVENTORY = "inventory"
+        const val COUPON = "coupon"
+        const val POINT = "point"
+        const val DELIVERY = "delivery"
+        const val CART = "cart"
     }
 
     data class EventMetadata(

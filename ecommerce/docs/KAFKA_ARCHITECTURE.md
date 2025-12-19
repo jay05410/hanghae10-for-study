@@ -88,16 +88,16 @@ graph LR
     end
 
     subgraph "Kafka"
-        T1[coupon-issue]
-        T2[order-events]
-        T3[payment-events]
-        T4[data-platform]
+        T1[ecommerce.coupon]
+        T2[ecommerce.order]
+        T3[ecommerce.payment]
+        T4[ecommerce.data-platform]
     end
 
     OUTBOX --> |INSERT| BINLOG
     BINLOG --> |Capture| CONNECTOR
     CONNECTOR --> TRANSFORM
-    TRANSFORM --> |Route by event_type| T1
+    TRANSFORM --> |Route by aggregate_type| T1
     TRANSFORM --> T2
     TRANSFORM --> T3
     TRANSFORM --> T4
@@ -189,7 +189,7 @@ classDiagram
 ### 3.3 Kafka 토픽 구성 - 쿠폰
 
 ```yaml
-Topic: coupon-issue
+Topic: ecommerce.coupon
   Partitions: 3
   Replication Factor: 1
   Retention: 7 days
@@ -199,7 +199,8 @@ Message Format:
   Value: CouponIssueRequestPayload
     - couponId: Long
     - userId: Long
-    - requestedAt: String (ISO-8601)
+    - couponName: String
+    - requestedAt: Long (timestamp)
 ```
 
 ---
@@ -444,50 +445,59 @@ graph TB
 
 ```mermaid
 graph LR
-    subgraph "Internal Events"
-        T1[order-events]
-        T2[payment-events]
-        T3[coupon-issue]
+    subgraph "Domain Topics"
+        T1[ecommerce.order]
+        T2[ecommerce.payment]
+        T3[ecommerce.coupon]
+        T4[ecommerce.inventory]
     end
 
     subgraph "External Integration"
-        T4[data-platform]
+        T5[ecommerce.data-platform]
     end
 
-    subgraph "CDC Generated"
-        T5[ecommerce.outbox_events]
+    subgraph "CDC Routing"
+        CDC[Debezium]
+        OUTBOX[(outbox_events)]
     end
 
-    CDC[Debezium] --> T5
-    T5 --> |Route| T1
-    T5 --> |Route| T2
-    T5 --> |Route| T3
-    T5 --> |Route| T4
+    OUTBOX --> |Binlog| CDC
+    CDC --> |aggregate_type=order| T1
+    CDC --> |aggregate_type=payment| T2
+    CDC --> |aggregate_type=coupon| T3
+    CDC --> |aggregate_type=inventory| T4
+    CDC --> |aggregate_type=data-platform| T5
 ```
 
 ### 7.2 토픽 설정
 
 ```yaml
 Topics:
-  coupon-issue:
+  ecommerce.order:
     partitions: 3
     replication-factor: 1
     retention.ms: 604800000  # 7 days
-    key: couponId
-
-  order-events:
-    partitions: 6
-    replication-factor: 1
-    retention.ms: 604800000
     key: orderId
 
-  payment-events:
+  ecommerce.payment:
     partitions: 3
     replication-factor: 1
     retention.ms: 604800000
     key: paymentId
 
-  data-platform:
+  ecommerce.coupon:
+    partitions: 3
+    replication-factor: 1
+    retention.ms: 604800000
+    key: couponId
+
+  ecommerce.inventory:
+    partitions: 3
+    replication-factor: 1
+    retention.ms: 604800000
+    key: productId
+
+  ecommerce.data-platform:
     partitions: 3
     replication-factor: 1
     retention.ms: 2592000000  # 30 days
