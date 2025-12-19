@@ -2,11 +2,17 @@ package io.hhplus.ecommerce.coupon.application
 
 import io.hhplus.ecommerce.common.cache.CacheInvalidationPublisher
 import io.hhplus.ecommerce.common.cache.CacheNames
+import io.hhplus.ecommerce.common.messaging.MessagePublisher
+import io.hhplus.ecommerce.common.outbox.payload.CouponIssueRequestPayload
 import io.hhplus.ecommerce.coupon.application.port.out.CouponIssuePort
 import io.hhplus.ecommerce.coupon.application.port.out.CouponIssueResult
 import io.hhplus.ecommerce.coupon.domain.repository.CouponRepository
 import io.hhplus.ecommerce.coupon.domain.vo.CouponCacheInfo
 import io.hhplus.ecommerce.coupon.exception.CouponException
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import mu.KotlinLogging
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 
 /**
@@ -26,8 +32,13 @@ import org.springframework.stereotype.Service
 class CouponIssueService(
     private val couponIssuePort: CouponIssuePort,
     private val couponRepository: CouponRepository,
-    private val cacheInvalidationPublisher: CacheInvalidationPublisher
+    private val cacheInvalidationPublisher: CacheInvalidationPublisher,
+    private val messagePublisher: MessagePublisher,
+    @Value("\${kafka.topics.coupon-issue:ecommerce.coupon.issue}")
+    private val couponIssueTopic: String
 ) {
+    private val logger = KotlinLogging.logger {}
+    private val json = Json { ignoreUnknownKeys = true }
 
     /**
      * 쿠폰 발급 요청
@@ -60,7 +71,26 @@ class CouponIssueService(
         )
 
         when (result) {
-            CouponIssueResult.QUEUED -> return
+            CouponIssueResult.QUEUED -> {
+                // Kafka로 발급 요청 발행
+                val payload = CouponIssueRequestPayload(
+                    couponId = couponInfo.id,
+                    userId = userId,
+                    couponName = couponInfo.name,
+                    requestedAt = System.currentTimeMillis()
+                )
+
+                messagePublisher.publish(
+                    topic = couponIssueTopic,
+                    key = couponInfo.id.toString(),
+                    payload = json.encodeToString(payload)
+                )
+
+                logger.info(
+                    "[CouponIssueService] 발급 요청 Kafka 발행: couponId={}, userId={}",
+                    couponInfo.id, userId
+                )
+            }
             CouponIssueResult.ALREADY_ISSUED -> throw CouponException.AlreadyRequested(userId, couponInfo.name)
             CouponIssueResult.SOLD_OUT -> throw CouponException.IssueSoldOut(couponInfo.name)
         }

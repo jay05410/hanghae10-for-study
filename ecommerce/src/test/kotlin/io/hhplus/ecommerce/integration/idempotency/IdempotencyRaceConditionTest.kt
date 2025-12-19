@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger
  * 멱등성 서비스 동시성 테스트
  *
  * tryAcquire()의 원자적 SETNX 기반 멱등성 보장을 검증
+ * 재고/포인트 처리 등에서 사용되는 멱등성 체크 로직 검증
  */
 class IdempotencyRaceConditionTest(
     private val idempotencyService: IdempotencyService,
@@ -20,7 +21,7 @@ class IdempotencyRaceConditionTest(
 
     beforeTest {
         // 테스트 키 정리
-        redisTemplate.keys("ecom:ord:dp:*")?.let { keys ->
+        redisTemplate.keys("ecom:inv:deducted:*")?.let { keys ->
             if (keys.isNotEmpty()) redisTemplate.delete(keys)
         }
     }
@@ -32,8 +33,7 @@ class IdempotencyRaceConditionTest(
             it("동시 요청 시 중복 처리가 완전히 방지됨") {
                 // given
                 val orderId = 10L
-                val status = "CONFIRMED"
-                val idempotencyKey = RedisKeyNames.Order.dataPlatformSentKey(orderId, status)
+                val idempotencyKey = RedisKeyNames.Inventory.deductedKey(orderId)
                 val processedCount = AtomicInteger(0)
 
                 // when: 10개 스레드가 동시에 처리 시도
@@ -60,8 +60,7 @@ class IdempotencyRaceConditionTest(
             it("대량 동시 요청에서도 정확히 1회만 처리") {
                 // given
                 val orderId = 100L
-                val status = "CONFIRMED"
-                val idempotencyKey = RedisKeyNames.Order.dataPlatformSentKey(orderId, status)
+                val idempotencyKey = RedisKeyNames.Inventory.deductedKey(orderId)
                 val processedCount = AtomicInteger(0)
 
                 // when: 100개 스레드가 동시에 처리 시도

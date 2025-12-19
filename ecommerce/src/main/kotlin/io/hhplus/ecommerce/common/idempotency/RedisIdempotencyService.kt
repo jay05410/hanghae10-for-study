@@ -25,4 +25,11 @@ class RedisIdempotencyService(
     override fun tryAcquire(key: String, ttl: Duration): Boolean {
         return redisTemplate.opsForValue().setIfAbsent(key, "1", ttl) == true
     }
+
+    /**
+     * 멱등성 키 존재 여부 확인
+     */
+    override fun exists(key: String): Boolean {
+        return redisTemplate.hasKey(key)
+    }
 }

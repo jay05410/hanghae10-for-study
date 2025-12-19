@@ -67,9 +67,7 @@ class RedisCouponIssueAdapter(
             return CouponIssueResult.SOLD_OUT
         }
 
-        // 5. 성공 시 ZADD로 대기열 등록 (순번을 score로 사용하여 선착순 보장)
-        redisTemplate.opsForZSet().add(queueKey, userIdStr, myOrder.toDouble())
-
+        // 5. 성공: Kafka 발행은 CouponIssueService에서 처리
         return CouponIssueResult.QUEUED
     }
 

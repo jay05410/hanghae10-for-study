@@ -30,6 +30,8 @@ class DataPlatformSender(
      * @Retry: 실패 시 3회 재시도 (1s → 2s → 4s 지수 백오프)
      * @CircuitBreaker: 50% 이상 실패 시 30초간 Open
      *
+     * 멱등성 보장: X-Idempotency-Key 헤더로 외부 API에서 중복 처리
+     *
      * @throws DataPlatformException 전송 실패 시
      */
     @Retry(name = "dataPlatform", fallbackMethod = "sendFallback")
@@ -37,7 +39,8 @@ class DataPlatformSender(
     fun send(payload: OrderInfoPayload): DataPlatformResponse {
         logger.debug("[DataPlatformSender] 전송 시도: orderId={}", payload.orderId)
 
-        val response = dataPlatformClient.sendOrderInfo(payload)
+        val idempotencyKey = "${payload.orderId}:${payload.status}"
+        val response = dataPlatformClient.sendOrderInfo(payload, idempotencyKey)
 
         if (!response.success) {
             throw DataPlatformException("전송 실패: ${response.message}")

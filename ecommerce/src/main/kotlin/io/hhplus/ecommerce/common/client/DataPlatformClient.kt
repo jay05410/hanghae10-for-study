@@ -15,9 +15,10 @@ interface DataPlatformClient {
      * 주문 정보 전송
      *
      * @param orderInfo 주문 정보
+     * @param idempotencyKey 멱등성 키 (orderId:status 형태)
      * @return 전송 결과
      */
-    fun sendOrderInfo(orderInfo: OrderInfoPayload): DataPlatformResponse
+    fun sendOrderInfo(orderInfo: OrderInfoPayload, idempotencyKey: String): DataPlatformResponse
 }
 
 /**

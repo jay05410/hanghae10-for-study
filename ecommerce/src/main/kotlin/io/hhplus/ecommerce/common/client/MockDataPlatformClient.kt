@@ -48,18 +48,19 @@ class MockDataPlatformClient(
     private val successCount = AtomicInteger(0)
     private val failureCount = AtomicInteger(0)
 
-    override fun sendOrderInfo(orderInfo: OrderInfoPayload): DataPlatformResponse {
+    override fun sendOrderInfo(orderInfo: OrderInfoPayload, idempotencyKey: String): DataPlatformResponse {
         totalSent.incrementAndGet()
 
         // URL이 설정되지 않았거나 비활성화된 경우 로그만 출력
         if (!enabled || dataPlatformUrl.isBlank()) {
-            return logOnlyMode(orderInfo)
+            return logOnlyMode(orderInfo, idempotencyKey)
         }
 
         return try {
-            // HTTP 요청 준비
+            // HTTP 요청 준비 (X-Idempotency-Key 헤더 포함)
             val headers = HttpHeaders().apply {
                 contentType = MediaType.APPLICATION_JSON
+                set("X-Idempotency-Key", idempotencyKey)
             }
             val request = HttpEntity(orderInfo, headers)
 
@@ -92,10 +93,10 @@ class MockDataPlatformClient(
         }
     }
 
-    private fun logOnlyMode(orderInfo: OrderInfoPayload): DataPlatformResponse {
+    private fun logOnlyMode(orderInfo: OrderInfoPayload, idempotencyKey: String): DataPlatformResponse {
         successCount.incrementAndGet()
         logger.info {
-            "[DataPlatform] 로그 모드: orderId=${orderInfo.orderId}, orderNumber=${orderInfo.orderNumber}"
+            "[DataPlatform] 로그 모드: orderId=${orderInfo.orderId}, orderNumber=${orderInfo.orderNumber}, idempotencyKey=$idempotencyKey"
         }
         return DataPlatformResponse(success = true, message = "로그 모드")
     }

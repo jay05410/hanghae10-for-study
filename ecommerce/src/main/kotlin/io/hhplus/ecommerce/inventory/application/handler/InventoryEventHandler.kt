@@ -144,11 +144,28 @@ class InventoryEventHandler(
 
             logger.info("[InventoryEventHandler] 재고 복구 시작: orderId=${payload.orderId}")
 
-            payload.items.forEach { item ->
-                inventoryDomainService.restockInventory(item.productId, item.quantity)
+            // 1. 재고 예약 해제 (PENDING 상태에서 취소된 경우)
+            val reservations = stockReservationDomainService.findByOrderId(payload.orderId)
+            reservations.forEach { reservation ->
+                if (reservation.isReservationActive()) {
+                    stockReservationDomainService.cancelReservation(reservation)
+                    inventoryDomainService.releaseReservation(reservation.productId, reservation.quantity)
+                    logger.debug("[InventoryEventHandler] 재고 예약 해제: productId=${reservation.productId}, quantity=${reservation.quantity}")
+                }
             }
 
-            logger.info("[InventoryEventHandler] 재고 복구 완료: orderId=${payload.orderId}")
+            // 2. 재고 복구 (CONFIRMED 상태에서 취소된 경우 - 실제 재고 차감이 있었던 경우)
+            // 예약이 확정된(CONFIRMED) 경우에만 재고 복구 필요
+            val confirmedReservations = reservations.filter { it.status == io.hhplus.ecommerce.inventory.domain.constant.ReservationStatus.CONFIRMED }
+            if (confirmedReservations.isNotEmpty()) {
+                payload.items.forEach { item ->
+                    inventoryDomainService.restockInventory(item.productId, item.quantity)
+                }
+                logger.info("[InventoryEventHandler] 재고 복구 완료: orderId=${payload.orderId}")
+            } else {
+                logger.info("[InventoryEventHandler] 재고 예약 해제 완료 (복구 불필요): orderId=${payload.orderId}")
+            }
+
             true
         } catch (e: Exception) {
             logger.error("[InventoryEventHandler] 재고 복구 실패: ${e.message}", e)

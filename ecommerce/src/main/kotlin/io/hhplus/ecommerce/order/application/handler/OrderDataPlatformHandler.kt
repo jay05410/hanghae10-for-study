@@ -1,7 +1,5 @@
 package io.hhplus.ecommerce.order.application.handler
 
-import io.hhplus.ecommerce.common.cache.RedisKeyNames
-import io.hhplus.ecommerce.common.idempotency.IdempotencyService
 import io.hhplus.ecommerce.common.messaging.MessagePublisher
 import io.hhplus.ecommerce.common.outbox.EventHandler
 import io.hhplus.ecommerce.common.outbox.OutboxEvent
@@ -14,7 +12,6 @@ import mu.KotlinLogging
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
-import java.time.Duration
 
 /**
  * 주문 정보 데이터 플랫폼 전송 핸들러
@@ -38,17 +35,12 @@ import java.time.Duration
 class OrderDataPlatformHandler(
     private val messagePublisher: MessagePublisher,
     private val getOrderQueryUseCase: GetOrderQueryUseCase,
-    private val idempotencyService: IdempotencyService,
     @Value("\${kafka.topics.data-platform:ecommerce.data-platform}")
     private val dataPlatformTopic: String
 ) : EventHandler {
 
     private val logger = KotlinLogging.logger {}
     private val json = Json { ignoreUnknownKeys = true }
-
-    companion object {
-        private val IDEMPOTENCY_TTL = Duration.ofDays(7)
-    }
 
     override fun supportedEventTypes(): List<String> {
         return listOf(EventRegistry.EventTypes.PAYMENT_COMPLETED)
@@ -68,22 +60,12 @@ class OrderDataPlatformHandler(
 
             val (order, items) = orderWithItems
 
-            // 멱등성 체크: orderId + status 조합으로 중복 발행 방지 (원자적 SETNX)
-            val idempotencyKey = RedisKeyNames.Order.dataPlatformSentKey(payload.orderId, order.status.name)
-            if (!idempotencyService.tryAcquire(idempotencyKey, IDEMPOTENCY_TTL)) {
-                logger.debug(
-                    "[OrderDataPlatformHandler] 이미 발행된 메시지, 스킵: orderId={}, status={}",
-                    payload.orderId, order.status
-                )
-                return true
-            }
-
             logger.info(
                 "[OrderDataPlatformHandler] 데이터 플랫폼 전송 시작: orderId={}, paymentId={}, status={}",
                 payload.orderId, payload.paymentId, order.status
             )
 
-            // Kafka 토픽으로 발행
+            // Kafka 토픽으로 발행 (Kafka idempotent producer가 중복 방지)
             messagePublisher.publish(
                 topic = dataPlatformTopic,
                 key = payload.orderId.toString(),

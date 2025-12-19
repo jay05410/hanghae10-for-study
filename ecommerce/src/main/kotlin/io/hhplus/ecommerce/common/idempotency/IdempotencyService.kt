@@ -23,4 +23,12 @@ interface IdempotencyService {
      * @return 처리 권한 획득 여부
      */
     fun tryAcquire(key: String, ttl: Duration = Duration.ofDays(7)): Boolean
+
+    /**
+     * 멱등성 키 존재 여부 확인
+     *
+     * @param key 멱등성 키
+     * @return 키 존재 여부
+     */
+    fun exists(key: String): Boolean
 }

@@ -151,3 +151,21 @@ data class InventoryInsufficientPayload(
     val availableQuantity: Int,
     val reason: String
 )
+
+// ============================================
+// Coupon 이벤트 Payloads
+// ============================================
+
+/**
+ * 쿠폰 발급 요청 Payload
+ *
+ * 선착순 쿠폰 발급 요청 시 Kafka로 발행
+ * CouponIssueConsumer에서 수신하여 실제 발급 처리
+ */
+@Serializable
+data class CouponIssueRequestPayload(
+    val couponId: Long,
+    val userId: Long,
+    val couponName: String,
+    val requestedAt: Long
+)

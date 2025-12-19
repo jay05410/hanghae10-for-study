@@ -25,6 +25,9 @@ class KafkaTopicConfig {
     @Value("\${kafka.topics.data-platform}")
     private lateinit var dataPlatformTopic: String
 
+    @Value("\${kafka.topics.coupon-issue}")
+    private lateinit var couponIssueTopic: String
+
     companion object {
         private const val DEFAULT_PARTITIONS = 3
         private const val DEFAULT_REPLICAS = 1
@@ -49,6 +52,14 @@ class KafkaTopicConfig {
     @Bean
     fun dataPlatformTopic(): NewTopic {
         return TopicBuilder.name(dataPlatformTopic)
+            .partitions(DEFAULT_PARTITIONS)
+            .replicas(DEFAULT_REPLICAS)
+            .build()
+    }
+
+    @Bean
+    fun couponIssueTopic(): NewTopic {
+        return TopicBuilder.name(couponIssueTopic)
             .partitions(DEFAULT_PARTITIONS)
             .replicas(DEFAULT_REPLICAS)
             .build()
