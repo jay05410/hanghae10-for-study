@@ -85,6 +85,13 @@ class PointEventHandler(
         return try {
             val payload = json.decodeFromString<OrderCancelledPayload>(event.payload)
 
+            // 포인트 차감 여부 확인 (PENDING 상태에서 취소된 경우 포인트가 차감되지 않음)
+            val deductedKey = RedisKeyNames.Point.deductedKey(payload.orderId)
+            if (!idempotencyService.exists(deductedKey)) {
+                logger.info("[PointEventHandler] 포인트 차감 이력 없음, 환불 스킵: orderId=${payload.orderId}")
+                return true
+            }
+
             // 멱등성 체크
             val idempotencyKey = RedisKeyNames.Point.refundedKey(payload.orderId)
             if (!idempotencyService.tryAcquire(idempotencyKey, IDEMPOTENCY_TTL)) {
