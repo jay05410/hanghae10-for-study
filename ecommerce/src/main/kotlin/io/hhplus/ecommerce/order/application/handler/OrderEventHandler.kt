@@ -5,6 +5,9 @@ import io.hhplus.ecommerce.common.outbox.OutboxEvent
 import io.hhplus.ecommerce.common.outbox.payload.InventoryInsufficientPayload
 import io.hhplus.ecommerce.common.outbox.payload.PaymentCompletedPayload
 import io.hhplus.ecommerce.common.outbox.payload.PaymentFailedPayload
+import io.hhplus.ecommerce.common.sse.OrderCompletedNotification
+import io.hhplus.ecommerce.common.sse.SseEmitterService
+import io.hhplus.ecommerce.common.sse.SseEventType
 import io.hhplus.ecommerce.config.event.EventRegistry
 import io.hhplus.ecommerce.order.domain.constant.OrderStatus
 import io.hhplus.ecommerce.order.domain.service.OrderDomainService
@@ -19,13 +22,14 @@ import org.springframework.stereotype.Component
  * 결제 관련 이벤트를 구독하여 주문 상태를 변경
  *
  * 이벤트 흐름:
- * - PaymentCompleted → 주문 상태 CONFIRMED로 변경
+ * - PaymentCompleted → 주문 상태 CONFIRMED로 변경 + SSE 알림 전송
  * - PaymentFailed → 주문 상태 FAILED로 변경
  */
 @Component
 @Order(1)  // 가장 먼저 실행 - 주문 상태 변경 후 다른 핸들러 실행
 class OrderEventHandler(
-    private val orderDomainService: OrderDomainService
+    private val orderDomainService: OrderDomainService,
+    private val sseEmitterService: SseEmitterService
 ) : EventHandler {
 
     private val logger = KotlinLogging.logger {}
@@ -65,6 +69,17 @@ class OrderEventHandler(
 
             orderDomainService.confirmOrder(payload.orderId)
             logger.info("[OrderEventHandler] 주문 확정 완료: orderId={}", payload.orderId)
+
+            // SSE 알림 전송
+            sseEmitterService.sendEvent(
+                userId = payload.userId,
+                eventType = SseEventType.ORDER_COMPLETED,
+                data = OrderCompletedNotification(
+                    orderId = order.id,
+                    orderNumber = order.orderNumber,
+                    totalAmount = order.finalAmount
+                )
+            )
 
             true
         } catch (e: Exception) {
