@@ -37,6 +37,26 @@ abstract class KotestIntegrationTestBase(body: DescribeSpec.() -> Unit = {}) : D
     private lateinit var jdbcTemplate: JdbcTemplate
 
     init {
+        // 각 테스트 전에 기본 데이터 설정
+        beforeTest {
+            try {
+                // 기본 카테고리가 없으면 생성 (ID=1)
+                val categoryExists = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM categories WHERE id = 1",
+                    Int::class.java
+                ) ?: 0
+
+                if (categoryExists == 0) {
+                    jdbcTemplate.execute("""
+                        INSERT INTO categories (id, name, description, display_order, created_at, updated_at)
+                        VALUES (1, '기본 카테고리', '테스트용 기본 카테고리', 0, NOW(), NOW())
+                    """.trimIndent())
+                }
+            } catch (e: Exception) {
+                // 테이블이 아직 생성되지 않은 경우 무시
+            }
+        }
+
         // 각 테스트 후 데이터 정리 (테스트 간 격리 보장)
         afterTest {
             try {

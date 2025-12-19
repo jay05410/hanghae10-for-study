@@ -7,15 +7,17 @@ import io.hhplus.ecommerce.order.presentation.dto.CreateOrderRequest
 import io.hhplus.ecommerce.order.presentation.dto.CreateOrderItemRequest
 import io.hhplus.ecommerce.delivery.presentation.dto.DeliveryAddressRequest
 import io.hhplus.ecommerce.point.application.usecase.ChargePointUseCase
-import io.hhplus.ecommerce.point.application.usecase.UsePointUseCase
 import io.hhplus.ecommerce.point.application.usecase.GetPointQueryUseCase
 import io.hhplus.ecommerce.inventory.application.usecase.GetInventoryQueryUseCase
 import io.hhplus.ecommerce.product.application.usecase.ProductCommandUseCase
 import io.hhplus.ecommerce.inventory.application.usecase.InventoryCommandUseCase
-import io.hhplus.ecommerce.delivery.application.usecase.DeliveryCommandUseCase
-import io.hhplus.ecommerce.delivery.application.usecase.GetDeliveryQueryUseCase
 import io.hhplus.ecommerce.product.presentation.dto.CreateProductRequest
 import io.hhplus.ecommerce.common.outbox.infra.OutboxEventProcessor
+import io.hhplus.ecommerce.payment.application.usecase.ProcessPaymentUseCase
+import io.hhplus.ecommerce.payment.domain.constant.PaymentMethod
+import io.hhplus.ecommerce.payment.presentation.dto.ProcessPaymentRequest
+import io.hhplus.ecommerce.inventory.application.usecase.StockReservationCommandUseCase
+import io.hhplus.ecommerce.inventory.domain.service.StockReservationDomainService
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -41,14 +43,15 @@ class OrderCancelIntegrationTest(
     private val getInventoryQueryUseCase: GetInventoryQueryUseCase,
     private val productCommandUseCase: ProductCommandUseCase,
     private val inventoryCommandUseCase: InventoryCommandUseCase,
-    private val deliveryCommandUseCase: DeliveryCommandUseCase,
-    private val getDeliveryQueryUseCase: GetDeliveryQueryUseCase,
-    private val outboxEventProcessor: OutboxEventProcessor
+    private val outboxEventProcessor: OutboxEventProcessor,
+    private val processPaymentUseCase: ProcessPaymentUseCase,
+    private val stockReservationCommandUseCase: StockReservationCommandUseCase,
+    private val stockReservationDomainService: StockReservationDomainService
 ) : KotestIntegrationTestBase({
 
     describe("주문 취소") {
-        context("정상적인 주문을 취소할 때") {
-            it("재고가 복구되고 포인트가 환불되어야 한다") {
+        context("결제 전 PENDING 주문을 취소할 때") {
+            it("재고 예약이 해제되어야 한다") {
                 // Given: 사용자, 상품, 재고 준비
                 val userId = 20001L
                 val orderQuantity = 3
@@ -75,7 +78,7 @@ class OrderCancelIntegrationTest(
                 chargePointUseCase.execute(userId, 200000, "테스트용 충전")
                 val initialBalance = getPointQueryUseCase.getUserPoint(userId).balance.value
 
-                // 주문 생성 (재고 차감 + 포인트 사용)
+                // 주문 생성
                 val orderItems = listOf(
                     CreateOrderItemRequest(
                         productId = savedProduct.id,
@@ -99,37 +102,46 @@ class OrderCancelIntegrationTest(
                     )
                 )
 
-                // 주문 생성 (직접 처리)
                 val createdOrder = orderCommandUseCase.createOrder(createOrderRequest)
 
-                // Saga 이벤트 처리: OrderCreated → PaymentCompleted → 재고/포인트 처리
-                repeat(3) { outboxEventProcessor.processEvents() }
+                // 재고 예약 (체크아웃 흐름에서 수행되는 작업)
+                val reservation = stockReservationCommandUseCase.reserveStock(
+                    productId = savedProduct.id,
+                    userId = userId,
+                    quantity = orderQuantity,
+                    reservationMinutes = 10
+                )
+                reservation.linkToOrder(createdOrder.id)
+                stockReservationDomainService.save(reservation)
 
-                // 주문 후 재고 확인
+                // ORDER_CREATED 이벤트 처리 (배송 레코드 생성 - PENDING 상태)
+                repeat(2) { outboxEventProcessor.processEvents() }
+
+                // 주문 후 가용 재고 확인 (예약으로 인해 감소)
                 val stockAfterOrder = getInventoryQueryUseCase.getAvailableQuantity(savedProduct.id)
                 stockAfterOrder shouldBe (initialStock - orderQuantity)
 
-                // 주문 후 포인트 확인
+                // 결제 전이므로 포인트는 아직 차감되지 않음
                 val balanceAfterOrder = getPointQueryUseCase.getUserPoint(userId).balance.value
-                balanceAfterOrder shouldBe (initialBalance - (savedProduct.price * orderQuantity))
+                balanceAfterOrder shouldBe initialBalance
 
-                // When: 주문 취소
+                // When: PENDING 상태에서 주문 취소
                 val cancelledOrder = orderCommandUseCase.cancelOrder(
                     orderId = createdOrder.id,
                     reason = "단순 변심"
                 )
 
-                // Saga 이벤트 처리: OrderCancelled → 재고 복구/포인트 환불
+                // Saga 이벤트 처리: OrderCancelled → 재고 예약 해제
                 repeat(2) { outboxEventProcessor.processEvents() }
 
                 // Then: 주문 상태 확인
                 cancelledOrder.status shouldBe OrderStatus.CANCELLED
 
-                // 재고 복구 확인
+                // 재고 예약 해제 확인 (가용 재고 복구)
                 val stockAfterCancel = getInventoryQueryUseCase.getAvailableQuantity(savedProduct.id)
                 stockAfterCancel shouldBe initialStock
 
-                // 포인트 환불 확인
+                // 포인트는 차감된 적 없으므로 그대로 유지
                 val balanceAfterCancel = getPointQueryUseCase.getUserPoint(userId).balance.value
                 balanceAfterCancel shouldBe initialBalance
             }
@@ -137,7 +149,7 @@ class OrderCancelIntegrationTest(
 
         context("배송 준비가 시작된 주문을 취소하려 할 때") {
             it("취소할 수 없어야 한다") {
-                // Given: 주문 생성 후 배송 준비 시작
+                // Given: 주문 생성 후 결제 완료 (배송이 자동으로 PREPARING 상태로 전환됨)
                 val userId = 20002L
 
                 val savedProduct = productCommandUseCase.createProduct(
@@ -180,15 +192,31 @@ class OrderCancelIntegrationTest(
                     )
                 )
 
-                // 주문 생성 (직접 처리)
                 val createdOrder = orderCommandUseCase.createOrder(createOrderRequest)
 
-                // Saga 이벤트 처리: OrderCreated → PaymentCompleted → 배송 생성
-                repeat(3) { outboxEventProcessor.processEvents() }
+                // 재고 예약
+                val reservation = stockReservationCommandUseCase.reserveStock(
+                    productId = savedProduct.id,
+                    userId = userId,
+                    quantity = 1,
+                    reservationMinutes = 10
+                )
+                reservation.linkToOrder(createdOrder.id)
+                stockReservationDomainService.save(reservation)
 
-                // 배송 준비 시작 (PREPARING 상태 - 이후 취소 불가)
-                val delivery = getDeliveryQueryUseCase.getDeliveryByOrderId(createdOrder.id)
-                deliveryCommandUseCase.startPreparing(delivery.id)
+                // 결제 처리 → PaymentCompleted 이벤트 발행
+                processPaymentUseCase.execute(
+                    ProcessPaymentRequest(
+                        userId = userId,
+                        orderId = createdOrder.id,
+                        amount = createdOrder.finalAmount,
+                        paymentMethod = PaymentMethod.BALANCE
+                    )
+                )
+
+                // Saga 이벤트 처리: PaymentCompleted → 배송 자동 PREPARING 전환
+                // DeliveryEventHandler.handlePaymentCompleted()가 배송 상태를 PREPARING으로 변경
+                repeat(3) { outboxEventProcessor.processEvents() }
 
                 // When & Then: 배송 준비 시작 후에는 취소 불가
                 val exception = runCatching {
