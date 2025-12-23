@@ -127,9 +127,13 @@ object CloudEventTypes {
 }
 
 /**
- * 토픽 정의
+ * Kafka 토픽명 상수 (단일 소스)
  *
- * Kafka 전환 시 실제 토픽 이름으로 사용
+ * 사용처:
+ * - KafkaTopicConfig: 토픽 자동 생성
+ * - KafkaMessagePublisher: 토픽 라우팅
+ * - @KafkaListener: 토픽 지정
+ * - EventHandler: 토픽 기반 필터링
  */
 object Topics {
     const val ORDER = "ecommerce.order"
@@ -138,6 +142,7 @@ object Topics {
     const val COUPON = "ecommerce.coupon"
     const val POINT = "ecommerce.point"
     const val DELIVERY = "ecommerce.delivery"
+    const val DATA_PLATFORM = "ecommerce.data-platform"
     const val DEFAULT = "ecommerce.default"
 
     /**

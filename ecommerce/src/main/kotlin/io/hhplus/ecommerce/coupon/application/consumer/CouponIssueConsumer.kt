@@ -1,5 +1,6 @@
 package io.hhplus.ecommerce.coupon.application.consumer
 
+import io.hhplus.ecommerce.common.messaging.Topics
 import io.hhplus.ecommerce.common.outbox.payload.CouponIssueRequestPayload
 import io.hhplus.ecommerce.coupon.application.CouponIssueHistoryService
 import io.hhplus.ecommerce.coupon.domain.repository.CouponRepository
@@ -38,8 +39,8 @@ class CouponIssueConsumer(
     private val json = Json { ignoreUnknownKeys = true }
 
     @KafkaListener(
-        topics = ["\${kafka.topics.coupon}"],
-        groupId = "\${kafka.consumer.group-id}",
+        topics = [Topics.COUPON],
+        groupId = "\${kafka.consumer.coupon-group-id}",
         containerFactory = "kafkaListenerContainerFactory"
     )
     @Transactional

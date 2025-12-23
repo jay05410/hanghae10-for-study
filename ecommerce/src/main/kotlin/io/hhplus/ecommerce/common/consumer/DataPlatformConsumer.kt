@@ -2,6 +2,7 @@ package io.hhplus.ecommerce.common.consumer
 
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException
 import io.hhplus.ecommerce.common.client.OrderInfoPayload
+import io.hhplus.ecommerce.common.messaging.Topics
 import kotlinx.serialization.json.Json
 import mu.KotlinLogging
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -41,8 +42,8 @@ class DataPlatformConsumer(
      * 데이터 플랫폼 토픽 리스너
      */
     @KafkaListener(
-        topics = ["\${kafka.topics.data-platform}"],
-        groupId = "\${kafka.consumer.group-id}",
+        topics = [Topics.DATA_PLATFORM],
+        groupId = "\${kafka.consumer.data-platform-group-id}",
         containerFactory = "kafkaListenerContainerFactory"
     )
     fun consume(

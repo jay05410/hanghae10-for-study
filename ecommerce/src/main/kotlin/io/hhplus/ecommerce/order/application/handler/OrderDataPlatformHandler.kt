@@ -1,6 +1,7 @@
 package io.hhplus.ecommerce.order.application.handler
 
 import io.hhplus.ecommerce.common.messaging.MessagePublisher
+import io.hhplus.ecommerce.common.messaging.Topics
 import io.hhplus.ecommerce.common.outbox.EventHandler
 import io.hhplus.ecommerce.common.outbox.OutboxEvent
 import io.hhplus.ecommerce.common.outbox.payload.PaymentCompletedPayload
@@ -9,7 +10,6 @@ import io.hhplus.ecommerce.order.application.mapper.toOrderInfoPayload
 import io.hhplus.ecommerce.order.application.usecase.GetOrderQueryUseCase
 import kotlinx.serialization.json.Json
 import mu.KotlinLogging
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
 
@@ -34,10 +34,10 @@ import org.springframework.stereotype.Component
 @Order(2)  // OrderEventHandler(@Order(1)) 이후 실행
 class OrderDataPlatformHandler(
     private val messagePublisher: MessagePublisher,
-    private val getOrderQueryUseCase: GetOrderQueryUseCase,
-    @Value("\${kafka.topics.data-platform:ecommerce.data-platform}")
-    private val dataPlatformTopic: String
+    private val getOrderQueryUseCase: GetOrderQueryUseCase
 ) : EventHandler {
+
+    private val dataPlatformTopic = Topics.DATA_PLATFORM
 
     private val logger = KotlinLogging.logger {}
     private val json = Json { ignoreUnknownKeys = true }

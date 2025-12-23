@@ -54,6 +54,9 @@ spring:
 
 # 로깅 설정
 logging:
+  pattern:
+    # traceId 포함 로그 패턴 (분산 추적용)
+    console: "[%d{HH:mm:ss.SSS}] [%X{traceId:-}] [%-5level] %logger{36} - %msg%n"
   level:
     root: INFO
     io.hhplus.ecommerce: DEBUG
@@ -92,21 +95,19 @@ dataplatform:
   url: ${DATAPLATFORM_URL:https://693adba99b80ba7262cbac6f.mockapi.io/api/v1/orders}
 
 # Kafka 설정
+# 토픽명은 Topics object (CloudEvent.kt)에서 상수로 관리
 kafka:
   enabled: ${KAFKA_ENABLED:true}
   bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
   consumer:
-    group-id: ecommerce-consumer-group
-    auto-offset-reset: earliest
+    # 도메인별 Consumer Group 분리 (파티션 독립적 소비)
+    coupon-group-id: ecommerce-coupon-consumer-group
+    data-platform-group-id: ecommerce-data-platform-consumer-group
+    # latest: 새 Consumer group은 현재 시점 이후 메시지만 처리
+    auto-offset-reset: latest
   producer:
     acks: all
     retries: 3
-  topics:
-    order: ecommerce.order
-    payment: ecommerce.payment
-    coupon: ecommerce.coupon
-    inventory: ecommerce.inventory
-    data-platform: ecommerce.data-platform
 
 # Spring Actuator 모니터링 설정
 management:
