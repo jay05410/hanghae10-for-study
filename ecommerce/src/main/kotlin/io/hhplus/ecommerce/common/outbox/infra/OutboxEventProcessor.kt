@@ -123,12 +123,14 @@ class OutboxEventProcessor(
                     if (!success) {
                         allSuccess = false
                         failedHandlers.add(handler::class.simpleName ?: "Unknown")
-                        logger.warn("[이벤트프로세서] 핸들러 처리 실패: handler=${handler::class.simpleName}, eventType=${event.eventType}")
+                        // Handler 내부에서 상세 에러 로깅하므로 여기서는 debug만
+                        logger.debug("[이벤트프로세서] 핸들러 처리 실패: handler={}, eventType={}", handler::class.simpleName, event.eventType)
                     }
                 } catch (e: Exception) {
                     allSuccess = false
                     failedHandlers.add(handler::class.simpleName ?: "Unknown")
-                    logger.error("[이벤트프로세서] 핸들러 오류: handler=${handler::class.simpleName}, error=${e.message}", e)
+                    // Handler가 예외를 throw한 경우에만 여기서 로깅
+                    logger.error("[이벤트프로세서] 핸들러 예외: handler={}, eventType={}, error={}", handler::class.simpleName, event.eventType, e.message, e)
                 }
             }
 
