@@ -5,7 +5,6 @@ import mu.KotlinLogging
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.header.internals.RecordHeader
 import org.slf4j.MDC
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Primary
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.kafka.support.SendResult
@@ -15,8 +14,6 @@ import java.util.concurrent.CompletableFuture
 /**
  * Kafka 기반 메시지 발행자
  *
- * kafka.enabled=true 일 때 활성화 (기본 구현체)
- *
  * 특징:
  * - CloudEvents 1.0 표준 헤더 지원
  * - TraceId 자동 전파
@@ -24,7 +21,6 @@ import java.util.concurrent.CompletableFuture
  */
 @Component
 @Primary
-@ConditionalOnProperty(name = ["kafka.enabled"], havingValue = "true", matchIfMissing = false)
 class KafkaMessagePublisher(
     private val kafkaTemplate: KafkaTemplate<String, Any>
 ) : MessagePublisher {

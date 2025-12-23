@@ -7,7 +7,6 @@ import kotlinx.serialization.json.Json
 import mu.KotlinLogging
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.slf4j.MDC
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.kafka.support.Acknowledgment
 import org.springframework.stereotype.Component
@@ -31,7 +30,6 @@ import org.springframework.stereotype.Component
  * - 최종 실패: ACK 후 DLQ 처리로 간주
  */
 @Component
-@ConditionalOnProperty(name = ["kafka.enabled"], havingValue = "true", matchIfMissing = false)
 class DataPlatformConsumer(
     private val dataPlatformSender: DataPlatformSender
 ) {

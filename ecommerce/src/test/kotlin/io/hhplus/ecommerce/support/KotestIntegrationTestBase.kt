@@ -10,6 +10,7 @@ import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.MySQLContainer
 import org.testcontainers.containers.GenericContainer
+import org.testcontainers.containers.KafkaContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.DockerImageName
@@ -115,6 +116,19 @@ abstract class KotestIntegrationTestBase(body: DescribeSpec.() -> Unit = {}) : D
             }
 
         /**
+         * Kafka TestContainer
+         * Singleton 패턴: 모든 테스트에서 동일 컨테이너 재사용
+         * - 컨테이너 시작 시간 절약 (~10초 → 1회만)
+         * - 이벤트 유실 없이 테스트 간 연속성 유지
+         */
+        @Container
+        @JvmStatic
+        protected val kafkaContainer = KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:8.1.0"))
+            .apply {
+                start() // 명시적으로 시작
+            }
+
+        /**
          * Spring Boot의 DataSource 설정을 TestContainer로 오버라이드
          */
         @DynamicPropertySource
@@ -158,6 +172,9 @@ abstract class KotestIntegrationTestBase(body: DescribeSpec.() -> Unit = {}) : D
             // Redis 설정
             registry.add("spring.data.redis.host") { redisContainer.host }
             registry.add("spring.data.redis.port") { redisContainer.getMappedPort(6379) }
+
+            // Kafka TestContainer 설정
+            registry.add("kafka.bootstrap-servers") { kafkaContainer.bootstrapServers }
 
             // TestContainers 최적화
             registry.add("logging.level.org.testcontainers") { "INFO" }

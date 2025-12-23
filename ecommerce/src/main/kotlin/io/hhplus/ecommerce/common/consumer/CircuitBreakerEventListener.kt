@@ -3,7 +3,6 @@ package io.hhplus.ecommerce.common.consumer
 import io.github.resilience4j.circuitbreaker.CircuitBreaker
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry
 import mu.KotlinLogging
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.kafka.config.KafkaListenerEndpointRegistry
 import org.springframework.stereotype.Component
 import jakarta.annotation.PostConstruct
@@ -21,7 +20,6 @@ import jakarta.annotation.PostConstruct
  * - 시스템 리소스 절약
  */
 @Component
-@ConditionalOnProperty(name = ["kafka.enabled"], havingValue = "true", matchIfMissing = false)
 class CircuitBreakerEventListener(
     private val circuitBreakerRegistry: CircuitBreakerRegistry,
     private val kafkaListenerEndpointRegistry: KafkaListenerEndpointRegistry

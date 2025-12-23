@@ -11,7 +11,6 @@ import io.hhplus.ecommerce.common.sse.SseEventType
 import kotlinx.serialization.json.Json
 import mu.KotlinLogging
 import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.kafka.support.Acknowledgment
 import org.springframework.stereotype.Component
@@ -28,7 +27,6 @@ import org.springframework.transaction.annotation.Transactional
  * - 재시도 및 DLQ 자동 관리
  */
 @Component
-@ConditionalOnProperty(name = ["kafka.enabled"], havingValue = "true", matchIfMissing = false)
 class CouponIssueConsumer(
     private val couponDomainService: CouponDomainService,
     private val couponRepository: CouponRepository,

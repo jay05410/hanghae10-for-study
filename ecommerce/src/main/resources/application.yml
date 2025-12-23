@@ -97,7 +97,6 @@ dataplatform:
 # Kafka 설정
 # 토픽명은 Topics object (CloudEvent.kt)에서 상수로 관리
 kafka:
-  enabled: ${KAFKA_ENABLED:true}
   bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
   consumer:
     # 도메인별 Consumer Group 분리 (파티션 독립적 소비)
