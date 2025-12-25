@@ -1,14 +1,33 @@
+# Development environment
+# Usage: docker-compose -f docker-compose.dev.yml up -d
+#
+# 리소스 제한 설정 (AWS 스펙 시뮬레이션)
+# - MySQL: db.t4g.micro (2 vCPU, 1GB)
+# - Redis: t4g.micro (2 vCPU, 1GB)
+# - Kafka: t4g.small (2 vCPU, 2GB)
+
 version: '3.8'
 
 services:
+  # ===========================================
+  # Database (db.t4g.micro: 2 vCPU, 1GB)
+  # ===========================================
   mysql:
     image: mysql:8.0.43
     container_name: ecommerce-mysql
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1024M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-admin123}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-ecommerce}
-      MYSQL_USER: ${MYSQL_USER:-admin}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-admin123}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ecommerce
+      MYSQL_USER: ${MYSQL_USER:-ecommerce}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
       - "3306:3306"
     volumes:
@@ -23,14 +42,25 @@ services:
     networks:
       - ecommerce-network
 
+  # ===========================================
+  # Redis (t4g.micro: 2 vCPU, 1GB)
+  # ===========================================
   redis:
     image: redis:8.2-alpine
     container_name: ecommerce-redis
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1024M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes
+    command: redis-server --appendonly yes --maxmemory 768mb --maxmemory-policy allkeys-lru
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       timeout: 3s
@@ -38,13 +68,25 @@ services:
     networks:
       - ecommerce-network
 
+  # ===========================================
+  # Kafka (t4g.small: 2 vCPU, 2GB)
+  # ===========================================
   kafka:
     image: confluentinc/cp-kafka:8.1.0
     container_name: ecommerce-kafka
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+        reservations:
+          cpus: '0.5'
+          memory: 1024M
     ports:
       - "9092:9092"
       - "9093:9093"
     environment:
+      KAFKA_HEAP_OPTS: "-Xms512m -Xmx1536m"
       KAFKA_NODE_ID: 1
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
@@ -68,9 +110,17 @@ services:
     networks:
       - ecommerce-network
 
+  # ===========================================
+  # Dev Tools (경량 리소스)
+  # ===========================================
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: ecommerce-kafka-ui
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
     ports:
       - "8090:8080"
     environment:
@@ -82,10 +132,17 @@ services:
     networks:
       - ecommerce-network
 
-  # Debezium Connect (CDC)
   debezium:
-    image: debezium/connect:3.4
+    image: debezium/connect:3.0
     container_name: ecommerce-debezium
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1024M
+        reservations:
+          cpus: '0.25'
+          memory: 512M
     ports:
       - "8083:8083"
     environment:

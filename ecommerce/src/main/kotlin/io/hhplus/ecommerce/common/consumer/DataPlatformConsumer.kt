@@ -41,7 +41,7 @@ class DataPlatformConsumer(
      */
     @KafkaListener(
         topics = [Topics.DATA_PLATFORM],
-        groupId = "\${kafka.consumer.data-platform-group-id}",
+        groupId = "#{kafkaProperties.consumer.dataPlatformGroupId}",
         containerFactory = "kafkaListenerContainerFactory"
     )
     fun consume(

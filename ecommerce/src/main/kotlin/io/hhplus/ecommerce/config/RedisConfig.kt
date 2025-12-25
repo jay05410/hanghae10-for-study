@@ -9,6 +9,7 @@ import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import org.redisson.Redisson
 import org.redisson.api.RedissonClient
 import org.redisson.config.Config
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -55,12 +56,17 @@ class RedisConfig {
     }
 
     /**
-     * Redis 전용 ObjectMapper
+     * Redis 전용 ObjectMapper (Kotlin data class + 타입 정보 포함)
      *
-     * activateDefaultTyping으로 타입 정보 포함 - Redis 캐시에서 다형성 역직렬화에 필요
-     * Spring의 기본 ObjectMapper에 영향 주지 않도록 private으로 생성
+     * RedisTemplate, RedisCacheManager 등에서 공유 사용
+     *
+     * 기본 ObjectMapper(@Bean)와 별도로 생성하는 이유:
+     * 1. activateDefaultTyping: Redis에서 다형성 역직렬화를 위해 타입 정보 포함
+     * 2. PolymorphicTypeValidator: io.hhplus.ecommerce 패키지만 허용 (보안)
+     * 3. REST API 응답에 타입 정보 노출 방지
      */
-    private fun createRedisObjectMapper(): ObjectMapper {
+    @Bean("redisObjectMapper")
+    fun redisObjectMapper(): ObjectMapper {
         val typeValidator: PolymorphicTypeValidator = BasicPolymorphicTypeValidator.builder()
             .allowIfBaseType(Any::class.java)
             .allowIfSubType("io.hhplus.ecommerce")
@@ -70,16 +76,15 @@ class RedisConfig {
             registerKotlinModule()
             registerModule(JavaTimeModule())
             disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-            // 패키지 이동 시 캐시 정합성 문제 방지를 위한 타입 검증 설정
             activateDefaultTyping(typeValidator, ObjectMapper.DefaultTyping.NON_FINAL)
         }
     }
 
     @Bean
     fun redisTemplate(
-        connectionFactory: RedisConnectionFactory
+        connectionFactory: RedisConnectionFactory,
+        @Qualifier("redisObjectMapper") redisObjectMapper: ObjectMapper
     ): RedisTemplate<String, Any> {
-        val redisObjectMapper = createRedisObjectMapper()
         return RedisTemplate<String, Any>().apply {
             this.connectionFactory = connectionFactory
             keySerializer = StringRedisSerializer()

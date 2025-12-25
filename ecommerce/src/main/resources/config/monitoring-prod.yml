@@ -1,13 +1,9 @@
-spring:
-  cache:
-    type: none  # 캐시 완전 비활성화
-
-# 캐시 비활성화를 위한 설정
+# 모니터링 운영 환경 설정 (Prometheus + 전체 메트릭)
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus,hikaricp
+        include: health,info,metrics,prometheus
       base-path: /actuator
   endpoint:
     health:
@@ -20,8 +16,14 @@ management:
     distribution:
       percentiles-histogram:
         http.server.requests: true
+        cache.gets: true
+        cache.puts: true
       percentiles:
         http.server.requests: 0.5, 0.95, 0.99
+        cache.gets: 0.5, 0.95, 0.99
+      # DB 커넥션 풀 메트릭
+      slo:
+        hikaricp.connections.acquire: 10ms, 50ms, 100ms, 500ms
     tags:
       application: ${spring.application.name}
-      cache-enabled: "false"  # 캐시 비활성화 표시
+      environment: prod

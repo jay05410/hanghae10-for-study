@@ -1,0 +1,5 @@
+# Kafka 운영 환경 설정
+kafka:
+  topic:
+    partitions: 6
+    replicas: 3
