@@ -38,7 +38,7 @@ class CouponIssueConsumer(
 
     @KafkaListener(
         topics = [Topics.COUPON],
-        groupId = "#{kafkaProperties.consumer.couponGroupId}",
+        groupId = "#{@kafkaProperties.consumer.couponGroupId}",
         containerFactory = "kafkaListenerContainerFactory"
     )
     @Transactional

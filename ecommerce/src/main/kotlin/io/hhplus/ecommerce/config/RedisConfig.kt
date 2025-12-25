@@ -1,9 +1,8 @@
 package io.hhplus.ecommerce.config
 
+import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator
-import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import org.redisson.Redisson
@@ -56,27 +55,34 @@ class RedisConfig {
     }
 
     /**
-     * Redis 전용 ObjectMapper (Kotlin data class + 타입 정보 포함)
-     *
-     * RedisTemplate, RedisCacheManager 등에서 공유 사용
-     *
-     * 기본 ObjectMapper(@Bean)와 별도로 생성하는 이유:
-     * 1. activateDefaultTyping: Redis에서 다형성 역직렬화를 위해 타입 정보 포함
-     * 2. PolymorphicTypeValidator: io.hhplus.ecommerce 패키지만 허용 (보안)
-     * 3. REST API 응답에 타입 정보 노출 방지
+     * REST API용 기본 ObjectMapper
+     * - Kotlin data class 지원
+     * - 타입 정보 없이 일반 JSON 형식
      */
-    @Bean("redisObjectMapper")
-    fun redisObjectMapper(): ObjectMapper {
-        val typeValidator: PolymorphicTypeValidator = BasicPolymorphicTypeValidator.builder()
-            .allowIfBaseType(Any::class.java)
-            .allowIfSubType("io.hhplus.ecommerce")
-            .build()
-
+    @Bean
+    @org.springframework.context.annotation.Primary
+    fun objectMapper(): ObjectMapper {
         return ObjectMapper().apply {
             registerKotlinModule()
             registerModule(JavaTimeModule())
             disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-            activateDefaultTyping(typeValidator, ObjectMapper.DefaultTyping.NON_FINAL)
+            disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+        }
+    }
+
+    /**
+     * Redis 전용 ObjectMapper (Kotlin data class 지원)
+     *
+     * RedisTemplate, RedisCacheManager 등에서 공유 사용
+     * REST API ObjectMapper와 동일하지만 별도 Bean으로 분리
+     */
+    @Bean("redisObjectMapper")
+    fun redisObjectMapper(): ObjectMapper {
+        return ObjectMapper().apply {
+            registerKotlinModule()
+            registerModule(JavaTimeModule())
+            disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+            disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
         }
     }
 
