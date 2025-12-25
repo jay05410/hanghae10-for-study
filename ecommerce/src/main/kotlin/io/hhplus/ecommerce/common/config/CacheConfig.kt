@@ -3,7 +3,9 @@ package io.hhplus.ecommerce.common.config
 import io.hhplus.ecommerce.common.cache.CacheNames
 import io.hhplus.ecommerce.common.cache.CacheInvalidationListener
 import io.hhplus.ecommerce.common.cache.CacheInvalidationPublisher
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.benmanes.caffeine.cache.Caffeine
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.cache.CacheManager
 import org.springframework.cache.annotation.EnableCaching
 import org.springframework.cache.caffeine.CaffeineCacheManager
@@ -78,13 +80,18 @@ class CacheConfig {
      * - 상품 목록, 인기상품 등에 사용
      */
     @Bean("redisCacheManager")
-    fun redisCacheManager(redisConnectionFactory: RedisConnectionFactory): RedisCacheManager {
+    fun redisCacheManager(
+        redisConnectionFactory: RedisConnectionFactory,
+        @Qualifier("redisObjectMapper") redisObjectMapper: ObjectMapper
+    ): RedisCacheManager {
+        val jsonSerializer = GenericJackson2JsonRedisSerializer(redisObjectMapper)
+
         // 기본 Redis 캐시 설정
         val defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
             .entryTtl(Duration.ofMinutes(10))  // 기본 10분 TTL
             .disableCachingNullValues()  // null 값 캐싱 비활성화
             .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(StringRedisSerializer()))
-            .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(GenericJackson2JsonRedisSerializer()))
+            .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jsonSerializer))
 
         // 캐시별 개별 TTL 설정
         val cacheConfigurations = mapOf(
