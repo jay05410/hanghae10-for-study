@@ -1,6 +1,21 @@
 version: '3.8'
 
 services:
+  # InfluxDB 1.8 - K6 부하테스트 메트릭 저장 (k6 네이티브 지원)
+  influxdb:
+    image: influxdb:1.8
+    container_name: ecommerce-influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      - INFLUXDB_DB=k6
+      - INFLUXDB_HTTP_AUTH_ENABLED=false
+    volumes:
+      - influxdb-storage:/var/lib/influxdb
+    networks:
+      - monitoring
+    restart: unless-stopped
+
   # Grafana 대시보드
   grafana:
     image: grafana/grafana:latest
@@ -10,12 +25,17 @@ services:
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin123
       - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
     volumes:
       - grafana-storage:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
       - ./grafana/dashboards:/var/lib/grafana/dashboards
     networks:
       - monitoring
+    depends_on:
+      - influxdb
+      - prometheus
     restart: unless-stopped
 
   # Prometheus 메트릭 수집
@@ -31,7 +51,7 @@ services:
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
       - '--web.enable-admin-api'
-      - '--storage.tsdb.retention.time=7d'  # 7일간 데이터 보관
+      - '--storage.tsdb.retention.time=7d'
     volumes:
       - ./prometheus:/etc/prometheus
       - prometheus-storage:/prometheus
@@ -42,6 +62,7 @@ services:
 volumes:
   grafana-storage:
   prometheus-storage:
+  influxdb-storage:
 
 networks:
   monitoring:
