@@ -1,14 +1,20 @@
+# Development environment
+# Usage: docker-compose -f docker-compose.dev.yml up -d
+
 version: '3.8'
 
 services:
+  # ===========================================
+  # Database
+  # ===========================================
   mysql:
     image: mysql:8.0.43
     container_name: ecommerce-mysql
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-admin123}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-ecommerce}
-      MYSQL_USER: ${MYSQL_USER:-admin}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-admin123}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ecommerce
+      MYSQL_USER: ${MYSQL_USER:-ecommerce}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
       - "3306:3306"
     volumes:
@@ -38,6 +44,9 @@ services:
     networks:
       - ecommerce-network
 
+  # ===========================================
+  # Kafka - Single Node (Dev)
+  # ===========================================
   kafka:
     image: confluentinc/cp-kafka:8.1.0
     container_name: ecommerce-kafka
@@ -68,6 +77,9 @@ services:
     networks:
       - ecommerce-network
 
+  # ===========================================
+  # Dev Tools
+  # ===========================================
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: ecommerce-kafka-ui
@@ -82,7 +94,6 @@ services:
     networks:
       - ecommerce-network
 
-  # Debezium Connect (CDC)
   debezium:
     image: debezium/connect:3.4
     container_name: ecommerce-debezium

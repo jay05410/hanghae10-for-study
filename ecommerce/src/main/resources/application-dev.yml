@@ -1,0 +1,29 @@
+# 개발 환경 설정
+# 사용법: --spring.profiles.active=dev
+
+spring:
+  config:
+    import:
+      - classpath:config/kafka-dev.yml
+      - classpath:config/monitoring-dev.yml
+      - classpath:config/dataplatform-dev.yml
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+logging:
+  level:
+    root: INFO
+    io.hhplus.ecommerce: DEBUG
+    org.springframework: INFO
+    org.hibernate.SQL: OFF
+    p6spy: INFO
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html

@@ -1,0 +1,10 @@
+# 모니터링 개발 환경 설정 (간소화)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always

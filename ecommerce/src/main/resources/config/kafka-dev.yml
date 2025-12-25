@@ -1,0 +1,5 @@
+# Kafka 개발 환경 설정
+kafka:
+  topic:
+    partitions: 3
+    replicas: 1

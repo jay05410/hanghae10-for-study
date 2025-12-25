@@ -1,0 +1,29 @@
+# 운영 환경 설정
+# 사용법: --spring.profiles.active=prod
+
+spring:
+  config:
+    import:
+      - classpath:config/kafka-prod.yml
+      - classpath:config/monitoring-prod.yml
+      - classpath:config/dataplatform-prod.yml
+      - classpath:config/resilience.yml
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+logging:
+  level:
+    root: WARN
+    io.hhplus.ecommerce: INFO
+    org.springframework: WARN
+    org.hibernate.SQL: OFF
+    p6spy: WARN
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
