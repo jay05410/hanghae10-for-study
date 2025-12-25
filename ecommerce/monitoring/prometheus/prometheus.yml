@@ -1,0 +1,36 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "rules/cache_alerts.yml"
+
+scrape_configs:
+  # E-commerce 애플리케이션
+  - job_name: 'ecommerce-app'
+    static_configs:
+      - targets: ['host.docker.internal:8080']  # Spring Boot 애플리케이션
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 5s
+    scrape_timeout: 3s
+
+  # K6 부하테스트 메트릭
+  - job_name: 'k6'
+    static_configs:
+      - targets: ['host.docker.internal:6565']  # K6 Prometheus 출력
+    scrape_interval: 2s
+    scrape_timeout: 1s
+    # K6 테스트 중에만 활성화됨
+
+  # Redis 메트릭 (redis_exporter 사용 시)
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['host.docker.internal:9121']  # Redis Exporter
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    # Redis Exporter가 실행 중일 때만 활성화
+
+  # Prometheus 자체 모니터링
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
