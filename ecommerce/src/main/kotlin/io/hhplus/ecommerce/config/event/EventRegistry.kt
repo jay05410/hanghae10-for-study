@@ -138,6 +138,13 @@ object EventRegistry {
             description = "재고 부족 시 발행. 주문 취소를 트리거함",
             publisher = "InventoryEventHandler",
             subscribers = listOf("OrderCompensationHandler")
+        ),
+
+        EventTypes.COUPON_ISSUE_REQUEST to EventMetadata(
+            eventType = EventTypes.COUPON_ISSUE_REQUEST,
+            description = "선착순 쿠폰 발급 요청. Kafka로 발행하여 CouponIssueConsumer가 처리",
+            publisher = "CouponIssueService",
+            subscribers = listOf("CouponEventHandler")
         )
     )
 
