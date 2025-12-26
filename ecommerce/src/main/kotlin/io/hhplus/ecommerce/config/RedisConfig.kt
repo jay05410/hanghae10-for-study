@@ -1,8 +1,10 @@
 package io.hhplus.ecommerce.config
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import org.redisson.Redisson
@@ -71,18 +73,28 @@ class RedisConfig {
     }
 
     /**
-     * Redis 전용 ObjectMapper (Kotlin data class 지원)
+     * Redis 전용 ObjectMapper (Kotlin data class 지원 + 타입 정보 보존)
      *
      * RedisTemplate, RedisCacheManager 등에서 공유 사용
-     * REST API ObjectMapper와 동일하지만 별도 Bean으로 분리
+     * 제네릭 타입(Cursor<T> 등) 역직렬화를 위해 타입 정보 활성화
      */
     @Bean("redisObjectMapper")
     fun redisObjectMapper(): ObjectMapper {
+        val typeValidator = BasicPolymorphicTypeValidator.builder()
+            .allowIfBaseType(Any::class.java)
+            .build()
+
         return ObjectMapper().apply {
             registerKotlinModule()
             registerModule(JavaTimeModule())
             disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
             disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            // Kotlin data class는 final이므로 EVERYTHING 사용
+            activateDefaultTyping(
+                typeValidator,
+                ObjectMapper.DefaultTyping.EVERYTHING,
+                JsonTypeInfo.As.PROPERTY
+            )
         }
     }
 
