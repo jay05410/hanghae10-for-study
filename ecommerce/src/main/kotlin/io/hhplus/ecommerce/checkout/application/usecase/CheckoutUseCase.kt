@@ -14,6 +14,7 @@ import io.hhplus.ecommerce.inventory.domain.service.InventoryDomainService
 import io.hhplus.ecommerce.inventory.domain.service.StockReservationDomainService
 import io.hhplus.ecommerce.order.domain.constant.OrderStatus
 import io.hhplus.ecommerce.order.domain.service.OrderDomainService
+import io.hhplus.ecommerce.point.domain.service.PointDomainService
 import io.hhplus.ecommerce.pricing.domain.model.PricingItemRequest
 import io.hhplus.ecommerce.pricing.domain.model.toOrderItemDataList
 import io.hhplus.ecommerce.pricing.domain.service.PricingDomainService
@@ -50,7 +51,8 @@ class CheckoutUseCase(
     private val orderDomainService: OrderDomainService,
     private val inventoryDomainService: InventoryDomainService,
     private val stockReservationDomainService: StockReservationDomainService,
-    private val productRepository: ProductRepository
+    private val productRepository: ProductRepository,
+    private val pointDomainService: PointDomainService
 ) {
     private val logger = KotlinLogging.logger {}
 
@@ -77,6 +79,17 @@ class CheckoutUseCase(
         // 2. 가격 계산 (쿠폰 없이 기본 가격)
         val pricingRequests = orderItems.map { it.toPricingItemRequest() }
         val pricingResult = pricingDomainService.calculatePricing(pricingRequests)
+
+        // 2-1. 포인트 잔액 사전 검증 (결제 실패 방지)
+        val userPoint = pointDomainService.getUserPoint(request.userId)
+        if (userPoint == null || userPoint.balance.value < pricingResult.finalAmount) {
+            val currentBalance = userPoint?.balance?.value ?: 0L
+            throw CheckoutException.InsufficientBalance(
+                userId = request.userId,
+                requiredAmount = pricingResult.finalAmount,
+                currentBalance = currentBalance
+            )
+        }
 
         // 3. 재고 예약 (상품별)
         val reservations = mutableListOf<StockReservation>()
