@@ -220,6 +220,14 @@ function createOrderDirectly(userId, productId, quantity) {
         items: [
             { productId: productId, quantity: quantity }
         ],
+        deliveryAddress: {
+            recipientName: `테스트유저${userId}`,
+            phone: '010-1234-5678',
+            zipCode: '12345',
+            address: '서울시 강남구 테헤란로 123',
+            addressDetail: `${userId}호`,
+            deliveryMessage: '문 앞에 놓아주세요'
+        }
     });
 
     const startTime = Date.now();
