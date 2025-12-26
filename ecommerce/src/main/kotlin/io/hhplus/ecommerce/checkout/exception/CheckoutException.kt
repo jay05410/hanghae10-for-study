@@ -60,6 +60,19 @@ sealed class CheckoutException(
         message = CheckoutErrorCode.CART_ITEMS_NOT_FOUND.withParams("cartItemIds" to cartItemIds),
         data = mapOf("cartItemIds" to cartItemIds)
     )
+
+    class InsufficientBalance(userId: Long, requiredAmount: Long, currentBalance: Long) : CheckoutException(
+        errorCode = CheckoutErrorCode.INSUFFICIENT_BALANCE,
+        message = CheckoutErrorCode.INSUFFICIENT_BALANCE.withParams(
+            "requiredAmount" to requiredAmount,
+            "currentBalance" to currentBalance
+        ),
+        data = mapOf(
+            "userId" to userId,
+            "requiredAmount" to requiredAmount,
+            "currentBalance" to currentBalance
+        )
+    )
 }
 
 enum class CheckoutErrorCode(
@@ -96,5 +109,10 @@ enum class CheckoutErrorCode(
         code = "CHECKOUT_006",
         message = "장바구니 아이템을 찾을 수 없습니다. 아이템 ID: {cartItemIds}",
         httpStatus = 404
+    ),
+    INSUFFICIENT_BALANCE(
+        code = "CHECKOUT_007",
+        message = "포인트 잔액이 부족합니다. 필요 금액: {requiredAmount}원, 현재 잔액: {currentBalance}원",
+        httpStatus = 402
     )
 }

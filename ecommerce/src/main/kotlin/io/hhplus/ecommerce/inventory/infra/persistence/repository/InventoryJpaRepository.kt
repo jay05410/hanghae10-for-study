@@ -29,10 +29,15 @@ interface InventoryJpaRepository : JpaRepository<InventoryJpaEntity, Long> {
     /**
      * 상품 ID로 재고 조회 (비관적 락 사용)
      *
+     * PESSIMISTIC_FORCE_INCREMENT를 사용하여:
+     * 1. SELECT FOR UPDATE로 락 획득
+     * 2. 버전을 강제로 증가시켜 다른 트랜잭션의 낙관적 락 충돌 방지
+     * 3. JPA 캐시와 관계없이 항상 최신 데이터 반환
+     *
      * @param productId 상품 ID
      * @return 재고 JPA 엔티티
      */
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Lock(LockModeType.PESSIMISTIC_FORCE_INCREMENT)
     @Query("SELECT i FROM InventoryJpaEntity i WHERE i.productId = :productId")
     fun findByProductIdWithLock(@Param("productId") productId: Long): InventoryJpaEntity?
 

@@ -115,5 +115,8 @@ enum class SseEventType(val value: String) {
     CONNECTED("connected"),
     COUPON_ISSUED("coupon-issued"),
     ORDER_COMPLETED("order-completed"),
-    PAYMENT_COMPLETED("payment-completed")
+    PAYMENT_COMPLETED("payment-completed"),
+    CHECKOUT_QUEUED("checkout-queued"),
+    CHECKOUT_COMPLETED("checkout-completed"),
+    CHECKOUT_FAILED("checkout-failed")
 }

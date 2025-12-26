@@ -1,0 +1,65 @@
+groups:
+  - name: cache.rules
+    rules:
+      # 캐시 히트율 계산 규칙
+      - record: cache_hit_rate_5m
+        expr: |
+          (
+            rate(cache_hit_count[5m]) /
+            (rate(cache_hit_count[5m]) + rate(cache_miss_count[5m]))
+          ) * 100
+        labels:
+          rule_type: "cache_performance"
+
+      # 응답시간 P95 규칙
+      - record: http_request_duration_p95_5m
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (le, uri)
+          )
+        labels:
+          rule_type: "response_time"
+
+  - name: cache.alerts
+    rules:
+      # 캐시 히트율 저하 알림
+      - alert: CacheHitRateLow
+        expr: cache_hit_rate_5m < 70
+        for: 2m
+        labels:
+          severity: warning
+          component: cache
+        annotations:
+          summary: "캐시 히트율이 낮습니다"
+          description: "{{ $labels.cache }} 캐시의 히트율이 {{ $value }}%로 70% 이하입니다"
+
+      - alert: CacheHitRateCritical
+        expr: cache_hit_rate_5m < 50
+        for: 1m
+        labels:
+          severity: critical
+          component: cache
+        annotations:
+          summary: "캐시 히트율이 매우 낮습니다"
+          description: "{{ $labels.cache }} 캐시의 히트율이 {{ $value }}%로 50% 이하입니다"
+
+      # 응답시간 증가 알림
+      - alert: ResponseTimeHigh
+        expr: http_request_duration_p95_5m > 0.5
+        for: 3m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "API 응답시간이 높습니다"
+          description: "{{ $labels.uri }}의 P95 응답시간이 {{ $value }}초입니다"
+
+      - alert: ResponseTimeCritical
+        expr: http_request_duration_p95_5m > 1.0
+        for: 1m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "API 응답시간이 매우 높습니다"
+          description: "{{ $labels.uri }}의 P95 응답시간이 {{ $value }}초입니다"

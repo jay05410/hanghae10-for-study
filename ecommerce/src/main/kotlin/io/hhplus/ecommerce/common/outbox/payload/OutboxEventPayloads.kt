@@ -169,3 +169,37 @@ data class CouponIssueRequestPayload(
     val couponName: String,
     val requestedAt: Long
 )
+
+// ============================================
+// Checkout Queue Payloads (선착순 체크아웃)
+// ============================================
+
+/**
+ * 체크아웃 큐 요청 Payload
+ *
+ * 선착순 재고 경쟁 상황에서 체크아웃 요청을 Kafka 큐에 등록
+ * CheckoutQueueConsumer에서 순차 처리하여 락 경합 제거
+ */
+@Serializable
+data class CheckoutQueuePayload(
+    val requestId: String,         // 고유 요청 ID (응답 매칭용)
+    val userId: Long,
+    val productId: Long,           // 선착순 상품 ID
+    val quantity: Int,
+    val queuePosition: Int,        // 대기열 순번
+    val requestedAt: Long          // 요청 시각 (epoch millis)
+)
+
+/**
+ * 체크아웃 완료 알림 Payload (SSE용)
+ */
+@Serializable
+data class CheckoutResultPayload(
+    val requestId: String,
+    val success: Boolean,
+    val orderId: Long? = null,
+    val orderNumber: String? = null,
+    val finalAmount: Long? = null,
+    val errorMessage: String? = null,
+    val queuePosition: Int = 0
+)

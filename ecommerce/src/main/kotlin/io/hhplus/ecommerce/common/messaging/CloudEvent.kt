@@ -143,6 +143,7 @@ object Topics {
     const val POINT = "ecommerce.point"
     const val DELIVERY = "ecommerce.delivery"
     const val DATA_PLATFORM = "ecommerce.data-platform"
+    const val CHECKOUT_QUEUE = "ecommerce.checkout-queue"  // 선착순 체크아웃 큐
     const val DEFAULT = "ecommerce.default"
 
     /**

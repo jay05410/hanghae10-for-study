@@ -69,3 +69,23 @@ data class CancelCheckoutRequest(
     @Schema(description = "취소 사유 (선택)", example = "결제 포기")
     val reason: String? = null
 )
+
+/**
+ * 선착순 체크아웃 요청 (Kafka 큐 방식)
+ *
+ * 재고가 제한된 인기 상품 주문 시 사용
+ * - 즉시 응답: 대기열 순번 반환
+ * - 비동기 처리: Kafka Consumer가 순차 처리
+ * - 결과 알림: SSE로 체크아웃 완료/실패 푸시
+ */
+@Schema(description = "선착순 체크아웃 요청")
+data class QueuedCheckoutRequest(
+    @Schema(description = "사용자 ID", example = "100", required = true)
+    val userId: Long,
+
+    @Schema(description = "상품 ID (선착순 상품)", example = "1", required = true)
+    val productId: Long,
+
+    @Schema(description = "수량", example = "1", required = true)
+    val quantity: Int = 1
+)

@@ -14,6 +14,7 @@ import io.hhplus.ecommerce.inventory.domain.service.InventoryDomainService
 import io.hhplus.ecommerce.inventory.domain.service.StockReservationDomainService
 import io.hhplus.ecommerce.order.domain.constant.OrderStatus
 import io.hhplus.ecommerce.order.domain.service.OrderDomainService
+import io.hhplus.ecommerce.point.domain.service.PointDomainService
 import io.hhplus.ecommerce.pricing.domain.model.PricingItemRequest
 import io.hhplus.ecommerce.pricing.domain.model.toOrderItemDataList
 import io.hhplus.ecommerce.pricing.domain.service.PricingDomainService
@@ -50,7 +51,8 @@ class CheckoutUseCase(
     private val orderDomainService: OrderDomainService,
     private val inventoryDomainService: InventoryDomainService,
     private val stockReservationDomainService: StockReservationDomainService,
-    private val productRepository: ProductRepository
+    private val productRepository: ProductRepository,
+    private val pointDomainService: PointDomainService
 ) {
     private val logger = KotlinLogging.logger {}
 
@@ -78,25 +80,56 @@ class CheckoutUseCase(
         val pricingRequests = orderItems.map { it.toPricingItemRequest() }
         val pricingResult = pricingDomainService.calculatePricing(pricingRequests)
 
-        // 3. 재고 예약 (상품별)
+        // 2-1. 포인트 잔액 사전 검증 (결제 실패 방지)
+        val userPoint = pointDomainService.getUserPoint(request.userId)
+        if (userPoint == null || userPoint.balance.value < pricingResult.finalAmount) {
+            val currentBalance = userPoint?.balance?.value ?: 0L
+            throw CheckoutException.InsufficientBalance(
+                userId = request.userId,
+                requiredAmount = pricingResult.finalAmount,
+                currentBalance = currentBalance
+            )
+        }
+
+        // 3. 재고 예약 (상품별) - 락을 잡고 체크 + 예약 원자적 수행
         val reservations = mutableListOf<StockReservation>()
         try {
             orderItems.forEach { item ->
                 val product = productRepository.findById(item.productId)
                     ?: throw CheckoutException.ProductNotFound(item.productId)
 
-                // 재고 가용성 확인
-                if (!inventoryDomainService.checkStockAvailability(item.productId, item.quantity)) {
-                    val availableQuantity = inventoryDomainService.getAvailableQuantity(item.productId)
+                // 재고 예약 (락 획득 + 가용성 검증 + 예약을 원자적으로 수행)
+                // 낙관적 락 충돌 시 최대 3회 재시도
+                var lastException: Exception? = null
+                repeat(3) { attempt ->
+                    try {
+                        inventoryDomainService.reserveStock(item.productId, item.quantity)
+                        lastException = null
+                        return@repeat
+                    } catch (e: io.hhplus.ecommerce.inventory.exception.InventoryException.InsufficientStock) {
+                        // 재고 부족은 재시도 불필요
+                        throw CheckoutException.InsufficientStock(
+                            productId = item.productId,
+                            availableQuantity = e.availableQuantity,
+                            requestedQuantity = item.quantity
+                        )
+                    } catch (e: org.springframework.orm.ObjectOptimisticLockingFailureException) {
+                        // 낙관적 락 충돌 - 재시도
+                        lastException = e
+                        if (attempt < 2) {
+                            logger.warn { "[CheckoutUseCase] 재고 예약 재시도 ${attempt + 1}/3: productId=${item.productId}" }
+                            Thread.sleep(50L * (attempt + 1))  // 백오프
+                        }
+                    }
+                }
+                if (lastException != null) {
+                    logger.error(lastException) { "[CheckoutUseCase] 재고 예약 실패 (3회 재시도 후): productId=${item.productId}" }
                     throw CheckoutException.InsufficientStock(
                         productId = item.productId,
-                        availableQuantity = availableQuantity,
+                        availableQuantity = 0,
                         requestedQuantity = item.quantity
                     )
                 }
-
-                // 재고 예약
-                inventoryDomainService.reserveStock(item.productId, item.quantity)
 
                 // 예약 레코드 생성
                 val reservation = stockReservationDomainService.createReservation(
