@@ -182,10 +182,10 @@ function testCheckout() {
 
     if (check(response, { 'checkout_ok': (r) => r.status === 200 })) {
         successCounter.add(1);
-        // orderId 반환
+        // orderId, amount, userId 반환
         try {
             const body = JSON.parse(response.body);
-            return body.data?.orderId;
+            return { orderId: body.data?.orderId, amount: body.data?.finalAmount || 0, userId: userId };
         } catch {
             return null;
         }
@@ -197,17 +197,16 @@ function testCheckout() {
 }
 
 function testPayment() {
-    const orderId = testCheckout();
-    if (!orderId) return;
+    const checkoutResult = testCheckout();
+    if (!checkoutResult || !checkoutResult.orderId) return;
 
     sleep(0.1);
 
-    const userId = randomIntBetween(1, 1000);
     const payload = JSON.stringify({
-        orderId: orderId,
-        userId: userId,
+        orderId: checkoutResult.orderId,
+        userId: checkoutResult.userId,
+        amount: checkoutResult.amount,
         paymentMethod: 'BALANCE',
-        usePoints: 0,
     });
 
     const response = http.post(

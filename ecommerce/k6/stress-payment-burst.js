@@ -78,13 +78,13 @@ export default function () {
 
     group('결제 플로우', () => {
         // 1. 먼저 체크아웃으로 주문 생성
-        const orderId = initiateCheckout(userId);
+        const checkoutResult = initiateCheckout(userId);
 
-        if (orderId) {
+        if (checkoutResult && checkoutResult.orderId) {
             sleep(randomIntBetween(1, 3) * 0.1);
 
             // 2. 결제 처리
-            const paymentSuccess = processPayment(orderId, userId);
+            const paymentSuccess = processPayment(checkoutResult.orderId, userId, checkoutResult.amount);
 
             // 3. 결제 실패 시 포인트 부족이면 충전 후 재시도
             if (!paymentSuccess) {
@@ -92,7 +92,7 @@ export default function () {
                 if (retryChance <= 30) {  // 30% 확률로 재시도
                     chargePoints(userId);
                     sleep(0.1);
-                    processPayment(orderId, userId);
+                    processPayment(checkoutResult.orderId, userId, checkoutResult.amount);
                 }
             }
         }
@@ -131,7 +131,7 @@ function initiateCheckout(userId) {
         checkoutSuccessCounter.add(1);
         try {
             const body = JSON.parse(response.body);
-            return body.data?.orderId;
+            return { orderId: body.data?.orderId, amount: body.data?.finalAmount || 0 };
         } catch {
             return null;
         }
@@ -147,14 +147,12 @@ function initiateCheckout(userId) {
 /**
  * 결제 처리 (핵심 테스트)
  */
-function processPayment(orderId, userId) {
-    const usePoints = randomIntBetween(5000, 50000);
-
+function processPayment(orderId, userId, amount) {
     const payload = JSON.stringify({
         orderId: orderId,
         userId: userId,
+        amount: amount,
         paymentMethod: 'BALANCE',
-        usePoints: usePoints,
     });
 
     const startTime = Date.now();

@@ -147,10 +147,10 @@ export function eventScenario() {
     } else if (rand <= 75) {
         // 20%: 체크아웃 → 결제
         group('주문/결제', () => {
-            const orderId = initiateCheckout(userId);
-            if (orderId) {
+            const checkoutResult = initiateCheckout(userId);
+            if (checkoutResult && checkoutResult.orderId) {
                 sleep(0.1);
-                processPayment(orderId, userId);
+                processPayment(checkoutResult.orderId, userId, checkoutResult.amount);
             }
         });
     } else if (rand <= 90) {
@@ -295,7 +295,7 @@ function initiateCheckout(userId) {
         successCounter.add(1);
         try {
             const body = JSON.parse(response.body);
-            return body.data?.orderId;
+            return { orderId: body.data?.orderId, amount: body.data?.finalAmount || 0 };
         } catch {
             return null;
         }
@@ -305,12 +305,12 @@ function initiateCheckout(userId) {
     }
 }
 
-function processPayment(orderId, userId) {
+function processPayment(orderId, userId, amount) {
     const payload = JSON.stringify({
         orderId: orderId,
         userId: userId,
+        amount: amount,
         paymentMethod: 'BALANCE',
-        usePoints: randomIntBetween(10000, 50000),
     });
 
     const startTime = Date.now();
