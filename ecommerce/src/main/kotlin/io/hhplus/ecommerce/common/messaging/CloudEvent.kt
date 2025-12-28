@@ -129,6 +129,10 @@ object CloudEventTypes {
 /**
  * Kafka 토픽명 상수 (단일 소스)
  *
+ * 토픽 분류:
+ * - Events: Debezium CDC로 발행되는 도메인 이벤트 (Outbox 패턴)
+ * - Queue: 실시간 요청 큐 (선착순 처리)
+ *
  * 사용처:
  * - KafkaTopicConfig: 토픽 자동 생성
  * - KafkaMessagePublisher: 토픽 라우팅
@@ -136,32 +140,54 @@ object CloudEventTypes {
  * - EventHandler: 토픽 기반 필터링
  */
 object Topics {
-    const val ORDER = "ecommerce.order"
-    const val PAYMENT = "ecommerce.payment"
-    const val INVENTORY = "ecommerce.inventory"
-    const val COUPON = "ecommerce.coupon"
-    const val POINT = "ecommerce.point"
-    const val DELIVERY = "ecommerce.delivery"
+    // =========================================
+    // CDC 도메인 이벤트 토픽 (Debezium → Kafka)
+    // Outbox 테이블 INSERT → CDC 감지 → 발행
+    // =========================================
+    object Events {
+        const val ORDER = "ecommerce.events.order"
+        const val PAYMENT = "ecommerce.events.payment"
+        const val INVENTORY = "ecommerce.events.inventory"
+        const val COUPON = "ecommerce.events.coupon"
+        const val POINT = "ecommerce.events.point"
+        const val DELIVERY = "ecommerce.events.delivery"
+        const val CART = "ecommerce.events.cart"
+
+        fun all(): List<String> = listOf(ORDER, PAYMENT, INVENTORY, COUPON, POINT, DELIVERY, CART)
+    }
+
+    // =========================================
+    // 실시간 요청 큐 토픽 (Producer → Kafka)
+    // 선착순 처리를 위한 요청 큐
+    // =========================================
+    object Queue {
+        const val COUPON_ISSUE = "ecommerce.queue.coupon-issue"      // 선착순 쿠폰 발급
+        const val CHECKOUT = "ecommerce.queue.checkout"              // 선착순 체크아웃
+    }
+
+    // =========================================
+    // 기타 토픽
+    // =========================================
     const val DATA_PLATFORM = "ecommerce.data-platform"
     const val DEFAULT = "ecommerce.default"
 
     /**
-     * 이벤트 타입에서 토픽 매핑
+     * 이벤트 타입에서 CDC 토픽 매핑
      */
     fun fromEventType(eventType: String): String {
         return when {
             eventType.contains("order", ignoreCase = true) ||
-                eventType.contains("Order") -> ORDER
+                eventType.contains("Order") -> Events.ORDER
             eventType.contains("payment", ignoreCase = true) ||
-                eventType.contains("Payment") -> PAYMENT
+                eventType.contains("Payment") -> Events.PAYMENT
             eventType.contains("inventory", ignoreCase = true) ||
-                eventType.contains("Stock") -> INVENTORY
+                eventType.contains("Stock") -> Events.INVENTORY
             eventType.contains("coupon", ignoreCase = true) ||
-                eventType.contains("Coupon") -> COUPON
+                eventType.contains("Coupon") -> Events.COUPON
             eventType.contains("point", ignoreCase = true) ||
-                eventType.contains("Point") -> POINT
+                eventType.contains("Point") -> Events.POINT
             eventType.contains("delivery", ignoreCase = true) ||
-                eventType.contains("Delivery") -> DELIVERY
+                eventType.contains("Delivery") -> Events.DELIVERY
             else -> DEFAULT
         }
     }

@@ -9,13 +9,19 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 
 /**
- * Outbox 이벤트 프로세서
+ * Outbox 이벤트 프로세서 (Fallback)
+ *
+ * CDC가 primary 처리 경로이며, 이 프로세서는 fallback으로 동작:
+ * - CDC 처리 실패 시 누락된 이벤트 복구
+ * - Debezium 장애 시 대체 처리
  *
  * 역할:
- * - 미처리 이벤트 폴링
+ * - 미처리 이벤트 폴링 (60초 주기)
  * - 적절한 핸들러에게 이벤트 라우팅
  * - 처리 결과 기록 (성공/실패)
  * - 최대 재시도 초과 시 DLQ로 이동
+ *
+ * @see OutboxCdcConsumer CDC 기반 실시간 처리
  */
 @Component
 class OutboxEventProcessor(
@@ -29,7 +35,7 @@ class OutboxEventProcessor(
         private const val BATCH_SIZE = 50
     }
 
-    @Scheduled(fixedDelay = 5000)
+    @Scheduled(fixedDelay = 60000)  // 60초 (CDC fallback)
     fun processEvents() {
         val events = outboxEventService.getUnprocessedEvents(BATCH_SIZE)
 

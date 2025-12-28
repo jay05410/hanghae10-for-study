@@ -16,6 +16,7 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.*
+import org.springframework.context.ApplicationEventPublisher
 
 /**
  * ProcessPaymentUseCase 단위 테스트
@@ -27,10 +28,11 @@ import io.mockk.*
 class ProcessPaymentUseCaseTest : DescribeSpec({
     val mockPaymentDomainService = mockk<PaymentDomainService>()
     val mockOutboxEventService = mockk<OutboxEventService>()
+    val mockEventPublisher = mockk<ApplicationEventPublisher>()
     val mockBalanceExecutor = mockk<PaymentExecutorPort>()
 
     beforeEach {
-        clearMocks(mockPaymentDomainService, mockOutboxEventService, mockBalanceExecutor)
+        clearMocks(mockPaymentDomainService, mockOutboxEventService, mockEventPublisher, mockBalanceExecutor)
         every { mockBalanceExecutor.supportedMethod() } returns PaymentMethod.BALANCE
         every { mockOutboxEventService.publishEvent(any(), any(), any(), any()) } returns mockk<OutboxEvent>()
     }
@@ -39,6 +41,7 @@ class ProcessPaymentUseCaseTest : DescribeSpec({
         return ProcessPaymentUseCase(
             paymentDomainService = mockPaymentDomainService,
             outboxEventService = mockOutboxEventService,
+            eventPublisher = mockEventPublisher,
             executors = listOf(mockBalanceExecutor)
         )
     }

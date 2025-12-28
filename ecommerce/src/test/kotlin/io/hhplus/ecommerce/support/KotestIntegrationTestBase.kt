@@ -120,10 +120,11 @@ abstract class KotestIntegrationTestBase(body: DescribeSpec.() -> Unit = {}) : D
          * Singleton 패턴: 모든 테스트에서 동일 컨테이너 재사용
          * - 컨테이너 시작 시간 절약 (~10초 → 1회만)
          * - 이벤트 유실 없이 테스트 간 연속성 유지
+         * - 7.5.0 사용 (8.x는 KRaft 모드 기본으로 호환성 문제)
          */
         @Container
         @JvmStatic
-        protected val kafkaContainer = KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:8.1.0"))
+        protected val kafkaContainer = KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.5.0"))
             .apply {
                 start() // 명시적으로 시작
             }
