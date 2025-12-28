@@ -83,20 +83,43 @@ class KafkaConfig(
     }
 
     // ===========================================
-    // Topics
+    // CDC 도메인 이벤트 토픽 (Debezium → Kafka)
     // ===========================================
 
     @Bean
-    fun orderTopic(): NewTopic = buildTopic(Topics.ORDER)
+    fun orderEventTopic(): NewTopic = buildTopic(Topics.Events.ORDER)
 
     @Bean
-    fun paymentTopic(): NewTopic = buildTopic(Topics.PAYMENT)
+    fun paymentEventTopic(): NewTopic = buildTopic(Topics.Events.PAYMENT)
 
     @Bean
-    fun couponTopic(): NewTopic = buildTopic(Topics.COUPON)
+    fun inventoryEventTopic(): NewTopic = buildTopic(Topics.Events.INVENTORY)
 
     @Bean
-    fun inventoryTopic(): NewTopic = buildTopic(Topics.INVENTORY)
+    fun couponEventTopic(): NewTopic = buildTopic(Topics.Events.COUPON)
+
+    @Bean
+    fun pointEventTopic(): NewTopic = buildTopic(Topics.Events.POINT)
+
+    @Bean
+    fun deliveryEventTopic(): NewTopic = buildTopic(Topics.Events.DELIVERY)
+
+    @Bean
+    fun cartEventTopic(): NewTopic = buildTopic(Topics.Events.CART)
+
+    // ===========================================
+    // 실시간 요청 큐 토픽 (Producer → Kafka)
+    // ===========================================
+
+    @Bean
+    fun couponIssueQueueTopic(): NewTopic = buildTopic(Topics.Queue.COUPON_ISSUE)
+
+    @Bean
+    fun checkoutQueueTopic(): NewTopic = buildTopic(Topics.Queue.CHECKOUT)
+
+    // ===========================================
+    // 기타 토픽
+    // ===========================================
 
     @Bean
     fun dataPlatformTopic(): NewTopic = buildTopic(Topics.DATA_PLATFORM)

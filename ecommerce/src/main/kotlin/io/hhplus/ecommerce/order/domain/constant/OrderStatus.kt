@@ -40,7 +40,7 @@ enum class OrderStatus {
 
     fun canTransitionTo(newStatus: OrderStatus): Boolean {
         val validTransitions = when (this) {
-            PENDING_PAYMENT -> listOf(PENDING, CANCELLED, FAILED, EXPIRED)
+            PENDING_PAYMENT -> listOf(PENDING, CONFIRMED, CANCELLED, FAILED, EXPIRED)  // 결제 완료 시 바로 CONFIRMED 가능
             PENDING -> listOf(CONFIRMED, CANCELLED, FAILED)
             CONFIRMED -> listOf(COMPLETED, CANCELLED)
             COMPLETED -> emptyList()

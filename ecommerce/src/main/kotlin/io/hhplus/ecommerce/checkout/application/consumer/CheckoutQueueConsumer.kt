@@ -2,8 +2,8 @@ package io.hhplus.ecommerce.checkout.application.consumer
 
 import io.hhplus.ecommerce.checkout.application.service.CheckoutQueueService
 import io.hhplus.ecommerce.checkout.application.usecase.CheckoutUseCase
-import io.hhplus.ecommerce.checkout.presentation.dto.DirectOrderItem
-import io.hhplus.ecommerce.checkout.presentation.dto.InitiateCheckoutRequest
+import io.hhplus.ecommerce.checkout.presentation.dto.CheckoutItem
+import io.hhplus.ecommerce.checkout.presentation.dto.CheckoutRequest
 import io.hhplus.ecommerce.common.messaging.Topics
 import io.hhplus.ecommerce.common.outbox.payload.CheckoutQueuePayload
 import io.hhplus.ecommerce.common.outbox.payload.CheckoutResultPayload
@@ -17,11 +17,11 @@ import org.springframework.kafka.support.Acknowledgment
 import org.springframework.stereotype.Component
 
 /**
- * 선착순 체크아웃 큐 Consumer
+ * 체크아웃 큐 Consumer
  *
- * Kafka 파티션 기반으로 상품별 순차 처리
- * - 동일 상품(productId)은 같은 파티션으로 라우팅 → 순서 보장
- * - DB 락 경합 없이 순차 처리로 안정적인 재고 관리
+ * Kafka 파티션 기반 순차 처리
+ * - 동일 파티션 키(상품/사용자)는 순서 보장
+ * - 분산락/DB락 없이 순차 처리로 락 경합 제거
  */
 @Component
 class CheckoutQueueConsumer(
@@ -33,7 +33,7 @@ class CheckoutQueueConsumer(
     private val json = Json { ignoreUnknownKeys = true }
 
     @KafkaListener(
-        topics = [Topics.CHECKOUT_QUEUE],
+        topics = [Topics.Queue.CHECKOUT],
         groupId = "checkout-queue-consumer",
         containerFactory = "kafkaListenerContainerFactory"
     )
@@ -48,23 +48,27 @@ class CheckoutQueueConsumer(
             payload = json.decodeFromString<CheckoutQueuePayload>(record.value())
 
             logger.info {
-                "[CheckoutQueueConsumer] 처리 시작: requestId=${payload.requestId}, " +
-                    "userId=${payload.userId}, productId=${payload.productId}, " +
+                "[CheckoutConsumer] 처리 시작: requestId=${payload.requestId}, " +
+                    "userId=${payload.userId}, isCart=${payload.isFromCart()}, " +
                     "position=${payload.queuePosition}"
             }
 
-            // 체크아웃 실행
-            val checkoutSession = checkoutUseCase.initiateCheckout(
-                InitiateCheckoutRequest(
-                    userId = payload.userId,
-                    directOrderItems = listOf(
-                        DirectOrderItem(
-                            productId = payload.productId,
-                            quantity = payload.quantity
-                        )
+            // Payload → CheckoutRequest 변환
+            val checkoutRequest = CheckoutRequest(
+                userId = payload.userId,
+                cartItemIds = payload.cartItemIds,
+                items = payload.items?.map { item ->
+                    CheckoutItem(
+                        productId = item.productId,
+                        quantity = item.quantity,
+                        giftWrap = item.giftWrap,
+                        giftMessage = item.giftMessage
                     )
-                )
+                }
             )
+
+            // 체크아웃 실행 (락 없이 - Kafka 파티션이 순서 보장)
+            val checkoutSession = checkoutUseCase.processCheckout(checkoutRequest)
 
             // 성공 결과 SSE 전송
             val result = CheckoutResultPayload(
@@ -84,21 +88,20 @@ class CheckoutQueueConsumer(
 
             val processingTime = System.currentTimeMillis() - startTime
             logger.info {
-                "[CheckoutQueueConsumer] 처리 완료: requestId=${payload.requestId}, " +
-                    "orderId=${checkoutSession.orderId}, processingTime=${processingTime}ms"
+                "[CheckoutConsumer] 완료: requestId=${payload.requestId}, " +
+                    "orderId=${checkoutSession.orderId}, time=${processingTime}ms"
             }
 
         } catch (e: Exception) {
             logger.error(e) {
-                "[CheckoutQueueConsumer] 처리 실패: requestId=${payload?.requestId}, error=${e.message}"
+                "[CheckoutConsumer] 실패: requestId=${payload?.requestId}, error=${e.message}"
             }
 
-            // 실패 결과 SSE 전송
             payload?.let {
                 val result = CheckoutResultPayload(
                     requestId = it.requestId,
                     success = false,
-                    errorMessage = e.message ?: "체크아웃 처리 중 오류 발생",
+                    errorMessage = e.message ?: "체크아웃 처리 중 오류",
                     queuePosition = it.queuePosition
                 )
 
@@ -109,7 +112,6 @@ class CheckoutQueueConsumer(
                 )
             }
         } finally {
-            // 대기열 순번 정보 삭제
             payload?.let {
                 checkoutQueueService.removeQueuePosition(it.requestId)
             }

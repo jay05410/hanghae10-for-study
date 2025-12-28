@@ -1,12 +1,12 @@
 package io.hhplus.ecommerce.checkout.application.service
 
+import io.hhplus.ecommerce.checkout.presentation.dto.CheckoutRequest
 import io.hhplus.ecommerce.common.messaging.KafkaMessagePublisher
 import io.hhplus.ecommerce.common.messaging.Topics
+import io.hhplus.ecommerce.common.outbox.payload.CheckoutItemPayload
 import io.hhplus.ecommerce.common.outbox.payload.CheckoutQueuePayload
 import io.hhplus.ecommerce.common.sse.SseEmitterService
 import io.hhplus.ecommerce.common.sse.SseEventType
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import mu.KotlinLogging
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Service
@@ -14,14 +14,15 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 /**
- * 선착순 체크아웃 큐 서비스
+ * 체크아웃 큐 서비스
  *
- * 재고가 제한된 인기 상품의 동시 주문 시 DB 락 경합을 제거
+ * 체크아웃 = 결제 버튼 클릭 → 재고 확보 시점
+ * Kafka 큐로 순차 처리하여 DB 락 경합 제거
  *
  * 처리 흐름:
- * 1. 요청 즉시: Kafka 큐에 등록 + 대기열 순번 반환
- * 2. 비동기: CheckoutQueueConsumer가 순차 처리
- * 3. 완료 시: SSE로 결과 푸시
+ * 1. 요청: Kafka 큐 등록 + 대기열 순번 반환
+ * 2. 비동기: Consumer 순차 처리
+ * 3. 완료: SSE로 결과 푸시
  */
 @Service
 class CheckoutQueueService(
@@ -30,7 +31,6 @@ class CheckoutQueueService(
     private val sseEmitterService: SseEmitterService
 ) {
     private val logger = KotlinLogging.logger {}
-    private val json = Json { ignoreUnknownKeys = true }
 
     companion object {
         private const val QUEUE_COUNTER_KEY = "ecom:checkout:queue:counter"
@@ -40,65 +40,75 @@ class CheckoutQueueService(
 
     /**
      * 체크아웃 요청을 큐에 등록
-     *
-     * @return 요청 ID와 대기열 순번
      */
-    fun enqueue(
-        userId: Long,
-        productId: Long,
-        quantity: Int
-    ): CheckoutQueueResponse {
+    fun enqueue(request: CheckoutRequest): CheckoutQueueResponse {
         val requestId = UUID.randomUUID().toString()
-        val queuePosition = getNextQueuePosition(productId)
+
+        // 파티션 키 결정: 장바구니는 userId, 바로주문은 첫 상품 ID
+        val partitionKey = if (request.isFromCart()) {
+            "user:${request.userId}"
+        } else {
+            "product:${request.items!!.first().productId}"
+        }
+
+        val queuePosition = getNextQueuePosition(partitionKey)
 
         val payload = CheckoutQueuePayload(
             requestId = requestId,
-            userId = userId,
-            productId = productId,
-            quantity = quantity,
+            userId = request.userId,
+            cartItemIds = request.cartItemIds,
+            items = request.items?.map { item ->
+                CheckoutItemPayload(
+                    productId = item.productId,
+                    quantity = item.quantity,
+                    giftWrap = item.giftWrap,
+                    giftMessage = item.giftMessage
+                )
+            },
             queuePosition = queuePosition,
             requestedAt = System.currentTimeMillis()
         )
 
-        // Kafka 큐에 발행 (상품 ID를 키로 사용하여 파티션 보장)
-        // KafkaMessagePublisher가 Jackson으로 직렬화하므로 payload 객체 직접 전달
+        // Kafka 큐에 발행
         kafkaPublisher.publish(
-            topic = Topics.CHECKOUT_QUEUE,
-            key = productId.toString(),
+            topic = Topics.Queue.CHECKOUT,
+            key = partitionKey,
             payload = mapOf(
                 "requestId" to payload.requestId,
                 "userId" to payload.userId,
-                "productId" to payload.productId,
-                "quantity" to payload.quantity,
+                "cartItemIds" to payload.cartItemIds,
+                "items" to payload.items?.map { mapOf(
+                    "productId" to it.productId,
+                    "quantity" to it.quantity,
+                    "giftWrap" to it.giftWrap,
+                    "giftMessage" to it.giftMessage
+                )},
                 "queuePosition" to payload.queuePosition,
                 "requestedAt" to payload.requestedAt
             )
         )
 
-        // 요청 ID - 순번 매핑 저장 (상태 조회용)
         saveQueuePosition(requestId, queuePosition)
 
         logger.info {
-            "[CheckoutQueue] 대기열 등록: requestId=$requestId, userId=$userId, " +
-                "productId=$productId, position=$queuePosition"
+            "[CheckoutQueue] 등록: requestId=$requestId, userId=${request.userId}, " +
+                "isCart=${request.isFromCart()}, position=$queuePosition"
         }
 
-        // SSE로 대기열 등록 알림
         sseEmitterService.sendEvent(
-            userId = userId,
+            userId = request.userId,
             eventType = SseEventType.CHECKOUT_QUEUED,
             data = mapOf(
                 "requestId" to requestId,
                 "queuePosition" to queuePosition,
-                "productId" to productId,
-                "message" to "대기열에 등록되었습니다. 순번: $queuePosition"
+                "message" to "체크아웃 대기열 등록. 순번: $queuePosition"
             )
         )
 
         return CheckoutQueueResponse(
             requestId = requestId,
             queuePosition = queuePosition,
-            estimatedWaitSeconds = queuePosition * 2  // 예상 대기 시간 (건당 2초 가정)
+            estimatedWaitSeconds = queuePosition * 2
         )
     }
 
@@ -111,10 +121,10 @@ class CheckoutQueueService(
     }
 
     /**
-     * 다음 대기열 순번 발급 (상품별)
+     * 다음 대기열 순번 발급
      */
-    private fun getNextQueuePosition(productId: Long): Int {
-        val key = "$QUEUE_COUNTER_KEY:$productId"
+    private fun getNextQueuePosition(partitionKey: String): Int {
+        val key = "$QUEUE_COUNTER_KEY:$partitionKey"
         val position = redisTemplate.opsForValue().increment(key) ?: 1L
         redisTemplate.expire(key, QUEUE_TTL_HOURS, TimeUnit.HOURS)
         return position.toInt()

@@ -17,6 +17,10 @@ import org.springframework.stereotype.Component
  * - 재고 도메인 불변식 보장
  * - Repository(Port)를 통한 영속성 위임
  *
+ * 동시성 제어:
+ * - DB 비관적 락 사용 (SELECT FOR UPDATE)
+ * - UseCase 레벨의 분산락과 조합하여 사용
+ *
  * 주의:
  * - @Transactional 사용 금지 (UseCase에서 관리)
  * - 오케스트레이션은 UseCase에서 담당
@@ -130,5 +134,13 @@ class InventoryDomainService(
         val inventory = inventoryRepository.findByProductId(productId)
             ?: return 0
         return inventory.getAvailableQuantity()
+    }
+
+    /**
+     * 재고 저장 (락 없이)
+     * Kafka 큐 기반 순차 처리 시 사용 - Kafka 파티션이 순서 보장
+     */
+    fun saveInventory(inventory: Inventory): Inventory {
+        return inventoryRepository.save(inventory)
     }
 }

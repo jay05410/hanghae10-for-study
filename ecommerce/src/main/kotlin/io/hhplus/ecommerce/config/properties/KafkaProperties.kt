@@ -30,6 +30,7 @@ class KafkaProperties(
 class ConsumerProperties(
     var couponGroupId: String = "ecommerce-coupon-consumer-group",
     var dataPlatformGroupId: String = "ecommerce-data-platform-consumer-group",
+    var outboxCdcGroupId: String = "ecommerce-outbox-cdc-consumer-group",
     var autoOffsetReset: String = "latest"
 )
 

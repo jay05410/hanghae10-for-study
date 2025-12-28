@@ -129,7 +129,7 @@ class CouponEventHandler(
             val payload = json.decodeFromString<CouponIssueRequestPayload>(event.payload)
 
             kafkaMessagePublisher.publish(
-                topic = Topics.COUPON,
+                topic = Topics.Queue.COUPON_ISSUE,
                 key = payload.couponId.toString(),
                 payload = mapOf(
                     "couponId" to payload.couponId,

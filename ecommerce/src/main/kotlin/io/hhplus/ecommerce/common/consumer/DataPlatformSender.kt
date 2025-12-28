@@ -22,7 +22,9 @@ import org.springframework.stereotype.Service
 class DataPlatformSender(
     private val dataPlatformClient: DataPlatformClient
 ) {
-    private val logger = KotlinLogging.logger {}
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
 
     /**
      * 데이터 플랫폼에 주문 정보 전송

@@ -37,7 +37,7 @@ class CouponIssueConsumer(
     private val json = Json { ignoreUnknownKeys = true }
 
     @KafkaListener(
-        topics = [Topics.COUPON],
+        topics = [Topics.Queue.COUPON_ISSUE],
         groupId = "#{@kafkaProperties.consumer.couponGroupId}",
         containerFactory = "kafkaListenerContainerFactory"
     )

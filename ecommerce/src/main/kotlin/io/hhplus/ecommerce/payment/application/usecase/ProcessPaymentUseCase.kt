@@ -10,12 +10,14 @@ import io.hhplus.ecommerce.payment.application.port.out.PaymentExecutorPort
 import io.hhplus.ecommerce.payment.domain.constant.PaymentMethod
 import io.hhplus.ecommerce.payment.domain.constant.PaymentStatus
 import io.hhplus.ecommerce.payment.domain.entity.Payment
+import io.hhplus.ecommerce.payment.domain.event.PaymentCompletedEvent
 import io.hhplus.ecommerce.payment.domain.model.PaymentContext
 import io.hhplus.ecommerce.payment.domain.service.PaymentDomainService
 import io.hhplus.ecommerce.payment.presentation.dto.ProcessPaymentRequest
 import io.hhplus.ecommerce.payment.exception.PaymentException
 import kotlinx.serialization.json.Json
 import mu.KotlinLogging
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Component
 
 /**
@@ -44,6 +46,7 @@ import org.springframework.stereotype.Component
 class ProcessPaymentUseCase(
     private val paymentDomainService: PaymentDomainService,
     private val outboxEventService: OutboxEventService,
+    private val eventPublisher: ApplicationEventPublisher,
     executors: List<PaymentExecutorPort>
 ) {
     private val logger = KotlinLogging.logger {}

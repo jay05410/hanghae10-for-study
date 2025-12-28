@@ -133,7 +133,7 @@ services:
       - ecommerce-network
 
   debezium:
-    image: debezium/connect:3.0
+    image: quay.io/debezium/connect:2.7
     container_name: ecommerce-debezium
     deploy:
       resources:

@@ -133,10 +133,22 @@ OrderEventHandler - 주문 확정 실패: 현재: EXPIRED, 시도: CONFIRMED
 - 서버 로그에 타임아웃 에러 없음
 - 트래픽 증가로 응답 지연 → k6 클라이언트 타임아웃 (15초)
 
-### 개선 방안
-1. Outbox 이벤트 처리 주기 단축 (현재 5초 → 1초)
-2. 주문 만료 스케줄러와 Outbox 처리 우선순위 조정
-3. 이벤트 처리 시 상태 검증 후 graceful skip
+### 조치: Debezium CDC 기반 실시간 처리
+
+**문제**: Outbox 폴링 방식 (5초 주기)이 주문 만료보다 느림
+
+**해결**: CDC (Change Data Capture)로 즉시 처리
+```
+기존: Outbox INSERT → 5초 대기 → 폴링 → 처리
+개선: Outbox INSERT → Debezium 감지 → Kafka 발행 → 즉시 처리
+```
+
+**변경 사항**:
+1. `OutboxCdcConsumer` 생성: Debezium 메시지 실시간 소비
+2. `OutboxEventProcessor` 주기 변경: 5초 → 60초 (fallback)
+3. `outbox-connector.json`: eventId 헤더 추가
+
+**기대 효과**: 주문 만료 전 결제 완료 이벤트 처리 보장
 
 ---
 

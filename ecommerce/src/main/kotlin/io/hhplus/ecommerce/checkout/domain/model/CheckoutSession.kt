@@ -1,6 +1,6 @@
 package io.hhplus.ecommerce.checkout.domain.model
 
-import io.hhplus.ecommerce.checkout.application.usecase.CheckoutItem
+import io.hhplus.ecommerce.checkout.presentation.dto.CheckoutItem
 import java.time.LocalDateTime
 
 /**

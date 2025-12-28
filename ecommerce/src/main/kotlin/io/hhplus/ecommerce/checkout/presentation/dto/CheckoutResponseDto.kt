@@ -1,6 +1,5 @@
 package io.hhplus.ecommerce.checkout.presentation.dto
 
-import io.hhplus.ecommerce.checkout.application.usecase.CheckoutItem
 import io.hhplus.ecommerce.checkout.domain.model.CheckoutSession
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDateTime

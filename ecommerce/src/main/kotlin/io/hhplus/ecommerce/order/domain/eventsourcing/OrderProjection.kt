@@ -45,7 +45,7 @@ class OrderProjection(
     @Transactional
     fun handle(domainEvent: DomainEvent) {
         // Order 토픽 이벤트만 처리
-        if (domainEvent.topic != Topics.ORDER) return
+        if (domainEvent.topic != Topics.Events.ORDER) return
 
         val payload = domainEvent.payload
         if (payload !is OrderEvent) {

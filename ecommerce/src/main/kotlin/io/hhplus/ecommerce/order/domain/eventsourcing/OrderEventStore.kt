@@ -204,7 +204,7 @@ class OrderEventStore(
     private fun publishEvent(event: OrderEvent) {
         try {
             messagePublisher.publish(
-                topic = Topics.ORDER,
+                topic = Topics.Events.ORDER,
                 key = event.orderId.toString(),
                 payload = event
             )

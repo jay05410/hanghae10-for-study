@@ -67,6 +67,12 @@ class OrderEventHandler(
                 return true
             }
 
+            // 이미 만료된 주문은 확정 불필요 (Outbox 처리 지연으로 인한 정상 케이스)
+            if (order.status == OrderStatus.EXPIRED) {
+                logger.warn("[OrderEventHandler] 이미 만료된 주문, 확정 skip: orderId={}", payload.orderId)
+                return true  // 성공으로 처리하여 재시도 방지
+            }
+
             orderDomainService.confirmOrder(payload.orderId)
             logger.info("[OrderEventHandler] 주문 확정 완료: orderId={}", payload.orderId)
 
@@ -83,7 +89,7 @@ class OrderEventHandler(
 
             true
         } catch (e: Exception) {
-            logger.error("[OrderEventHandler] 주문 확정 실패: eventId={}, error={}", event.id, e.message, e)
+            logger.error("[OrderEventHandler] 주문 확정 실패: eventId={}, error={}", event.id, e.message)
             false
         }
     }
